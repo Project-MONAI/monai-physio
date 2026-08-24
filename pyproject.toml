@@ -364,6 +364,10 @@ module = [
     "tutorial_12_duke_heart_end_to_end_inference",
     "tutorial_12_lung_end_to_end_inference",
     "tutorial_13_heart_and_lung_motion",
+    "tutorial_14_duke_heart_shape_parameter_sweep",
+    "tutorial_14_lung_shape_parameter_sweep",
+    "tutorial_15_duke_heart_leave_one_out",
+    "tutorial_15_lung_leave_one_out",
 ]
 disable_error_code = ["import-not-found", "import-untyped"]
 

@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+from typing import Any, Optional
+
+import itk
 import numpy as np
 import pytest
 import pyvista as pv
 
 from physiotwin4d import WorkflowCreateMeanSurface
+from physiotwin4d import workflow_create_mean_surface as wcms
 
 # Spheres of differing radii AND differing point counts: the population this
 # workflow exists for. Radii mean is 12.0 mm.
@@ -108,3 +112,45 @@ def test_converged_run_stops_early() -> None:
 
     assert result["number_of_iterations_run"] == 1
     assert len(result["iteration_rms_mm"]) == 1
+
+
+def test_distance_squared_max_defaults_to_the_mask_radius() -> None:
+    """An unset saturation radius is sized to the mask, as the fit workflow does."""
+    workflow = _make_workflow(_sphere(*_SPHERES[1]), iterations=1)
+    workflow.set_mask_dilation_mm(10.0)
+    assert workflow._distance_squared_max() == (1.25 * 10.0) ** 2
+
+    workflow.set_distance_squared_max(50.0)
+    assert workflow._distance_squared_max() == 50.0
+
+
+def test_correspondence_tuning_reaches_the_registrar(monkeypatch: Any) -> None:
+    """Stock distance maps and stock ICON weights under-fit, so both are tunable."""
+    seen: list[_Registrar] = []
+
+    class _Registrar:
+        def __init__(self, **kwargs: Any) -> None:
+            self.kwargs = kwargs
+            self.weights_path: Optional[str] = None
+            seen.append(self)
+
+        def set_icon_weights_path(self, weights_path: str) -> None:
+            self.weights_path = weights_path
+
+        def register(self, transform_type: str) -> dict[str, Any]:
+            identity = itk.AffineTransform[itk.D, 3].New()
+            identity.SetIdentity()
+            return {"forward_transform": identity}
+
+    monkeypatch.setattr(wcms, "RegisterModelsDistanceMaps", _Registrar)
+
+    workflow = _make_workflow(_sphere(*_SPHERES[1]), iterations=1)
+    workflow.set_mask_dilation_mm(10.0)
+    workflow.set_icon_weights_path("finetuned.trch")
+    workflow.process()
+
+    assert len(seen) == len(_SPHERES)
+    for registrar in seen:
+        assert registrar.kwargs["mask_dilation_mm"] == 10.0
+        assert registrar.kwargs["distance_squared_max"] == (1.25 * 10.0) ** 2
+        assert registrar.weights_path == "finetuned.trch"

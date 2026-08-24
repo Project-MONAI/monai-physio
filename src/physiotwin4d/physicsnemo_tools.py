@@ -5,20 +5,21 @@ connected (MLP) PhysicsNeMo workflows so the workflow classes stay focused on
 orchestration.  It provides:
 
 - :class:`SubjectManifest` / :func:`parse_manifest` — the per-subject JSON
-  manifest that lists a reference mesh, a PCA shape-parameter file, the name of
-  the point-data array holding the training targets, and the phase meshes that
-  carry that array with their stages.
+  manifest that lists a fitted reference mesh, a PCA shape-parameter file, the
+  name of the point-data array holding the training targets, and the phase
+  meshes that carry that array with their stages.
 - :func:`load_target_array` — read one phase's ``(n_points, n_target)`` target
   values out of a mesh's point data.
 - :func:`build_node_features` — the shared per-vertex feature layout
   ``[mean_coords_norm, pca_norm (tiled), stage]`` used by both networks.
 - :func:`mesh_to_edge_index` / :func:`compute_edge_features` — MGN mesh-graph
   construction from the shared template mesh (surface or volumetric).
-- :func:`reconstruct_reference_points` — rebuild a subject reference mesh's
-  points from PCA shape parameters (``P = mean + Σ b_i·std_i·eigenvector_i``),
-  used for manifest-free single-subject inference.
 - :func:`uncompiled_state_dict` / :func:`strip_compile_prefix` — checkpoint I/O
-  that is robust to ``torch.compile`` wrapping.
+  that is robust to ``torch.compile`` and ``DistributedDataParallel`` wrapping.
+- :class:`DistributedContext` / :func:`distributed_context` — the rank, device
+  and world size of the current process, from PhysicsNeMo's
+  ``DistributedManager``.  A run started without a launcher gets world size 1,
+  so single-process callers need no distributed-specific code.
 - :class:`PhaseSampleDataset` — a lazy ``(subject, phase)`` sample provider with
   a bounded in-RAM cache so the training set need not fit in memory.
 
@@ -64,9 +65,13 @@ class SubjectManifest:
 
     Attributes:
         subject_id: Identifier used for output naming.
-        reference_mesh: The subject's SSM reference mesh (``.vtp`` surface or
-            ``.vtu`` volume). It supplies the point positions the targets are
-            defined at; the stack never derives targets from it.
+        fitted_reference_mesh: The subject's SSM surface as fitted to that
+            subject by
+            :class:`physiotwin4d.WorkflowFitStatisticalModelToPatient` (``.vtp``
+            surface or ``.vtu`` volume) --- shape parameters *and* a deformable
+            registration, never shape parameters alone. It supplies the point
+            positions the targets are defined at; the stack never derives
+            targets from it.
         pca_coefficients: JSON file holding the subject's PCA shape-parameter
             vector (a flat list of floats).
         target_array: Name of the point-data array holding the target values in
@@ -75,7 +80,7 @@ class SubjectManifest:
     """
 
     subject_id: str
-    reference_mesh: Path
+    fitted_reference_mesh: Path
     pca_coefficients: Path
     target_array: str
     phases: list[PhaseEntry]
@@ -111,7 +116,7 @@ def parse_manifest(manifest_path: Path) -> SubjectManifest:
 
     for key in (
         "subject_id",
-        "reference_mesh",
+        "fitted_reference_mesh",
         "pca_coefficients",
         "target_array",
         "phases",
@@ -136,7 +141,7 @@ def parse_manifest(manifest_path: Path) -> SubjectManifest:
 
     return SubjectManifest(
         subject_id=str(data["subject_id"]),
-        reference_mesh=_resolve(data["reference_mesh"]),
+        fitted_reference_mesh=_resolve(data["fitted_reference_mesh"]),
         pca_coefficients=_resolve(data["pca_coefficients"]),
         target_array=str(data["target_array"]),
         phases=phases,
@@ -257,57 +262,93 @@ def compute_edge_features(
 
 
 # --------------------------------------------------------------------------- #
-# PCA reconstruction (manifest-free inference)                                 #
+# Distributed context                                                          #
 # --------------------------------------------------------------------------- #
-def reconstruct_reference_points(
-    mean_mesh: pv.DataSet, pca_model: dict, coeffs: np.ndarray
-) -> np.ndarray:
-    """Reconstruct a subject reference mesh's points from PCA shape parameters.
+@dataclass
+class DistributedContext:
+    """Rank, device and world size of the current process.
 
-    Applies the statistical-shape-model equation
-    ``P = mean + Σ b_i·std_i·eigenvector_i`` on the PCA template *mesh*
-    (whose ``components`` are defined) and returns the deformed points. Because
-    every subject shares the template topology, the point ordering matches the
-    shared template mesh used for training.
-
-    Args:
-        mean_mesh: PCA template mesh (e.g. ``pca_mean.vtu``) whose point count
-            matches the model components.
-        pca_model: Dict with ``eigenvalues`` and ``components`` (the
-            ``pca_model.json`` format).
-        coeffs: Subject PCA coefficients ``b_i`` (in units of standard
-            deviations); shorter/longer than the mode count is truncated.
-
-    Returns:
-        ``(n_points, 3)`` float32 reconstructed points.
-
-    Raises:
-        ValueError: If the component dimension does not match ``mean_mesh``.
+    ``world_size == 1`` covers both a run started without a launcher and a
+    single-GPU run under one, so callers branch on that rather than on how the
+    process was started.
     """
-    std = np.sqrt(np.asarray(pca_model["eigenvalues"], dtype=np.float64))
-    components = np.asarray(pca_model["components"], dtype=np.float64)
-    expected = mean_mesh.n_points * 3
-    if components.shape[1] != expected:
-        raise ValueError(
-            f"PCA component dimension {components.shape[1]} does not match "
-            f"mean mesh ({expected} = 3 x {mean_mesh.n_points} points)."
+
+    device: "torch.device"
+    rank: int
+    local_rank: int
+    world_size: int
+
+    @property
+    def is_main(self) -> bool:
+        """True on the one rank that owns writing to disk and logging."""
+        return self.rank == 0
+
+    @property
+    def is_distributed(self) -> bool:
+        """True when gradients have to be synchronized across ranks."""
+        return self.world_size > 1
+
+    def barrier(self) -> None:
+        """Block until every rank arrives; a no-op outside a distributed run."""
+        if not self.is_distributed:
+            return
+        import torch
+
+        torch.distributed.barrier()
+
+
+def distributed_context() -> DistributedContext:
+    """Initialize PhysicsNeMo's ``DistributedManager`` and read it back.
+
+    ``DistributedManager.initialize`` picks up ``torchrun``, SLURM or OpenMPI
+    environments and falls back to a single process when it finds none, so this
+    is safe to call from any entry point.  Initialization is done once per
+    process; calling this again returns the same context.
+    """
+    import torch
+
+    try:
+        from physicsnemo.distributed import DistributedManager
+    except ImportError:
+        # The MLP path does not otherwise need the [physicsnemo] extra, so a
+        # missing PhysicsNeMo means a single process rather than an error.
+        return DistributedContext(
+            device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
+            rank=0,
+            local_rank=0,
+            world_size=1,
         )
 
-    b = np.asarray(coeffs, dtype=np.float64)
-    n_modes = min(len(b), len(std), components.shape[0])
-    deform_flat = (b[:n_modes] * std[:n_modes]) @ components[:n_modes]
-    deform = deform_flat.reshape(-1, 3)
-
-    points = np.asarray(mean_mesh.points, dtype=np.float64) + deform
-    return np.asarray(points, dtype=np.float32)
+    if not DistributedManager.is_initialized():
+        DistributedManager.initialize()
+    manager = DistributedManager()
+    return DistributedContext(
+        device=manager.device,
+        rank=int(manager.rank),
+        local_rank=int(manager.local_rank),
+        world_size=int(manager.world_size),
+    )
 
 
 # --------------------------------------------------------------------------- #
 # Checkpoint I/O                                                               #
 # --------------------------------------------------------------------------- #
+def unwrap_model(model: Any) -> Any:
+    """Return the bare module inside any ``torch.compile`` / DDP wrappers.
+
+    Both wrappers can be applied, in either order, so peel until neither
+    attribute is left rather than checking for one of them.
+    """
+    while True:
+        inner = getattr(model, "_orig_mod", None) or getattr(model, "module", None)
+        if inner is None:
+            return model
+        model = inner
+
+
 def uncompiled_state_dict(model: Any) -> dict:
-    """Return a model's state dict, unwrapping ``torch.compile`` if applied."""
-    return cast(dict, getattr(model, "_orig_mod", model).state_dict())
+    """Return a model's state dict, unwrapping ``torch.compile`` and DDP."""
+    return cast(dict, unwrap_model(model).state_dict())
 
 
 def strip_compile_prefix(state: dict) -> dict:

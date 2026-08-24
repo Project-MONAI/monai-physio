@@ -127,6 +127,10 @@
          <h3>Bring Your Own Data</h3>
          <p>Point the workflows at your own DICOM, NRRD, or VTK data instead of the sample datasets.</p>
        </a>
+       <a class="pt4d-topic-card" href="cookbook/index.html">
+         <h3>PhysioTwin4D Cookbook</h3>
+         <p>Short recipes — ingredients and steps — for training on your own data and adding new segmentation or registration methods.</p>
+       </a>
        <a class="pt4d-topic-card" href="api/index.html">
          <h3>API Reference</h3>
          <p>Browse classes and modules for workflows, segmentation, registration, USD, and utilities.</p>
@@ -188,6 +192,13 @@ close every section.
    cli_scripts/train_physicsnemo
    cli_scripts/infer_physicsnemo
    cli_scripts/best_practices
+
+.. toctree::
+   :maxdepth: 2
+   :caption: PhysioTwin4D Cookbook
+   :hidden:
+
+   cookbook/index
 
 .. toctree::
    :maxdepth: 2

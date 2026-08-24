@@ -97,6 +97,13 @@ class WorkflowCreateMeanSurface(PhysioTwin4DBase):
         self.alignment_transform_type: str = "Rigid"
         self.registration_transform_type: str = "Deformable"
 
+        # Correspondence tuning, mirroring WorkflowFitStatisticalModelToPatient
+        # so that a mean built here and a fit against it see distance maps on
+        # the same scale.
+        self.mask_dilation_mm: float = 20.0
+        self.distance_squared_max: Optional[float] = None
+        self.icon_weights_path: Optional[str] = None
+
         # Results (populated by process()).
         self.mean_surface: Optional[pv.PolyData] = None
         self.corresponded_surfaces: list[pv.PolyData] = []
@@ -128,6 +135,36 @@ class WorkflowCreateMeanSurface(PhysioTwin4DBase):
                 "Must be 'Rigid' or 'Affine'."
             )
         self.alignment_transform_type = transform_type
+
+    def set_mask_dilation_mm(self, mask_dilation_mm: float) -> None:
+        """Set the dilation (mm) of the binary masks the Greedy stage registers in."""
+        self.mask_dilation_mm = mask_dilation_mm
+
+    def set_distance_squared_max(self, distance_squared_max: float) -> None:
+        """Set the squared millimetres the distance maps are normalized against.
+
+        The maps saturate at its square root, and a sample further than that
+        from the template has no gradient pulling it in, so the correspondence
+        stops short and the mean creeps toward the template.
+        """
+        self.distance_squared_max = distance_squared_max
+
+    def set_icon_weights_path(self, weights_path: str) -> None:
+        """Use a finetuned uniGradICON checkpoint for the deformable stage.
+
+        Stock weights are out of distribution for distance maps; see
+        ``RegisterModelsDistanceMaps.set_icon_weights_path``.
+
+        Args:
+            weights_path: Path to an existing uniGradICON checkpoint.
+        """
+        self.icon_weights_path = weights_path
+
+    def _distance_squared_max(self) -> float:
+        """Return the configured saturation radius, or one sized to the mask."""
+        if self.distance_squared_max is not None:
+            return self.distance_squared_max
+        return (1.25 * self.mask_dilation_mm) ** 2
 
     def set_registration_transform_type(self, transform_type: str) -> None:
         """Set the distance-map registration type used for correspondence.
@@ -292,8 +329,12 @@ class WorkflowCreateMeanSurface(PhysioTwin4DBase):
                 moving_model=aligned_surface,
                 fixed_model=template,
                 reference_image=reference_image,
+                distance_squared_max=self._distance_squared_max(),
+                mask_dilation_mm=self.mask_dilation_mm,
                 log_level=self.log_level,
             )
+            if self.icon_weights_path is not None:
+                registrar.set_icon_weights_path(self.icon_weights_path)
             result = registrar.register(transform_type=self.registration_transform_type)
 
             # The forward (image-convention) transform maps template points into

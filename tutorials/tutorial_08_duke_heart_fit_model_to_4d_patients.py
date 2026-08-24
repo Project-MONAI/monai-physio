@@ -253,6 +253,7 @@ if __name__ == "__main__":
             number_of_pca_components=number_of_pca_components,
             use_surface=False,
         )
+        fit_workflow.set_icp_transform_type(DUKE_HEART.icp_transform_type)
         fit_workflow.set_mask_dilation_mm(DUKE_HEART.mask_dilation_mm)
         fit_workflow.set_distancemap_squared_max(DUKE_HEART.distancemap_squared_max)
         if use_finetuned_weights:
@@ -276,12 +277,12 @@ if __name__ == "__main__":
         # Typically the SSM is a dense tetrahedral volume mesh, saved as .vtu,
         # and its bounding surface is saved separately as .vtp.  The heart PCA
         # model from Tutorial 6 (Duke Heart) is built from surfaces only, so
-        # here the model *is* a surface: "registered_template_model" and
-        # "registered_template_model_surface" are the same geometry, and only
+        # here the model *is* a surface: "fitted_reference_model" and
+        # "fitted_reference_mesh" are the same geometry, and only
         # the .vtp surface is written.
-        ssm_surface_fitted = fit_result["registered_template_model_surface"]
-        ssm_surface_file = case_output_dir / f"{case_id}_ssm_surface.vtp"
-        ssm_surface_fitted.save(str(ssm_surface_file))
+        fitted_reference_mesh = fit_result["fitted_reference_mesh"]
+        fitted_reference_mesh_file = case_output_dir / f"{case_id}_ssm_surface.vtp"
+        fitted_reference_mesh.save(str(fitted_reference_mesh_file))
 
         # Step 3: warp the fitted SSM surface onto every gated frame.  One grid
         # is built around the reference frame's heart and reused by every frame,
@@ -300,11 +301,11 @@ if __name__ == "__main__":
             if frame_file == reference_file:
                 # The fit already placed the SSM on this frame.
                 logger.info("Case %s: reference frame %s", case_id, stem)
-                phase_surface = ssm_surface_fitted
+                phase_surface = fitted_reference_mesh
             else:
                 logger.info("Case %s: warping to frame %s", case_id, stem)
                 registrar = RegisterModelsDistanceMaps(
-                    moving_model=ssm_surface_fitted,
+                    moving_model=fitted_reference_mesh,
                     fixed_model=heart_surface_for(frame_file, case_output_dir),
                     reference_image=registration_grid,
                     distance_squared_max=DUKE_HEART.distancemap_squared_max,
@@ -323,7 +324,7 @@ if __name__ == "__main__":
 
         tutorial_results["cases"][case_id] = {
             "pca_coefficients_file": pca_coefficients_file,
-            "ssm_surface_file": ssm_surface_file,
+            "fitted_reference_mesh_file": fitted_reference_mesh_file,
             "phase_outputs": phase_outputs,
         }
 
@@ -343,7 +344,7 @@ if __name__ == "__main__":
     last_case = list(tutorial_results["cases"].values())[-1]
     tutorial_results["screenshots"] = [
         tt.save_screenshot_mesh(
-            cast(pv.DataSet, pv.read(str(last_case["ssm_surface_file"]))),
+            cast(pv.DataSet, pv.read(str(last_case["fitted_reference_mesh_file"]))),
             "ssm_surface_reference.png",
             camera_position="iso",
             color="steelblue",

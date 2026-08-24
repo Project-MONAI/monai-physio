@@ -44,7 +44,7 @@ Example
    result = evaluate.process(
        case_id="Case1Pack",
        shape_parameters=pca_coefficients_file,
-       reference_mesh=ssm_surface_file,
+       fitted_reference_mesh=fitted_reference_mesh_file,
        reference_labelmap=reference_labelmap,
        ground_truth_labelmaps={0.0: frame_00, 0.1: frame_10},
        output_directory=out_dir,

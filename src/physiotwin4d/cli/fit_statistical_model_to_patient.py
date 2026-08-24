@@ -271,7 +271,7 @@ Examples:
         print("Saving results...")
 
         # Save registered model
-        registered_model = result["registered_template_model"]
+        registered_model = result["fitted_reference_model"]
         output_model_file = os.path.join(
             args.output_dir, f"{args.output_prefix}_model.vtu"
         )
@@ -279,7 +279,7 @@ Examples:
         print(f"  Registered model: {output_model_file}")
 
         # Save registered model surface
-        registered_surface = result["registered_template_model_surface"]
+        registered_surface = result["fitted_reference_mesh"]
         output_surface_file = os.path.join(
             args.output_dir, f"{args.output_prefix}_model_surface.vtp"
         )

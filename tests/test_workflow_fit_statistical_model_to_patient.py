@@ -7,6 +7,7 @@ from typing import Any
 
 import itk
 import numpy as np
+import pytest
 import pyvista as pv
 
 from physiotwin4d.segment_heart_simpleware import SegmentHeartSimpleware
@@ -181,3 +182,21 @@ def test_transform_model_preserves_unstructured_grid_topology() -> None:
         output.point_data["weights"], model.point_data["weights"]
     )
     np.testing.assert_allclose(output.points, points + np.array([1.0, 2.0, 3.0]))
+
+
+def test_fit_icp_transform_type_defaults_to_affine_and_validates() -> None:
+    """The fit must align the way the model was built, so this is tunable."""
+    image = itk.image_from_array(np.zeros((3, 3, 3), dtype=np.float32))
+    model = pv.PolyData(np.zeros((3, 3), dtype=np.float64))
+    workflow = WorkflowFitStatisticalModelToPatient(
+        template_model=model,
+        patient_models=[model],
+        patient_image=image,
+    )
+    assert workflow.icp_transform_type == "Affine"
+
+    workflow.set_icp_transform_type("Rigid")
+    assert workflow.icp_transform_type == "Rigid"
+
+    with pytest.raises(ValueError, match="Invalid ICP transform"):
+        workflow.set_icp_transform_type("Deformable")

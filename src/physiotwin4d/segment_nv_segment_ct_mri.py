@@ -615,7 +615,11 @@ class SegmentNVSegmentCTMRI(SegmentAnatomyBase):
                 )
             )
 
-            self._pipeline = VISTA3DPipeline(model, device=torch.device("cuda:0"))
+            # Unindexed, so the pipeline follows torch.cuda.set_device: under a
+            # distributed launcher each rank segments on its own GPU instead of
+            # every rank piling onto GPU 0.  Identical in a single process,
+            # where the current device is 0.
+            self._pipeline = VISTA3DPipeline(model, device=torch.device("cuda"))
         return self._pipeline
 
     def segmentation_method(self, preprocessed_image: itk.image) -> itk.image:

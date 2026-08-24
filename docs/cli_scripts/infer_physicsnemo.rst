@@ -43,13 +43,13 @@ No manifest — just the subject's PCA coefficients:
        --model-dir output/mgn_run \
        --shape-parameters Case1Pack_ssm_pca_coefficients.json \
        --stage 0.7 \
-       --reference-mesh Case1Pack_ssm_surface.vtp \
+       --fitted-reference-mesh Case1Pack_ssm_surface.vtp \
        --output output/prediction
 
-Omit ``--reference-mesh`` to displace the mesh reconstructed from the PCA
-coefficients alone, which needs no per-subject geometry but stays in the
-model's own frame. Supply ``--ground-truth`` to score the prediction against a
-known surface.
+``--fitted-reference-mesh`` is required in single-subject mode: it is the
+patient's fitted shape-model surface, written by
+``physiotwin4d-fit-statistical-model-to-patient``. Supply ``--ground-truth`` to
+score the prediction against a known surface.
 
 Deformation Fields
 ==================
@@ -63,7 +63,7 @@ and the reference-surface normals onto that image's voxel grid:
        --model-dir output/mgn_run \
        --shape-parameters coefficients.json \
        --stage 0.5 \
-       --reference-mesh patient_surface.vtp \
+       --fitted-reference-mesh patient_surface.vtp \
        --reference-image patient_ct.mha \
        --output output/fields
 
@@ -86,7 +86,7 @@ Options
 ``--manifest JSON``, ``--stages [FLOAT ...]``, ``--displacement``
    Manifest mode, as above.
 
-``--shape-parameters JSON``, ``--stage FLOAT``, ``--reference-mesh PATH``, ``--ground-truth PATH``, ``--reference-image PATH``
+``--shape-parameters JSON``, ``--stage FLOAT``, ``--fitted-reference-mesh PATH``, ``--ground-truth PATH``, ``--reference-image PATH``
    Single-subject mode, as above.
 
 ``--output PATH``

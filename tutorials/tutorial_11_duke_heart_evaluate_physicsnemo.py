@@ -23,9 +23,19 @@ chain, so this scores generalization rather than recall.
    Going through the labelmaps rather than through the model's surface is what
    makes per-chamber scores possible at all.
 
-3. Write ``evaluation_report.md`` and ``evaluation_metrics.csv``, both carrying
+3. Score the motion point by point: with Tutorial 8's per-frame SSM surfaces as
+   the ground truth, the report also carries the distance between where the
+   network puts each mesh point and where the shape model fitted it --- RMS,
+   95th percentile and maximum, per structure and per frame.  The shape model
+   has no chamber geometry of its own, so a mesh point counts toward the
+   structure whose reference-frame surface is nearest: a chamber is scored on
+   the piece of wall that bounds it.  A chamber whose predicted motion is right on average can
+   still be wrong everywhere, and only this measure says so.
+
+4. Write ``evaluation_report.md`` and ``evaluation_metrics.csv``, both carrying
    the hold-out case name, the case's shape parameters, and the network weights
-   path with its dates.
+   path with its dates.  Each metric is reported both averaged over the frames
+   and at the frame it is worst at.
 
 Extra Install Required
 ----------------------
@@ -41,10 +51,16 @@ Data Required
 
 Outputs (under ``output/tutorial_11_duke_heart/<case>/``)
 ---------------------------------------------------------
-  * ``evaluation_report.md``    - per-chamber accuracy of the prediction
-  * ``evaluation_metrics.csv``  - one row per stage and structure
+  * ``evaluation_report.md``    - per-chamber accuracy of the prediction, mean
+    and worst case, with the per-point displacement error per frame
+  * ``evaluation_metrics.csv``  - one row per stage and structure, each
+    carrying that structure's displacement error (RMS, 95th percentile, maximum)
+  * ``statistics_per_stage.csv`` - displacement error statistics per frame
   * ``volume_vs_stage.png``     - each structure's volume across the stages
-  * ``<case>_ssm_pca_coefficients_s{TTT}_pred.vtp`` - predicted surface per stage
+  * ``<case>_ssm_pca_coefficients_s{TTT}_pred.vtp`` - predicted surface per stage,
+    carrying the displacement point-data arrays the ``include_*`` switches ask for
+  * ``displacement_per_point.csv`` - every mesh point's predicted and true
+    displacement at every frame; written only when ``report_displacement_data``
 """
 
 # Imports
@@ -59,28 +75,12 @@ import pyvista as pv
 from parameters_duke_heart_labelmaps import DUKE_HEART
 
 from physiotwin4d import (
-    SegmentHeartSimplewareTrimmedBranches,
+    EvaluateMovementDukeHeart,
     TestTools,
     WorkflowEvaluateMovement,
     WorkflowInferMovement,
     WorkflowInferPhysicsNeMo,
 )
-
-LABELMAP_SUFFIX = "_labelmap.nii.gz"
-
-# The four chambers, plus the myocardium and the whole heart for context: 5 and
-# 6 are what the shape model itself represents, 1-4 are the cavities it does
-# not.  The great vessels and coronaries (7-10) are left out; they come and go
-# between frames and are not part of the model.
-HEART_LABEL_IDS = [1, 2, 3, 4, 5, 6]
-
-
-def _cardiac_stage_from_filename(labelmap_file: Path) -> float:
-    """Extract the normalized cardiac stage [0, 1] from a ``g{PPP}`` filename stem."""
-    for part in labelmap_file.name.split("_"):
-        if part.startswith("g") and part[1:].isdigit():
-            return int(part[1:]) / 100.0
-    raise ValueError(f"Cannot parse cardiac gate from filename: {labelmap_file}")
 
 
 # Only run if this script is not imported as a module
@@ -114,6 +114,18 @@ if __name__ == "__main__":
     # and still below the thinnest wall of the heart.
     evaluation_spacing_mm = 1.0
 
+    # Per-point displacement reporting, all off by default.  The first writes
+    # one CSV row per mesh point per frame; the rest carry the same quantities
+    # as point data on each frame's predicted surface.  Every one of them except
+    # the predicted displacement is measured against Tutorial 8's per-frame SSM
+    # surfaces, the only geometry that shares this mesh's point ordering.
+    report_displacement_data = False
+    include_predicted_displacements = False
+    include_true_displacements = False
+    # On: the point-by-point error is the one measure a displacement predicted
+    # in the wrong direction cannot hide in, and it costs one mesh read a frame.
+    include_displacement_error = True
+
     output_dir = tutorials_dir / "output" / "tutorial_11_duke_heart" / case_id
     log_level = logging.INFO
 
@@ -127,9 +139,9 @@ if __name__ == "__main__":
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    reference_mesh_file = case_dir / f"{case_id}_ssm_surface.vtp"
+    fitted_reference_mesh_file = case_dir / f"{case_id}_ssm_surface.vtp"
     pca_file = case_dir / f"{case_id}_ssm_pca_coefficients.json"
-    for required_file in (reference_mesh_file, pca_file):
+    for required_file in (fitted_reference_mesh_file, pca_file):
         if not required_file.exists():
             raise FileNotFoundError(
                 f"Tutorial 8 output not found: {required_file}\n"
@@ -137,62 +149,50 @@ if __name__ == "__main__":
                 "first."
             )
 
-    frame_files = sorted(labelmap_dir.glob(f"*{LABELMAP_SUFFIX}"))
-    if not frame_files:
-        raise FileNotFoundError(
-            f"No gated labelmaps found in {labelmap_dir}.\n"
-            "See data/Duke-Heart-4DLabelmaps/README.md."
-        )
-    reference_files = [
-        path for path in frame_files if path.name.endswith(f"_ref{LABELMAP_SUFFIX}")
-    ]
-    if not reference_files:
-        raise FileNotFoundError(
-            f"No *_ref{LABELMAP_SUFFIX} frame in {labelmap_dir}; Tutorial 8 fitted "
-            "the SSM to that frame, so it is the one the deformations start from."
-        )
-
-    # Step 1: ground truth, one labelmap per gated frame, as acquired.
-    ground_truth_labelmaps: dict[float, itk.Image] = {
-        _cardiac_stage_from_filename(frame_file): itk.imread(str(frame_file))
-        for frame_file in frame_files
-    }
-    logger.info("Case %s: %d gated frames", case_id, len(ground_truth_labelmaps))
-
-    # Step 2: score every frame, per chamber, against its own labelmap.  The
-    # segmenter is instantiated for its taxonomy alone; no model is loaded.
-    all_labels = SegmentHeartSimplewareTrimmedBranches(
-        log_level=logging.WARNING
-    ).taxonomy.all_labels()
-    # The taxonomy's "heart" is the whole heart minus its chamber cavities --
-    # the muscle the shape model represents -- so the report names it that way.
-    heart_names = {
-        label: "heart muscle" if all_labels[label] == "heart" else all_labels[label]
-        for label in HEART_LABEL_IDS
-    }
+    # Step 1: the cohort assembles what this case is scored against -- every
+    # gated frame's labelmap, the reference frame among them, and Tutorial 8's
+    # per-frame fits, which are the only geometry that shares the fitted
+    # reference mesh's point ordering.
+    cohort = EvaluateMovementDukeHeart(log_level=log_level)
+    ground_truth = cohort.assemble_ground_truth(
+        case_id=case_id,
+        frame_directory=labelmap_dir,
+        fit_directory=case_dir,
+    )
 
     infer_workflow = WorkflowInferPhysicsNeMo(
         model_directory=model_dir, epoch=epoch, log_level=log_level
     )
     evaluate_workflow = WorkflowEvaluateMovement(
         movement_workflow=WorkflowInferMovement(infer_workflow, log_level=log_level),
-        label_names=heart_names,
+        cohort=cohort,
         log_level=log_level,
     )
     result = evaluate_workflow.process(
         case_id=case_id,
         shape_parameters=pca_file,
-        reference_mesh=reference_mesh_file,
-        reference_labelmap=itk.imread(str(reference_files[0])),
-        ground_truth_labelmaps=ground_truth_labelmaps,
+        fitted_reference_mesh=fitted_reference_mesh_file,
+        ground_truth=ground_truth,
         output_directory=output_dir,
         smoothing_sigma_mm=smoothing_sigma_mm,
         evaluation_spacing_mm=evaluation_spacing_mm,
+        report_displacement_data=report_displacement_data,
+        include_predicted_displacements=include_predicted_displacements,
+        include_true_displacements=include_true_displacements,
+        include_displacement_error=include_displacement_error,
     )
 
     # Step 3: the report and the CSV are written by the workflow.
     logger.info("Report: %s", result["report_file"])
     logger.info("Metrics: %s", result["csv_file"])
+    if result["displacement_data_file"] is not None:
+        logger.info("Displacements: %s", result["displacement_data_file"])
+    logger.info(
+        "Displacement error: rms=%.3f mm  95th=%.3f mm  max=%.3f mm",
+        result["displacement_rms_mm"],
+        result["displacement_95th_mm"],
+        result["displacement_max_mm"],
+    )
 
     tutorial_results: dict[str, Any] = dict(result)
 

@@ -63,13 +63,12 @@ def main() -> int:
         "--stage", type=float, default=None, help="Target stage (single-subject mode)."
     )
     parser.add_argument(
-        "--reference-mesh",
+        "--fitted-reference-mesh",
+        type=Path,
         default=None,
-        help="Subject reference mesh the displacements are added to "
-        "(single-subject mode; omit to displace the PCA reconstruction).",
-    )
-    parser.add_argument(
-        "--ground-truth", default=None, help="Optional ground-truth surface .vtp."
+        help="The subject's fitted reference mesh, as written by "
+        "physiotwin4d-fit-statistical-model-to-patient, whose points the "
+        "displacements are added to (required in single-subject mode).",
     )
     parser.add_argument(
         "--reference-image",
@@ -116,7 +115,12 @@ def main() -> int:
         # Both single-subject modes reconstruct geometry, so they need the
         # displacement interpretation of the model's targets.
         displacement = WorkflowInferMovement(workflow)
-        reference_mesh = Path(args.reference_mesh) if args.reference_mesh else None
+        if args.fitted_reference_mesh is None:
+            parser.error(
+                "--fitted-reference-mesh is required with --shape-parameters: the "
+                "displacements are defined relative to the patient's fit, and a "
+                "surface reconstructed from the shape parameters alone is not one."
+            )
         if args.reference_image is not None:
             import itk
 
@@ -125,20 +129,18 @@ def main() -> int:
                 Path(args.shape_parameters),
                 args.stage,
                 reference_image,
+                fitted_reference_mesh=args.fitted_reference_mesh,
                 output_directory=output,
-                reference_mesh=reference_mesh,
             )
             print(
                 f"Deformation field written to {result.get('deformation_field_file')}"
             )
             return 0
 
-        ground_truth = Path(args.ground_truth) if args.ground_truth else None
         result = displacement.predict_single(
             Path(args.shape_parameters),
             args.stage,
-            reference_mesh=reference_mesh,
-            ground_truth=ground_truth,
+            fitted_reference_mesh=args.fitted_reference_mesh,
             output_directory=output,
         )
         print(f"Predicted surface written to {result['predicted_surface']}")

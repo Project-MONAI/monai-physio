@@ -44,7 +44,7 @@ def _write_subject(tmp_path: Path, targets: list[np.ndarray]) -> Path:
 
     manifest = {
         "subject_id": "subject_01",
-        "reference_mesh": str(tmp_path / "reference.vtp"),
+        "fitted_reference_mesh": str(tmp_path / "reference.vtp"),
         "pca_coefficients": str(tmp_path / "coefficients.json"),
         "target_array": _TARGET_ARRAY,
         "phases": phases,
@@ -72,7 +72,7 @@ def test_parse_manifest_round_trips_the_new_schema(tmp_path: Path) -> None:
 
     assert manifest.subject_id == "subject_01"
     assert manifest.target_array == _TARGET_ARRAY
-    assert manifest.reference_mesh.name == "reference.vtp"
+    assert manifest.fitted_reference_mesh.name == "reference.vtp"
     assert [phase.stage for phase in manifest.phases] == list(_STAGES)
     assert [phase.mesh.name for phase in manifest.phases] == [
         "phase_0.vtp",

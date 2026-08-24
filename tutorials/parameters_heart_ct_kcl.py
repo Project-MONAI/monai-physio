@@ -28,6 +28,12 @@ class ParametersHeartCTKCL:
     """Settings shared by the heart tutorials.
 
     Attributes:
+        icp_transform_type: Alignment applied to a surface before the shape
+            model corresponds or fits it, one of ``"Rigid"``, ``"Similarity"``
+            or ``"Affine"``.  Model building and model fitting must use the
+            same value: whatever the ICP absorbs is variation the eigenmodes
+            never see, so a mismatch makes the fit ask the modes to explain
+            shape that has already been removed.
         mask_dilation_mm: Dilation of the binary registration masks, in
             millimeters.  Tighter than the lungs': the heart is a compact organ
             whose neighbours are not part of the model.
@@ -71,6 +77,8 @@ class ParametersHeartCTKCL:
             The Duke heart tutorials name their own in
             ``parameters_duke_heart_labelmaps.py``.
     """
+
+    icp_transform_type: str = "Affine"
 
     mask_dilation_mm: float = 10.0
     distancemap_squared_max: float = (1.25 * 10.0) ** 2

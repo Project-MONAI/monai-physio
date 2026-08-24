@@ -188,7 +188,7 @@ if __name__ == "__main__":
     lung_coefficients_file = (
         tutorial_07_lung_dir / "tutorial_07_lung_registered_coefficients.json"
     )
-    lung_reference_mesh_file = (
+    lung_fitted_reference_mesh_file = (
         tutorial_07_lung_dir / "tutorial_07_lung_template_surface_registered.vtp"
     )
 
@@ -274,7 +274,7 @@ if __name__ == "__main__":
             "tutorial_07_lung_fit_statistical_model_to_patient.py",
         ),
         (
-            lung_reference_mesh_file,
+            lung_fitted_reference_mesh_file,
             "tutorial_07_lung_fit_statistical_model_to_patient.py",
         ),
         (heart_pca_json, "tutorial_06_duke_heart_create_statistical_model.py"),
@@ -400,8 +400,12 @@ if __name__ == "__main__":
     # already did the equivalent for the lungs.
     heart_fit_dir = output_dir / "heart_fit"
     heart_coefficients_file = heart_fit_dir / "heart_registered_coefficients.json"
-    heart_reference_mesh_file = heart_fit_dir / "heart_template_surface_registered.vtp"
-    if not (heart_coefficients_file.exists() and heart_reference_mesh_file.exists()):
+    heart_fitted_reference_mesh_file = (
+        heart_fit_dir / "heart_template_surface_registered.vtp"
+    )
+    if not (
+        heart_coefficients_file.exists() and heart_fitted_reference_mesh_file.exists()
+    ):
         heart_fit_dir.mkdir(parents=True, exist_ok=True)
 
         # The whole heart minus its chamber cavities and the vessels whose
@@ -436,6 +440,7 @@ if __name__ == "__main__":
             labelmap_interior_object_ids=DUKE_HEART.interior_object_ids,
             log_level=log_level,
         )
+        heart_fit_workflow.set_icp_transform_type(DUKE_HEART.icp_transform_type)
         heart_fit_workflow.set_mask_dilation_mm(DUKE_HEART.mask_dilation_mm)
         heart_fit_workflow.set_distancemap_squared_max(
             DUKE_HEART.distancemap_squared_max
@@ -467,8 +472,8 @@ if __name__ == "__main__":
         )
         with heart_coefficients_file.open(mode="w", encoding="utf-8") as f:
             json.dump(heart_coefficients.tolist(), f)
-        heart_fit_result["registered_template_model_surface"].save(
-            str(heart_reference_mesh_file)
+        heart_fit_result["fitted_reference_mesh"].save(
+            str(heart_fitted_reference_mesh_file)
         )
         logger.info("Fitted the Duke heart model to %s", patient_image_file.name)
 
@@ -545,7 +550,7 @@ if __name__ == "__main__":
     def stage_transforms(
         model_directory: Path,
         coefficients_file: Path,
-        reference_mesh_file: Path,
+        fitted_reference_mesh_file: Path,
         stages: list[float],
         sigma_mm: float,
         tag: str,
@@ -578,7 +583,7 @@ if __name__ == "__main__":
             log_level=log_level,
         )
         reference_points = np.asarray(
-            pv.read(str(reference_mesh_file)).points, dtype=np.float64
+            pv.read(str(fitted_reference_mesh_file)).points, dtype=np.float64
         )
         forward_transforms: list[itk.Transform] = []
         inverse_transforms: list[itk.Transform] = []
@@ -590,7 +595,7 @@ if __name__ == "__main__":
                     shape_parameters=coefficients_file,
                     stage=float(stage),
                     reference_image=deformation_grid,
-                    reference_mesh=reference_mesh_file,
+                    fitted_reference_mesh=fitted_reference_mesh_file,
                     direction=direction,
                 )
                 for direction in directions
@@ -667,7 +672,7 @@ if __name__ == "__main__":
     respiratory_forward, respiratory_inverse, lung_surfaces = stage_transforms(
         lung_model_dir,
         lung_coefficients_file,
-        lung_reference_mesh_file,
+        lung_fitted_reference_mesh_file,
         respiratory_stages,
         respiratory_sigma_mm,
         "respiratory",
@@ -676,7 +681,7 @@ if __name__ == "__main__":
     cardiac_forward, cardiac_inverse, heart_surfaces = stage_transforms(
         heart_model_dir,
         heart_coefficients_file,
-        heart_reference_mesh_file,
+        heart_fitted_reference_mesh_file,
         cardiac_stages,
         cardiac_sigma_mm,
         "cardiac",

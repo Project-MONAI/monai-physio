@@ -34,7 +34,7 @@ import numpy as np
 import pyvista as pv
 
 from . import physicsnemo_tools as pnt
-from .physicsnemo_tools import PhaseSampleDataset
+from .physicsnemo_tools import DistributedContext, PhaseSampleDataset
 from .physiotwin4d_base import PhysioTwin4DBase
 
 if TYPE_CHECKING:  # typed for mypy; imported lazily at runtime
@@ -130,7 +130,7 @@ class TrainPhysicsNeMoBase(PhysioTwin4DBase):
         train_dataset: PhaseSampleDataset,
         val_dataset: PhaseSampleDataset,
         stats: dict,
-        device: "torch.device",
+        context: DistributedContext,
         epochs: int,
         output_dir: Path,
         template_mesh: pv.DataSet,
@@ -139,11 +139,15 @@ class TrainPhysicsNeMoBase(PhysioTwin4DBase):
     ) -> tuple["torch.nn.Module", list[float], list[dict]]:
         """Train the network, returning the model and the loss / RMSE logs.
 
+        Every rank runs this. Each steps over its own disjoint slice of the
+        samples and the gradients are averaged across ranks, so the effective
+        batch is ``batch_size * world_size``. Only rank 0 writes to disk.
+
         Args:
             train_dataset: Lazy training samples built by the workflow.
             val_dataset: Lazy validation samples; may be empty.
             stats: Normalization statistics computed by the workflow.
-            device: Torch device to train on.
+            context: Rank, device and world size of this process.
             epochs: Number of epochs to run. The workflow may clamp
                 :attr:`epochs` (for example in test mode), so the effective
                 count is passed in rather than read from the method.
@@ -158,6 +162,10 @@ class TrainPhysicsNeMoBase(PhysioTwin4DBase):
         """
         import torch
 
+        device = context.device
+        # One seed for every rank: _iter_batches shards a single shared
+        # permutation, so the ranks have to draw the identical one for their
+        # slices to tile the dataset exactly once.
         torch.manual_seed(self.seed)
         rng = np.random.default_rng(self.seed)
         in_features = train_dataset.n_features
@@ -167,22 +175,42 @@ class TrainPhysicsNeMoBase(PhysioTwin4DBase):
             ckpt = torch.load(str(resume_from), map_location=device, weights_only=True)
             state = ckpt.get("model_state_dict", ckpt)
             model.load_state_dict(pnt.strip_compile_prefix(state))
-            self.log_info("Loaded model weights from %s", resume_from)
+            self._log_main(context, "Loaded model weights from %s", resume_from)
 
         self.setup_inputs(device, template_mesh, template_coords)
         # Written now rather than after the last epoch: inference against an
         # intermittent checkpoint needs them, and that is the point of writing
         # those checkpoints while a long run is still going.
-        self.save_artifacts(output_dir)
+        if context.is_main:
+            self.save_artifacts(output_dir)
+
+        # Wrapped before compiling, not after: Dynamo only splits the graph at
+        # the gradient-bucket boundaries, and so only overlaps communication
+        # with compute, when it can see the DistributedDataParallel module.
+        if context.is_distributed:
+            # Both networks use every parameter on every step, so searching for
+            # unused ones would only cost a graph traversal per iteration.
+            model = cast(
+                "torch.nn.Module",
+                torch.nn.parallel.DistributedDataParallel(
+                    model,
+                    device_ids=[context.local_rank] if device.type == "cuda" else None,
+                    output_device=device if device.type == "cuda" else None,
+                    find_unused_parameters=False,
+                ),
+            )
+            self._log_main(
+                context, "DistributedDataParallel over %d ranks.", context.world_size
+            )
 
         if sys.platform != "win32":
             try:
                 model = cast("torch.nn.Module", torch.compile(model))
-                self.log_info("torch.compile enabled.")
+                self._log_main(context, "torch.compile enabled.")
             except Exception as exc:  # pragma: no cover - platform dependent
-                self.log_info("torch.compile skipped (%s).", exc)
+                self._log_main(context, "torch.compile skipped (%s).", exc)
         else:
-            self.log_info("torch.compile skipped on Windows.")
+            self._log_main(context, "torch.compile skipped on Windows.")
 
         optimizer = torch.optim.Adam(model.parameters(), lr=self.learning_rate)
         loss_fn = torch.nn.MSELoss()
@@ -195,7 +223,7 @@ class TrainPhysicsNeMoBase(PhysioTwin4DBase):
             epoch_loss = 0.0
             n_rows = 0
             for node_feats, targets, batch_len in self._iter_batches(
-                train_dataset, rng, shuffle=True
+                train_dataset, rng, shuffle=True, context=context
             ):
                 nf = torch.from_numpy(node_feats).to(device)
                 tgt = torch.from_numpy(targets).to(device)
@@ -207,21 +235,31 @@ class TrainPhysicsNeMoBase(PhysioTwin4DBase):
                 optimizer.step()
                 epoch_loss += float(loss.detach()) * len(nf)
                 n_rows += len(nf)
+            # Every rank saw a disjoint slice, so the epoch mean is only the
+            # mean over the whole epoch once the two sums are pooled.
+            epoch_loss, n_rows = self._reduce_sums(context, epoch_loss, n_rows)
             losses.append(epoch_loss / max(n_rows, 1))
 
             if (epoch + 1) % self.loss_log_interval == 0 or epoch + 1 == epochs:
-                self.log_info(
-                    "  epoch %05d/%d  loss=%.6f", epoch + 1, epochs, losses[-1]
+                self._log_main(
+                    context, "  epoch %05d/%d  loss=%.6f", epoch + 1, epochs, losses[-1]
                 )
 
-            if (epoch + 1) % self.rmse_log_interval == 0 or epoch + 1 == epochs:
+            scored_epoch = (
+                epoch + 1
+            ) % self.rmse_log_interval == 0 or epoch + 1 == epochs
+            # Scored on rank 0 alone, over the whole unsharded dataset and
+            # against the bare module: the RMSE describes the model, not how
+            # the epoch happened to be split across ranks.
+            if scored_epoch and context.is_main:
+                bare = pnt.unwrap_model(model)
                 train_rmse = self._evaluate_rmse(
-                    model, train_dataset, target_scale, device
+                    bare, train_dataset, target_scale, device
                 )
                 # None, not NaN: rmse_log is serialized with json.dumps, which
                 # emits a bare NaN token that strict JSON parsers reject.
                 val_rmse = (
-                    self._evaluate_rmse(model, val_dataset, target_scale, device)
+                    self._evaluate_rmse(bare, val_dataset, target_scale, device)
                     if len(val_dataset) > 0
                     else None
                 )
@@ -237,7 +275,8 @@ class TrainPhysicsNeMoBase(PhysioTwin4DBase):
                     / f"{self.model_tag}_stage_model_epoch_{epoch + 1:05d}.pt"
                 )
                 torch.save(self.build_checkpoint(model, stats), ckpt_path)
-                self.log_info(
+                self._log_main(
+                    context,
                     "  intermittent test epoch %05d/%d  train RMSE=%.4f  "
                     "val RMSE=%s  checkpoint=%s",
                     epoch + 1,
@@ -272,12 +311,56 @@ class TrainPhysicsNeMoBase(PhysioTwin4DBase):
         return checkpoint
 
     # ─────────────────────────── Internal steps ────────────────────────────
+    def _log_main(self, context: DistributedContext, msg: str, *args: Any) -> None:
+        """Log from rank 0 only, so an N-rank run prints one copy of each line."""
+        if context.is_main:
+            self.log_info(msg, *args)
+
+    @staticmethod
+    def _reduce_sums(
+        context: DistributedContext, loss_sum: float, row_count: int
+    ) -> tuple[float, int]:
+        """Sum a rank's loss and row totals across every rank."""
+        if not context.is_distributed:
+            return loss_sum, row_count
+        import torch
+
+        totals = torch.tensor(
+            [loss_sum, float(row_count)], dtype=torch.float64, device=context.device
+        )
+        torch.distributed.all_reduce(totals, op=torch.distributed.ReduceOp.SUM)
+        return float(totals[0].item()), int(totals[1].item())
+
     def _iter_batches(
-        self, dataset: PhaseSampleDataset, rng: Any, shuffle: bool
+        self,
+        dataset: PhaseSampleDataset,
+        rng: Any,
+        shuffle: bool,
+        context: Optional[DistributedContext] = None,
     ) -> Any:
-        """Yield ``(node_feats, targets, batch_len)`` flattened mini-batches."""
+        """Yield ``(node_feats, targets, batch_len)`` flattened mini-batches.
+
+        With a distributed ``context``, each rank takes a strided slice of the
+        one shared permutation, so between them the ranks cover every sample
+        once. The slice is then truncated to a whole number of batches, equal
+        on every rank: a rank that yielded one batch more than its peers would
+        hang them all at the gradient all-reduce of the step they never take.
+        Omitting ``context`` iterates the whole dataset, which is what the
+        RMSE evaluation wants.
+        """
         n = len(dataset)
         order = rng.permutation(n) if shuffle else np.arange(n)
+        if context is not None and context.is_distributed:
+            order = order[context.rank :: context.world_size]
+            n_per_rank = (n // context.world_size // self.batch_size) * self.batch_size
+            if n_per_rank == 0:
+                raise ValueError(
+                    f"{n} samples over {context.world_size} ranks at batch_size "
+                    f"{self.batch_size} leaves at least one rank with no full "
+                    "batch. Lower batch_size or the rank count."
+                )
+            order = order[:n_per_rank]
+        n = len(order)
         for start in range(0, n, self.batch_size):
             idx = order[start : start + self.batch_size]
             pairs = [dataset[int(i)] for i in idx]

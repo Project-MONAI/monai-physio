@@ -172,7 +172,7 @@ if __name__ == "__main__":
             shape_parameters=coefficients_file,
             stage=float(stage),
             reference_image=reference_image,
-            reference_mesh=registered_mesh_file,
+            fitted_reference_mesh=registered_mesh_file,
         )
         pct = int(round(stage * 100))
         field_path = output_dir / f"deformation_field_s{pct:03d}.mha"

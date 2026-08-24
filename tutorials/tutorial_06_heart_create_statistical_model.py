@@ -51,6 +51,21 @@ if __name__ == "__main__":
     data_dir = HEART_CT_KCL.input_directory(test_mode)
     number_of_pca_components = HEART_CT_KCL.pca_components(test_mode)
 
+    # Distance-map weights finetuned by
+    # tutorial_02_duke_heart_distancemap_finetune_icon.py.  Stock uniGradICON weights
+    # are out of distribution for distance maps, so without these the
+    # correspondences this model is built from barely move off the template,
+    # and the modes come out far too tight.  Tutorial 7 fits with the same
+    # checkpoint.
+    icon_weights_path = (
+        tutorials_dir
+        / "network_weights"
+        / "icon_duke_heart_distancemap"
+        / "icon_duke_heart_distancemap_model"
+        / "checkpoints"
+        / "network_weights_final.trch"
+    )
+
     log_level = logging.INFO
 
     # Directory setup and data reading
@@ -92,8 +107,26 @@ if __name__ == "__main__":
         sample_meshes=sample_meshes,
         reference_mesh=reference_mesh,
         number_of_pca_components=number_of_pca_components,
+        icp_transform_type=HEART_CT_KCL.icp_transform_type,
+        mask_dilation_mm=HEART_CT_KCL.mask_dilation_mm,
+        distance_squared_max=HEART_CT_KCL.distancemap_squared_max,
         log_level=log_level,
     )
+
+    # Build the correspondences with the same distance-map scaling and weights
+    # Tutorial 7 fits with, so the model and the fit measure shape alike.
+    if icon_weights_path.exists():
+        workflow.set_icon_weights_path(str(icon_weights_path))
+    else:
+        workflow.log_warning(
+            "Finetuned distance-map ICON weights not found at %s; building the "
+            "model with the stock uniGradICON weights, which are out of "
+            "distribution for distance maps and will understate the "
+            "population's variance. Run "
+            "tutorials/tutorial_02_duke_heart_distancemap_finetune_icon.py "
+            "to create them.",
+            icon_weights_path,
+        )
 
     # Workflow execution
     result = workflow.process()

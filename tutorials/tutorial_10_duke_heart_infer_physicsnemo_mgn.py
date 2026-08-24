@@ -16,8 +16,9 @@ displacement decoder :class:`physiotwin4d.WorkflowInferMovement`:
 2. Predict that case's surface at *every* cardiac stage with the MeshGraphNet
    trained by Tutorial 9 (``tutorial_09_duke_heart_train_physicsnemo_mgn.py``).
    The network predicts per-vertex displacements, so the decoder adds them to
-   the case's reference SSM surface and scores each stage in millimetres
-   against the ground-truth frame surface.
+   the case's fitted reference SSM surface.  Scoring the result is Tutorial
+   11's job, not this one's; here the acquired frame surface is only rendered
+   beside the prediction so the two can be compared by eye.
 
 3. Rasterize each stage's displacements into a deformation field and carry the
    reference frame through it, and write the whole series as one animated USD.
@@ -51,7 +52,6 @@ Outputs (under ``output/tutorial_10_duke_heart_mgn/<case>/``)
   * ``<case>_ssm_pca_coefficients_s{TTT}_pred.vtp``   - predicted surface
   * ``<case>_ssm_pca_coefficients_s{TTT}_warped.mha`` - labelmap at that stage
   * ``<case>_mgn_motion.usd``                         - animated predicted motion
-  * ``statistics_per_stage.csv``                      - mm error per stage
 """
 
 # Imports
@@ -129,10 +129,10 @@ if __name__ == "__main__":
         )
 
     case_dir = data_dir / case_id
-    reference_file = case_dir / f"{case_id}_ssm_surface.vtp"
+    fitted_reference_mesh_file = case_dir / f"{case_id}_ssm_surface.vtp"
     pca_file = case_dir / f"{case_id}_ssm_pca_coefficients.json"
     phase_files = sorted(case_dir.glob(PHASE_SURFACE_PATTERN))
-    for required_file in (reference_file, pca_file):
+    for required_file in (fitted_reference_mesh_file, pca_file):
         if not required_file.exists():
             raise FileNotFoundError(
                 f"Tutorial 8 output not found: {required_file}\n"
@@ -167,8 +167,7 @@ if __name__ == "__main__":
         shape_parameters=pca_file,
         stages=stages,
         output_directory=output_dir,
-        reference_mesh=reference_file,
-        ground_truth=phase_files,
+        fitted_reference_mesh=fitted_reference_mesh_file,
         reference_image=itk.imread(str(reference_labelmaps[0])),
         warp_interpolation="nearest",
         warp_background_value=0.0,

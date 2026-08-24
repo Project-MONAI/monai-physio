@@ -215,6 +215,7 @@ if __name__ == "__main__":
             number_of_pca_components=number_of_pca_components,
             use_surface=False,
         )
+        fit_workflow.set_icp_transform_type(LUNG_CT_DIRLAB.icp_transform_type)
         fit_workflow.set_mask_dilation_mm(LUNG_CT_DIRLAB.mask_dilation_mm)
         fit_workflow.set_distancemap_squared_max(LUNG_CT_DIRLAB.distancemap_squared_max)
         if use_finetuned_distancemap_weights:
@@ -238,11 +239,11 @@ if __name__ == "__main__":
         # Typically the SSM is a dense tetrahedral volume mesh, saved as .vtu, and
         # its bounding surface is saved separately as .vtp. The lung PCA model from
         # Tutorial 6 is built from surfaces only, so here the model *is* a surface:
-        # "registered_template_model" and "registered_template_model_surface" are
+        # "fitted_reference_model" and "fitted_reference_mesh" are
         # the same geometry, and only the .vtp surface is written.
-        ssm_surface_fitted = fit_result["registered_template_model_surface"]
-        ssm_surface_file = case_output_dir / f"{case_id}_ssm_surface.vtp"
-        ssm_surface_fitted.save(str(ssm_surface_file))
+        fitted_reference_mesh = fit_result["fitted_reference_mesh"]
+        fitted_reference_mesh_file = case_output_dir / f"{case_id}_ssm_surface.vtp"
+        fitted_reference_mesh.save(str(fitted_reference_mesh_file))
 
         # Step 3: register every respiratory phase to the reference phase
         phase_files = sorted(data_dir.glob(f"{case_id}_T??.mha"))
@@ -284,7 +285,9 @@ if __name__ == "__main__":
             )
 
             surface = transform_tools.transform_pvcontour(
-                ssm_surface_fitted, forward_transform, with_deformation_magnitude=True
+                fitted_reference_mesh,
+                forward_transform,
+                with_deformation_magnitude=True,
             )
             surface_file = case_output_dir / f"{case_id}_{phase_id}_ssm_surface.vtp"
             surface.save(str(surface_file))
@@ -293,7 +296,7 @@ if __name__ == "__main__":
 
         tutorial_results["cases"][case_id] = {
             "pca_coefficients_file": pca_coefficients_file,
-            "ssm_surface_file": ssm_surface_file,
+            "fitted_reference_mesh_file": fitted_reference_mesh_file,
             "phase_outputs": phase_outputs,
         }
 
@@ -308,7 +311,7 @@ if __name__ == "__main__":
     last_case = tutorial_results["cases"][case_id]
     tutorial_results["screenshots"] = [
         tt.save_screenshot_mesh(
-            cast(pv.DataSet, pv.read(str(last_case["ssm_surface_file"]))),
+            cast(pv.DataSet, pv.read(str(last_case["fitted_reference_mesh_file"]))),
             "ssm_surface_reference.png",
             camera_position="iso",
             color="steelblue",

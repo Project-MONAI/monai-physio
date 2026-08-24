@@ -109,8 +109,8 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         l2i_template_model_surface: template model surface after labelmap-to-image
             registration
         l2i_template_labelmap: template labelmap after labelmap-to-image registration
-        registered_template_model: Final registered model
-        registered_template_model_surface: Final registered model surface
+        fitted_reference_model: Final registered model
+        fitted_reference_mesh: Final registered model surface
 
     Example:
         >>> # Initialize with minimal parameters (no labelmap; no patient image -> reference created from patient models)
@@ -246,6 +246,10 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         self.template_mask: Optional[itk.Image] = None
         self.patient_mask: Optional[itk.Image] = None
 
+        # Alignment applied before the PCA fit.  It must match the alignment
+        # the model was built with; see WorkflowCreateStatisticalModel.
+        self.icp_transform_type: str = "Affine"
+
         # Parameters for labelmap and mask generation
         self.mask_dilation_mm: float = 10.0  # For binary registration mask generation
         self.distancemap_squared_max: Optional[float] = None
@@ -291,9 +295,9 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         self.use_ICON_registration_refinement = False
 
         # Final result
-        self.registered_template_model: Optional[pv.DataSet] = None
-        self.registered_template_model_surface: Optional[pv.PolyData] = None
-        self.registered_template_labelmap: Optional[itk.Image] = None
+        self.fitted_reference_model: Optional[pv.DataSet] = None
+        self.fitted_reference_mesh: Optional[pv.PolyData] = None
+        self.fitted_reference_labelmap: Optional[itk.Image] = None
 
     def set_mask_dilation_mm(self, mask_dilation_mm: float) -> None:
         """Set dilation amount for binary registration masks.
@@ -303,6 +307,26 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
                 mask generation. Default: 10mm
         """
         self.mask_dilation_mm = mask_dilation_mm
+
+    def set_icp_transform_type(self, transform_type: str) -> None:
+        """Set the ICP alignment applied to the template before the PCA fit.
+
+        This has to match the alignment the model was built with -- see
+        ``WorkflowCreateStatisticalModel.set_icp_transform_type`` -- because
+        whatever the ICP absorbs here is variation the eigenmodes never saw.
+
+        Args:
+            transform_type: One of ``"Rigid"``, ``"Similarity"``, ``"Affine"``.
+
+        Raises:
+            ValueError: If transform_type is not one of those.
+        """
+        if transform_type not in ("Rigid", "Similarity", "Affine"):
+            raise ValueError(
+                f"Invalid ICP transform '{transform_type}'. "
+                "Must be 'Rigid', 'Similarity' or 'Affine'."
+            )
+        self.icp_transform_type = transform_type
 
     def set_distancemap_squared_max(self, distancemap_squared_max: float) -> None:
         """Set the saturation radius of the labelmap-to-labelmap distance maps.
@@ -477,7 +501,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
             dict: Dictionary containing:
                 - 'forward_transform': used to warp an image from model to patient space
                 - 'inverse_transform': used to warp an image from patient to model space
-                - 'registered_template_model_surface': Transformed model model surface
+                - 'fitted_reference_mesh': Transformed model model surface
         """
         self.log_section("Stage 1: ICP Alignment (RegisterModelsICP)", width=70)
 
@@ -487,7 +511,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         # Run rigid ICP registration
         icp_result = self.icp_registrar.register(
             moving_model=self.template_model_surface,
-            transform_type="Affine",
+            transform_type=self.icp_transform_type,
             max_iterations=2000,
         )
 
@@ -514,16 +538,16 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
 
         self.log_info("Stage 1 complete: ICP alignment finished.")
 
-        self.registered_template_model_surface = self.icp_template_model_surface
-        self.registered_template_model = self.icp_template_model
-        self.registered_template_labelmap = self.icp_template_labelmap
+        self.fitted_reference_mesh = self.icp_template_model_surface
+        self.fitted_reference_model = self.icp_template_model
+        self.fitted_reference_labelmap = self.icp_template_labelmap
 
         return {
             "inverse_point_transform": self.icp_inverse_point_transform,
             "forward_point_transform": self.icp_forward_point_transform,
-            "registered_template_model": self.icp_template_model,
-            "registered_template_model_surface": self.icp_template_model_surface,
-            "registered_template_labelmap": self.icp_template_labelmap,
+            "fitted_reference_model": self.icp_template_model,
+            "fitted_reference_mesh": self.icp_template_model_surface,
+            "fitted_reference_labelmap": self.icp_template_labelmap,
         }
 
     def register_model_to_model_pca(self) -> dict:
@@ -541,7 +565,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
                   It excludes the ICP alignment, which is applied separately.
                 - 'inverse_point_transform': its inverse
                 - 'pca_coefficients': PCA shape coefficients
-                - 'registered_template_model_surface': PCA-registered model surface
+                - 'fitted_reference_mesh': PCA-registered model surface
 
         Raises:
             ValueError: If PCA data has not been set
@@ -561,9 +585,9 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
             self.pca_inverse_point_transform = identity_transform
             return {
                 "pca_coefficients": None,
-                "registered_template_model": self.pca_template_model,
-                "registered_template_model_surface": self.pca_template_model_surface,
-                "registered_template_labelmap": self.pca_template_labelmap,
+                "fitted_reference_model": self.pca_template_model,
+                "fitted_reference_mesh": self.pca_template_model_surface,
+                "fitted_reference_labelmap": self.pca_template_labelmap,
                 "forward_point_transform": self.pca_forward_point_transform,
                 "inverse_point_transform": self.pca_inverse_point_transform,
             }
@@ -663,8 +687,8 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
 
         # Store results
 
-        self.registered_template_model = self.pca_template_model
-        self.registered_template_model_surface = self.pca_template_model_surface
+        self.fitted_reference_model = self.pca_template_model
+        self.fitted_reference_mesh = self.pca_template_model_surface
 
         if self.template_labelmap is not None:
             # Resampling pulls back: a patient-grid sample is mapped by the ICP
@@ -688,7 +712,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         else:
             self.pca_template_labelmap = None
 
-        self.registered_template_labelmap = self.pca_template_labelmap
+        self.fitted_reference_labelmap = self.pca_template_labelmap
 
         self.log_info("Stage 2 complete: PCA registration finished.")
 
@@ -696,9 +720,9 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
             "pca_coefficients": self.pca_coefficients,
             "forward_point_transform": self.pca_forward_point_transform,
             "inverse_point_transform": self.pca_inverse_point_transform,
-            "registered_template_model": self.pca_template_model,
-            "registered_template_model_surface": self.pca_template_model_surface,
-            "registered_template_labelmap": self.pca_template_labelmap,
+            "fitted_reference_model": self.pca_template_model,
+            "fitted_reference_mesh": self.pca_template_model_surface,
+            "fitted_reference_labelmap": self.pca_template_labelmap,
         }
 
     def register_labelmap_to_labelmap(self) -> Optional[dict]:
@@ -711,8 +735,8 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
             dict: Dictionary containing:
                 - 'forward_transform': template to patient space transform
                 - 'inverse_transform': patient to template space transform
-                - 'registered_template_model_surface': Transformed template model surface
-                - 'registered_template_labelmap': Transformed template labelmap
+                - 'fitted_reference_mesh': Transformed template model surface
+                - 'fitted_reference_labelmap': Transformed template labelmap
         """
         self.log_section(
             "Stage 3: Labelmap-to-Labelmap Deformable Registration",
@@ -759,7 +783,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         self.l2l_inverse_transform = l2l_result["inverse_transform"]
         self.l2l_template_model_surface = l2l_result["registered_model"]
 
-        self.registered_template_model_surface = self.l2l_template_model_surface
+        self.fitted_reference_mesh = self.l2l_template_model_surface
 
         if self.pca_template_labelmap is not None:
             self.l2l_template_labelmap = self.transform_tools.transform_image(
@@ -771,15 +795,15 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         else:
             self.l2l_template_labelmap = None
 
-        self.registered_template_labelmap = self.l2l_template_labelmap
+        self.fitted_reference_labelmap = self.l2l_template_labelmap
 
         self.log_info("Stage 3 complete: Labelmap-to-labelmap registration finished.")
 
         return {
             "forward_transform": self.l2l_forward_transform,
             "inverse_transform": self.l2l_inverse_transform,
-            "registered_template_model_surface": self.l2l_template_model_surface,
-            "registered_template_labelmap": self.l2l_template_labelmap,
+            "fitted_reference_mesh": self.l2l_template_model_surface,
+            "fitted_reference_labelmap": self.l2l_template_labelmap,
         }
 
     def register_labelmap_to_image(
@@ -794,8 +818,8 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
             dict: Dictionary containing:
                 - 'inverse_transform': patient to template space transform
                 - 'forward_transform': template to patient space transform
-                - 'registered_template_model_surface': Transformed template model surface
-                - 'registered_template_labelmap': Transformed template labelmap
+                - 'fitted_reference_mesh': Transformed template model surface
+                - 'fitted_reference_labelmap': Transformed template labelmap
         """
         self.log_section(
             "Stage 4: Labelmap-to-Image Refinement (Icon Registration)", width=70
@@ -910,15 +934,15 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
 
         self.log_info("Stage 4 complete: Labelmap-to-image registration finished.")
 
-        self.registered_template_model_surface = self.l2i_template_model_surface
+        self.fitted_reference_mesh = self.l2i_template_model_surface
 
-        self.registered_template_labelmap = self.l2i_template_labelmap
+        self.fitted_reference_labelmap = self.l2i_template_labelmap
 
         return {
             "inverse_transform": self.l2i_inverse_transform,
             "forward_transform": self.l2i_forward_transform,
-            "registered_template_model_surface": self.l2i_template_model_surface,
-            "registered_template_labelmap": self.l2i_template_labelmap,
+            "fitted_reference_mesh": self.l2i_template_model_surface,
+            "fitted_reference_labelmap": self.l2i_template_labelmap,
         }
 
     def transform_model(
@@ -938,11 +962,11 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         self.log_info("Applying transforms to model...")
 
         if base_model is None:
-            self.registered_template_model = self.template_model.copy(deep=True)
-            assert self.registered_template_model is not None, (
+            self.fitted_reference_model = self.template_model.copy(deep=True)
+            assert self.fitted_reference_model is not None, (
                 "Registered template model must be set"
             )
-            transformed_model = self.registered_template_model
+            transformed_model = self.fitted_reference_model
         else:
             transformed_model = base_model.copy(deep=True)
 
@@ -981,11 +1005,11 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         self.log_info("Transform application complete.")
 
         if base_model is None:
-            assert self.registered_template_model is not None, (
+            assert self.fitted_reference_model is not None, (
                 "Registered template model must be set"
             )
-            self.registered_template_model.points = new_points
-            return self.registered_template_model
+            self.fitted_reference_model.points = new_points
+            return self.fitted_reference_model
         transformed_model.points = new_points
         return transformed_model
 
@@ -1009,7 +1033,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
                 uses Greedy affine + ICON deformable. Default: False
 
         Returns:
-            dict with registered_template_model and registered_template_model_surface
+            dict with fitted_reference_model and fitted_reference_mesh
         """
         self.log_section("STARTING COMPLETE MODEL REGISTRATION WORKFLOW", width=70)
 
@@ -1034,16 +1058,16 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         _ = self.transform_model()
 
         self.log_section("REGISTRATION WORKFLOW COMPLETE", width=70)
-        assert self.registered_template_model_surface is not None, (
+        assert self.fitted_reference_mesh is not None, (
             "Registered template model surface must be set"
         )
         self.log_info(
             "Final registered patient model surface: %d points.",
-            self.registered_template_model_surface.n_points,
+            self.fitted_reference_mesh.n_points,
         )
 
         return {
-            "registered_template_model": self.registered_template_model,
-            "registered_template_model_surface": self.registered_template_model_surface,
-            "registered_template_labelmap": self.registered_template_labelmap,
+            "fitted_reference_model": self.fitted_reference_model,
+            "fitted_reference_mesh": self.fitted_reference_mesh,
+            "fitted_reference_labelmap": self.fitted_reference_labelmap,
         }

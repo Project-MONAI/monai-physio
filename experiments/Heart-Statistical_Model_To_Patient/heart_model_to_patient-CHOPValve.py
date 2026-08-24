@@ -69,8 +69,8 @@ itk.imwrite(
 results = registrar.process()
 
 # %%
-registered_model = results["registered_template_model"]
-registered_model_surface = results["registered_template_model_surface"]
+registered_model = results["fitted_reference_model"]
+registered_model_surface = results["fitted_reference_mesh"]
 
 registered_model.save(str(output_dir / "registered_model.vtp"))
 registered_model_surface.save(str(output_dir / "registered_model_surface.vtp"))

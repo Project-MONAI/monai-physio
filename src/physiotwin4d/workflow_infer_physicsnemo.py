@@ -2,7 +2,8 @@
 
 The workflow owns everything around the network: the checkpoint and its
 normalization statistics, the shared PCA template mesh, manifests, and the
-writing of predicted meshes and error statistics. The network itself is supplied
+writing of predicted meshes. Scoring those predictions belongs to
+:class:`physiotwin4d.WorkflowEvaluateMovement`. The network itself is supplied
 as an inference method (:class:`physiotwin4d.InferPhysicsNeMoMGN` or
 :class:`physiotwin4d.InferPhysicsNeMoMLP`).
 
@@ -10,7 +11,7 @@ Predictions are the targets the model was trained on, whatever those are — the
 manifest's ``target_array`` values at each template point. For the common case
 where those targets are displacements from the subject's reference mesh, wrap
 this workflow in :class:`physiotwin4d.WorkflowInferMovement` to get
-reconstructed surfaces, mm error statistics and deformation fields.
+reconstructed surfaces and deformation fields.
 
 PhysicsNeMo (and, for the MGN, PyTorch Geometric) are optional dependencies,
 imported lazily so ``import physiotwin4d`` works without them.
@@ -18,8 +19,6 @@ imported lazily so ``import physiotwin4d`` works without them.
 
 from __future__ import annotations
 
-import csv
-import json
 import logging
 from pathlib import Path
 from typing import Any, Optional, cast
@@ -130,8 +129,6 @@ class WorkflowInferPhysicsNeMo(PhysioTwin4DBase):
         self.inference_method.set_model(model, self._device)
 
         # Optional PCA reconstruction assets (manifest-free inference).
-        self._pca_model: Optional[dict] = None
-        self._pca_mean_dataset: Optional[pv.DataSet] = None
 
     # ─────────────────────────── Shared assets ─────────────────────────────
     @property
@@ -164,64 +161,6 @@ class WorkflowInferPhysicsNeMo(PhysioTwin4DBase):
         # bare/legacy epoch checkpoints are the state dict itself.
         return cast(dict, ckpt.get("model_state_dict", ckpt))
 
-    def load_pca_assets(self) -> tuple[pv.DataSet, dict]:
-        """Load (and cache) the PCA template mesh and model for reconstruction."""
-        if self._pca_mean_dataset is not None and self._pca_model is not None:
-            return self._pca_mean_dataset, self._pca_model
-
-        pca_model_file = self.model_directory / "pca_model.json"
-        if not pca_model_file.exists():
-            raise FileNotFoundError(
-                f"pca_model.json not found in {self.model_directory}; it is "
-                "required for manifest-free reconstruction. Re-run training with a "
-                "pca_mean_mesh whose directory contains pca_model.json."
-            )
-        # The PCA template mesh (volume) was copied next to pca_model.json.
-        mesh_candidates = [
-            p
-            for p in self.model_directory.glob("*")
-            if p.suffix in (".vtu", ".vtk", ".vtp")
-            and not p.name.startswith("pca_mean_template")
-        ]
-        pca_model = json.loads(pca_model_file.read_text(encoding="utf-8"))
-        expected = int(np.asarray(pca_model["components"]).shape[1]) // 3
-        mesh: Optional[pv.DataSet] = None
-        for candidate in mesh_candidates:
-            dataset = pv.read(str(candidate))
-            if dataset.n_points == expected:
-                mesh = dataset
-                break
-        if mesh is None:
-            raise FileNotFoundError(
-                f"No PCA template mesh with {expected} points found in "
-                f"{self.model_directory} to match pca_model.json."
-            )
-        self._pca_mean_dataset = mesh
-        self._pca_model = pca_model
-        return mesh, pca_model
-
-    def reference_points_from_coefficients(self, pca_coeffs: np.ndarray) -> np.ndarray:
-        """Reconstruct a subject's reference points in the template's domain.
-
-        The PCA model may be volumetric while the model was trained on the
-        template's surface (``use_template_surface``), so the reconstruction is
-        surface-extracted when its point count does not match the template's.
-        """
-        mean_mesh, pca_model = self.load_pca_assets()
-        points = pnt.reconstruct_reference_points(mean_mesh, pca_model, pca_coeffs)
-        if points.shape[0] == self._template_mesh.n_points:
-            return points
-        deformed = mean_mesh.copy(deep=True)
-        deformed.points = points
-        surface = deformed.extract_surface(algorithm="dataset_surface")
-        if surface.n_points != self._template_mesh.n_points:
-            raise ValueError(
-                f"PCA reconstruction yields {points.shape[0]} points "
-                f"({surface.n_points} on its surface), but the template has "
-                f"{self._template_mesh.n_points}."
-            )
-        return np.asarray(surface.points, dtype=np.float32)
-
     # ─────────────────────────── Core predictor ────────────────────────────
     def predict(self, pca_coeffs: np.ndarray, stage: float) -> np.ndarray:
         """Predict ``(n_points, n_target)`` targets for a subject at a stage."""
@@ -244,10 +183,8 @@ class WorkflowInferPhysicsNeMo(PhysioTwin4DBase):
     ) -> dict[str, Any]:
         """Predict a subject's targets from a manifest.
 
-        When ``stages`` is ``None`` every phase in the manifest is predicted and,
-        because the stored target array is available, per-phase error statistics
-        are computed and written. When ``stages`` is given those arbitrary stages
-        are predicted without comparison.
+        Every phase in the manifest is predicted, or the arbitrary ``stages``
+        given instead.
 
         Args:
             subject_manifest: Path to the subject manifest JSON.
@@ -257,7 +194,7 @@ class WorkflowInferPhysicsNeMo(PhysioTwin4DBase):
 
         Returns:
             Dict with ``subject_id``, ``predicted_meshes`` (paths) and, in the
-            phase mode, ``statistics`` and ``statistics_file``.
+            ``predicted_meshes`` (paths).
         """
         manifest = pnt.parse_manifest(subject_manifest)
         pca_coeffs = pnt.load_pca_coefficients(manifest.pca_coefficients)
@@ -274,7 +211,6 @@ class WorkflowInferPhysicsNeMo(PhysioTwin4DBase):
         suffix = ".vtp" if isinstance(self._template_mesh, pv.PolyData) else ".vtu"
         sid = manifest.subject_id
         meshes: list[Path] = []
-        stats: list[dict] = []
 
         requested = stages if stages is not None else [p.stage for p in manifest.phases]
         for index, stage in enumerate(requested):
@@ -283,51 +219,6 @@ class WorkflowInferPhysicsNeMo(PhysioTwin4DBase):
             self.predicted_mesh(predicted).save(str(path))
             meshes.append(path)
 
-            if stages is not None:
-                self.log_info("stage %.3f -> %s", stage, path.name)
-                continue
+            self.log_info("stage %.3f -> %s", stage, path.name)
 
-            actual = pnt.load_target_array(
-                manifest.phases[index].mesh, manifest.target_array
-            )
-            if actual.shape != predicted.shape:
-                raise ValueError(
-                    f"Stored '{manifest.target_array}' targets in "
-                    f"{manifest.phases[index].mesh} have shape {actual.shape}, "
-                    f"but the model predicts {predicted.shape}."
-                )
-            stats.append(self._error_row(sid, stage, predicted, actual))
-            self.log_info(
-                "stage %.3f: mean abs error=%.4f  max abs error=%.4f",
-                stage,
-                stats[-1]["mean_abs_error"],
-                stats[-1]["max_abs_error"],
-            )
-
-        result: dict[str, Any] = {"subject_id": sid, "predicted_meshes": meshes}
-        if stages is None:
-            stats_file = out_dir / "statistics_per_phase.csv"
-            with stats_file.open("w", newline="", encoding="utf-8") as fh:
-                writer = csv.DictWriter(fh, fieldnames=list(stats[0].keys()))
-                writer.writeheader()
-                writer.writerows(stats)
-            result["statistics"] = stats
-            result["statistics_file"] = stats_file
-        return result
-
-    @staticmethod
-    def _error_row(
-        subject_id: str, stage: float, pred: np.ndarray, actual: np.ndarray
-    ) -> dict:
-        """Per-phase error statistics between predicted and stored targets."""
-        errors = np.abs(pred - actual)
-        return {
-            "subject_id": subject_id,
-            "stage": stage,
-            "n_points": int(pred.shape[0]),
-            "n_target": int(pred.shape[1]),
-            "mean_abs_error": float(errors.mean()),
-            "median_abs_error": float(np.median(errors)),
-            "max_abs_error": float(errors.max()),
-            "rms_error": float(np.sqrt(np.mean((pred - actual) ** 2))),
-        }
+        return {"subject_id": sid, "predicted_meshes": meshes}

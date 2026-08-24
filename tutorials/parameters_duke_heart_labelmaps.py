@@ -29,6 +29,12 @@ class ParametersDukeHeartLabelmaps:
     """Settings shared by the Duke heart tutorials.
 
     Attributes:
+        icp_transform_type: Alignment applied to a surface before the shape
+            model corresponds or fits it, one of ``"Rigid"``, ``"Similarity"``
+            or ``"Affine"``.  Model building and model fitting must use the
+            same value: whatever the ICP absorbs is variation the eigenmodes
+            never see, so a mismatch makes the fit ask the modes to explain
+            shape that has already been removed.
         mask_dilation_mm: Dilation of the binary registration masks, in
             millimeters.
         distancemap_squared_max: Saturation radius of every heart distance map,
@@ -84,6 +90,8 @@ class ParametersDukeHeartLabelmaps:
             measures generalization rather than reconstruction.  Tutorial 2
             scores its registrations on the same case.
     """
+
+    icp_transform_type: str = "Similarity"
 
     mask_dilation_mm: float = 10.0
     distancemap_squared_max: float = (1.25 * 10.0) ** 2

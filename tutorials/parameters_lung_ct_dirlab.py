@@ -28,6 +28,12 @@ class ParametersLungCTDirLab:
     """Settings shared by the DIR-Lab lung tutorials.
 
     Attributes:
+        icp_transform_type: Alignment applied to a surface before the shape
+            model corresponds or fits it, one of ``"Rigid"``, ``"Similarity"``
+            or ``"Affine"``.  Model building and model fitting must use the
+            same value: whatever the ICP absorbs is variation the eigenmodes
+            never see, so a mismatch makes the fit ask the modes to explain
+            shape that has already been removed.
         mask_dilation_mm: Dilation of the binary registration masks, in
             millimeters.  Also sets how far outside the lung surface the
             registration is allowed to look.
@@ -82,6 +88,8 @@ class ParametersLungCTDirLab:
     chamber ids: the lung labels are the lobes, and every one of them is on the
     surface a distance map is measured to.
     """
+
+    icp_transform_type: str = "Affine"
 
     mask_dilation_mm: float = 40.0
     distancemap_squared_max: float = (1.25 * 40.0) ** 2

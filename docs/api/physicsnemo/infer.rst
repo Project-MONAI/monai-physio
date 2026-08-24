@@ -77,13 +77,15 @@ Example
 Notes
 =====
 
-**Where the displacements are applied.** Give
-:meth:`WorkflowInferMovement.predict_single` or
-:meth:`~WorkflowInferMovement.create_deformation_field` a ``reference_mesh``
-and the prediction stays in that mesh's world frame — the right choice for a
-patient scan whose fit carried a pose transform. Omit it and the displacements
-are applied to the mesh reconstructed from the PCA coefficients alone, which
-needs no per-subject geometry but stays in the model's own frame.
+**Where the displacements are applied.**
+:meth:`WorkflowInferMovement.predict_single` and
+:meth:`~WorkflowInferMovement.create_deformation_field` both require a
+``fitted_reference_mesh`` — the patient's shape-model surface as fitted by
+:class:`~physiotwin4d.WorkflowFitStatisticalModelToPatient`, which is shape
+parameters *and* a deformable registration. The prediction stays in that mesh's
+world frame, so a fit that carried a pose transform lands where the patient
+actually is. A surface reconstructed from the shape parameters alone is not a
+substitute and is not accepted.
 
 **Arbitrary stages.** Nothing constrains ``stage`` to a phase that was
 acquired; predicting between acquired phases is the reason to train a

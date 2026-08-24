@@ -165,6 +165,7 @@ if __name__ == "__main__":
         # map must not measure to either.
         labelmap_interior_object_ids=interior_object_ids,
     )
+    workflow.set_icp_transform_type(DUKE_HEART.icp_transform_type)
     workflow.set_mask_dilation_mm(DUKE_HEART.mask_dilation_mm)
     workflow.set_distancemap_squared_max(DUKE_HEART.distancemap_squared_max)
     workflow.set_use_pca_registration(
@@ -209,7 +210,7 @@ if __name__ == "__main__":
     )
     template_surface.save(str(output_dir / f"{project_name}_template_surface.vtp"))
 
-    registered_surface = workflow_results["registered_template_model_surface"]
+    registered_surface = workflow_results["fitted_reference_mesh"]
     registered_surface.save(
         str(output_dir / f"{project_name}_template_surface_registered.vtp")
     )

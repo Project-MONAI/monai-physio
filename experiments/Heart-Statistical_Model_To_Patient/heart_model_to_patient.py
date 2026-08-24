@@ -161,7 +161,7 @@ if __name__ == "__main__":
     icp_results = registrar.register_model_to_model_icp()
     icp_inverse_point_transform = icp_results["inverse_point_transform"]
     icp_forward_point_transform = icp_results["forward_point_transform"]
-    icp_model_surface = icp_results["registered_template_model_surface"]
+    icp_model_surface = icp_results["fitted_reference_mesh"]
     icp_labelmap = icp_results["registered_template_labelmap"]
 
     icp_model_surface.save(str(output_dir / "icp_model_surface.vtp"))
@@ -170,7 +170,7 @@ if __name__ == "__main__":
     # %%
     pca_results = registrar.register_model_to_model_pca()
     pca_coefficients = pca_results["pca_coefficients"]
-    pca_model_surface = pca_results["registered_template_model_surface"]
+    pca_model_surface = pca_results["fitted_reference_mesh"]
     pca_labelmap = pca_results["registered_template_labelmap"]
 
     pca_model_surface.save(str(output_dir / "pca_model_surface.vtp"))
@@ -186,7 +186,7 @@ if __name__ == "__main__":
     l2l_results = registrar.register_labelmap_to_labelmap()
     l2l_inverse_transform = l2l_results["inverse_transform"]
     l2l_forward_transform = l2l_results["forward_transform"]
-    l2l_model_surface = l2l_results["registered_template_model_surface"]
+    l2l_model_surface = l2l_results["fitted_reference_mesh"]
     l2l_labelmap = l2l_results["registered_template_labelmap"]
 
     print("Registration complete!")
@@ -201,7 +201,7 @@ if __name__ == "__main__":
     l2i_results = registrar.register_labelmap_to_image()
     l2i_inverse_transform = l2i_results["inverse_transform"]
     l2i_forward_transform = l2i_results["forward_transform"]
-    l2i_surface = l2i_results["registered_template_model_surface"]
+    l2i_surface = l2i_results["fitted_reference_mesh"]
     l2i_labelmap = l2i_results["registered_template_labelmap"]
     print("\nRegistration complete!")
 
@@ -255,7 +255,7 @@ if __name__ == "__main__":
     # %%
     # Load meshes from registrar member variables
     patient_surface = registrar.patient_model_surface
-    registered_surface = registrar.registered_template_model_surface
+    registered_surface = registrar.fitted_reference_mesh
     icp_surface = registrar.icp_template_model_surface
     pca_surface = registrar.pca_template_model_surface
     l2l_surface = registrar.l2l_template_model_surface

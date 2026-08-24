@@ -158,6 +158,7 @@ if __name__ == "__main__":
         # are the ones to keep out of the distance map.
         labelmap_interior_object_ids=HEART_CT_KCL.interior_object_ids_totalsegmentator,
     )
+    workflow.set_icp_transform_type(HEART_CT_KCL.icp_transform_type)
     workflow.set_mask_dilation_mm(HEART_CT_KCL.mask_dilation_mm)
     workflow.set_distancemap_squared_max(HEART_CT_KCL.distancemap_squared_max)
     if pca_model is not None:
@@ -204,12 +205,12 @@ if __name__ == "__main__":
     )
     template_surface.save(str(output_dir / f"{project_name}_template_surface.vtp"))
 
-    registered_mesh = workflow_results["registered_template_model"]
+    registered_mesh = workflow_results["fitted_reference_model"]
     registered_mesh.save(
         str(output_dir / f"{project_name}_template_mesh_registered.vtp")
     )
 
-    registered_surface = workflow_results["registered_template_model_surface"]
+    registered_surface = workflow_results["fitted_reference_mesh"]
     registered_surface.save(
         str(output_dir / f"{project_name}_template_surface_registered.vtp")
     )

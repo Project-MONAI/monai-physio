@@ -682,7 +682,7 @@ class TestTutorial08DukeHeartFitModelTo4DPatients:
         )
         assert results["cases"], "At least one case should be fitted"
         for case_id, case in results["cases"].items():
-            assert case["ssm_surface_file"].exists(), (
+            assert case["fitted_reference_mesh_file"].exists(), (
                 f"{case_id}: fitted SSM surface should exist"
             )
 
@@ -716,7 +716,7 @@ class TestTutorial08LungFitModelTo4DPatients:
         results = _run_tutorial_script("tutorial_08_lung_fit_model_to_4d_patients.py")
         assert results["cases"], "At least one case should be fitted"
         for case_id, case in results["cases"].items():
-            assert case["ssm_surface_file"].exists(), (
+            assert case["fitted_reference_mesh_file"].exists(), (
                 f"{case_id}: fitted SSM surface should exist"
             )
 
@@ -848,7 +848,8 @@ class TestTutorial10LungInferPhysicsNeMoMGN:
             )
 
         results = _run_tutorial_script("tutorial_10_lung_infer_physicsnemo_mgn.py")
-        assert Path(results["predicted_surface"]).exists(), (
+        assert results["predicted_surfaces"], "At least one predicted surface expected"
+        assert Path(results["predicted_surfaces"][0]).exists(), (
             "Predicted surface should exist"
         )
         assert Path(results["usd_file"]).exists(), "USD file should exist"
@@ -928,6 +929,9 @@ class TestTutorial11DukeHeartEvaluatePhysicsNeMo:
         assert results["rows"], "At least one structure should be scored"
         assert results["csv_file"].exists(), "Metrics CSV should exist"
         assert results["report_file"].exists(), "Markdown report should exist"
+        assert results["displacement_statistics"], (
+            "Per-point displacement error should be reported"
+        )
 
         out_dir = _TUTORIAL_OUTPUT / "tutorial_11_duke_heart" / "pm0027"
         _compare_screenshots(
@@ -962,6 +966,9 @@ class TestTutorial11LungEvaluatePhysicsNeMo:
         assert results["rows"], "At least one structure should be scored"
         assert results["csv_file"].exists(), "Metrics CSV should exist"
         assert results["report_file"].exists(), "Markdown report should exist"
+        assert results["displacement_statistics"], (
+            "Per-point displacement error should be reported"
+        )
 
         # ParametersLungCTDirLab.mgn_hold_out_case names the output subdirectory.
         out_dir = _TUTORIAL_OUTPUT / "tutorial_11_lung" / "Case1Pack"
@@ -1109,6 +1116,169 @@ class TestTutorial13HeartAndLungMotion:
         assert Path(results["usd_file"]).exists(), "Combined 4D USD should exist"
 
         out_dir = _TUTORIAL_OUTPUT / "tutorial_13_heart_and_lung"
+        _compare_screenshots(
+            results["screenshots"],
+            _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
+        )
+
+
+# -----------------------------------------------------------------------------
+# Tutorial 14 - Sweep the shape parameters and score every combination
+#
+# In test mode the tutorials vary one mode over three offsets, so the sweep is
+# three evaluations rather than the twenty-five of the default grid.
+# -----------------------------------------------------------------------------
+
+_TUTORIAL_14_TEST_MODE_COMBINATIONS = 3
+
+
+@pytest.mark.tutorial
+@pytest.mark.slow
+@pytest.mark.requires_physicsnemo
+class TestTutorial14DukeHeartShapeParameterSweep:
+    """End-to-end test for tutorial_14_duke_heart_shape_parameter_sweep.py."""
+
+    _class_name = "tutorial_14_duke_heart_shape_parameter_sweep"
+
+    def test_run(self, test_directories: dict[str, Path]) -> None:
+        _require_physicsnemo_and_tutorial_08_duke()
+        # The acquired labelmaps every metric is measured against.
+        _require_files(
+            test_directories["data"] / "Duke-Heart-4DLabelmaps",
+            "pm*",
+            "Duke-Heart-4DLabelmaps is not yet public; see its data/ README.",
+        )
+        _require_files(
+            _TUTORIAL_WEIGHTS / "physicsnemo_mgn_duke_heart_motion",
+            "mgn_stage_model.pt",
+            "Run tutorial_09_duke_heart_train_physicsnemo_mgn.py first.",
+        )
+
+        results = _run_tutorial_script(
+            "tutorial_14_duke_heart_shape_parameter_sweep.py"
+        )
+        assert results["rows"], "At least one structure should be scored"
+        assert results["metrics_csv_file"].exists(), "Sweep metrics CSV should exist"
+        assert results["summary_csv_file"].exists(), "Sweep summary CSV should exist"
+        combinations = {row["combination"] for row in results["rows"]}
+        assert len(combinations) == _TUTORIAL_14_TEST_MODE_COMBINATIONS, (
+            "Every combination of the test-mode grid should reach the CSV"
+        )
+
+        out_dir = _TUTORIAL_OUTPUT / "tutorial_14_duke_heart" / "pm0027"
+        _compare_screenshots(
+            results["screenshots"],
+            _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
+        )
+
+
+@pytest.mark.tutorial
+@pytest.mark.slow
+@pytest.mark.requires_physicsnemo
+class TestTutorial14LungShapeParameterSweep:
+    """End-to-end test for tutorial_14_lung_shape_parameter_sweep.py."""
+
+    _class_name = "tutorial_14_lung_shape_parameter_sweep"
+
+    def test_run(self, test_directories: dict[str, Path]) -> None:
+        _require_physicsnemo_and_tutorial_08()
+        # The acquired phases this variant segments to get its ground truth.
+        _require_files(
+            test_directories["data"] / "DirLab-4DCT",
+            "Case1Pack_T??.mha",
+            "DirLab-4DCT is acquired manually; see data/README.md.",
+        )
+        _require_files(
+            _TUTORIAL_WEIGHTS / "physicsnemo_mgn_lung_motion",
+            "mgn_stage_model.pt",
+            "Run tutorial_09_lung_train_physicsnemo_mgn.py first.",
+        )
+
+        results = _run_tutorial_script("tutorial_14_lung_shape_parameter_sweep.py")
+        assert results["rows"], "At least one structure should be scored"
+        assert results["metrics_csv_file"].exists(), "Sweep metrics CSV should exist"
+        assert results["summary_csv_file"].exists(), "Sweep summary CSV should exist"
+        combinations = {row["combination"] for row in results["rows"]}
+        assert len(combinations) == _TUTORIAL_14_TEST_MODE_COMBINATIONS, (
+            "Every combination of the test-mode grid should reach the CSV"
+        )
+
+        # ParametersLungCTDirLab.mgn_hold_out_case names the output subdirectory.
+        out_dir = _TUTORIAL_OUTPUT / "tutorial_14_lung" / "Case1Pack"
+        _compare_screenshots(
+            results["screenshots"],
+            _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
+        )
+
+
+# Both Tutorial 15 variants clamp themselves to this many folds under
+# TestTools.running_as_test, which the autouse fixture above turns on.
+_TUTORIAL_15_TEST_MODE_FOLDS = 2
+
+
+@pytest.mark.tutorial
+@pytest.mark.slow
+@pytest.mark.requires_physicsnemo
+class TestTutorial15LungLeaveOneOut:
+    """End-to-end test for tutorial_15_lung_leave_one_out.py."""
+
+    _class_name = "tutorial_15_lung_leave_one_out"
+
+    def test_run(self, test_directories: dict[str, Path]) -> None:
+        _require_physicsnemo()
+        # Nothing from Tutorials 6, 8 or 9 is needed: every fold builds its own
+        # shape model, fits and network. The cohort itself is the only input.
+        _require_files(
+            test_directories["data"] / "DirLab-4DCT",
+            "Case*_T70.mha",
+            "DirLab-4DCT is acquired manually; see data/README.md.",
+        )
+
+        results = _run_tutorial_script("tutorial_15_lung_leave_one_out.py")
+        assert results["rows"], "At least one structure should be scored"
+        assert results["metrics_file"].exists(), "Pooled metrics CSV should exist"
+        assert results["report_file"].exists(), "Cross-fold report should exist"
+        assert len(results["held_out_cases"]) == _TUTORIAL_15_TEST_MODE_FOLDS
+        scored = {row["held_out_case"] for row in results["rows"]}
+        assert scored == set(results["held_out_cases"]), (
+            "Every fold's held-out case should reach the pooled metrics"
+        )
+
+        out_dir = _TUTORIAL_OUTPUT / "tutorial_15_lung"
+        _compare_screenshots(
+            results["screenshots"],
+            _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
+        )
+
+
+@pytest.mark.tutorial
+@pytest.mark.slow
+@pytest.mark.requires_physicsnemo
+class TestTutorial15DukeHeartLeaveOneOut:
+    """End-to-end test for tutorial_15_duke_heart_leave_one_out.py."""
+
+    _class_name = "tutorial_15_duke_heart_leave_one_out"
+
+    def test_run(self, test_directories: dict[str, Path]) -> None:
+        _require_physicsnemo()
+        _require_files(
+            test_directories["data"] / "Duke-Heart-4DLabelmaps",
+            "pm*/*_ref_labelmap.nii.gz",
+            "Duke-Heart-4DLabelmaps is not public yet; "
+            "see data/Duke-Heart-4DLabelmaps/README.md.",
+        )
+
+        results = _run_tutorial_script("tutorial_15_duke_heart_leave_one_out.py")
+        assert results["rows"], "At least one structure should be scored"
+        assert results["metrics_file"].exists(), "Pooled metrics CSV should exist"
+        assert results["report_file"].exists(), "Cross-fold report should exist"
+        assert len(results["held_out_cases"]) == _TUTORIAL_15_TEST_MODE_FOLDS
+        scored = {row["held_out_case"] for row in results["rows"]}
+        assert scored == set(results["held_out_cases"]), (
+            "Every fold's held-out case should reach the pooled metrics"
+        )
+
+        out_dir = _TUTORIAL_OUTPUT / "tutorial_15_duke_heart"
         _compare_screenshots(
             results["screenshots"],
             _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),

@@ -16,9 +16,10 @@ displacement decoder :class:`physiotwin4d.WorkflowInferMovement`:
 2. Predict that case's surface at *every* respiratory stage with the
    MeshGraphNet trained by Tutorial 9
    (``tutorial_09_lung_train_physicsnemo_mgn.py``). The network predicts
-   per-vertex displacements, so the decoder adds them to the case's reference
-   SSM surface and scores each stage in millimetres against the ground-truth
-   phase surface.
+   per-vertex displacements, so the decoder adds them to the case's fitted
+   reference SSM surface.  Scoring the result is Tutorial 11's job, not this
+   one's; here the acquired phase surface is only rendered beside the
+   prediction so the two can be compared by eye.
 
 3. Rasterize each stage's displacements into a deformation field and carry the
    reference-phase CT through it, giving one warped CT per stage, and write the
@@ -48,7 +49,6 @@ Outputs (under ``output/tutorial_10_lung_mgn/<case>/``)
   * ``<case>_ssm_pca_coefficients_s{TTT}_pred.vtp``   - predicted surface
   * ``<case>_ssm_pca_coefficients_s{TTT}_warped.mha`` - CT carried to that stage
   * ``<case>_mgn_motion.usd``                         - animated predicted motion
-  * ``statistics_per_stage.csv``                      - mm error per stage
 """
 
 # Imports
@@ -126,13 +126,13 @@ if __name__ == "__main__":
         )
 
     case_dir = data_dir / case_id
-    reference_file = case_dir / f"{case_id}_ssm_surface.vtp"
+    fitted_reference_mesh_file = case_dir / f"{case_id}_ssm_surface.vtp"
     pca_file = case_dir / f"{case_id}_ssm_pca_coefficients.json"
     reference_ct_file = (
         repo_root / "data" / "DirLab-4DCT" / (f"{case_id}_{reference_phase}.mha")
     )
     phase_files = sorted(case_dir.glob(f"{case_id}_T??_ssm_surface.vtp"))
-    for required_file in (reference_file, pca_file):
+    for required_file in (fitted_reference_mesh_file, pca_file):
         if not required_file.exists():
             raise FileNotFoundError(
                 f"Tutorial 8 output not found: {required_file}\n"
@@ -154,8 +154,7 @@ if __name__ == "__main__":
     # Step 2 and 3: predict the whole cycle, warp the reference CT through each
     # stage's deformation, and write the animated USD. The network predicts
     # displacements, so the decoder adds them to the case's reference SSM
-    # surface and scores each stage against its ground-truth phase surface in
-    # millimetres. -1000 HU is air, the value a CT grid samples outside itself.
+    # surface. -1000 HU is air, the value a CT grid samples outside itself.
     infer_workflow = WorkflowInferPhysicsNeMo(
         model_directory=model_dir, epoch=epoch, log_level=log_level
     )
@@ -165,8 +164,7 @@ if __name__ == "__main__":
         shape_parameters=pca_file,
         stages=stages,
         output_directory=output_dir,
-        reference_mesh=reference_file,
-        ground_truth=phase_files,
+        fitted_reference_mesh=fitted_reference_mesh_file,
         reference_image=itk.imread(str(reference_ct_file)),
         warp_interpolation="linear",
         warp_background_value=-1000.0,

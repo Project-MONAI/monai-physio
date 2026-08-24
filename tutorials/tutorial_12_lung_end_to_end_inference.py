@@ -256,6 +256,7 @@ if __name__ == "__main__":
         number_of_pca_components=number_of_pca_components,
         use_surface=False,
     )
+    fit_workflow.set_icp_transform_type(LUNG_CT_DIRLAB.icp_transform_type)
     fit_workflow.set_mask_dilation_mm(LUNG_CT_DIRLAB.mask_dilation_mm)
     fit_workflow.set_distancemap_squared_max(LUNG_CT_DIRLAB.distancemap_squared_max)
     if use_finetuned_distancemap_weights:
@@ -272,8 +273,8 @@ if __name__ == "__main__":
 
     # The lung PCA model from Tutorial 6 is built from surfaces only, so the
     # model *is* a surface here: only the .vtp is written.
-    reference_mesh_file = output_dir / f"{case_id}_ssm_surface.vtp"
-    fit_result["registered_template_model_surface"].save(str(reference_mesh_file))
+    fitted_reference_mesh_file = output_dir / f"{case_id}_ssm_surface.vtp"
+    fit_result["fitted_reference_mesh"].save(str(fitted_reference_mesh_file))
     logger.info("Fitted the lung model to %s", reference_file.name)
     step_start = _record_step(step_times_s, "fit_shape_model", step_start)
 
@@ -290,7 +291,7 @@ if __name__ == "__main__":
         shape_parameters=pca_coefficients_file,
         stages=stages,
         output_directory=output_dir,
-        reference_mesh=reference_mesh_file,
+        fitted_reference_mesh=fitted_reference_mesh_file,
         reference_image=reference_image,
         warp_interpolation="linear",
         warp_background_value=-1000.0,
@@ -304,7 +305,7 @@ if __name__ == "__main__":
 
     tutorial_results: dict[str, Any] = dict(infer_result)
     tutorial_results["pca_coefficients_file"] = pca_coefficients_file
-    tutorial_results["reference_mesh_file"] = reference_mesh_file
+    tutorial_results["fitted_reference_mesh_file"] = fitted_reference_mesh_file
 
     # Testing: the fitted reference surface beside the first predicted stage.
     tt = TestTools(
@@ -315,7 +316,7 @@ if __name__ == "__main__":
     )
     tutorial_results["screenshots"] = [
         tt.save_screenshot_mesh(
-            cast(pv.DataSet, pv.read(str(reference_mesh_file))),
+            cast(pv.DataSet, pv.read(str(fitted_reference_mesh_file))),
             "fitted_reference_surface.png",
             camera_position="iso",
             color="steelblue",

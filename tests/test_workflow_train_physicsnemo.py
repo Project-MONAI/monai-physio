@@ -22,13 +22,46 @@ pytest.importorskip("physicsnemo")
 pytest.importorskip("torch_geometric")
 
 from physiotwin4d import (  # noqa: E402
+    DistributedContext,
     TrainPhysicsNeMoMGN,
     WorkflowInferPhysicsNeMo,
     WorkflowTrainPhysicsNeMo,
 )
+from physiotwin4d.physicsnemo_tools import uncompiled_state_dict  # noqa: E402
 
 _TARGET_ARRAY = "displacement"
 _STAGES = (0.0, 1.0)
+
+
+class _IndexDataset:
+    """Stands in for PhaseSampleDataset, one identifiable row per sample.
+
+    Each sample is a single node feature row carrying its own index, so a
+    batch's first column is the list of samples that went into it.
+    """
+
+    def __init__(self, n_samples: int) -> None:
+        self._n_samples = n_samples
+
+    def __len__(self) -> int:
+        return self._n_samples
+
+    def __getitem__(self, index: int) -> tuple[np.ndarray, np.ndarray]:
+        return (
+            np.full((1, 2), index, dtype=np.float32),
+            np.zeros((1, 3), dtype=np.float32),
+        )
+
+
+class _FakeDDP:
+    """The one attribute of DistributedDataParallel checkpointing cares about.
+
+    Constructing the real thing needs an initialized process group, which a
+    unit test has no reason to stand up just to check a prefix.
+    """
+
+    def __init__(self, module: Any) -> None:
+        self.module = module
 
 
 def _sphere() -> pv.PolyData:
@@ -60,7 +93,7 @@ def _write_subject(subject_id: str, directory: Path, offset: float) -> Path:
         json.dumps(
             {
                 "subject_id": subject_id,
-                "reference_mesh": str(directory / "reference.vtp"),
+                "fitted_reference_mesh": str(directory / "reference.vtp"),
                 "pca_coefficients": str(directory / "coefficients.json"),
                 "target_array": _TARGET_ARRAY,
                 "phases": phases,
@@ -158,3 +191,68 @@ def test_an_intermittent_checkpoint_can_be_inferred_from(tmp_path: Path) -> None
 
     assert targets.shape == (infer.template_mesh.n_points, 3)
     assert np.all(np.isfinite(targets))
+
+
+def test_ranks_split_the_samples_without_overlapping() -> None:
+    """Every sample lands on exactly one rank, and the ranks take equal steps.
+
+    A rank that yielded one batch more than its peers would hang them all at
+    the gradient all-reduce of the step they never take, so the equal-length
+    assertion below is the one that keeps a distributed run from deadlocking.
+    """
+    import torch
+
+    method = TrainPhysicsNeMoMGN()
+    method.set_batch_size(2)
+    dataset = cast(Any, _IndexDataset(11))
+    world_size = 3
+
+    per_rank = []
+    for rank in range(world_size):
+        context = DistributedContext(
+            device=torch.device("cpu"),
+            rank=rank,
+            local_rank=rank,
+            world_size=world_size,
+        )
+        batches = list(
+            method._iter_batches(
+                dataset, np.random.default_rng(0), shuffle=True, context=context
+            )
+        )
+        per_rank.append([int(value) for batch in batches for value in batch[0][:, 0]])
+
+    assert all(len(indices) == len(per_rank[0]) for indices in per_rank)
+    # 11 samples over 3 ranks at batch_size 2 is one whole batch each; the
+    # remainder is dropped rather than handed to whichever rank happens to
+    # have it.
+    assert len(per_rank[0]) == 2
+    seen = [index for indices in per_rank for index in indices]
+    assert len(seen) == len(set(seen))
+
+
+def test_one_rank_iterates_the_whole_dataset() -> None:
+    """Without a distributed context, nothing is sharded and nothing is dropped."""
+    method = TrainPhysicsNeMoMGN()
+    method.set_batch_size(2)
+    dataset = cast(Any, _IndexDataset(11))
+
+    batches = list(
+        method._iter_batches(dataset, np.random.default_rng(0), shuffle=True)
+    )
+    seen = sorted(int(value) for batch in batches for value in batch[0][:, 0])
+
+    assert seen == list(range(11))
+
+
+def test_a_ddp_wrapped_model_checkpoints_without_its_prefix() -> None:
+    """``module.`` never reaches a checkpoint, so inference loads it unchanged."""
+    import torch
+
+    inner = torch.nn.Linear(2, 2)
+    wrapped = _FakeDDP(inner)
+
+    state = uncompiled_state_dict(wrapped)
+
+    assert set(state) == set(inner.state_dict())
+    assert not any(key.startswith("module.") for key in state)

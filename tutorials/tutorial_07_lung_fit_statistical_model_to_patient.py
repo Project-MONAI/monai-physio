@@ -150,6 +150,7 @@ if __name__ == "__main__":
             use_surface=False,
         )
 
+    workflow.set_icp_transform_type(LUNG_CT_DIRLAB.icp_transform_type)
     workflow.set_mask_dilation_mm(LUNG_CT_DIRLAB.mask_dilation_mm)
     workflow.set_distancemap_squared_max(LUNG_CT_DIRLAB.distancemap_squared_max)
 
@@ -188,7 +189,7 @@ if __name__ == "__main__":
     )
     template_surface.save(str(output_dir / f"{project_name}_template_surface.vtp"))
 
-    registered_surface = workflow_results["registered_template_model_surface"]
+    registered_surface = workflow_results["fitted_reference_mesh"]
     registered_surface.save(
         str(output_dir / f"{project_name}_template_surface_registered.vtp")
     )

@@ -143,12 +143,12 @@ def _write_case_manifest(
     from one that never ran.
     """
     case_id = case_dir.name
-    ref_file = case_dir / f"{case_id}_ssm_surface.vtp"
+    fitted_reference_mesh_file = case_dir / f"{case_id}_ssm_surface.vtp"
     pca_file = case_dir / f"{case_id}_ssm_pca_coefficients.json"
     phase_files = sorted(case_dir.glob(PHASE_SURFACE_PATTERN))
     missing = []
-    if not ref_file.exists():
-        missing.append(f"reference surface {ref_file.name}")
+    if not fitted_reference_mesh_file.exists():
+        missing.append(f"reference surface {fitted_reference_mesh_file.name}")
     if not pca_file.exists():
         missing.append(f"PCA coefficients {pca_file.name}")
     if len(phase_files) < 2:
@@ -158,10 +158,12 @@ def _write_case_manifest(
         return None
 
     manifests_dir.mkdir(parents=True, exist_ok=True)
-    ref_points = np.asarray(pv.read(str(ref_file)).points, dtype=np.float32)
+    ref_points = np.asarray(
+        pv.read(str(fitted_reference_mesh_file)).points, dtype=np.float32
+    )
     manifest = {
         "subject_id": case_id,
-        "reference_mesh": str(ref_file),
+        "fitted_reference_mesh": str(fitted_reference_mesh_file),
         "pca_coefficients": str(pca_file),
         "target_array": TARGET_ARRAY,
         "phases": [
@@ -319,8 +321,7 @@ if __name__ == "__main__":
             output_directory=eval_dir / case_id,
         )
 
-    # Testing: render the first predicted surface of the last held-out case and
-    # the RMSE-colored reference surface beside it.
+    # Testing: render the first predicted surface of the last held-out case.
     tt = TestTools(
         class_name=class_name,
         results_dir=output_dir,
@@ -334,11 +335,5 @@ if __name__ == "__main__":
             "predicted_surface.png",
             camera_position="iso",
             color="limegreen",
-        ),
-        tt.save_screenshot_mesh(
-            cast(pv.DataSet, pv.read(str(last_case["rmse_surface"]))),
-            "rmse_surface.png",
-            camera_position="iso",
-            color="orange",
         ),
     ]

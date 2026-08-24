@@ -33,7 +33,8 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
        extract surfaces for ICP alignment.
     3. Deformable registration: establish dense correspondence via Greedy affine + ICON deformable registration.  Uses
        either full meshes or surfaces.
-    4. Correspondence: warp reference model by each transform to get aligned shapes
+    4. Correspondence: warp reference model by each transform to get aligned shapes,
+       optionally snapped onto the measured ICP-aligned surfaces
     5. PCA: compute mean and modes from corresponded shapes
 
 
@@ -43,6 +44,15 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
         number_of_pca_components (int): Number of PCA components to retain
         reference_spatial_resolution (float): Resolution for reference image from mesh
         reference_buffer_factor (float): Buffer around mesh for reference image
+        icp_transform_type (str): Alignment applied before correspondence
+        mask_dilation_mm (float): Dilation of the deformable stage's masks
+        distance_squared_max (float): Squared mm the distance maps saturate at
+        project_to_measured_surfaces (bool): Snap corresponded points onto the
+            measured surfaces before the PCA
+        projection_max_distance_mm (Optional[float]): Residual above which a
+            point is left unprojected
+        pca_input_residual_rms (list[float]): Per sample, the RMS distance from
+            the corresponded shape to the measured surface, before projection
     """
 
     def __init__(
@@ -53,6 +63,11 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
         reference_spatial_resolution: float = 1.0,
         reference_buffer_factor: float = 0.25,
         solve_for_surface_pca: bool = True,
+        icp_transform_type: str = "Affine",
+        mask_dilation_mm: float = 20.0,
+        distance_squared_max: Optional[float] = None,
+        project_to_measured_surfaces: bool = True,
+        projection_max_distance_mm: Optional[float] = None,
         log_level: int | str = logging.INFO,
     ):
         """Initialize the create-statistical-model workflow.
@@ -64,6 +79,22 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
             reference_spatial_resolution: Isotropic resolution (mm) for reference image. Default 1.0.
             reference_buffer_factor: Buffer factor around mesh for reference image. Default 0.25.
             solve_for_surface_pca: Whether to reduce the reference mesh to a surface. Default True.
+            icp_transform_type: Alignment applied before correspondence, one of
+                ``"Rigid"``, ``"Similarity"`` or ``"Affine"``. Default
+                ``"Affine"``, which normalizes size and gross proportion away,
+                so the modes describe only the residual shape. The workflow
+                that fits this model must align the same way.
+            mask_dilation_mm: Dilation (mm) of the binary registration masks used
+                by the deformable stage. Default 20.0.
+            distance_squared_max: Squared millimetres the distance maps are
+                normalized against, so the saturation radius is its square root.
+                Default None, which sizes it to the mask as the fitting workflow
+                does: ``(1.25 * mask_dilation_mm) ** 2``.
+            project_to_measured_surfaces: Snap each corresponded point onto the
+                subject's measured ICP-aligned surface before the PCA. Default
+                True. Ignored when solve_for_surface_pca is False.
+            projection_max_distance_mm: Only project points whose residual is at
+                or below this distance. Default None, which projects every point.
             log_level: Logging level.
         """
         super().__init__(
@@ -75,6 +106,16 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
         self.reference_spatial_resolution = reference_spatial_resolution
         self.reference_buffer_factor = reference_buffer_factor
         self.solve_for_surface_pca = solve_for_surface_pca
+        self.icp_transform_type = icp_transform_type
+        self.mask_dilation_mm = mask_dilation_mm
+        self.distance_squared_max = (
+            (1.25 * mask_dilation_mm) ** 2
+            if distance_squared_max is None
+            else distance_squared_max
+        )
+        self.project_to_measured_surfaces = project_to_measured_surfaces
+        self.projection_max_distance_mm = projection_max_distance_mm
+        self.icon_weights_path: Optional[str] = None
 
         self.contour_tools = ContourTools()
         self.transform_tools = TransformTools()
@@ -87,6 +128,7 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
         self.forward_transforms: list = []
         self.inverse_transforms: list = []
         self.pca_input_models: list[pv.DataSet] = []
+        self.pca_input_residual_rms: list[float] = []
         self.pca_fitted: Optional[PCA] = None
         self.pca_mean_surface: Optional[pv.PolyData] = None
         self.pca_mean_mesh: Optional[pv.DataSet] = None
@@ -94,6 +136,40 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
     def set_number_of_pca_components(self, n: int) -> None:
         """Set number of PCA components to retain."""
         self.number_of_pca_components = n
+
+    def set_icp_transform_type(self, transform_type: str) -> None:
+        """Set the alignment applied to each sample before correspondence.
+
+        ``"Affine"`` (default) normalizes size, anisotropic scale and shear
+        away, leaving only residual shape for the PCA; ``"Rigid"`` keeps them
+        as modes.  Whatever is chosen, the workflow that fits the model has to
+        align the same way, or the model is asked to explain variation its ICP
+        has already absorbed.
+
+        Args:
+            transform_type: One of ``"Rigid"``, ``"Similarity"``, ``"Affine"``.
+
+        Raises:
+            ValueError: If transform_type is not one of those.
+        """
+        if transform_type not in ("Rigid", "Similarity", "Affine"):
+            raise ValueError(
+                f"Invalid ICP transform '{transform_type}'. "
+                "Must be 'Rigid', 'Similarity' or 'Affine'."
+            )
+        self.icp_transform_type = transform_type
+
+    def set_icon_weights_path(self, weights_path: str) -> None:
+        """Use a finetuned uniGradICON checkpoint for the deformable stage.
+
+        Stock weights are out of distribution for distance maps, so without this
+        the correspondences the model is built from barely move off the
+        template; see ``RegisterModelsDistanceMaps.set_icon_weights_path``.
+
+        Args:
+            weights_path: Path to an existing uniGradICON checkpoint.
+        """
+        self.icon_weights_path = weights_path
 
     def _step1_extract_surfaces(self) -> None:
         """Extract reference surface and all sample surfaces (notebook 1)."""
@@ -140,7 +216,7 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
             registrar = RegisterModelsICP(fixed_model=reference_surface)
             result = registrar.register(
                 moving_model=moving_surface,
-                transform_type="Affine",
+                transform_type=self.icp_transform_type,
                 max_iterations=2000,
             )
             if self.solve_for_surface_pca:
@@ -160,8 +236,17 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
         """Deformable registration of each aligned sample to reference (notebook 3)."""
         self.log_section("Step 3: Deformable registration (correspondence)", width=70)
         assert self.reference_model is not None and self.aligned_models
+        # The distance-map grid must contain the template *and* every aligned
+        # sample: a sample clipped by the grid registers as if it were smaller,
+        # which biases every PCA input toward the template's size.
+        bounding_cloud = pv.PolyData(
+            np.vstack(
+                [np.asarray(self.reference_model.points)]
+                + [np.asarray(model.points) for model in self.aligned_models]
+            )
+        )
         reference_image = self.contour_tools.create_reference_image(
-            mesh=self.reference_model,
+            mesh=bounding_cloud,
             spatial_resolution=self.reference_spatial_resolution,
             buffer_factor=self.reference_buffer_factor,
             ptype=itk.UC,
@@ -169,7 +254,6 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
         self.forward_transforms = []
         self.inverse_transforms = []
 
-        new_aligned_models = []
         for i, (sid, moving) in enumerate(zip(self.sample_ids, self.aligned_models)):
             self.log_info(
                 "Deformable registration %s (%d/%d)",
@@ -181,16 +265,20 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
                 moving_model=cast(pv.PolyData, moving),
                 fixed_model=cast(pv.PolyData, self.reference_model),
                 reference_image=reference_image,
+                distance_squared_max=self.distance_squared_max,
+                mask_dilation_mm=self.mask_dilation_mm,
             )
+            if self.icon_weights_path is not None:
+                registrar.set_icon_weights_path(self.icon_weights_path)
             result = registrar.register(
                 transform_type="Deformable",
             )
 
-            new_aligned_models.append(result["registered_model"])
             self.forward_transforms.append(result["forward_transform"])
             self.inverse_transforms.append(result["inverse_transform"])
 
-        self.aligned_models = new_aligned_models
+        # aligned_models stays the ICP-aligned input: step 4 measures the
+        # corresponded shapes against it.
         self.log_info(
             "Deformable registration complete for %d samples",
             len(self.forward_transforms),
@@ -203,19 +291,75 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
         (= inverse point) transform from step 3, so that we get reference topology
         in ICP-aligned space with residual deformation per subject to be used as PCA
         input.
+
+        The warped template only approximates its subject: the deformable
+        registration always stops short of it, and because that shortfall is
+        one-sided it shrinks every subject toward the template, and the PCA's
+        variance with it.  The shortfall is measured here against the measured
+        ICP-aligned surface, and removed when ``project_to_measured_surfaces``
+        is set, so that the modes are scaled by the population's real spread.
         """
         self.log_section("Step 4: Build PCA inputs (corresponded shapes)", width=70)
         assert self.reference_model is not None and self.forward_transforms
+        project = self.project_to_measured_surfaces
+        if project and not self.solve_for_surface_pca:
+            # The PCA inputs are volume meshes here, so snapping their interior
+            # nodes onto the bounding surface would collapse the mesh.
+            self.log_warning(
+                "Ignoring project_to_measured_surfaces: it is only meaningful "
+                "for surface PCA."
+            )
+            project = False
+
         self.pca_input_models = []
-        for fwd_tfm in self.forward_transforms:
+        self.pca_input_residual_rms = []
+        for sid, fwd_tfm, aligned in zip(
+            self.sample_ids, self.forward_transforms, self.aligned_models
+        ):
             pca_input_model = self.contour_tools.transform_contours(
                 cast(pv.PolyData, self.reference_model),
                 tfm=fwd_tfm,
                 with_deformation_magnitude=False,
             )
+            measured_surface = self.contour_tools.extract_surface(aligned)
+            points = np.asarray(pca_input_model.points)
+            _, closest = cast(
+                "tuple[np.ndarray, np.ndarray]",
+                measured_surface.find_closest_cell(points, return_closest_point=True),
+            )
+            residuals = np.linalg.norm(closest - points, axis=1)
+            self.pca_input_residual_rms.append(float(np.sqrt(np.mean(residuals**2))))
+            if project:
+                if self.projection_max_distance_mm is None:
+                    points[:] = closest
+                else:
+                    # Where the registration landed far from the subject its
+                    # nearest point is not the corresponding one, and snapping
+                    # would fold several template points onto one feature.
+                    accepted = residuals <= self.projection_max_distance_mm
+                    points[accepted] = closest[accepted]
+                pca_input_model.points = points
             self.pca_input_models.append(pca_input_model)
+            self.log_info(
+                "  %s: %.3f mm RMS from the measured surface (max %.3f mm)",
+                sid,
+                self.pca_input_residual_rms[-1],
+                float(residuals.max()),
+            )
+
+        # Compare the registration's shortfall against the spread it has to
+        # measure: a residual near the spread means the modes are mostly noise.
+        rows = np.array([np.asarray(m.points).ravel() for m in self.pca_input_models])
+        deviations = rows - rows.mean(axis=0)
+        population_rms = float(
+            np.sqrt(np.mean(np.sum(deviations**2, axis=1) / (rows.shape[1] // 3)))
+        )
         self.log_info(
-            "Built %d corresponded surfaces for PCA", len(self.pca_input_models)
+            "Built %d corresponded surfaces for PCA: residual %.3f mm RMS, "
+            "population spread %.3f mm RMS",
+            len(self.pca_input_models),
+            float(np.mean(self.pca_input_residual_rms)),
+            population_rms,
         )
 
     def _step5_compute_pca(self) -> None:

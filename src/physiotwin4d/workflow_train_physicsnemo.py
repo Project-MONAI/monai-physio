@@ -156,23 +156,31 @@ class WorkflowTrainPhysicsNeMo(PhysioTwin4DBase):
     def process(self) -> dict[str, Any]:
         """Train the model and write checkpoints, metadata and logs.
 
+        Under a distributed launcher every rank calls this and they train one
+        model together; rank 0 alone writes to ``output_directory``, so on the
+        other ranks ``checkpoint`` and ``metadata`` come back unset.
+
         Returns:
             Dict with ``output_directory``, ``checkpoint``, ``metadata``,
             ``training_loss`` and ``val_rmse_log``.
         """
-        import torch
-
         model_tag = self.training_method.model_tag
         self.log_section("STARTING PHYSICSNEMO %s TRAINING WORKFLOW", model_tag.upper())
 
         epochs = self.training_method.epochs
 
-        output_dir = self._resolve_output_dir()
-        output_dir.mkdir(parents=True, exist_ok=True)
-        self.log_info("Output directory: %s", output_dir)
+        # Picks up torchrun, SLURM or OpenMPI, and reports one rank of one when
+        # the process was started without any of them.
+        context = pnt.distributed_context()
 
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.log_info("Device: %s", device.type)
+        output_dir = self._resolve_output_dir(context)
+        if context.is_main:
+            output_dir.mkdir(parents=True, exist_ok=True)
+        context.barrier()
+        self.log_info("Output directory: %s", output_dir)
+        self.log_info(
+            "Device: %s  rank %d/%d", context.device, context.rank, context.world_size
+        )
 
         subjects = self._load_subjects()
         resume_ckpt = self._load_resume_checkpoint()
@@ -191,21 +199,26 @@ class WorkflowTrainPhysicsNeMo(PhysioTwin4DBase):
 
         # Everything inference needs except the weights, written before the
         # first epoch so a run in progress can be evaluated from one of its
-        # intermittent checkpoints.
-        self._save_shared_assets(subjects, stats, output_dir, epochs)
+        # intermittent checkpoints.  The barrier is what stops another rank
+        # reading a half-written shared_edge_index.pt.
+        if context.is_main:
+            self._save_shared_assets(subjects, stats, output_dir, epochs)
+        context.barrier()
 
         model, losses, rmse_log = self.training_method.train(
             train_dataset,
             val_dataset,
             stats,
-            device,
+            context,
             epochs,
             output_dir,
             self._template_mesh,
             self._template_coords,
             resume_from=self.resume_from,
         )
-        self._save_model(model, subjects, stats, losses, rmse_log, output_dir)
+        if context.is_main:
+            self._save_model(model, subjects, stats, losses, rmse_log, output_dir)
+        context.barrier()
 
         self.log_section("PHYSICSNEMO %s TRAINING COMPLETE", model_tag.upper())
         return {
@@ -217,17 +230,26 @@ class WorkflowTrainPhysicsNeMo(PhysioTwin4DBase):
         }
 
     # ─────────────────────────── Internal steps ────────────────────────────
-    def _resolve_output_dir(self) -> Path:
-        """Return the output directory, using a fresh sibling when resuming."""
+    def _resolve_output_dir(self, context: pnt.DistributedContext) -> Path:
+        """Return the output directory, using a fresh sibling when resuming.
+
+        The sibling search races when several ranks run it at once, so rank 0
+        picks the directory and hands the answer to the others.
+        """
         base = self.output_directory
         if self.resume_from is None or not base.exists():
             return base
-        n = 1
-        while True:
-            candidate = base.parent / f"{base.name}_{n}"
-            if not candidate.exists():
-                return candidate
-            n += 1
+        resolved: list[Any] = [None]
+        if context.is_main:
+            n = 1
+            while (base.parent / f"{base.name}_{n}").exists():
+                n += 1
+            resolved[0] = base.parent / f"{base.name}_{n}"
+        if context.is_distributed:
+            import torch
+
+            torch.distributed.broadcast_object_list(resolved, src=0)
+        return cast(Path, resolved[0])
 
     def _load_subjects(self) -> dict[str, dict]:
         """Parse every manifest and load PCA coefficients + target-array names."""
@@ -244,10 +266,10 @@ class WorkflowTrainPhysicsNeMo(PhysioTwin4DBase):
                         f"split, seen again in the '{split}' split. Each subject "
                         "must appear in exactly one manifest."
                     )
-                ref_mesh = pv.read(str(manifest.reference_mesh))
-                if ref_mesh.n_points != n_points:
+                fitted_reference_mesh = pv.read(str(manifest.fitted_reference_mesh))
+                if fitted_reference_mesh.n_points != n_points:
                     raise ValueError(
-                        f"{manifest.reference_mesh} has {ref_mesh.n_points} "
+                        f"{manifest.fitted_reference_mesh} has {fitted_reference_mesh.n_points} "
                         f"points, expected {n_points} (template topology)."
                     )
                 subjects[manifest.subject_id] = {

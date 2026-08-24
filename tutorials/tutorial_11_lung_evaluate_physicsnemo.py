@@ -20,13 +20,22 @@ Tutorial 9 training, so this scores generalization rather than recall.
    fraction stays above 0.96 however well or badly the motion is predicted, and
    describes the lobe rather than the motion.
 
-3. Write ``evaluation_report.md`` and ``evaluation_metrics.csv``, both carrying
+3. Score the motion point by point: with Tutorial 8's per-phase SSM surfaces as
+   the ground truth, the report also carries the distance between where the
+   network puts each mesh point and where the shape model fitted it --- RMS,
+   95th percentile and maximum, per lobe and per phase.  The lung shape model
+   tags every triangle with its lobe, so a mesh point is scored under the lobe
+   the model itself says it belongs to.  A lobe whose predicted motion is right on average can
+   still be wrong everywhere, and only this measure says so.
+
+4. Write ``evaluation_report.md`` and ``evaluation_metrics.csv``, both carrying
    the hold-out case name, the case's shape parameters, and the network weights
-   path with its dates.
+   path with its dates.  Each metric is reported both averaged over the phases
+   and at the phase it is worst at.
 
 Step 1 costs one segmentation pass per phase on first run and is cached
-afterwards; Step 2 is the workflow, so this script only chooses the case, the
-lobes and the ground truth.
+afterwards; Steps 2 to 4 are the workflow, so this script only chooses the case,
+the lobes and the ground truth.
 
 Extra Install Required
 ----------------------
@@ -42,11 +51,17 @@ Data Required
 
 Outputs (under ``output/tutorial_11_lung/<case>/``)
 ---------------------------------------------------
-  * ``evaluation_report.md``    - per-lobe accuracy of the prediction
-  * ``evaluation_metrics.csv``  - one row per stage and lobe
+  * ``evaluation_report.md``    - per-lobe accuracy of the prediction, mean and
+    worst case, with the per-point displacement error per phase
+  * ``evaluation_metrics.csv``  - one row per stage and lobe, each carrying
+    that lobe's displacement error (RMS, 95th percentile, maximum)
+  * ``statistics_per_stage.csv`` - displacement error statistics per phase
   * ``volume_vs_stage.png``     - each lobe's volume across the stages
   * ``ground_truth/<case>_T{PP}_labelmap.nii.gz`` - cached per-phase segmentation
-  * ``<case>_ssm_pca_coefficients_s{TTT}_pred.vtp`` - predicted surface per stage
+  * ``<case>_ssm_pca_coefficients_s{TTT}_pred.vtp`` - predicted surface per stage,
+    carrying the displacement point-data arrays the ``include_*`` switches ask for
+  * ``displacement_per_point.csv`` - every mesh point's predicted and true
+    displacement at every phase; written only when ``report_displacement_data``
 """
 
 # Imports
@@ -61,24 +76,12 @@ import pyvista as pv
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
 from physiotwin4d import (
-    SegmentNVSegmentCTMRI,
+    EvaluateMovementLung,
     TestTools,
     WorkflowEvaluateMovement,
     WorkflowInferMovement,
     WorkflowInferPhysicsNeMo,
 )
-
-# The five lobes of ``SegmentNVSegmentCTMRI``.  Its "lung" group also carries
-# whole-lung, tumor and airway labels, which are not lobes.
-LOBE_LABEL_IDS = [28, 29, 30, 31, 32]
-
-
-def _respiratory_stage_from_filename(image_file: Path) -> float:
-    """Extract the normalized respiratory stage [0, 1] from a ``T{PP}`` filename stem."""
-    for part in image_file.stem.split("_"):
-        if part.startswith("T") and part[1:].isdigit():
-            return int(part[1:]) / 100.0
-    raise ValueError(f"Cannot parse respiratory phase from filename: {image_file}")
 
 
 # Only run if this script is not imported as a module
@@ -115,6 +118,18 @@ if __name__ == "__main__":
     # that a lobe boundary is not quantized away.
     evaluation_spacing_mm = 2.0
 
+    # Per-point displacement reporting, all off by default.  The first writes
+    # one CSV row per mesh point per phase; the rest carry the same quantities
+    # as point data on each phase's predicted surface.  Every one of them except
+    # the predicted displacement is measured against Tutorial 8's per-phase SSM
+    # surfaces, the only geometry that shares this mesh's point ordering.
+    report_displacement_data = False
+    include_predicted_displacements = False
+    include_true_displacements = False
+    # On: the point-by-point error is the one measure a displacement predicted
+    # in the wrong direction cannot hide in, and it costs one mesh read a phase.
+    include_displacement_error = True
+
     output_dir = tutorials_dir / "output" / "tutorial_11_lung" / case_id
     ground_truth_dir = output_dir / "ground_truth"
     log_level = logging.INFO
@@ -129,79 +144,64 @@ if __name__ == "__main__":
 
     ground_truth_dir.mkdir(parents=True, exist_ok=True)
 
-    reference_mesh_file = case_dir / f"{case_id}_ssm_surface.vtp"
+    fitted_reference_mesh_file = case_dir / f"{case_id}_ssm_surface.vtp"
     pca_file = case_dir / f"{case_id}_ssm_pca_coefficients.json"
-    for required_file in (reference_mesh_file, pca_file):
+    for required_file in (fitted_reference_mesh_file, pca_file):
         if not required_file.exists():
             raise FileNotFoundError(
                 f"Tutorial 8 output not found: {required_file}\n"
                 "Run tutorials/tutorial_08_lung_fit_model_to_4d_patients.py first."
             )
 
-    frame_files = sorted(data_dir.glob(f"{case_id}_T??.mha"))
-    if not frame_files:
-        raise FileNotFoundError(
-            f"No {case_id}_T??.mha frames found under {data_dir}.\n"
-            "See data/DirLab-4DCT/README.md for download instructions."
-        )
-
-    # Step 1: ground truth.  Every gated frame is segmented on its own, so the
-    # lobes each phase is scored against came from that phase's image rather
-    # than from a registration or a shape-model fit.  Segmentation dominates the
-    # runtime, so each labelmap is cached and reused on a re-run.
-    segmenter = SegmentNVSegmentCTMRI(log_level=log_level)
-    ground_truth_labelmaps: dict[float, itk.Image] = {}
-    for frame_file in frame_files:
-        labelmap_file = ground_truth_dir / f"{frame_file.stem}_labelmap.nii.gz"
-        if not labelmap_file.exists():
-            logger.info("Segmenting ground-truth frame %s", frame_file.name)
-            segmentation_result = segmenter.segment(itk.imread(str(frame_file)))
-            itk.imwrite(
-                segmentation_result["labelmap"], str(labelmap_file), compression=True
-            )
-        ground_truth_labelmaps[_respiratory_stage_from_filename(frame_file)] = (
-            itk.imread(str(labelmap_file))
-        )
-
-    reference_labelmap_file = (
-        ground_truth_dir / f"{case_id}_{reference_phase}_labelmap.nii.gz"
+    # Step 1: the cohort assembles what this case is scored against.  Every
+    # gated frame is segmented on its own, so the lobes each phase is scored
+    # against came from that phase's image rather than from a registration or a
+    # shape-model fit; segmentation dominates the runtime, so each labelmap is
+    # cached in ``ground_truth_dir`` and reused on a re-run.  Tutorial 8's
+    # per-phase fits come along too: they are the only geometry that shares the
+    # fitted reference mesh's point ordering, so they are what the
+    # point-by-point error is measured against.
+    cohort = EvaluateMovementLung(reference_phase=reference_phase, log_level=log_level)
+    ground_truth = cohort.assemble_ground_truth(
+        case_id=case_id,
+        frame_directory=data_dir,
+        fit_directory=case_dir,
+        cache_directory=ground_truth_dir,
     )
-    if not reference_labelmap_file.exists():
-        raise FileNotFoundError(
-            f"Reference phase {reference_phase} is not among {data_dir}'s frames, "
-            f"so {reference_labelmap_file} was never segmented."
-        )
-
-    # Step 2: score every phase, per lobe, against its own segmentation.
-    all_labels = segmenter.taxonomy.all_labels()
-    lobe_names = {label: all_labels[label] for label in LOBE_LABEL_IDS}
 
     infer_workflow = WorkflowInferPhysicsNeMo(
         model_directory=model_dir, epoch=epoch, log_level=log_level
     )
     evaluate_workflow = WorkflowEvaluateMovement(
         movement_workflow=WorkflowInferMovement(infer_workflow, log_level=log_level),
-        label_names=lobe_names,
+        cohort=cohort,
         log_level=log_level,
     )
     result = evaluate_workflow.process(
         case_id=case_id,
         shape_parameters=pca_file,
-        reference_mesh=reference_mesh_file,
-        reference_labelmap=itk.imread(str(reference_labelmap_file)),
-        ground_truth_labelmaps=ground_truth_labelmaps,
+        fitted_reference_mesh=fitted_reference_mesh_file,
+        ground_truth=ground_truth,
         output_directory=output_dir,
         smoothing_sigma_mm=smoothing_sigma_mm,
         evaluation_spacing_mm=evaluation_spacing_mm,
-        # A lobe barely changes shape over a breath compared to how big it is,
-        # so Dice says more about the lobe than about the motion. Volume
-        # difference and surface RMSE are what resolve it here.
-        include_dice=False,
+        report_displacement_data=report_displacement_data,
+        include_predicted_displacements=include_predicted_displacements,
+        include_true_displacements=include_true_displacements,
+        include_displacement_error=include_displacement_error,
     )
 
     # Step 3: the report and the CSV are written by the workflow.
     logger.info("Report: %s", result["report_file"])
     logger.info("Metrics: %s", result["csv_file"])
+    if result["displacement_data_file"] is not None:
+        logger.info("Displacements: %s", result["displacement_data_file"])
+    logger.info(
+        "Displacement error: rms=%.3f mm  95th=%.3f mm  max=%.3f mm",
+        result["displacement_rms_mm"],
+        result["displacement_95th_mm"],
+        result["displacement_max_mm"],
+    )
 
     tutorial_results: dict[str, Any] = dict(result)
     tutorial_results["ground_truth_labelmap_dir"] = ground_truth_dir

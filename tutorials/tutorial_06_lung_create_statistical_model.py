@@ -77,6 +77,21 @@ if __name__ == "__main__":
     # template-biased pass.
     mean_surface_iterations = 3
 
+    # Distance-map weights finetuned by
+    # tutorial_02_lung_distancemap_finetune_icon.py.  Stock uniGradICON weights
+    # are out of distribution for distance maps, so without these the
+    # correspondences this model is built from barely move off the template,
+    # and the modes come out far too tight.  Tutorial 7 fits with the same
+    # checkpoint.
+    icon_weights_path = (
+        tutorials_dir
+        / "network_weights"
+        / "icon_dirlab_4dct_distancemap"
+        / "icon_dirlab_4dct_distancemap_model"
+        / "checkpoints"
+        / "network_weights_final.trch"
+    )
+
     log_level = logging.INFO
 
     # Directory setup and data reading
@@ -129,6 +144,12 @@ if __name__ == "__main__":
             surfaces=sample_surfaces, log_level=log_level
         )
         mean_workflow.set_number_of_iterations(mean_surface_iterations)
+        # Correspond the atlas with the same settings the model below uses, so
+        # the template is not itself built from under-fitting registrations.
+        mean_workflow.set_mask_dilation_mm(LUNG_CT_DIRLAB.mask_dilation_mm)
+        mean_workflow.set_distance_squared_max(LUNG_CT_DIRLAB.distancemap_squared_max)
+        if icon_weights_path.exists():
+            mean_workflow.set_icon_weights_path(str(icon_weights_path))
         mean_result = mean_workflow.process()
         mean_result["mean_surface"].save(str(reference_surface_file))
     reference_surface = pv.read(str(reference_surface_file))
@@ -139,8 +160,26 @@ if __name__ == "__main__":
         sample_meshes=sample_surfaces,
         reference_mesh=reference_surface,
         number_of_pca_components=number_of_pca_components,
+        icp_transform_type=LUNG_CT_DIRLAB.icp_transform_type,
+        mask_dilation_mm=LUNG_CT_DIRLAB.mask_dilation_mm,
+        distance_squared_max=LUNG_CT_DIRLAB.distancemap_squared_max,
         log_level=log_level,
     )
+
+    # Build the correspondences with the same distance-map scaling and weights
+    # Tutorial 7 fits with, so the model and the fit measure shape alike.
+    if icon_weights_path.exists():
+        workflow.set_icon_weights_path(str(icon_weights_path))
+    else:
+        workflow.log_warning(
+            "Finetuned distance-map ICON weights not found at %s; building the "
+            "model with the stock uniGradICON weights, which are out of "
+            "distribution for distance maps and will understate the "
+            "population's variance. Run "
+            "tutorials/tutorial_02_lung_distancemap_finetune_icon.py "
+            "to create them.",
+            icon_weights_path,
+        )
 
     # Workflow execution
     result = workflow.process()

@@ -7,14 +7,14 @@ The Per-Subject Manifest
 
 The manifest is the contract between your data and the training stack. It is
 the only thing you must produce to train on your own subjects: one JSON file
-per subject, naming a reference mesh, that subject's PCA shape parameters, the
+per subject, naming a fitted reference mesh, that subject's PCA shape parameters, the
 point-data array holding the training targets, and one entry per phase.
 
 .. code-block:: json
 
    {
      "subject_id": "Case1Pack",
-     "reference_mesh": "Case1Pack_ssm_surface.vtp",
+     "fitted_reference_mesh": "Case1Pack_ssm_surface.vtp",
      "pca_coefficients": "Case1Pack_ssm_pca_coefficients.json",
      "target_array": "displacement",
      "phases": [
@@ -53,7 +53,7 @@ from the top-level package — import it by module:
    from physiotwin4d.physicsnemo_tools import SubjectManifest, parse_manifest
 
 .. autoclass:: SubjectManifest
-   :exclude-members: subject_id, reference_mesh, pca_coefficients, target_array, phases
+   :exclude-members: subject_id, fitted_reference_mesh, pca_coefficients, target_array, phases
 
 .. autoclass:: PhaseEntry
    :exclude-members: mesh, stage
@@ -72,8 +72,6 @@ Supporting helpers
 .. autofunction:: mesh_to_edge_index
 
 .. autofunction:: compute_edge_features
-
-.. autofunction:: reconstruct_reference_points
 
 .. autoclass:: PhaseSampleDataset
    :members:

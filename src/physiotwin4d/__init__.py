@@ -93,6 +93,10 @@ from .workflow_fit_statistical_model_to_patient import (
 )
 from .workflow_infer_physicsnemo import WorkflowInferPhysicsNeMo
 from .workflow_infer_movement import WorkflowInferMovement
+from .evaluate_movement_base import EvaluateMovementBase, MovementGroundTruth
+from .evaluate_movement_duke_heart import EvaluateMovementDukeHeart
+from .evaluate_movement_lung import EvaluateMovementLung
+from .report_evaluate_movement import ReportEvaluateMovement
 from .workflow_evaluate_movement import WorkflowEvaluateMovement
 from .infer_physicsnemo_base import InferPhysicsNeMoBase
 from .infer_physicsnemo_mgn import InferPhysicsNeMoMGN
@@ -101,6 +105,7 @@ from .train_physicsnemo_base import TrainPhysicsNeMoBase
 from .train_physicsnemo_mgn import TrainPhysicsNeMoMGN
 from .train_physicsnemo_mlp import TrainPhysicsNeMoMLP
 from .workflow_train_physicsnemo import WorkflowTrainPhysicsNeMo
+from .physicsnemo_tools import DistributedContext, distributed_context
 
 __all__ = [
     # Workflow classes
@@ -115,6 +120,11 @@ __all__ = [
     "WorkflowTrainPhysicsNeMo",
     "WorkflowInferPhysicsNeMo",
     "WorkflowInferMovement",
+    "EvaluateMovementBase",
+    "EvaluateMovementDukeHeart",
+    "EvaluateMovementLung",
+    "MovementGroundTruth",
+    "ReportEvaluateMovement",
     "WorkflowEvaluateMovement",
     # Training method classes
     "TrainPhysicsNeMoBase",
@@ -145,6 +155,9 @@ __all__ = [
     "RegisterModelsDistanceMaps",
     # Base classes
     "PhysioTwin4DBase",
+    # Distributed execution
+    "DistributedContext",
+    "distributed_context",
     # Utility classes
     "ImageTools",
     "LabelmapTools",
