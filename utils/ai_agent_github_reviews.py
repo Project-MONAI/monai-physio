@@ -646,7 +646,8 @@ def build_prompt(
 
         Rejection triggers (from {guidance_names} — treat these as hard rules):
         - Introduces `X | None` instead of `Optional[X]` (ruff UP007 is suppressed)
-        - Adds backward-compat shims, re-exports, or removed-symbol stubs
+        - Adds a deprecation shim, re-export, or removed-symbol stub instead of
+          a `docs/developer/migration_next.md` entry plus a conversion script
         - Adds error handling for internal states that cannot happen
         - In classes that inherit from `PhysioTwin4DBase`, uses `print()` instead
           of `self.log_info()` / `self.log_debug()`

@@ -62,6 +62,14 @@ context such as class inheritance), then flag every occurrence of:
       or return value means. Only genuine deviations from the conventions in
       `CLAUDE.md` may be documented.
 
+### Migration guide
+- [ ] A deprecation shim, alias, or re-export kept solely for backward
+      compatibility. Break the API instead, and provide a conversion script.
+- [ ] A public class, method, CLI flag, or signature that the diff renames,
+      removes, or changes, with no matching entry in
+      `docs/developer/migration_next.md`. Report the missing entry against the
+      changed line.
+
 ## Output
 
 Group findings by file. For each finding, print:

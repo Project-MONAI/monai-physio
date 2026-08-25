@@ -211,6 +211,7 @@ close every section.
    :maxdepth: 2
    :caption: Developer Guides
    :hidden:
+   :glob:
 
    developer/architecture
    developer/extending
@@ -223,6 +224,7 @@ close every section.
    developer/usd_generation
    developer/utilities
    developer/ai_assistants
+   developer/migration_*
 
 .. toctree::
    :maxdepth: 1
