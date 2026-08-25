@@ -35,16 +35,19 @@ Installation Methods
 Method 1: Install from PyPI (Recommended)
 ------------------------------------------
 
-Install the ``[cuda13]`` extra. It enables every feature and gives the best
+Install the ``[all]`` extra. It enables every feature and gives the best
 performance:
 
 .. code-block:: bash
 
-   uv pip install "physiotwin4d[cuda13]"
+   uv pip install "physiotwin4d[all]"
 
-The ``[cuda13]`` extra installs CuPy. In uv-managed source environments,
-PyTorch, torchvision, and torchaudio resolve from the CUDA 13.0 PyTorch wheel
-index. There is no need to install PyTorch separately.
+The ``[all]`` extra installs PhysicsNeMo, CuPy, and dependencies for 
+development, testing, and documenting. In uv-managed source environments,
+PyTorch, torchvision, and torchaudio should resolve from the CUDA 13.0 PyTorch wheel
+index. However, that automation is not garaunteed for every platform, and it is recommended
+to pre-install torch with CUDA acceleration, e.g., as described at 
+https://pytorch.org/get-started/locally/.
 
 CPU-only fallback (evaluation, or no NVIDIA GPU available):
 
