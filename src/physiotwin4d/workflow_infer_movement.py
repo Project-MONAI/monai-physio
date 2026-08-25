@@ -126,17 +126,14 @@ class WorkflowInferMovement(PhysioTwin4DBase):
         requested = stages if stages is not None else [p.stage for p in manifest.phases]
         surfaces: list[Path] = []
 
-        for index, stage in enumerate(requested):
+        for stage in requested:
             pred_points = fitted_reference_points + workflow.predict(pca_coeffs, stage)
             pred_mesh = fitted_reference_mesh.copy(deep=True)
             pred_mesh.points = pred_points
             path = out_dir / f"{sid}_s{int(stage * 100):03d}_pred{suffix}"
             pred_mesh.save(str(path))
             surfaces.append(path)
-
-            if stages is not None:
-                self.log_info("stage %.3f -> %s", stage, path.name)
-                continue
+            self.log_info("stage %.3f -> %s", stage, path.name)
 
         return {"subject_id": sid, "predicted_surfaces": surfaces}
 
@@ -240,17 +237,6 @@ class WorkflowInferMovement(PhysioTwin4DBase):
             anatomy_type: Anatomy whose materials color that USD.
             separate_by_connectivity: Whether that USD splits each frame into
                 separate objects by connectivity.
-            report_displacement_data: Write ``displacement_per_point.csv``, one
-                row per mesh point per stage carrying that point's predicted and
-                true displacement and the error between them.
-            include_predicted_displacements: Carry
-                ``predicted_displacement_mm`` (``predicted - reference``) as
-                point data on every stage mesh.
-            include_true_displacements: Carry ``true_displacement_mm``
-                (``ground truth - reference``) as point data on every stage mesh.
-            include_displacement_error: Carry ``displacement_error_mm``, the
-                distance between the predicted and the true position, as point
-                data on every stage mesh.
 
         Returns:
             Dict with ``stages``, ``predicted_surfaces``, ``warped_images``,

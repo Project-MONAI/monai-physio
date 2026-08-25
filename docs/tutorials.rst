@@ -52,9 +52,9 @@ animates. ``DirLab-4DCT`` — used by Lung Tutorials 1, 2, 3, 4, 6, 8, 10, 11 an
 each case individually and may require registration.
 
 Tutorials 5 and 9 need no dataset of their own; they consume the outputs of
-Tutorials 4 and 8. ``Duke-Heart-4DLabelmaps`` drives the ten ``duke_heart``
-variants: a nine-tutorial chain from Tutorial 4 through Tutorial 12, plus the
-separate, optional Tutorial 2 ICON finetuning variant; the dataset is
+Tutorials 4 and 8. ``Duke-Heart-4DLabelmaps`` drives the twelve ``duke_heart``
+variants: an eleven-tutorial chain from Tutorial 4 through Tutorial 15, plus
+the separate, optional Tutorial 2 ICON finetuning variant; the dataset is
 being released soon, and until then access can be requested from Stephen Aylward
 (saylward@nvidia.com). See ``data/DirLab-4DCT/README.md``,
 ``data/Duke-Heart-4DLabelmaps/README.md``, and
@@ -145,6 +145,12 @@ second run is cheap and later tutorials pick up earlier results automatically.
        <p>Animate one ungated breath-hold scan with both rhythms, from two networks at once.</p>
        <span class="pt4d-card__meta">Chest-CT &middot; Tutorials 7 and 9 output</span>
      </a>
+     <a class="pt4d-card" href="#tutorial-14-sweep-the-shape-parameters">
+       <span class="pt4d-card__number">14</span>
+       <h2>Sweep the Shape Parameters</h2>
+       <p>Re-infer and rescore over a grid of PCA coefficients, to see how far the motion moves with them.</p>
+       <span class="pt4d-card__meta">Tutorials 8 and 9 output</span>
+     </a>
      <a class="pt4d-card" href="#tutorial-15-leave-one-out-cross-validation">
        <span class="pt4d-card__number">15</span>
        <h2>Leave-One-Out Cross-Validation</h2>
@@ -182,7 +188,10 @@ pipeline on top.
     the model to the patient itself, so nothing is read from Tutorial 8.
 13. **Tutorial 13** — after Tutorial 7 (lung) and Tutorial 9 for both anatomies.
     It also needs Simpleware Medical, which segments the heart it fits.
-14. **Tutorial 15** — needs only the cohort. It rebuilds the shape model, the
+14. **Tutorial 14** — after Tutorial 8 and Tutorial 9, whose fit and
+    checkpoint every point of the grid reuses. It scores each point the way
+    Tutorial 11 does, so it needs a GPU and the segmentation weights too.
+15. **Tutorial 15** — needs only the cohort. It rebuilds the shape model, the
     fits and the network per fold, so nothing from Tutorials 6, 8 or 9 is read;
     those outputs are reused as a cache when they happen to be there.
 
@@ -950,9 +959,10 @@ Run
       python tutorials/tutorial_10_lung_infer_physicsnemo_mgn.py
 
 Outputs
-   One predicted surface and one warped CT per stage, one animated USD across
-   all of them, and ``statistics_per_stage.csv`` with the mm error against each
-   acquired phase, under ``tutorials/output/tutorial_10_lung_mgn/<case>/``.
+   One predicted surface and one warped CT per stage, and one animated USD
+   across all of them, under ``tutorials/output/tutorial_10_lung_mgn/<case>/``.
+   The acquired phase surface is rendered beside the prediction for visual
+   comparison; scoring it is Tutorial 11's job.
 
 Adapt to your data
    Change ``case_id`` to predict a different subject, or pass ``stages`` that
@@ -1216,8 +1226,78 @@ Adapt to your data
    the two ``*_sigma_mm`` values to change how far each rhythm's surface motion
    is carried into the surrounding tissue.
 
+Tutorial 14: Sweep the Shape Parameters
+=======================================
+
+Script
+   ``tutorials/tutorial_14_lung_shape_parameter_sweep.py`` (DIR-Lab)
+
+   ``tutorials/tutorial_14_duke_heart_shape_parameter_sweep.py``
+   (Duke-Heart-4DLabelmaps)
+
+Workflow
+   :class:`~physiotwin4d.WorkflowInferPhysicsNeMo` driving
+   :class:`~physiotwin4d.InferPhysicsNeMoMGN`, scored by
+   :class:`~physiotwin4d.WorkflowEvaluateMovement` once per grid point.
+
+Dataset
+   The held-out case of Tutorial 9, plus its Tutorial 8 fit and the Tutorial 9
+   checkpoint.
+
+Requirements
+   The ``[physicsnemo]`` extra plus ``torch-geometric``, a GPU, and the
+   segmentation weights --- every grid point is scored against independently
+   segmented frames, exactly as Tutorial 11 scores its one fit.
+
+What it does
+   Tutorial 11 scores the inferred motion at the one point in shape space the
+   statistical-model fit happened to land on. This tutorial sweeps that point:
+   it perturbs the first few PCA coefficients over a grid, re-infers the whole
+   cycle at every combination, and scores each the way Tutorial 11 scores its
+   single fit.
+
+   Only the coefficients handed to the network change. The reference anatomy
+   stays the Tutorial 8 fitted surface at every grid point, so what the
+   perturbation moves is the displacement field the MeshGraphNet infers, not
+   the patient's own shape. The sweep therefore isolates the network's
+   sensitivity to its shape conditioning. Because the reference surface, the
+   reference labelmap and the acquired frames are identical across the grid,
+   every combination is scored on the same evaluation grid and the figures are
+   directly comparable point to point.
+
+   The all-zero combination is in the grid, so the unperturbed score comes out
+   of the same code path as every perturbed one.
+   ``number_of_modes_to_vary``, ``perturbation_range`` and
+   ``perturbation_step`` set the grid; the default is ``5 ** 2 = 25``
+   combinations, each costing one Tutorial 11 run.
+
+   Read the sweep by the displacement columns rather than by Dice: a perturbed
+   coefficient can leave a structure the same size in the same place and still
+   move every point of it wrong, which the labelmap metrics cannot see.
+
+Run
+   .. code-block:: bash
+
+      python tutorials/tutorial_14_lung_shape_parameter_sweep.py
+
+      python tutorials/tutorial_14_duke_heart_shape_parameter_sweep.py
+
+Outputs
+   Under ``tutorials/output/tutorial_14_<anatomy>/<case>/``:
+   ``shape_sweep_metrics.csv`` with one row per combination, stage and
+   structure, ``shape_sweep_summary.csv`` with one row per combination carrying
+   that combination's pooled displacement error, and one ``combo_<NNN>/``
+   directory per grid point holding its own Tutorial 11 style report,
+   predicted surfaces and warped labelmaps.
+
+Adapt to your data
+   ``number_of_modes_to_vary``, ``perturbation_step`` and
+   ``evaluation_spacing_mm`` are the cost knobs --- the grid is exponential in
+   the first. Point ``case_id`` at a different subject to sweep that one
+   instead.
+
 Tutorial 15: Leave-One-Out Cross-Validation
-==========================================
+===========================================
 
 Script
    ``tutorials/tutorial_15_lung_leave_one_out.py`` (DIR-Lab)
@@ -1268,9 +1348,13 @@ Run
 
       # One process
       python tutorials/tutorial_15_lung_leave_one_out.py
+      python tutorials/tutorial_15_duke_heart_leave_one_out.py
 
       # Data-parallel training and rank-split per-case loops
-      torchrun --standalone --nproc_per_node=8           tutorials/tutorial_15_lung_leave_one_out.py
+      torchrun --standalone --nproc_per_node=8 \
+          tutorials/tutorial_15_lung_leave_one_out.py
+      torchrun --standalone --nproc_per_node=8 \
+          tutorials/tutorial_15_duke_heart_leave_one_out.py
 
 Outputs
    Under ``tutorials/output/tutorial_15_<anatomy>/``: ``loo_metrics.csv`` with

@@ -48,8 +48,7 @@ No manifest — just the subject's PCA coefficients:
 
 ``--fitted-reference-mesh`` is required in single-subject mode: it is the
 patient's fitted shape-model surface, written by
-``physiotwin4d-fit-statistical-model-to-patient``. Supply ``--ground-truth`` to
-score the prediction against a known surface.
+``physiotwin4d-fit-statistical-model-to-patient``.
 
 Deformation Fields
 ==================
@@ -86,7 +85,7 @@ Options
 ``--manifest JSON``, ``--stages [FLOAT ...]``, ``--displacement``
    Manifest mode, as above.
 
-``--shape-parameters JSON``, ``--stage FLOAT``, ``--fitted-reference-mesh PATH``, ``--ground-truth PATH``, ``--reference-image PATH``
+``--shape-parameters JSON``, ``--stage FLOAT``, ``--fitted-reference-mesh PATH``, ``--reference-image PATH``
    Single-subject mode, as above.
 
 ``--output PATH``

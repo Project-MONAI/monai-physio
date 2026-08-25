@@ -146,7 +146,19 @@ class WorkflowCreateMeanSurface(PhysioTwin4DBase):
         The maps saturate at its square root, and a sample further than that
         from the template has no gradient pulling it in, so the correspondence
         stops short and the mean creeps toward the template.
+
+        Args:
+            distance_squared_max: Saturation radius in squared millimeters.
+
+        Raises:
+            ValueError: If it is not positive. The maps are normalized against
+                its square root, so zero or less saturates every voxel alike
+                and leaves the registration nothing to descend.
         """
+        if distance_squared_max <= 0.0:
+            raise ValueError(
+                f"distance_squared_max must be positive, got {distance_squared_max}."
+            )
         self.distance_squared_max = distance_squared_max
 
     def set_icon_weights_path(self, weights_path: str) -> None:

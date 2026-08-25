@@ -1272,7 +1272,7 @@ class ContourTools(PhysioTwin4DBase):
             == reference_image.GetLargestPossibleRegion().GetSize()
         )
 
-        blurred_norm = itk.SmoothingRecursiveGaussianImageFilter(
+        blurred_norm = itk.smoothing_recursive_gaussian_image_filter(
             Input=norm_img, Sigma=blur_sigma
         )
         blurred_norm_arr = itk.GetArrayFromImage(blurred_norm)
@@ -1280,19 +1280,19 @@ class ContourTools(PhysioTwin4DBase):
 
         deformation_field_x_img = itk.GetImageFromArray(displacement_map_x)
         deformation_field_x_img.CopyInformation(reference_image)
-        deformation_field_x_img = itk.SmoothingRecursiveGaussianImageFilter(
+        deformation_field_x_img = itk.smoothing_recursive_gaussian_image_filter(
             Input=deformation_field_x_img, Sigma=blur_sigma
         )
 
         deformation_field_y_img = itk.GetImageFromArray(displacement_map_y)
         deformation_field_y_img.CopyInformation(reference_image)
-        deformation_field_y_img = itk.SmoothingRecursiveGaussianImageFilter(
+        deformation_field_y_img = itk.smoothing_recursive_gaussian_image_filter(
             Input=deformation_field_y_img, Sigma=blur_sigma
         )
 
         deformation_field_z_img = itk.GetImageFromArray(displacement_map_z)
         deformation_field_z_img.CopyInformation(reference_image)
-        deformation_field_z_img = itk.SmoothingRecursiveGaussianImageFilter(
+        deformation_field_z_img = itk.smoothing_recursive_gaussian_image_filter(
             Input=deformation_field_z_img, Sigma=blur_sigma
         )
 

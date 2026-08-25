@@ -139,7 +139,27 @@ if __name__ == "__main__":
     # unbiased mean of the population instead. Cached: it costs one deformable
     # registration per case per atlas iteration.
     reference_surface_file = output_dir / "reference_mean_surface.vtp"
-    if not reference_surface_file.exists():
+    # Keyed on the settings the atlas was corresponded with, not on the file
+    # merely being there: reusing an atlas built at one dilation, saturation
+    # radius or checkpoint while the model below corresponds its samples at
+    # another is the one way the two can disagree without saying so.
+    mean_surface_settings = {
+        "iterations": mean_surface_iterations,
+        "mask_dilation_mm": LUNG_CT_DIRLAB.mask_dilation_mm,
+        "distance_squared_max": LUNG_CT_DIRLAB.distancemap_squared_max,
+        "icon_weights": (
+            [str(icon_weights_path), icon_weights_path.stat().st_mtime_ns]
+            if icon_weights_path.exists()
+            else None
+        ),
+    }
+    settings_file = output_dir / "reference_mean_surface_settings.json"
+    cached_settings = (
+        json.loads(settings_file.read_text(encoding="utf-8"))
+        if reference_surface_file.exists() and settings_file.exists()
+        else None
+    )
+    if cached_settings != mean_surface_settings:
         mean_workflow = WorkflowCreateMeanSurface(
             surfaces=sample_surfaces, log_level=log_level
         )
@@ -152,6 +172,9 @@ if __name__ == "__main__":
             mean_workflow.set_icon_weights_path(str(icon_weights_path))
         mean_result = mean_workflow.process()
         mean_result["mean_surface"].save(str(reference_surface_file))
+        settings_file.write_text(
+            json.dumps(mean_surface_settings, indent=2), encoding="utf-8"
+        )
     reference_surface = pv.read(str(reference_surface_file))
 
     # Workflow initialization

@@ -36,6 +36,7 @@ needs them imports them locally so ``import physiotwin4d`` works without the
 from __future__ import annotations
 
 import json
+import os
 from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
@@ -234,9 +235,10 @@ def mesh_to_edge_index(mesh: pv.DataSet) -> "torch.Tensor":
         src = np.concatenate([faces[:, 0], faces[:, 1], faces[:, 2]])
         dst = np.concatenate([faces[:, 1], faces[:, 2], faces[:, 0]])
     else:
-        # use_all_points keeps every input point in the output, so the line
-        # connectivity indexes the original point ids.
-        edges = mesh.extract_all_edges(use_all_points=True, clear_data=True)
+        # extract_all_edges keeps every input point in the output, so the line
+        # connectivity indexes the original point ids.  The check below is what
+        # holds that; the guarantee is not stated in the pyvista contract.
+        edges = mesh.extract_all_edges(clear_data=True)
         if edges.n_points != mesh.n_points:
             raise ValueError(
                 f"Edge extraction returned {edges.n_points} points for a mesh "
@@ -297,6 +299,22 @@ class DistributedContext:
         torch.distributed.barrier()
 
 
+def _launched_world_size() -> int:
+    """How many processes the launcher says are in this job, 1 if none says.
+
+    Read straight from the environment rather than from PhysicsNeMo, because
+    this is what has to be known *before* PhysicsNeMo is known to be there.
+    The three variables are the ones ``DistributedManager`` itself consults,
+    for ``torchrun``, SLURM and OpenMPI respectively.
+    """
+    sizes = [
+        int(os.environ[name])
+        for name in ("WORLD_SIZE", "SLURM_NTASKS", "OMPI_COMM_WORLD_SIZE")
+        if os.environ.get(name, "").isdigit()
+    ]
+    return max(sizes, default=1)
+
+
 def distributed_context() -> DistributedContext:
     """Initialize PhysicsNeMo's ``DistributedManager`` and read it back.
 
@@ -304,12 +322,31 @@ def distributed_context() -> DistributedContext:
     environments and falls back to a single process when it finds none, so this
     is safe to call from any entry point.  Initialization is done once per
     process; calling this again returns the same context.
-    """
-    import torch
 
+    Raises:
+        ImportError: If the process was launched as one of several and
+            PhysicsNeMo is not installed. Raised before anything is imported or
+            written, so the caller has not yet created an output directory.
+    """
     try:
         from physicsnemo.distributed import DistributedManager
-    except ImportError:
+    except ImportError as exc:
+        # PhysicsNeMo is what reads the launcher's environment, so without it
+        # every rank of a multi-process launch would call itself rank 0 of a
+        # world of 1: each would train on the whole dataset and each would
+        # write over the others' checkpoints, silently and at full cost.
+        launched = _launched_world_size()
+        if launched > 1:
+            raise ImportError(
+                f"This process is 1 of {launched} in a distributed launch, but "
+                "PhysicsNeMo is not installed, and it is what assigns the "
+                "ranks. Without it every process would call itself rank 0 and "
+                "overwrite the others' output. Install with: pip install "
+                '"physiotwin4d[physicsnemo]", or run in a single process.'
+            ) from exc
+
+        import torch
+
         # The MLP path does not otherwise need the [physicsnemo] extra, so a
         # missing PhysicsNeMo means a single process rather than an error.
         return DistributedContext(
@@ -346,9 +383,9 @@ def unwrap_model(model: Any) -> Any:
         model = inner
 
 
-def uncompiled_state_dict(model: Any) -> dict:
+def uncompiled_state_dict(model: Any) -> dict[str, Any]:
     """Return a model's state dict, unwrapping ``torch.compile`` and DDP."""
-    return cast(dict, unwrap_model(model).state_dict())
+    return cast(dict[str, Any], unwrap_model(model).state_dict())
 
 
 def strip_compile_prefix(state: dict) -> dict:

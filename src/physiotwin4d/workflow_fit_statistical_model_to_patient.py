@@ -54,12 +54,13 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
     This class provides a flexible workflow for registering generic anatomical models
     (e.g., cardiac models) to patient-specific surface models and images. The
     registration pipeline combines:
-    - Initial model alignment using RegisterModelsICP (centroid + affine ICP)
+    - Initial model alignment using RegisterModelsICP (centroid + configurable ICP)
     - Labelmap-based deformable registration using RegisterModelsDistanceMaps (Greedy/ICON)
     - Optional final labelmap-to-image refinement using Icon registration
 
     **Registration Pipeline:**
-        1. **ICP Alignment**: Rough affine alignment using RegisterModelsICP
+        1. **ICP Alignment**: Rough alignment using RegisterModelsICP, rigid,
+            similarity or affine per :attr:`icp_transform_type`
         2. **PCA Registration**: Performs PCA-based shape fitting using
             RegisterModelsPCA
         3. **Labelmap-to-Labelmap**: Deformable registration using RegisterModelsDistanceMaps
@@ -80,6 +81,9 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         patient_labelmap (itk.Image): Multi-label labelmap for patient model
         patient_mask (itk.Image): Binary mask for patient registration region
         mask_dilation_mm (float): Dilation for binary mask generation
+        icp_transform_type (str): Alignment the Stage 1 ICP solves for, one of
+            "Rigid", "Similarity" or "Affine". It has to match the value the
+            statistical model was built with (set via set_icp_transform_type)
         distancemap_squared_max (Optional[float]): Saturation radius of the
             labelmap-to-labelmap distance maps, in squared millimeters. None
             means derive it from mask_dilation_mm as (1.25 * mask_dilation_mm)**2

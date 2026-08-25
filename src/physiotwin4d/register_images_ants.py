@@ -117,11 +117,11 @@ class RegisterImagesANTS(RegisterImagesBase):
             self.log_error("Invalid metric: %s", metric)
             raise ValueError(f"Invalid metric: {metric}")
 
-    def _ants_to_itk_image(self, ants_image: ants.ANTsImage) -> itk.Image:
+    def _ants_to_itk_image(self, ants_image: ants.ants_image) -> itk.Image:
         """Convert ANTs image back to ITK format.
 
         Args:
-            ants_image (ants.core.ANTsImage): ANTs image to convert
+            ants_image (ants.core.ants_image): ANTs image to convert
             reference_itk_image (itk.image): Reference ITK image for metadata
 
         Returns:
@@ -164,14 +164,14 @@ class RegisterImagesANTS(RegisterImagesBase):
 
     def _itk_to_ants_image(
         self, itk_image: itk.Image, dtype: str = "float"
-    ) -> ants.ANTsImage:
+    ) -> ants.ants_image:
         """Convert ITK image to ANTs format.
 
         Args:
             itk_image (itk.image): ITK image to convert
 
         Returns:
-            ants.core.ANTsImage: Converted ANTs image
+            ants.core.ants_image: Converted ANTs image
         """
         ndim = itk_image.GetImageDimension()
         if ndim not in (2, 3, 4):
@@ -211,7 +211,7 @@ class RegisterImagesANTS(RegisterImagesBase):
         else:
             data_reshaped = data.transpose(list(range(image_dimension - 1, -1, -1)))
 
-        ants_image: ants.ANTsImage = ants.from_numpy(
+        ants_image: ants.ants_image = ants.from_numpy(
             data=data_reshaped,
             origin=origin,
             spacing=spacing,

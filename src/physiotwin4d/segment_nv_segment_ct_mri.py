@@ -584,7 +584,7 @@ class SegmentNVSegmentCTMRI(SegmentAnatomyBase):
         and reused for every subsequent image or timepoint.
 
         Returns:
-            Any: The bundle's ``VISTA3DPipeline`` on device ``cuda:0``.
+            Any: The bundle's ``VISTA3DPipeline`` on the current CUDA device.
         """
         if self._pipeline is None:
             snapshot_dir = self._ensure_model()
@@ -645,7 +645,8 @@ class SegmentNVSegmentCTMRI(SegmentAnatomyBase):
             RuntimeError: If the model pipeline produced no output volume.
 
         Note:
-            Requires a CUDA GPU (device ``cuda:0``).
+            Requires a CUDA GPU; the segmentation runs on whichever CUDA
+            device is current in this process.
 
         Example:
             >>> labelmap = segmenter.segmentation_method(preprocessed_ct)

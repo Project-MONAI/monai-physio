@@ -47,8 +47,9 @@ the grid.
    over frames and structures).
 
 Every combination also carries ``displacement_rms_mm``,
-``displacement_95th_mm`` and ``displacement_max_mm``, the point-by-point distance between where the network
-puts each mesh point and where Tutorial 8 fitted it in that frame.  That is the
+``displacement_95th_mm`` and ``displacement_max_mm``, the point-by-point
+distance between where the network puts each mesh point and where Tutorial 8
+fitted it in that frame.  That is the
 column to read the sweep by: a perturbed coefficient can leave a chamber the
 same size in the same place and still move every point of it wrong, which the
 labelmap metrics cannot see and this one cannot miss.  Those three are

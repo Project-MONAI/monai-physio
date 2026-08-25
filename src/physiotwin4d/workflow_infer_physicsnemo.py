@@ -128,8 +128,6 @@ class WorkflowInferPhysicsNeMo(PhysioTwin4DBase):
         model.eval()
         self.inference_method.set_model(model, self._device)
 
-        # Optional PCA reconstruction assets (manifest-free inference).
-
     # ─────────────────────────── Shared assets ─────────────────────────────
     @property
     def template_mesh(self) -> pv.DataSet:
@@ -193,8 +191,7 @@ class WorkflowInferPhysicsNeMo(PhysioTwin4DBase):
                 ``<model_directory>/<subject_id>``.
 
         Returns:
-            Dict with ``subject_id``, ``predicted_meshes`` (paths) and, in the
-            ``predicted_meshes`` (paths).
+            Dict with ``subject_id`` and ``predicted_meshes`` (paths).
         """
         manifest = pnt.parse_manifest(subject_manifest)
         pca_coeffs = pnt.load_pca_coefficients(manifest.pca_coefficients)
@@ -213,7 +210,7 @@ class WorkflowInferPhysicsNeMo(PhysioTwin4DBase):
         meshes: list[Path] = []
 
         requested = stages if stages is not None else [p.stage for p in manifest.phases]
-        for index, stage in enumerate(requested):
+        for stage in requested:
             predicted = self.predict(pca_coeffs, stage)
             path = out_dir / f"{sid}_pred_s{int(stage * 100):03d}{suffix}"
             self.predicted_mesh(predicted).save(str(path))

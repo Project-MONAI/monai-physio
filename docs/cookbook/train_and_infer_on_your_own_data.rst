@@ -73,8 +73,8 @@ its PCA coefficient JSON.
        --output-dir work/sub01/fit \
        --output-prefix sub01_T00
 
-**5. Write one manifest per subject.** This is the only artifact the training
-stack requires, and the only place your data meets it. Name the reference mesh,
+**5. Write one manifest per subject.** This is the only per-subject artifact
+the training stack requires, and the only place your data meets it. Name the reference mesh,
 the PCA coefficients, the point-data array holding your targets, and one entry
 per phase with its normalized ``stage``. Targets are read verbatim — write
 ``phase.points - reference.points`` for a motion model, or any other per-vertex
@@ -107,8 +107,9 @@ See :doc:`/api/physicsnemo/manifest` for the full schema and its rules.
        --pca-mean-mesh work/ssm/pca_mean_surface.vtp \
        --output work/mgn_run
 
-**7. Predict.** Manifest mode scores against stored targets; ``--stages`` asks
-for phases that were never acquired.
+**7. Predict.** Manifest mode predicts the stages the manifest stores;
+``--stages`` asks for phases that were never acquired. Neither scores the
+result --- for that, see :doc:`/tutorials` Tutorial 11.
 
 .. code-block:: bash
 

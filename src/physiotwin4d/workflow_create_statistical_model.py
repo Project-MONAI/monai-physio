@@ -106,13 +106,21 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
         self.reference_spatial_resolution = reference_spatial_resolution
         self.reference_buffer_factor = reference_buffer_factor
         self.solve_for_surface_pca = solve_for_surface_pca
-        self.icp_transform_type = icp_transform_type
+        # Through the setters, so the constructor cannot accept a value the
+        # setter would reject.
+        self.set_icp_transform_type(icp_transform_type)
         self.mask_dilation_mm = mask_dilation_mm
-        self.distance_squared_max = (
-            (1.25 * mask_dilation_mm) ** 2
-            if distance_squared_max is None
-            else distance_squared_max
-        )
+        if distance_squared_max is None:
+            self.distance_squared_max = (1.25 * mask_dilation_mm) ** 2
+        elif distance_squared_max <= 0.0:
+            # The distance maps are normalized against its square root, so zero
+            # or less saturates every voxel alike and leaves the registration
+            # nothing to descend.
+            raise ValueError(
+                f"distance_squared_max must be positive, got {distance_squared_max}."
+            )
+        else:
+            self.distance_squared_max = distance_squared_max
         self.project_to_measured_surfaces = project_to_measured_surfaces
         self.projection_max_distance_mm = projection_max_distance_mm
         self.icon_weights_path: Optional[str] = None

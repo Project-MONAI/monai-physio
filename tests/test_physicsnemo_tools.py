@@ -7,6 +7,7 @@ run in the default fast suite.
 
 from __future__ import annotations
 
+import builtins
 import json
 from pathlib import Path
 
@@ -60,6 +61,73 @@ def _targets(n_points: int, n_target: int, offset: float) -> np.ndarray:
         n_points, n_target
     )
     return values / 100.0 + offset
+
+
+def test_parse_manifest_rejects_a_manifest_without_a_fitted_reference_mesh(
+    tmp_path: Path,
+) -> None:
+    """The fitted mesh is what the displacements are defined against.
+
+    Shape parameters alone do not reconstruct it, so a manifest that omits it
+    has to fail rather than fall back to anything.
+    """
+    n_points = _sphere().n_points
+    manifest_path = _write_subject(tmp_path, [_targets(n_points, 3, 0.0)])
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    del manifest["fitted_reference_mesh"]
+    manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="fitted_reference_mesh"):
+        pnt.parse_manifest(manifest_path)
+
+
+def _without_physicsnemo(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make every ``physicsnemo`` import raise, as an install without the extra."""
+    real_import = builtins.__import__
+
+    def fake_import(name: str, *args: object, **kwargs: object) -> object:
+        if name == "physicsnemo" or name.startswith("physicsnemo."):
+            raise ImportError("No module named 'physicsnemo'")
+        return real_import(name, *args, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+
+
+@pytest.mark.parametrize(
+    "variable", ["WORLD_SIZE", "SLURM_NTASKS", "OMPI_COMM_WORLD_SIZE"]
+)
+def test_multi_process_launch_without_physicsnemo_is_refused(
+    monkeypatch: pytest.MonkeyPatch, variable: str
+) -> None:
+    """Eight ranks with no rank assigner is eight processes overwriting each other.
+
+    The refusal has to happen here, before the training workflow creates its
+    output directory, because by then the damage is already on disk.
+    """
+    for name in ("WORLD_SIZE", "SLURM_NTASKS", "OMPI_COMM_WORLD_SIZE"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv(variable, "8")
+    _without_physicsnemo(monkeypatch)
+
+    with pytest.raises(ImportError, match="1 of 8"):
+        pnt.distributed_context()
+
+
+def test_a_single_process_without_physicsnemo_still_runs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The MLP path never needed the extra, so one process is not an error."""
+    for name in ("WORLD_SIZE", "SLURM_NTASKS", "OMPI_COMM_WORLD_SIZE"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("WORLD_SIZE", "1")
+    _without_physicsnemo(monkeypatch)
+
+    context = pnt.distributed_context()
+
+    assert context.world_size == 1
+    assert context.rank == 0
+    assert context.is_main
+    assert not context.is_distributed
 
 
 def test_parse_manifest_round_trips_the_new_schema(tmp_path: Path) -> None:

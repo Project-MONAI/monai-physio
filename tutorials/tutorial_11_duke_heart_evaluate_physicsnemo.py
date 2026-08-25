@@ -55,7 +55,6 @@ Outputs (under ``output/tutorial_11_duke_heart/<case>/``)
     and worst case, with the per-point displacement error per frame
   * ``evaluation_metrics.csv``  - one row per stage and structure, each
     carrying that structure's displacement error (RMS, 95th percentile, maximum)
-  * ``statistics_per_stage.csv`` - displacement error statistics per frame
   * ``volume_vs_stage.png``     - each structure's volume across the stages
   * ``<case>_ssm_pca_coefficients_s{TTT}_pred.vtp`` - predicted surface per stage,
     carrying the displacement point-data arrays the ``include_*`` switches ask for

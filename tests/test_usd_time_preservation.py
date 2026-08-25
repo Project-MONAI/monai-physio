@@ -88,7 +88,8 @@ class TestUSDTimePreservation:
     """Test suite for USD time-varying data preservation."""
 
     @pytest.fixture(scope="class")
-    def test_data_files(self) -> dict[str, str]:
+    @staticmethod
+    def test_data_files() -> dict[str, str]:
         """Locate test USD files with time-varying data."""
         dynamic_file = Path(
             "experiments/Heart-GatedCT_To_USD/results/Slicer_CardiacGatedCT.dynamic_anatomy_painted.usd"
@@ -103,19 +104,22 @@ class TestUSDTimePreservation:
         return {"dynamic": str(dynamic_file), "static": str(static_file)}
 
     @pytest.fixture(scope="class")
-    def output_dir(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+    @staticmethod
+    def output_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
         """Create temporary output directory for test results."""
         output_dir = tmp_path_factory.mktemp("usd_time_tests")
         return output_dir
 
     @pytest.fixture(scope="class")
-    def source_metadata(self, test_data_files: dict[str, str]) -> dict[str, Any]:
+    @staticmethod
+    def source_metadata(test_data_files: dict[str, str]) -> dict[str, Any]:
         """Get time metadata from source file."""
         return get_time_metadata(test_data_files["dynamic"])
 
     @pytest.fixture(scope="class")
+    @staticmethod
     def source_time_samples(
-        self, test_data_files: dict[str, str]
+        test_data_files: dict[str, str],
     ) -> Optional[dict[str, Any]]:
         """Get time sample data from source file."""
         return get_mesh_time_samples(test_data_files["dynamic"])

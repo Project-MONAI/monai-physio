@@ -55,7 +55,6 @@ Outputs (under ``output/tutorial_11_lung/<case>/``)
     worst case, with the per-point displacement error per phase
   * ``evaluation_metrics.csv``  - one row per stage and lobe, each carrying
     that lobe's displacement error (RMS, 95th percentile, maximum)
-  * ``statistics_per_stage.csv`` - displacement error statistics per phase
   * ``volume_vs_stage.png``     - each lobe's volume across the stages
   * ``ground_truth/<case>_T{PP}_labelmap.nii.gz`` - cached per-phase segmentation
   * ``<case>_ssm_pca_coefficients_s{TTT}_pred.vtp`` - predicted surface per stage,

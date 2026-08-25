@@ -73,7 +73,8 @@ class TestUSDMerge:
     """Test suite for USD file merging."""
 
     @pytest.fixture(scope="class")
-    def test_data_files(self) -> dict[str, str]:
+    @staticmethod
+    def test_data_files() -> dict[str, str]:
         """Locate test USD files with materials and time-varying data."""
         dynamic_file = Path(
             "experiments/Heart-GatedCT_To_USD/results/Slicer_CardiacGatedCT.dynamic_anatomy_painted.usd"
@@ -88,13 +89,15 @@ class TestUSDMerge:
         return {"dynamic": str(dynamic_file), "static": str(static_file)}
 
     @pytest.fixture(scope="class")
-    def output_dir(self, tmp_path_factory: pytest.TempPathFactory) -> Path:
+    @staticmethod
+    def output_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
         """Create temporary output directory for test results."""
         output_dir = tmp_path_factory.mktemp("usd_merge_tests")
         return output_dir
 
     @pytest.fixture(scope="class")
-    def input_stats(self, test_data_files: dict[str, str]) -> dict[str, dict[str, Any]]:
+    @staticmethod
+    def input_stats(test_data_files: dict[str, str]) -> dict[str, dict[str, Any]]:
         """Analyze input USD files."""
         dynamic_stats = analyze_usd_file(test_data_files["dynamic"])
         static_stats = analyze_usd_file(test_data_files["static"])

@@ -193,11 +193,12 @@ class WorkflowEvaluateMovement(PhysioTwin4DBase):
             ``displacement_95th_mm`` and ``displacement_max_mm``.
 
         Raises:
-            ValueError: If ``ground_truth_labelmaps`` is empty, none of the
-                requested labels are in the reference frame, no label survives
-                scoring because the acquired frames contain none of them, or an
-                option needing the true displacement is requested without a
-                ``ground_truth_meshes`` entry for every stage.
+            ValueError: If ``ground_truth.labelmaps`` is empty, any stage it
+                carries a labelmap for has no entry in ``ground_truth.meshes``
+                --- checked whether or not an option needing the true
+                displacement was requested --- none of the requested labels are
+                in the reference frame, or no label survives scoring because
+                the acquired frames contain none of them.
         """
         if not ground_truth.labelmaps:
             raise ValueError("No ground-truth labelmaps to evaluate against.")
@@ -413,9 +414,34 @@ class WorkflowEvaluateMovement(PhysioTwin4DBase):
 
         Returns:
             The per-stage error arrays and their per-stage statistics rows, both
-            empty when no true surfaces were given.
+            empty when no true surfaces were given or when
+            ``include_displacement_error`` is off --- the caller reports the
+            pooled figures only when it was asked for the error, so scoring one
+            it will not report would be measured and thrown away.
         """
+        # Cleared before any early return: the attribute outlives the call, so
+        # leaving it set would report the previous case's CSV as this one's.
+        self.displacement_data_file = None
         if ground_truth_meshes is None:
+            return [], []
+
+        # Reading a stage's true surface only pays for itself if something asked
+        # for it: the true displacement, the per-point error, or the CSV that
+        # carries both.
+        needs_true_points = (
+            include_true_displacements
+            or include_displacement_error
+            or report_displacement_data
+        )
+        # An option that adds no point data leaves each stage mesh exactly as the
+        # inference workflow already wrote it, so re-saving would rewrite an
+        # identical file.
+        annotated = (
+            include_predicted_displacements
+            or include_true_displacements
+            or include_displacement_error
+        )
+        if not needs_true_points and not include_predicted_displacements:
             return [], []
 
         fitted_reference_points = np.asarray(
@@ -434,48 +460,58 @@ class WorkflowEvaluateMovement(PhysioTwin4DBase):
         for index, stage in enumerate(stages):
             stage_mesh = series["stage_meshes"][index]
             predicted_points = np.asarray(stage_mesh.points, dtype=np.float32)
-            true_points = np.asarray(
-                pv.read(str(ground_truth_meshes[stage])).points, dtype=np.float32
-            )
-            differences = predicted_points - true_points
-            stage_errors = np.linalg.norm(differences, axis=1).astype(np.float32)
 
             if include_predicted_displacements:
                 stage_mesh.point_data["predicted_displacement_mm"] = (
                     predicted_points - fitted_reference_points
                 ).astype(np.float32)
-            if include_true_displacements:
-                stage_mesh.point_data["true_displacement_mm"] = (
-                    true_points - fitted_reference_points
-                ).astype(np.float32)
-            if include_displacement_error:
-                stage_mesh.point_data["displacement_error_mm"] = stage_errors
-            stage_mesh.save(str(series["predicted_surfaces"][index]))
 
-            if displacement_file is not None:
-                with displacement_file.open("a", newline="", encoding="utf-8") as fh:
-                    csv.writer(fh).writerows(
-                        self._displacement_rows(
-                            case_id,
-                            stage,
-                            fitted_reference_points,
-                            predicted_points,
-                            true_points,
-                            stage_errors,
+            if needs_true_points:
+                true_points = np.asarray(
+                    pv.read(str(ground_truth_meshes[stage])).points, dtype=np.float32
+                )
+                differences = predicted_points - true_points
+                stage_errors = np.linalg.norm(differences, axis=1).astype(np.float32)
+
+                if include_true_displacements:
+                    stage_mesh.point_data["true_displacement_mm"] = (
+                        true_points - fitted_reference_points
+                    ).astype(np.float32)
+                if include_displacement_error:
+                    stage_mesh.point_data["displacement_error_mm"] = stage_errors
+
+                if displacement_file is not None:
+                    with displacement_file.open(
+                        "a", newline="", encoding="utf-8"
+                    ) as fh:
+                        csv.writer(fh).writerows(
+                            self._displacement_rows(
+                                case_id,
+                                stage,
+                                fitted_reference_points,
+                                predicted_points,
+                                true_points,
+                                stage_errors,
+                            )
+                        )
+
+                if include_displacement_error:
+                    errors.append(stage_errors)
+                    statistics.append(
+                        self.displacement_error_row(
+                            case_id, stage, differences, stage_errors
                         )
                     )
+                    self.log_info(
+                        "stage %.3f: mean=%.3f mm  95th=%.3f mm  max=%.3f mm",
+                        stage,
+                        statistics[-1]["mean_error_mm"],
+                        statistics[-1]["p95_error_mm"],
+                        statistics[-1]["max_error_mm"],
+                    )
 
-            errors.append(stage_errors)
-            statistics.append(
-                self.displacement_error_row(case_id, stage, differences, stage_errors)
-            )
-            self.log_info(
-                "stage %.3f: mean=%.3f mm  95th=%.3f mm  max=%.3f mm",
-                stage,
-                statistics[-1]["mean_error_mm"],
-                statistics[-1]["p95_error_mm"],
-                statistics[-1]["max_error_mm"],
-            )
+            if annotated:
+                stage_mesh.save(str(series["predicted_surfaces"][index]))
 
         self.displacement_data_file = displacement_file
         return errors, statistics

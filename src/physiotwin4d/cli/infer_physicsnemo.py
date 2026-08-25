@@ -52,7 +52,7 @@ def main() -> int:
         "--displacement",
         action="store_true",
         help="Treat the targets as displacements: write reference + prediction "
-        "meshes and error statistics in mm instead of the raw target arrays.",
+        "meshes instead of the raw target arrays.",
     )
 
     # Manifest-free single-subject mode.

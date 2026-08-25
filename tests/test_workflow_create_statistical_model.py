@@ -66,9 +66,11 @@ class _IdentityRegistrar:
         }
 
 
-def _run(monkeypatch: Any, **kwargs: Any) -> WorkflowCreateStatisticalModel:
+def _run(
+    monkeypatch: Any, registrar: type = _IdentityRegistrar, **kwargs: Any
+) -> WorkflowCreateStatisticalModel:
     """Run the workflow over three bumpy spheres with registration stubbed out."""
-    monkeypatch.setattr(wcsm, "RegisterModelsDistanceMaps", _IdentityRegistrar)
+    monkeypatch.setattr(wcsm, "RegisterModelsDistanceMaps", registrar)
     _IdentityRegistrar.reference_images = []
     samples = [_bumpy_sphere(a) for a in (-0.15, 0.0, 0.15)]
     workflow = WorkflowCreateStatisticalModel(
@@ -165,12 +167,45 @@ def test_reference_image_covers_every_aligned_sample(monkeypatch: Any) -> None:
 
 
 def test_aligned_models_stay_the_measured_inputs(monkeypatch: Any) -> None:
-    """Step 4 measures against these, so the deformable stage must not eat them."""
-    workflow = _run(monkeypatch, project_to_measured_surfaces=False)
+    """Step 4 measures against these, so the deformable stage must not eat them.
+
+    The registrar here has to *move* its input: one that hands the same object
+    back would satisfy this test whether the workflow kept the ICP-aligned
+    model or replaced it with the registration output.
+    """
+    offset = np.array([3.0, -2.0, 1.0])
+    handed_in: list[pv.PolyData] = []
+    handed_back: list[pv.PolyData] = []
+
+    class _DisplacingRegistrar(_IdentityRegistrar):
+        def register(self, transform_type: str) -> dict[str, Any]:
+            result = super().register(transform_type)
+            moved = self.moving_model.copy(deep=True)
+            moved.points = np.asarray(moved.points) + offset
+            result["registered_model"] = moved
+            handed_in.append(self.moving_model)
+            handed_back.append(moved)
+            return result
+
+    workflow = _run(
+        monkeypatch,
+        registrar=_DisplacingRegistrar,
+        project_to_measured_surfaces=False,
+    )
 
     assert len(workflow.aligned_models) == 3
-    for aligned, sample in zip(workflow.aligned_models, workflow.sample_models):
+    assert len(handed_back) == 3
+    for aligned, sample, given, returned in zip(
+        workflow.aligned_models, workflow.sample_models, handed_in, handed_back
+    ):
         assert aligned.n_points == sample.n_points
+        # The ICP-aligned model is what the registrar was handed...
+        np.testing.assert_allclose(aligned.points, given.points)
+        # ...and it is not what the registrar handed back.
+        np.testing.assert_allclose(
+            np.asarray(returned.points) - np.asarray(aligned.points),
+            np.broadcast_to(offset, (aligned.n_points, 3)),
+        )
 
 
 def test_icp_transform_type_defaults_to_affine_and_validates() -> None:
@@ -186,6 +221,32 @@ def test_icp_transform_type_defaults_to_affine_and_validates() -> None:
 
     with pytest.raises(ValueError, match="Invalid ICP transform"):
         workflow.set_icp_transform_type("Deformable")
+
+
+def test_the_constructor_validates_what_the_setters_validate() -> None:
+    """A constructor that skips the setters accepts what the setter refuses."""
+    with pytest.raises(ValueError, match="Invalid ICP transform"):
+        WorkflowCreateStatisticalModel(
+            sample_meshes=[pv.Sphere()],
+            reference_mesh=pv.Sphere(),
+            icp_transform_type="Deformable",
+        )
+
+    with pytest.raises(ValueError, match="distance_squared_max must be positive"):
+        WorkflowCreateStatisticalModel(
+            sample_meshes=[pv.Sphere()],
+            reference_mesh=pv.Sphere(),
+            distance_squared_max=0.0,
+        )
+
+    # None still means "derive it from the dilation", not "reject it".
+    derived = WorkflowCreateStatisticalModel(
+        sample_meshes=[pv.Sphere()],
+        reference_mesh=pv.Sphere(),
+        mask_dilation_mm=20.0,
+        distance_squared_max=None,
+    )
+    assert derived.distance_squared_max == pytest.approx((1.25 * 20.0) ** 2)
 
 
 def test_icp_transform_type_reaches_the_registrar(monkeypatch: Any) -> None:

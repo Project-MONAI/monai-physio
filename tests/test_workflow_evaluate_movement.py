@@ -508,3 +508,31 @@ def test_every_stage_and_structure_reaches_the_report(tmp_path: Path) -> None:
     # Pooled over both stages, so neither can exceed the worst single point.
     assert result["displacement_95th_mm"] <= result["displacement_max_mm"]
     assert result["displacement_rms_mm"] <= result["displacement_max_mm"]
+
+    # The same case with none of the displacement options asked for. The true
+    # surfaces are still on hand, so nothing stops the error being measured ---
+    # but the pooled figures are only reported when the error was asked for, so
+    # measuring it here would put per-stage rows in the report beside a pooled
+    # RMS of nan.
+    plain = workflow.process(
+        case_id="synthetic_case",
+        shape_parameters=shape_parameters,
+        fitted_reference_mesh=fitted_reference_mesh_file,
+        ground_truth=MovementGroundTruth(
+            labelmaps=ground_truth,
+            reference_labelmap=reference_labelmap,
+            reference_stage=0.0,
+            meshes=ground_truth_meshes,
+        ),
+        output_directory=tmp_path / "evaluation_plain",
+        smoothing_sigma_mm=2.0,
+        evaluation_spacing_mm=_SPACING_MM,
+    )
+    assert plain["displacement_statistics"] == []
+    assert np.isnan(plain["displacement_rms_mm"])
+    assert plain["displacement_data_file"] is None
+    assert "Displacement error" not in Path(plain["report_file"]).read_text(
+        encoding="utf-8"
+    )
+    # The labelmap metrics do not depend on any of it.
+    assert len(plain["rows"]) == 2

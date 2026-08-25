@@ -119,12 +119,14 @@ its own anatomy's earlier tutorials, never the other's.
 6. **Tutorial 6** creates the PCA statistical model; the heart variant from KCL-Heart-Model, the lung variant from the DirLab-4DCT `Case*T70.mha` phases, which it segments itself. Both write `pca_model.json` and `pca_mean_surface.vtp` under their own output directory.
 7. **Tutorial 7** applies the statistical model, consuming its own anatomy's Tutorial 6 output; the heart variant fits the Tutorial 6 (heart) model, the lung variant fits the Tutorial 6 (lung) model to the ungated `Chest-CT` scan (`physiotwin4d-download-data Chest-CT`; see `data/Chest-CT/README.md` for the data source and required citation).
 
-The AI-surrogate pipeline (Tutorials 8 -> 9 -> 10 -> 11 -> 12 -> 14) runs on DIR-Lab
-and the Tutorial 6 lung model, in order:
+The AI-surrogate pipeline (Tutorials 8 -> 9 -> 10 -> 11 -> 12, plus 14 and 15)
+runs on DIR-Lab and the Tutorial 6 lung model, in order. Tutorials 14 and 15
+branch off the chain rather than continuing it: 14 needs only the Tutorial 8 fit
+and the Tutorial 9 checkpoint, and 15 needs neither, rebuilding both per fold:
 
 8. **Tutorial 8** fits the lung PCA model to each case's reference phase and propagates the fitted SSM surface through every respiratory phase (output feeds Tutorial 9). It uses the Tutorial 2 ICON weights when they exist.
 9. **Tutorial 9** trains a PhysicsNeMo MeshGraphNet to predict the per-vertex motion at any stage. PhysicsNeMo is an optional extra: install with `pip install "physiotwin4d[physicsnemo]"` (requires Python >= 3.11); the MeshGraphNet also needs `torch-geometric`. A `TrainPhysicsNeMoMLP` method exists as a drop-in alternative, without its own tutorial.
-10. **Tutorial 10** loads that checkpoint and predicts the held-out case's surface at every acquired stage, scoring each against its acquired phase, warping the reference-phase CT through the inferred deformation, and exporting one animated USD. The case and checkpoint epoch are constants near the top of the script; for command-line runs with path arguments, use the installed `physiotwin4d-infer-physicsnemo` CLI.
+10. **Tutorial 10** loads that checkpoint and predicts the held-out case's surface at every acquired stage, warping the reference-phase CT through the inferred deformation and exporting one animated USD. It renders the acquired frame surface beside the prediction for visual comparison but does not score it; scoring is Tutorial 11's job. The case and checkpoint epoch are constants near the top of the script; for command-line runs with path arguments, use the installed `physiotwin4d-infer-physicsnemo` CLI.
 11. **Tutorial 11** scores the same prediction against the images rather than against the registration: it segments every gated frame independently, then reports volume difference and surface RMSE per lung lobe (per heart chamber, with Dice, in the duke variant) as `evaluation_report.md` and `evaluation_metrics.csv`. The lung variant leaves Dice out: a lobe moves little compared to its own size, so the overlap fraction describes the lobe rather than the motion.
 12. **Tutorial 12** collapses the whole chain into one script: it segments the reference frame, fits the Tutorial 6 model to that patient itself, and infers every stage - so nothing is read from Tutorial 8 and no phase is ever registered. It needs only the gated series plus the Tutorial 6 model and the Tutorial 9 checkpoint, and it wipes its output directory on every run so the reported runtimes in `<case>_runtimes.csv` cover the entire pipeline.
 
@@ -162,8 +164,10 @@ data-parallel across ranks and the per-case loops are split across them.
 
 The `duke_heart` variants form their own chain on Duke-Heart-4DLabelmaps,
 which no step above shares: Tutorial 4 (duke heart) -> 5 -> 6 -> 7 -> 8 -> 9 ->
-10 -> 11 -> 12 -> 14, each reading the previous one's output, with Tutorial 2 (heart
+10 -> 11 -> 12, each reading the previous one's output, with Tutorial 2 (heart
 distancemap variant) supplying optional finetuned weights to Tutorials 7 and 8.
+Tutorials 14 and 15 (duke heart) branch off the same chain on the same dataset,
+14 from Tutorials 8 and 9, 15 from the cohort alone.
 That dataset is being released soon; until then this chain cannot be run, and
 access can be requested from Stephen Aylward (<saylward@nvidia.com>). See
 [../data/Duke-Heart-4DLabelmaps/README.md](../data/Duke-Heart-4DLabelmaps/README.md).

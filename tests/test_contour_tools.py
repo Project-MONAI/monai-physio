@@ -6,7 +6,7 @@ segmentation results to test contour extraction and manipulation.
 """
 
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import itk
 import numpy as np
@@ -386,6 +386,56 @@ class TestSaveCombinedSurfaces:
 
         merged = pv.read(str(output_file))
         assert set(np.unique(merged.cell_data["SegmentationLabelIds"])) == {0}
+
+
+class TestRemeshCarriesCellLabels:
+    """Remeshing rebuilds the topology, so the cell labels have to be carried."""
+
+    @staticmethod
+    def _two_label_sphere() -> pv.PolyData:
+        """A sphere whose cells carry two structure ids and their label pairs.
+
+        Split by the sign of the cell centre's x, so both labels own a large,
+        contiguous patch that uniform re-tiling cannot absorb.
+        """
+        surface = cast(
+            pv.PolyData,
+            pv.Sphere(
+                radius=10.0, theta_resolution=40, phi_resolution=40
+            ).triangulate(),
+        )
+        left = np.asarray(surface.cell_centers().points)[:, 0] < 0.0
+        surface.cell_data["SegmentationLabelIds"] = np.where(left, 141, 142).astype(
+            np.int32
+        )
+        surface.cell_data["boundary_labels"] = np.column_stack(
+            (np.where(left, 141, 142), np.zeros(surface.n_cells))
+        ).astype(np.int32)
+        return surface
+
+    def test_remeshing_carries_both_cell_arrays(
+        self, contour_tools: ContourTools
+    ) -> None:
+        """Anatomy splitting downstream reads these off the remeshed surface."""
+        original = self._two_label_sphere()
+
+        remeshed = contour_tools.remesh_and_smooth_surface(
+            original, surface_reduction_rate=0.5
+        )
+
+        assert remeshed.n_cells < original.n_cells
+        for name in ("SegmentationLabelIds", "boundary_labels"):
+            assert name in remeshed.cell_data, f"{name} did not survive remeshing"
+            carried = np.asarray(remeshed.cell_data[name])
+            assert len(carried) == remeshed.n_cells
+            # Nearest-cell transfer, so every value is one the source carried
+            # rather than an interpolation between two of them.
+            source = np.asarray(original.cell_data[name])
+            assert set(np.unique(carried).tolist()) <= set(np.unique(source).tolist())
+
+        # Both structures survive: a transfer that collapsed onto one label
+        # would still satisfy the membership check above.
+        assert set(np.unique(remeshed.cell_data["SegmentationLabelIds"])) == {141, 142}
 
 
 if __name__ == "__main__":

@@ -291,7 +291,7 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
 
         Returns:
             Dictionary containing:
-                - 'moving_model': Aligned moving model (PyVista PolyData)
+                - 'registered_model': Aligned moving model (PyVista PolyData)
                 - 'forward_transform': Moving→fixed transform (ITK CompositeTransform)
                 - 'inverse_transform': Fixed→moving transform (ITK CompositeTransform)
 

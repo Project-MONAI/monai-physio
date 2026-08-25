@@ -341,10 +341,13 @@ class TrainPhysicsNeMoBase(PhysioTwin4DBase):
         """Yield ``(node_feats, targets, batch_len)`` flattened mini-batches.
 
         With a distributed ``context``, each rank takes a strided slice of the
-        one shared permutation, so between them the ranks cover every sample
-        once. The slice is then truncated to a whole number of batches, equal
-        on every rank: a rank that yielded one batch more than its peers would
-        hang them all at the gradient all-reduce of the step they never take.
+        one shared permutation, and the slice is then truncated to a whole
+        number of batches, equal on every rank: a rank that yielded one batch
+        more than its peers would hang them all at the gradient all-reduce of
+        the step they never take. Between them the ranks therefore cover the
+        retained samples exactly once and no two ranks see the same one, but
+        the remainder the truncation drops is not covered at all -- an epoch is
+        the truncated subset, not the whole dataset.
         Omitting ``context`` iterates the whole dataset, which is what the
         RMSE evaluation wants.
         """
