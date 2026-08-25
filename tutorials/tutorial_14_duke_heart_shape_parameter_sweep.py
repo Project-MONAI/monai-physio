@@ -189,9 +189,9 @@ if __name__ == "__main__":
     # every combination of them, so its size is
     # (2 * range / step + 1) ** number_of_modes_to_vary and its cost grows the
     # same way.
-    number_of_modes_to_vary = 2
-    perturbation_range = 2.0
-    perturbation_step = 1.0
+    number_of_modes_to_vary = 1
+    perturbation_range = 4.0
+    perturbation_step = 2.0
     if test_mode:
         # Three combinations rather than twenty-five: the test asserts the sweep
         # runs and reports, not that the grid is finely sampled.

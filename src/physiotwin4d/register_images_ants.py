@@ -9,9 +9,11 @@ The module uses the antspyx package which provides Python bindings to the ANTs
 C++ library, offering robust and well-established registration algorithms.
 """
 
+from __future__ import annotations
+
 import logging
 import os
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import ants
 import itk
@@ -20,6 +22,14 @@ from numpy.typing import NDArray
 
 from .register_images_base import RegisterImagesBase
 from .transform_tools import TransformTools
+
+if TYPE_CHECKING:  # typed for mypy; never imported at runtime
+    # antspyx re-exports these at the top level in some releases and not in
+    # others (0.6.1 has ants.ANTsImage, 0.5.3 does not), so they are named from
+    # the module they are defined in, which both carry.  ``ants.ants_image`` is
+    # that module, not the class -- annotating with it says nothing.
+    from ants.core.ants_image import ANTsImage
+    from ants.core.ants_transform import ANTsTransform
 
 
 class RegisterImagesANTS(RegisterImagesBase):
@@ -117,11 +127,11 @@ class RegisterImagesANTS(RegisterImagesBase):
             self.log_error("Invalid metric: %s", metric)
             raise ValueError(f"Invalid metric: {metric}")
 
-    def _ants_to_itk_image(self, ants_image: ants.ants_image) -> itk.Image:
+    def _ants_to_itk_image(self, ants_image: ANTsImage) -> itk.Image:
         """Convert ANTs image back to ITK format.
 
         Args:
-            ants_image (ants.core.ants_image): ANTs image to convert
+            ants_image (ANTsImage): ANTs image to convert
             reference_itk_image (itk.image): Reference ITK image for metadata
 
         Returns:
@@ -164,14 +174,14 @@ class RegisterImagesANTS(RegisterImagesBase):
 
     def _itk_to_ants_image(
         self, itk_image: itk.Image, dtype: str = "float"
-    ) -> ants.ants_image:
+    ) -> ANTsImage:
         """Convert ITK image to ANTs format.
 
         Args:
             itk_image (itk.image): ITK image to convert
 
         Returns:
-            ants.core.ants_image: Converted ANTs image
+            ANTsImage: Converted ANTs image
         """
         ndim = itk_image.GetImageDimension()
         if ndim not in (2, 3, 4):
@@ -211,7 +221,7 @@ class RegisterImagesANTS(RegisterImagesBase):
         else:
             data_reshaped = data.transpose(list(range(image_dimension - 1, -1, -1)))
 
-        ants_image: ants.ants_image = ants.from_numpy(
+        ants_image: ANTsImage = ants.from_numpy(
             data=data_reshaped,
             origin=origin,
             spacing=spacing,
@@ -313,7 +323,7 @@ class RegisterImagesANTS(RegisterImagesBase):
 
     def itk_affine_transform_to_ANTS_transform(
         self, itk_tfm: itk.Transform
-    ) -> ants.ANTsTransform:
+    ) -> ANTsTransform:
         """Convert ITK affine/rigid transform to ANTs affine transform.
 
         Converts an ITK MatrixOffsetTransformBase-derived transform (such as
@@ -330,7 +340,7 @@ class RegisterImagesANTS(RegisterImagesBase):
                 itk.Rigid3DTransform, etc.)
 
         Returns:
-            ants.ANTsTransform: ANTs affine transform object
+            ANTsTransform: ANTs affine transform object
 
         Raises:
             ValueError: If transform dimension is not 3D
