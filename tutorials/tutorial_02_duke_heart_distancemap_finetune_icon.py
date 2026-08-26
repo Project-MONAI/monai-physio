@@ -75,18 +75,22 @@ from physiotwin4d import (
 if __name__ == "__main__":
     # Data directory specification
     repo_root = Path(__file__).resolve().parent.parent
-    tutorials_dir = Path(__file__).resolve().parent
 
     class_name = "tutorial_02_duke_heart_distancemap_finetune_icon"
 
-    output_dir = tutorials_dir / "output" / "tutorial_02_heart_distancemap"
+    test_mode = TestTools.running_as_test()
+
+    output_dir = (
+        DUKE_HEART.output_directory(test_mode) / "tutorial_02_heart_distancemap"
+    )
+    # The workflow writes its dataset JSON, YAML config, and checkpoint tree
+    # under ``weights_dir / finetune_name``.
+    weights_dir = DUKE_HEART.weights_directory(test_mode)
+
     # Rasterized distance maps, cached so re-runs skip the rasterization.
     derived_dir = output_dir / "distance_maps"
     baselines_dir = repo_root / "tests" / "baselines"
 
-    # The workflow writes its dataset JSON, YAML config, and checkpoint tree
-    # under ``weights_dir / finetune_name``.
-    weights_dir = tutorials_dir / "network_weights"
     finetune_name = "icon_duke_heart_distancemap"
 
     # Distance-map normalization, shared with every heart tutorial that later
@@ -98,7 +102,6 @@ if __name__ == "__main__":
     # including any checkpoint a previous run left there.
     run_finetuning = True
 
-    test_mode = TestTools.running_as_test()
     data_dir = DUKE_HEART.hold_out_directory(test_mode)
     if test_mode:
         number_of_iterations_icon: Optional[int] = 1

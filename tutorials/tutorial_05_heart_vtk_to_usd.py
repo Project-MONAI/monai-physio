@@ -26,6 +26,7 @@ from pathlib import Path
 
 import pyvista as pv
 
+from parameters_base import ParametersBase
 from physiotwin4d import (
     TestTools,
     WorkflowConvertVTKToUSD,
@@ -41,17 +42,21 @@ from physiotwin4d import (
 if __name__ == "__main__":
     # Data directory specification
     repo_root = Path(__file__).resolve().parent.parent
-    tutorials_dir = Path(__file__).resolve().parent
 
     class_name = "tutorial_05_heart_vtk_to_usd"
 
-    output_dir = tutorials_dir / "output" / "tutorial_05_heart"
+    # Only the shared directory roots are needed here; no dataset-specific
+    # parameters module applies to this tutorial.
+    tutorial_paths = ParametersBase()
+    test_mode = TestTools.running_as_test()
+
+    output_dir = tutorial_paths.output_directory(test_mode) / "tutorial_05_heart"
     baselines_dir = repo_root / "tests" / "baselines"
 
     project_name = "tutorial_04_heart"
 
     # Preferred input: the per-structure surfaces saved by Tutorial 4.
-    input_dir = tutorials_dir / "output" / "tutorial_04_heart"
+    input_dir = tutorial_paths.output_directory(test_mode) / "tutorial_04_heart"
 
     log_level = logging.INFO
 

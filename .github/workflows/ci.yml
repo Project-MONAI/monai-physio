@@ -35,7 +35,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ['3.11', '3.12']
+        python-version: ['3.11', '3.12', '3.13']
 
     steps:
     - name: Checkout code
@@ -272,7 +272,6 @@ jobs:
     timeout-minutes: 30
     # Only run GPU tests on manual trigger or if 'run-gpu-tests' label is present
     if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'run-gpu-tests')
-    continue-on-error: true
 
     steps:
     - name: Checkout code
@@ -281,14 +280,30 @@ jobs:
         lfs: true
 
     - name: Create venv in RUNNER_TEMP
-      # Python 3.11 is required because the [physicsnemo] extra pulls in
-      # nvidia-physicsnemo, which requires Python >= 3.11.
+      # The oldest interpreter the project supports, so this job is the one
+      # that catches a regression at the floor. nightly-health.yml runs the
+      # newest (3.13) for the opposite reason. Both are on the runner.
       run: |
         & "C:\Program Files\Python311\python.exe" -m venv "$env:RUNNER_TEMP\physiotwin4d-venv"
         echo "$env:RUNNER_TEMP\physiotwin4d-venv\Scripts" >> $env:GITHUB_PATH
 
     - name: Check GPU availability
       run: nvidia-smi
+
+    - name: Check nvcc availability
+      # torch-scatter compiles CUDA kernels from source when no matching
+      # pre-built wheel exists. Without nvcc on PATH the build silently falls
+      # back to a CPU-only extension that only fails later, at test time, with
+      # an opaque scatter error. Fail here instead.
+      run: |
+        $nvcc = Get-Command nvcc -ErrorAction SilentlyContinue
+        if (-not $nvcc) {
+            Write-Error "nvcc not found on PATH; torch-scatter would build CPU-only"
+            exit 1
+        }
+        Write-Output "nvcc found at $($nvcc.Source)"
+        nvcc --version
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
     - name: Cache uv packages
       uses: actions/cache@v4
@@ -308,7 +323,9 @@ jobs:
       # requires_physicsnemo-marked tests can run on this GPU runner.
       # Invoke via python -m uv so uv targets the active venv interpreter.
       run: |
-        python -m uv pip install -e ".[test,cuda13,physicsnemo]"
+        python -m uv pip install -e ".[cuda13]"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        python -m uv pip install -e ".[test,cuda13,physicsnemo]" --no-build-isolation-package torch-scatter
 
     - name: Assert CUDA is accessible
       run: |
@@ -334,14 +351,26 @@ jobs:
         pip list
 
     - name: Run GPU tests
-      # External self-hosted GPU runner: enable every opt-in bucket via --run-all.
-      # Tests whose host requirements (e.g. a licensed Simpleware install)
-      # aren't met on the runner will runtime-skip cleanly via their
-      # internal availability guards.
+      # A pre-merge gate, so it runs the GPU buckets only and finishes inside
+      # timeout-minutes. The exhaustive --run-all sweep, tutorials included,
+      # belongs to nightly-health.yml: running it here too would duplicate six
+      # hours of work on this same runner and could never fit the timeout.
+      #
+      # --require-tutorial-data turns missing data into a failure rather than a
+      # skip, so this job cannot report green having run nothing.
       run: |
-        pytest tests/ -v --run-all --cov=physiotwin4d --cov-report=xml --cov-report=term --cov-report=html
+        pytest tests/ -v --run-gpu --run-physicsnemo --require-tutorial-data --max-test-seconds=600 --timeout=1800 --cov=physiotwin4d --cov-report=xml --cov-report=term --cov-report=html
       env:
         CUDA_VISIBLE_DEVICES: 0
+        # The datasets, the results and the trained networks live outside the
+        # checkout, which actions/checkout wipes on every run. Each root has a
+        # "test" subtree that this suite reads and writes, so a CI run never
+        # touches a full run's files. Unset, each falls back to its in-repo
+        # default; see data/README.md. These are the same paths
+        # nightly-health.yml uses, because both jobs run on this same runner.
+        PHYSIOTWIN_INPUT_DATA_DIR: D:\PhysioTwin4D\nightly-runner\data
+        PHYSIOTWIN_OUTPUT_DATA_DIR: D:\PhysioTwin4D\nightly-runner\output
+        PHYSIOTWIN_WEIGHTS_DIR: D:\PhysioTwin4D\nightly-runner\network_weights
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4

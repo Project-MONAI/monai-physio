@@ -6,10 +6,11 @@ tutorials that later register them rasterize theirs.  A saturation radius or a
 dilation that drifts between two of these scripts silently trains on one image
 distribution and infers on another.
 
-The directories and the shape-model files the tutorials read and write live here
-too, so that Tutorial 6 writes the model where Tutorials 7 and 8 look for it.
-Every path is derived from this file's location, so they hold wherever the clone
-is.
+The shape-model files the tutorials read and write live here too, so that
+Tutorial 6 writes the model where Tutorials 7 and 8 look for it.  Every path
+hangs off one of the three roots :class:`parameters_base.ParametersBase`
+resolves, so pointing an environment variable at another disk moves them all
+together.
 """
 
 from __future__ import annotations
@@ -17,14 +18,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from parameters_base import ParametersBase
 from physiotwin4d import SegmentAnatomyBase, SegmentNVSegmentCTMRI
-
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-_OUTPUT_ROOT = _REPO_ROOT / "tutorials" / "output" / "tutorial_06_lung"
 
 
 @dataclass(frozen=True)
-class ParametersLungCTDirLab:
+class ParametersLungCTDirLab(ParametersBase):
     """Settings shared by the DIR-Lab lung tutorials.
 
     Attributes:
@@ -55,14 +54,6 @@ class ParametersLungCTDirLab:
         segmenter_class: Segmenter every lung tutorial instantiates, so the
             surfaces they compare share a definition of "lung".
         anatomy_group: Anatomy group name that segmenter registers for lungs.
-        input_dir: Population Tutorial 6 builds the model from, and
-            ``input_dir_test`` its counterpart under
-            ``TestTools.running_as_test``.
-        hold_out_dir: Dataset the held-out study is read from by Tutorial 7, and
-            ``hold_out_dir_test`` its counterpart under
-            ``TestTools.running_as_test``.
-        pca_json_file: Shape model Tutorial 6 writes and Tutorials 7 and 8 read.
-        pca_mean_file: Mean surface of that model, written and read the same way.
         hold_out_case: Image fitted by Tutorial 7 and therefore kept out of the
             population Tutorial 6 builds the model from, so that the fit
             measures generalization rather than reconstruction.  It is a Chest-CT
@@ -71,11 +62,6 @@ class ParametersLungCTDirLab:
             study to that population cannot slip it in.  Tutorial 2 holds out a
             DIR-Lab case of its own, which measures registration rather than
             shape.
-        mgn_weights_dir: Directory the lung-motion MeshGraphNet is trained into
-            by Tutorial 9 and loaded from by Tutorial 10, beside the ICON
-            weights the registration tutorials finetune.  Tutorial 9 writes to a
-            numbered sibling of it when resuming from a checkpoint, in which
-            case Tutorial 10 has to be pointed at that sibling.
         mgn_hold_out_case: DIR-Lab case kept out of the Tutorial 9 training and
             predicted by Tutorial 10, so that the prediction measures
             generalization.  Distinct from ``hold_out_case``, which is the
@@ -111,23 +97,35 @@ class ParametersLungCTDirLab:
     hold_out_case: str = "Chest-CT.mha"
     mgn_hold_out_case: str = "Case1Pack"
 
-    input_dir: Path = _REPO_ROOT / "data" / "DirLab-4DCT"
-    input_dir_test: Path = _REPO_ROOT / "data" / "test" / "DirLab-4DCT"
-    hold_out_dir: Path = _REPO_ROOT / "data" / "Chest-CT"
-    hold_out_dir_test: Path = _REPO_ROOT / "data" / "test" / "Chest-CT"
-    pca_json_file: Path = _OUTPUT_ROOT / "pca_model.json"
-    pca_mean_file: Path = _OUTPUT_ROOT / "pca_mean_surface.vtp"
-    mgn_weights_dir: Path = (
-        _REPO_ROOT / "tutorials" / "network_weights" / "physicsnemo_mgn_lung_motion"
-    )
-
     def input_directory(self, test_mode: bool) -> Path:
-        """Return the model population directory for this run mode."""
-        return self.input_dir_test if test_mode else self.input_dir
+        """Return the population Tutorial 6 builds the model from."""
+        return self.data_directory(test_mode) / "DirLab-4DCT"
 
     def hold_out_directory(self, test_mode: bool) -> Path:
-        """Return the held-out study's directory for this run mode."""
-        return self.hold_out_dir_test if test_mode else self.hold_out_dir
+        """Return the dataset Tutorial 7 reads the held-out study from."""
+        return self.data_directory(test_mode) / "Chest-CT"
+
+    def pca_model_file(self, test_mode: bool) -> Path:
+        """Return the shape model Tutorial 6 writes and 7 and 8 read."""
+        return self.output_directory(test_mode) / "tutorial_06_lung" / "pca_model.json"
+
+    def pca_mean_surface_file(self, test_mode: bool) -> Path:
+        """Return that model's mean surface, written and read the same way."""
+        return (
+            self.output_directory(test_mode)
+            / "tutorial_06_lung"
+            / "pca_mean_surface.vtp"
+        )
+
+    def mgn_weights_directory(self, test_mode: bool) -> Path:
+        """Return the lung-motion MeshGraphNet directory for this run mode.
+
+        Trained into by Tutorial 9 and loaded from by Tutorial 10, beside the
+        ICON weights the registration tutorials finetune.  Tutorial 9 writes to
+        a numbered sibling of it when resuming from a checkpoint, in which case
+        Tutorial 10 has to be pointed at that sibling.
+        """
+        return self.weights_directory(test_mode) / "physicsnemo_mgn_lung_motion"
 
     def pca_components(self, test_mode: bool) -> int:
         """Return the PCA component count for this run mode."""

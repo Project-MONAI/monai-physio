@@ -91,7 +91,6 @@ from physiotwin4d import (
 if __name__ == "__main__":
     # Data directory specification
     repo_root = Path(__file__).resolve().parent.parent
-    tutorials_dir = Path(__file__).resolve().parent
 
     class_name = "tutorial_11_duke_heart_evaluate_physicsnemo"
 
@@ -99,10 +98,14 @@ if __name__ == "__main__":
     case_id = DUKE_HEART.hold_out_case
 
     # Fitted SSM surface and PCA coefficients written by Tutorial 8 (Duke Heart).
-    case_dir = tutorials_dir / "output" / "tutorial_08_duke_heart" / case_id
+    test_mode = TestTools.running_as_test()
+    # Keep a test run out of the directories a full run reads and writes.
+    case_dir = (
+        DUKE_HEART.output_directory(test_mode) / "tutorial_08_duke_heart" / case_id
+    )
     # Weights Tutorial 9 trained, and the checkpoint epoch Tutorial 10 infers
     # with; None uses the final weights.
-    model_dir = DUKE_HEART.mgn_weights_dir
+    model_dir = DUKE_HEART.mgn_weights_directory(test_mode)
     epoch: Optional[int] = None
 
     # Gaussian sigma, in mm, that spreads the predicted surface displacements
@@ -125,13 +128,14 @@ if __name__ == "__main__":
     # in the wrong direction cannot hide in, and it costs one mesh read a frame.
     include_displacement_error = True
 
-    output_dir = tutorials_dir / "output" / "tutorial_11_duke_heart" / case_id
+    output_dir = (
+        DUKE_HEART.output_directory(test_mode) / "tutorial_11_duke_heart" / case_id
+    )
     log_level = logging.INFO
 
     logging.basicConfig(level=log_level)
     logger = logging.getLogger(class_name)
 
-    test_mode = TestTools.running_as_test()
     labelmap_dir = DUKE_HEART.hold_out_directory(test_mode) / case_id
 
     # Directory setup and data reading

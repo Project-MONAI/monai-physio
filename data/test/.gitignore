@@ -1,2 +1,5 @@
-slicer_heart
-slicer_heart_small
+# Everything here is a pytest-built cache; only this file and the README are
+# tracked. See README.md for which fixture builds which directory.
+*
+!.gitignore
+!README.md

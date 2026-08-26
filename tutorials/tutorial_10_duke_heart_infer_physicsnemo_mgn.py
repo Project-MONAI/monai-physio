@@ -45,7 +45,7 @@ Data Required
     - reference frame that is warped
   * ``network_weights/physicsnemo_mgn_duke_heart_motion/mgn_stage_model.pt``
     - Tutorial 9 checkpoint
-    (``ParametersDukeHeartLabelmaps.mgn_weights_dir``)
+    (``ParametersDukeHeartLabelmaps.mgn_weights_directory``)
 
 Outputs (under ``output/tutorial_10_duke_heart_mgn/<case>/``)
 ------------------------------------------------------------
@@ -94,10 +94,12 @@ def _cardiac_stage_from_filename(surface_file: Path) -> float:
 if __name__ == "__main__":
     # Data directory specification
     tutorials_dir = Path(__file__).resolve().parent
+    test_mode = TestTools.running_as_test()
+    # Keep a test run out of the directories a full run reads and writes.
     # Fitted SSM surfaces and PCA coefficients written by Tutorial 8 (Duke Heart).
-    data_dir = tutorials_dir / "output" / "tutorial_08_duke_heart"
+    data_dir = DUKE_HEART.output_directory(test_mode) / "tutorial_08_duke_heart"
     # The network Tutorial 9 (Duke Heart) trained.
-    model_dir = DUKE_HEART.mgn_weights_dir
+    model_dir = DUKE_HEART.mgn_weights_directory(test_mode)
     # Intermittent-checkpoint epoch to load; None uses the final weights.
     epoch: Optional[int] = None
 
@@ -107,14 +109,15 @@ if __name__ == "__main__":
     # into the continuous field the reference frame is resampled through.
     smoothing_sigma_mm = 10.0
 
-    output_dir = tutorials_dir / "output" / "tutorial_10_duke_heart_mgn" / case_id
+    output_dir = (
+        DUKE_HEART.output_directory(test_mode) / "tutorial_10_duke_heart_mgn" / case_id
+    )
     log_level = logging.INFO
 
     class_name = "tutorial_10_duke_heart_infer_physicsnemo_mgn"
     logging.basicConfig(level=log_level)
     logger = logging.getLogger(class_name)
 
-    test_mode = TestTools.running_as_test()
     labelmap_dir = DUKE_HEART.hold_out_directory(test_mode) / case_id
 
     # Directory setup and data reading

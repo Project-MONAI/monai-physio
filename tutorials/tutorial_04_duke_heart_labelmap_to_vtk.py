@@ -76,12 +76,14 @@ from physiotwin4d import (
 # Only run if this script is not imported as a module
 if __name__ == "__main__":
     # Data directory specification
-    repo_root = Path(__file__).resolve().parent.parent
-    tutorials_dir = Path(__file__).resolve().parent
 
     class_name = "tutorial_04_duke_heart_labelmap_to_vtk"
 
-    output_dir = tutorials_dir / "output" / "tutorial_04_duke_heart_labelmap"
+    test_mode = TestTools.running_as_test()
+
+    output_dir = (
+        DUKE_HEART.output_directory(test_mode) / "tutorial_04_duke_heart_labelmap"
+    )
 
     # How much to build; see this module's docstring.  "shape_model" is what
     # Tutorial 6 (Duke Heart) consumes and runs in minutes over the cohort;
@@ -114,11 +116,10 @@ if __name__ == "__main__":
     # Set False to keep outputs a previous run already wrote.
     overwrite = True
 
-    test_mode = TestTools.running_as_test()
     if test_mode:
-        data_dir = repo_root / "data" / "test" / "Duke-Heart-4DLabelmaps"
+        data_dir = DUKE_HEART.data_directory(test_mode) / "Duke-Heart-4DLabelmaps"
     else:
-        data_dir = repo_root / "data" / "Duke-Heart-4DLabelmaps"
+        data_dir = DUKE_HEART.data_directory(test_mode) / "Duke-Heart-4DLabelmaps"
 
     log_level = logging.INFO
     reporter = PhysioTwin4DBase(class_name=class_name, log_level=log_level)

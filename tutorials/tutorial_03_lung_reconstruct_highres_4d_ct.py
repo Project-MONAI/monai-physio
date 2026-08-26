@@ -28,6 +28,7 @@ from pathlib import Path
 
 import itk
 
+from parameters_base import ParametersBase
 from physiotwin4d import (
     RegisterImagesGreedy,
     TestTools,
@@ -44,23 +45,26 @@ from physiotwin4d import (
 if __name__ == "__main__":
     # Data directory specification
     repo_root = Path(__file__).resolve().parent.parent
-    tutorials_dir = Path(__file__).resolve().parent
 
     class_name = "tutorial_03_lung_reconstruct_highres_4d_ct"
 
-    output_dir = tutorials_dir / "output" / "tutorial_03_lung"
+    # Only the shared directory roots are needed here; no dataset-specific
+    # parameters module applies to this tutorial.
+    tutorial_paths = ParametersBase()
+    test_mode = TestTools.running_as_test()
+
+    output_dir = tutorial_paths.output_directory(test_mode) / "tutorial_03_lung"
     baselines_dir = repo_root / "tests" / "baselines"
 
     # .mha files are DirLab-4DCT data already converted to HU by
     # data/DirLab-4DCT/fix_downloaded_data.py.
     case_glob = "Case1Pack_T??.mha"
 
-    test_mode = TestTools.running_as_test()
     if test_mode:
-        data_dir = repo_root / "data" / "test" / "DirLab-4DCT"
+        data_dir = tutorial_paths.data_directory(test_mode) / "DirLab-4DCT"
         number_of_iterations_greedy = [1, 0]
     else:
-        data_dir = repo_root / "data" / "DirLab-4DCT"
+        data_dir = tutorial_paths.data_directory(test_mode) / "DirLab-4DCT"
         number_of_iterations_greedy = [30, 15, 7, 3]
 
     log_level = logging.INFO

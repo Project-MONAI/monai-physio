@@ -42,7 +42,8 @@ jobs:
 
     outputs:
       # Captures the pytest step's actual outcome (success / failure / skipped)
-      # even though the job itself is not failed by a test failure.
+      # for the dashboard. The job itself is failed by the gate step at the end,
+      # after the artifacts have been uploaded.
       test-outcome: ${{ steps.run-tests.outcome }}
 
     steps:
@@ -70,8 +71,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Create venv in RUNNER_TEMP
-        # Python 3.13 is required because the [physicsnemo] extra pulls in
-        # nvidia-physicsnemo, which requires Python >= 3.11.
+        # The newest interpreter the project supports, so this job is the one
+        # that catches a dependency shipping no wheel for it. ci.yml runs the
+        # floor (3.11) for the opposite reason. Both are on the runner.
         run: |
           & "C:\actions-runner\python\WPy64-3.13.12.0\python\python.exe" -m venv "$env:RUNNER_TEMP\physiotwin4d-venv"
           echo "$env:RUNNER_TEMP\physiotwin4d-venv\Scripts" >> $env:GITHUB_PATH
@@ -157,14 +159,33 @@ jobs:
         # continue-on-error keeps the job running so artifacts are always uploaded.
         # The step outcome (success/failure) is still captured and passed downstream.
         continue-on-error: true
+        # --max-test-seconds fails a test that finishes but took too long, so the
+        # overrun is reported with its duration and the rest of the suite still
+        # runs. --timeout raises the pytest-timeout backstop above it: on
+        # Windows that backstop can only kill the whole process, which would
+        # take the JUnit XML and every other result with it, so it is left to
+        # catch a genuine hang and nothing else. Both numbers are provisional
+        # until the per-tutorial timings are measured.
         run: |
-          pytest tests/ -v --run-all `
+          pytest tests/ -v --run-all --require-tutorial-data `
+            --max-test-seconds=900 `
+            --timeout=3600 `
             --cov=physiotwin4d `
             --cov-report=xml `
             --cov-report=json `
             --junitxml=test-results.xml
         env:
           CUDA_VISIBLE_DEVICES: 0
+          # The datasets, the results and the trained networks live on the
+          # runner's own disk rather than in the checkout, which
+          # actions/checkout wipes every run. Each root has a "test" subtree
+          # that this suite reads and writes, so a nightly run never touches a
+          # full run's files, and the downsampled subsets the fixtures build
+          # under <input>/test survive between runs instead of being rebuilt.
+          # Unset, each falls back to its in-repo default; see data/README.md.
+          PHYSIOTWIN_INPUT_DATA_DIR: D:\PhysioTwin4D\nightly-runner\data
+          PHYSIOTWIN_OUTPUT_DATA_DIR: D:\PhysioTwin4D\nightly-runner\output
+          PHYSIOTWIN_WEIGHTS_DIR: D:\PhysioTwin4D\nightly-runner\network_weights
 
       - name: Upload test results
         uses: actions/upload-artifact@v6
@@ -176,6 +197,18 @@ jobs:
             coverage.xml
             coverage.json
           retention-days: 90
+
+      - name: Fail the job if the test suite did not pass
+        # The pytest step is continue-on-error so that the artifacts and the
+        # dashboard are produced whatever happened. Without this gate the job
+        # would report success even when tests failed or the step timed out,
+        # and the workflow status badge would say green while nothing passed.
+        # build-dashboard runs on if: always(), so it still gets its inputs.
+        if: steps.run-tests.outcome != 'success'
+        run: |
+          Write-Output "Health test suite outcome: ${{ steps.run-tests.outcome }}"
+          Write-Output "See the health-test-results artifact for the JUnit XML."
+          exit 1
 
   # ──────────────────────────────────────────────────────────────────────────
   # 2. Build the HTML dashboard from test results (runs even if tests failed)

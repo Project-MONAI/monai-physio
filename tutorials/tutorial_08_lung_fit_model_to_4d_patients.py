@@ -77,18 +77,21 @@ from physiotwin4d import (
 if __name__ == "__main__":
     # Data directory specification
     repo_root = Path(__file__).resolve().parent.parent
-    tutorials_dir = Path(__file__).resolve().parent
 
     class_name = "tutorial_08_lung_fit_model_to_4d_patients"
 
-    data_dir = repo_root / "data" / "DirLab-4DCT"
+    test_mode = TestTools.running_as_test()
 
-    output_dir = tutorials_dir / "output" / "tutorial_08_lung"
+    data_dir = LUNG_CT_DIRLAB.input_directory(test_mode)
+
+    output_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_08_lung"
+    weights_dir = LUNG_CT_DIRLAB.weights_directory(test_mode)
+
     baselines_dir = repo_root / "tests" / "baselines"
 
     # PCA model + mean surface produced by Tutorial 6 (lung).
-    pca_model_file = LUNG_CT_DIRLAB.pca_json_file
-    pca_mean_file = LUNG_CT_DIRLAB.pca_mean_file
+    pca_model_file = LUNG_CT_DIRLAB.pca_model_file(test_mode)
+    pca_mean_file = LUNG_CT_DIRLAB.pca_mean_surface_file(test_mode)
     # Tutorial 6 caches one segmentation per case beside its model.
     tutorial_06_dir = pca_model_file.parent
 
@@ -96,17 +99,14 @@ if __name__ == "__main__":
     # tutorial_02_lung_distancemap_finetune_icon.py, used by the
     # labelmap-to-labelmap stage of the SSM fit.
     icon_distancemap_weights_path = (
-        tutorials_dir
-        / "network_weights"
+        weights_dir
         / "icon_dirlab_4dct_distancemap"
         / "icon_dirlab_4dct_distancemap_model"
         / "checkpoints"
         / "network_weights_final.trch"
     )
 
-    number_of_pca_components = LUNG_CT_DIRLAB.pca_components(
-        TestTools.running_as_test()
-    )
+    number_of_pca_components = LUNG_CT_DIRLAB.pca_components(test_mode)
 
     # Phase the SSM is fitted to; Tutorial 6 builds the lung PCA model from the
     # T70 surfaces, so the same phase is used here as the fitting reference.

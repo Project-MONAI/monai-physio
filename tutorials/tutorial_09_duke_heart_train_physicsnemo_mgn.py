@@ -61,7 +61,7 @@ Manifests and per-frame targets are written under
 The evaluation of the held-out cases lands in
 ``output/tutorial_09_duke_heart_mgn/eval_mgn/pm????/``.
 
-The model itself is written to ``ParametersDukeHeartLabelmaps.mgn_weights_dir``
+The model itself is written to ``ParametersDukeHeartLabelmaps.mgn_weights_directory``
 (``network_weights/physicsnemo_mgn_duke_heart_motion/``), or to a fresh ``..._1``
 sibling when resuming (see ``resume_from``), which is what ``tutorial_results``
 reports as ``model_directory``:
@@ -188,17 +188,19 @@ def _write_case_manifest(
 if __name__ == "__main__":
     # Data directory specification
     tutorials_dir = Path(__file__).resolve().parent
+    test_mode = TestTools.running_as_test()
+    # Keep a test run out of the directories a full run reads and writes.
     # Fitted SSM surfaces and PCA coefficients written by Tutorial 8 (Duke Heart).
-    data_dir = tutorials_dir / "output" / "tutorial_08_duke_heart"
+    data_dir = DUKE_HEART.output_directory(test_mode) / "tutorial_08_duke_heart"
     # PCA mean surface written by Tutorial 6 (Duke Heart); pca_model.json must
     # sit beside it, which is how Tutorial 6 writes them.
-    ssm_mean_surface_file = DUKE_HEART.pca_mean_file
+    ssm_mean_surface_file = DUKE_HEART.pca_mean_surface_file(test_mode)
     # Manifests, targets and the held-out evaluation are written here.
-    output_dir = tutorials_dir / "output" / "tutorial_09_duke_heart_mgn"
+    output_dir = DUKE_HEART.output_directory(test_mode) / "tutorial_09_duke_heart_mgn"
     manifests_dir = output_dir / "manifests_mgn"
     eval_dir = output_dir / "eval_mgn"
     # The trained network is kept with the other trained networks instead.
-    model_output_dir = DUKE_HEART.mgn_weights_dir
+    model_output_dir = DUKE_HEART.mgn_weights_directory(test_mode)
 
     # Warm-start from a previous run's checkpoint; None trains from scratch.
     # When resuming, training writes to a fresh sibling directory (``..._1``).
@@ -231,7 +233,6 @@ if __name__ == "__main__":
     logger = logging.getLogger(class_name)
 
     # In test mode, train for a couple of epochs to keep the run tractable.
-    test_mode = TestTools.running_as_test()
     if test_mode:
         epochs = 2
 

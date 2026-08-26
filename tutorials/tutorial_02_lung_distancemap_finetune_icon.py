@@ -104,19 +104,23 @@ from physiotwin4d import (
 if __name__ == "__main__":
     # Data directory specification
     repo_root = Path(__file__).resolve().parent.parent
-    tutorials_dir = Path(__file__).resolve().parent
 
     class_name = "tutorial_02_lung_distancemap_finetune_icon"
 
-    output_dir = tutorials_dir / "output" / "tutorial_02_lung_distancemap"
+    test_mode = TestTools.running_as_test()
+
+    output_dir = (
+        LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_02_lung_distancemap"
+    )
+    # The workflow writes its dataset JSON, YAML config, and checkpoint tree
+    # under ``weights_dir / finetune_name``.
+    weights_dir = LUNG_CT_DIRLAB.weights_directory(test_mode)
+
     # Segmented labelmaps, lung surfaces, and rasterized distance maps.  Cached
     # so re-runs skip the segmentation, which dominates this tutorial's runtime.
     derived_dir = output_dir / "distance_maps"
     baselines_dir = repo_root / "tests" / "baselines"
 
-    # The workflow writes its dataset JSON, YAML config, and checkpoint tree
-    # under ``weights_dir / finetune_name``.
-    weights_dir = tutorials_dir / "network_weights"
     finetune_name = "icon_dirlab_4dct_distancemap"
 
     # Distance-map normalization, shared with every lung tutorial that later
@@ -130,13 +134,12 @@ if __name__ == "__main__":
     # selection still spans inhale through exhale.
     phase_stride = 2
 
-    test_mode = TestTools.running_as_test()
     if test_mode:
-        data_dir = repo_root / "data" / "test" / "DirLab-4DCT"
+        data_dir = LUNG_CT_DIRLAB.data_directory(test_mode) / "DirLab-4DCT"
         number_of_iterations_icon: Optional[int] = 1
         epochs = 1
     else:
-        data_dir = repo_root / "data" / "DirLab-4DCT"
+        data_dir = LUNG_CT_DIRLAB.data_directory(test_mode) / "DirLab-4DCT"
         number_of_iterations_icon = 10
         epochs = 200
     number_of_iterations_greedy = LUNG_CT_DIRLAB.greedy_iterations(test_mode)

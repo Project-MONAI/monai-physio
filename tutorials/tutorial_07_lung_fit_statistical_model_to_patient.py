@@ -51,18 +51,20 @@ from physiotwin4d import (
 if __name__ == "__main__":
     # Data directory specification
     repo_root = Path(__file__).resolve().parent.parent
-    tutorials_dir = Path(__file__).resolve().parent
 
     project_name = "tutorial_07_lung"
 
-    output_dir = tutorials_dir / "output" / project_name
+    test_mode = TestTools.running_as_test()
+
+    output_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / project_name
+    weights_dir = LUNG_CT_DIRLAB.weights_directory(test_mode)
+
     baselines_dir = repo_root / "tests" / "baselines"
 
     # PCA model + mean surface produced by Tutorial 6 (lung).
-    pca_json = LUNG_CT_DIRLAB.pca_json_file
-    pca_mean_file = LUNG_CT_DIRLAB.pca_mean_file
+    pca_json = LUNG_CT_DIRLAB.pca_model_file(test_mode)
+    pca_mean_file = LUNG_CT_DIRLAB.pca_mean_surface_file(test_mode)
 
-    test_mode = TestTools.running_as_test()
     number_of_pca_components = LUNG_CT_DIRLAB.pca_components(test_mode)
 
     # The study Tutorial 6 leaves out of the model, so this fit is out of sample.
@@ -74,8 +76,7 @@ if __name__ == "__main__":
     # tutorial_02_lung_distancemap_finetune_icon.py; see
     # WorkflowFinetuneICONRegistration.expected_weights_path().
     icon_weights_path = (
-        tutorials_dir
-        / "network_weights"
+        weights_dir
         / "icon_dirlab_4dct_distancemap"
         / "icon_dirlab_4dct_distancemap_model"
         / "checkpoints"

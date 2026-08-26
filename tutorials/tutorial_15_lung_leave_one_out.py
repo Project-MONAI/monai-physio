@@ -389,7 +389,6 @@ def _plot_metrics_by_label(
 if __name__ == "__main__":
     # Data directory specification
     repo_root = Path(__file__).resolve().parent.parent
-    tutorials_dir = Path(__file__).resolve().parent
 
     class_name = "tutorial_15_lung_leave_one_out"
 
@@ -422,7 +421,11 @@ if __name__ == "__main__":
     # that a lobe boundary is not quantized away.
     evaluation_spacing_mm = 2.0
 
-    output_dir = tutorials_dir / "output" / "tutorial_15_lung"
+    test_mode = TestTools.running_as_test()
+    # Keep a test run out of the directories a full run reads and writes.
+    weights_dir = LUNG_CT_DIRLAB.weights_directory(test_mode)
+
+    output_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_15_lung"
     shared_dir = output_dir / "shared"
     log_level = logging.INFO
 
@@ -434,7 +437,6 @@ if __name__ == "__main__":
     # process.
     context = distributed_context()
 
-    test_mode = TestTools.running_as_test()
     data_dir = LUNG_CT_DIRLAB.input_directory(test_mode)
     number_of_pca_components = LUNG_CT_DIRLAB.pca_components(test_mode)
 
@@ -448,15 +450,14 @@ if __name__ == "__main__":
     # Tutorial 6 caches one segmentation per case beside its model, and
     # Tutorial 8 one set of phase transforms per case; both are reused when
     # present because neither depends on which case is held out.
-    tutorial_06_dir = LUNG_CT_DIRLAB.pca_json_file.parent
-    tutorial_08_dir = tutorials_dir / "output" / "tutorial_08_lung"
+    tutorial_06_dir = LUNG_CT_DIRLAB.pca_model_file(test_mode).parent
+    tutorial_08_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_08_lung"
 
     # Distance-map weights finetuned on DIR-Lab by
     # tutorial_02_lung_distancemap_finetune_icon.py, used by the
     # labelmap-to-labelmap stage of the SSM fit.
     icon_distancemap_weights_path = (
-        tutorials_dir
-        / "network_weights"
+        weights_dir
         / "icon_dirlab_4dct_distancemap"
         / "icon_dirlab_4dct_distancemap_model"
         / "checkpoints"

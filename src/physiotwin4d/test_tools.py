@@ -8,6 +8,8 @@ passed as itk.Image at the API level.
 
 from __future__ import annotations
 
+import csv
+import json
 import logging
 import os
 import shutil
@@ -30,6 +32,69 @@ def set_create_baseline_if_missing(value: bool) -> None:
     """Set whether to create baseline files when missing (used by pytest conftest)."""
     global _create_baseline_if_missing
     _create_baseline_if_missing = value
+
+
+def _as_scalar(value: Any) -> Any:
+    """Return value as a float when it reads as one, otherwise unchanged."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError:
+            return value
+    return value
+
+
+def _flatten_metrics(value: Any, prefix: str = "") -> dict[str, Any]:
+    """Flatten nested JSON into dotted keys holding one scalar each."""
+    flattened: dict[str, Any] = {}
+    if isinstance(value, dict):
+        for key, item in value.items():
+            flattened.update(
+                _flatten_metrics(item, f"{prefix}.{key}" if prefix else str(key))
+            )
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            flattened.update(_flatten_metrics(item, f"{prefix}[{index}]"))
+    else:
+        flattened[prefix] = _as_scalar(value)
+    return flattened
+
+
+def _read_metrics(path: Path) -> dict[str, Any]:
+    """
+    Read a JSON or CSV of metrics into one flat name -> scalar mapping.
+
+    CSV rows are keyed by their first column when that column's values are
+    unique, and by row index otherwise, so a metrics table keyed by case id
+    compares case to case rather than row to row.
+    """
+    if path.suffix.lower() == ".json":
+        with path.open(encoding="utf-8") as handle:
+            return _flatten_metrics(json.load(handle))
+
+    if path.suffix.lower() == ".csv":
+        with path.open(newline="", encoding="utf-8") as handle:
+            rows = list(csv.DictReader(handle))
+        if not rows:
+            return {}
+        fieldnames = [name for name in (rows[0].keys()) if name is not None]
+        label_column = fieldnames[0]
+        labels = [row.get(label_column, "") or "" for row in rows]
+        use_labels = len(set(labels)) == len(labels)
+        flattened: dict[str, Any] = {}
+        for index, row in enumerate(rows):
+            row_key = labels[index] if use_labels else str(index)
+            for name in fieldnames:
+                if name == label_column and use_labels:
+                    continue
+                flattened[f"{row_key}.{name}"] = _as_scalar(row.get(name))
+        return flattened
+
+    raise ValueError(f"Unsupported metrics format (expected .json or .csv): {path}")
 
 
 class TestTools(PhysioTwin4DBase):
@@ -385,6 +450,107 @@ class TestTools(PhysioTwin4DBase):
             )
 
         return passed
+
+    def compare_result_to_baseline_metrics(
+        self,
+        filename: str,
+        *,
+        relative_tol: float = 0.0,
+        absolute_tol: float = 0.0,
+        ignore_keys: Optional[list[str]] = None,
+    ) -> bool:
+        """
+        Compare the scalar metrics in a JSON or CSV result against a baseline.
+
+        Catches the accuracy drift that a screenshot comparison cannot see: two
+        renderings can agree pixel for pixel while the numbers behind them move.
+
+        A value passes when it is within ``absolute_tol`` or within
+        ``relative_tol`` of the baseline, so a tolerance pair covers both the
+        metrics that live near zero and the ones that do not.  Non-numeric
+        values must match exactly; a key present in one file and not the other
+        is a failure, because a metric appearing or disappearing is a change in
+        what the tutorial reports.
+
+        If the baseline file does not exist and --create-baselines was given,
+        the result is copied as the new baseline.
+
+        Args:
+            filename: File name (relative to class results/baselines dirs), with
+                a ``.json`` or ``.csv`` suffix.
+            relative_tol: Allowed fractional difference per value.
+            absolute_tol: Allowed absolute difference per value.
+            ignore_keys: Metric names to skip, for values that legitimately
+                differ between runs (wall-clock timings, host paths).
+
+        Returns:
+            True if every compared value is within tolerance.
+        """
+        results_path = Path(self._results_dir / filename)
+        baseline_path = Path(self._baselines_dir / filename)
+        if not results_path.exists():
+            raise FileNotFoundError(f"Results metrics not found: {results_path}")
+
+        if not baseline_path.exists():
+            if not _create_baseline_if_missing:
+                self.log_error(
+                    "Baseline metrics missing: %s (run pytest with --create-baselines to create from current output)",
+                    baseline_path,
+                )
+                return False
+            baseline_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(str(results_path), str(baseline_path))
+            self.log_warning(
+                "Baseline file did not exist; copied result: %s", baseline_path
+            )
+            return True
+
+        skip = set(ignore_keys or [])
+        result_values = _read_metrics(results_path)
+        baseline_values = _read_metrics(baseline_path)
+
+        failures: list[str] = []
+        for key in sorted(set(result_values) | set(baseline_values)):
+            if key in skip:
+                continue
+            if key not in result_values:
+                failures.append(f"{key}: missing from result")
+                continue
+            if key not in baseline_values:
+                failures.append(f"{key}: not in baseline")
+                continue
+            result_value = result_values[key]
+            baseline_value = baseline_values[key]
+            if isinstance(result_value, float) and isinstance(baseline_value, float):
+                difference = abs(result_value - baseline_value)
+                if difference <= absolute_tol:
+                    continue
+                if difference <= relative_tol * abs(baseline_value):
+                    continue
+                failures.append(
+                    f"{key}: {result_value:.6g} vs baseline {baseline_value:.6g} "
+                    f"(difference {difference:.6g})"
+                )
+            elif result_value != baseline_value:
+                failures.append(
+                    f"{key}: {result_value!r} vs baseline {baseline_value!r}"
+                )
+
+        if failures:
+            self.log_error(
+                "FAIL: %s differs from baseline in %d value(s): %s",
+                filename,
+                len(failures),
+                "; ".join(failures[:10]),
+            )
+            return False
+
+        self.log_info(
+            "PASS: %s matches baseline in %d value(s)",
+            filename,
+            len(set(result_values) - skip),
+        )
+        return True
 
     def save_screenshot_mesh(
         self,

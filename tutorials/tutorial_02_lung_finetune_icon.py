@@ -89,6 +89,7 @@ from typing import Any, Optional
 import itk
 import numpy as np
 
+from parameters_base import ParametersBase
 from physiotwin4d import (
     PhysioTwin4DBase,
     RegisterImagesBase,
@@ -109,32 +110,36 @@ from physiotwin4d import (
 if __name__ == "__main__":
     # Data directory specification
     repo_root = Path(__file__).resolve().parent.parent
-    tutorials_dir = Path(__file__).resolve().parent
 
     class_name = "tutorial_02_lung_finetune_icon"
 
-    output_dir = tutorials_dir / "output" / "tutorial_02_lung"
+    # Only the shared directory roots are needed here; no dataset-specific
+    # parameters module applies to this tutorial.
+    tutorial_paths = ParametersBase()
+    test_mode = TestTools.running_as_test()
+
+    output_dir = tutorial_paths.output_directory(test_mode) / "tutorial_02_lung"
+    # The workflow writes its dataset JSON, YAML config, and checkpoint tree
+    # under ``weights_dir / finetune_name``.
+    weights_dir = tutorial_paths.weights_directory(test_mode)
+
     # Segmented labelmaps, cached so re-runs skip the segmentation.
     labelmaps_dir = output_dir / "labelmaps"
     baselines_dir = repo_root / "tests" / "baselines"
 
-    # The workflow writes its dataset JSON, YAML config, and checkpoint tree
-    # under ``weights_dir / finetune_name``.
-    weights_dir = tutorials_dir / "network_weights"
     finetune_name = "icon_dirlab_4dct"
 
     # Set True to finetune from scratch.  That deletes experiment_dir below,
     # including any checkpoint a previous run left there.
     run_finetuning = True
 
-    test_mode = TestTools.running_as_test()
     if test_mode:
-        data_dir = repo_root / "data" / "test" / "DirLab-4DCT"
+        data_dir = tutorial_paths.data_directory(test_mode) / "DirLab-4DCT"
         number_of_iterations_greedy: Optional[list[int]] = [1, 0]
         number_of_iterations_icon = None  # [1]
         epochs = 1
     else:
-        data_dir = repo_root / "data" / "DirLab-4DCT"
+        data_dir = tutorial_paths.data_directory(test_mode) / "DirLab-4DCT"
         number_of_iterations_greedy = None  # [60, 30, 20]
         number_of_iterations_icon = None  # [10]
         epochs = 100

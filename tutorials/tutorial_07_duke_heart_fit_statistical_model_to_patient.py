@@ -53,22 +53,24 @@ from physiotwin4d import (
 if __name__ == "__main__":
     # Data directory specification
     repo_root = Path(__file__).resolve().parent.parent
-    tutorials_dir = Path(__file__).resolve().parent
 
     project_name = "tutorial_07_duke_heart"
 
-    output_dir = tutorials_dir / "output" / project_name
+    test_mode = TestTools.running_as_test()
+
+    output_dir = DUKE_HEART.output_directory(test_mode) / project_name
+    weights_dir = DUKE_HEART.weights_directory(test_mode)
+
     baselines_dir = repo_root / "tests" / "baselines"
 
     # PCA model + mean surface produced by Tutorial 6 (Duke Heart).
-    pca_json = DUKE_HEART.pca_json_file
-    pca_mean_file = DUKE_HEART.pca_mean_file
+    pca_json = DUKE_HEART.pca_model_file(test_mode)
+    pca_mean_file = DUKE_HEART.pca_mean_surface_file(test_mode)
 
     # The case whose reference frame plays the patient: the one Tutorial 6
     # leaves out of the model, so this fit is out of sample.
     patient_case = DUKE_HEART.hold_out_case
 
-    test_mode = TestTools.running_as_test()
     number_of_pca_components = DUKE_HEART.pca_components(test_mode)
     data_dir = DUKE_HEART.hold_out_directory(test_mode)
 
@@ -88,8 +90,7 @@ if __name__ == "__main__":
     # registration mask is far tighter, so heart distance maps saturate over a
     # shorter radius and do not share an intensity distribution with lung ones.
     icon_weights_path = (
-        tutorials_dir
-        / "network_weights"
+        weights_dir
         / "icon_duke_heart_distancemap"
         / "icon_duke_heart_distancemap_model"
         / "checkpoints"

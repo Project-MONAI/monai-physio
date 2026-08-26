@@ -26,6 +26,39 @@ downloader — DIR-Lab distributes each case individually and may require
 registration, so it must be obtained manually; see
 [DirLab-4DCT/README.md](DirLab-4DCT/README.md).
 
+## Keeping the Data Outside the Clone
+
+The tutorials resolve three roots through `ParametersBase` in
+[`tutorials/parameters_base.py`](../tutorials/parameters_base.py), each
+defaulting to its location in the clone and each overridable by environment
+variable. Point them elsewhere when the data should outlive the checkout — on a
+CI runner, for instance, where every run starts from a fresh working tree:
+
+| Variable | Default | Holds |
+| --- | --- | --- |
+| `PHYSIOTWIN_INPUT_DATA_DIR` | `<repo>/data` | The datasets in this directory |
+| `PHYSIOTWIN_OUTPUT_DATA_DIR` | `<repo>/tutorials/output` | What the tutorials write |
+| `PHYSIOTWIN_WEIGHTS_DIR` | `<repo>/tutorials/network_weights` | Networks the tutorials train |
+
+Each root has a `test` subdirectory used when a tutorial runs under
+`PHYSIOTWIN_RUNNING_AS_TEST`, so a test run reads the small downsampled subsets
+and writes beside them rather than touching a full run's datasets, results, or
+checkpoints. The subsets under `<input root>/test` are built on demand by the
+fixtures in `tests/conftest.py`; putting that root outside the clone means they
+survive a checkout and are built once rather than every run.
+
+The layout under an overridden input root is the same as here:
+
+```
+<PHYSIOTWIN_INPUT_DATA_DIR>/
+  DirLab-4DCT/             Case1Pack_T00.mha, ...
+  Duke-Heart-4DLabelmaps/  pm0027/*_labelmap.nii.gz, *_landmark.mrk.json
+  Chest-CT/                Chest-CT.mha
+  KCL-Heart-Model/         average_mesh.vtk, input_meshes/
+  Slicer-Heart-CT/         slice_000.mha, ...
+  test/                    built by the pytest fixtures
+```
+
 ## Notes
 
 - Always cite the original data source in publications — see each dataset's

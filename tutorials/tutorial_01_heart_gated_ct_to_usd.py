@@ -89,20 +89,19 @@ from physiotwin4d import (
 # Python's spawn-cascade detector raises RuntimeError.
 if __name__ == "__main__":
     # Data directory specification
-    repo_root = Path(__file__).resolve().parent.parent
-    tutorials_dir = Path(__file__).resolve().parent
 
     class_name = "tutorial_01_heart_gated_ct_to_usd"
 
-    output_dir = tutorials_dir / "output" / "tutorial_01_heart"
-
     test_mode = TestTools.running_as_test()
+
+    output_dir = HEART_CT_KCL.output_directory(test_mode) / "tutorial_01_heart"
+
     if test_mode:
-        data_dir = repo_root / "data" / "test" / "slicer_heart_small"
+        data_dir = HEART_CT_KCL.data_directory(test_mode) / "slicer_heart_small"
         number_of_iterations_greedy = [1, 0]
         frame_files = sorted(data_dir.glob("slice_???.mha"))[0:2]
     else:
-        data_dir = repo_root / "data" / "Slicer-Heart-CT"
+        data_dir = HEART_CT_KCL.data_directory(test_mode) / "Slicer-Heart-CT"
         number_of_iterations_greedy = [30, 15, 7, 3]
         frame_files = sorted(data_dir.glob("slice_???.mha"))
 

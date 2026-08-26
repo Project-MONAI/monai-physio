@@ -388,7 +388,6 @@ def _plot_metrics_by_label(
 if __name__ == "__main__":
     # Data directory specification
     repo_root = Path(__file__).resolve().parent.parent
-    tutorials_dir = Path(__file__).resolve().parent
 
     class_name = "tutorial_15_duke_heart_leave_one_out"
 
@@ -421,7 +420,11 @@ if __name__ == "__main__":
     # reported, and still below the thinnest wall of the heart.
     evaluation_spacing_mm = 1.0
 
-    output_dir = tutorials_dir / "output" / "tutorial_15_duke_heart"
+    test_mode = TestTools.running_as_test()
+    # Keep a test run out of the directories a full run reads and writes.
+    weights_dir = DUKE_HEART.weights_directory(test_mode)
+
+    output_dir = DUKE_HEART.output_directory(test_mode) / "tutorial_15_duke_heart"
     shared_dir = output_dir / "shared"
     log_level = logging.INFO
 
@@ -433,7 +436,6 @@ if __name__ == "__main__":
     # process.
     context = distributed_context()
 
-    test_mode = TestTools.running_as_test()
     data_dir = DUKE_HEART.hold_out_directory(test_mode)
     tutorial_04_dir = DUKE_HEART.input_directory(test_mode)
     number_of_pca_components = DUKE_HEART.pca_components(test_mode)
@@ -453,8 +455,7 @@ if __name__ == "__main__":
     # tutorial_02_duke_heart_distancemap_finetune_icon.py, used both by the
     # labelmap-to-labelmap stage of the SSM fit and by the frame registrations.
     icon_weights_path = (
-        tutorials_dir
-        / "network_weights"
+        weights_dir
         / "icon_duke_heart_distancemap"
         / "icon_duke_heart_distancemap_model"
         / "checkpoints"

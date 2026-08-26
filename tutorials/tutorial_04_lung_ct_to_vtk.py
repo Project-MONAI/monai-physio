@@ -40,12 +40,12 @@ from physiotwin4d import (
 # spawn-cascade detector raises RuntimeError.
 if __name__ == "__main__":
     # Data directory specification
-    repo_root = Path(__file__).resolve().parent.parent
-    tutorials_dir = Path(__file__).resolve().parent
 
     project_name = "tutorial_04_lung"
 
-    output_dir = tutorials_dir / "output" / project_name
+    test_mode = TestTools.running_as_test()
+
+    output_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / project_name
 
     # In addition to the combined surface file always saved below, also
     # save one VTP per anatomy group (e.g. heart.vtp, lung.vtp) and/or one
@@ -53,11 +53,10 @@ if __name__ == "__main__":
     save_group_surfaces = True
     save_label_surfaces = True
 
-    test_mode = TestTools.running_as_test()
     if test_mode:
-        data_dir = repo_root / "data" / "test" / "DirLab-4DCT"
+        data_dir = LUNG_CT_DIRLAB.data_directory(test_mode) / "DirLab-4DCT"
     else:
-        data_dir = repo_root / "data" / "DirLab-4DCT"
+        data_dir = LUNG_CT_DIRLAB.data_directory(test_mode) / "DirLab-4DCT"
 
     frame_files = sorted(data_dir.glob("Case1Pack_T??.mha"))
 

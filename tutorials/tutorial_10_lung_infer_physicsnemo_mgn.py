@@ -42,7 +42,7 @@ Data Required
   * ``output/tutorial_08_lung/<case>/``  - Tutorial 8 SSM surfaces
   * ``data/DirLab-4DCT/<case>_T70.mha``  - reference-phase CT that is warped
   * ``network_weights/physicsnemo_mgn_lung_motion/mgn_stage_model.pt``
-    - Tutorial 9 checkpoint (``ParametersLungCTDirLab.mgn_weights_dir``)
+    - Tutorial 9 checkpoint (``ParametersLungCTDirLab.mgn_weights_directory``)
 
 Outputs (under ``output/tutorial_10_lung_mgn/<case>/``)
 -------------------------------------------------------
@@ -85,13 +85,14 @@ def _respiratory_stage_from_filename(surface_file: Path) -> float:
 # restart the prediction in every worker.
 if __name__ == "__main__":
     # Data directory specification
-    repo_root = Path(__file__).resolve().parent.parent
     tutorials_dir = Path(__file__).resolve().parent
+    test_mode = TestTools.running_as_test()
+    # Keep a test run out of the directories a full run reads and writes.
     # Fitted SSM surfaces and PCA coefficients written by Tutorial 8 (lung).
-    data_dir = tutorials_dir / "output" / "tutorial_08_lung"
+    data_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_08_lung"
     # Weights Tutorial 9 trained. A resumed Tutorial 9 run writes to a numbered
     # sibling of this directory, which is what would be evaluated instead.
-    model_dir = LUNG_CT_DIRLAB.mgn_weights_dir
+    model_dir = LUNG_CT_DIRLAB.mgn_weights_directory(test_mode)
     # Intermittent-checkpoint epoch to load; None uses the final weights.
     epoch: Optional[int] = None
 
@@ -104,7 +105,9 @@ if __name__ == "__main__":
     # into the continuous field the CT is resampled through.
     smoothing_sigma_mm = 10.0
 
-    output_dir = tutorials_dir / "output" / "tutorial_10_lung_mgn" / case_id
+    output_dir = (
+        LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_10_lung_mgn" / case_id
+    )
     log_level = logging.INFO
 
     class_name = "tutorial_10_lung_infer_physicsnemo_mgn"
@@ -129,7 +132,9 @@ if __name__ == "__main__":
     fitted_reference_mesh_file = case_dir / f"{case_id}_ssm_surface.vtp"
     pca_file = case_dir / f"{case_id}_ssm_pca_coefficients.json"
     reference_ct_file = (
-        repo_root / "data" / "DirLab-4DCT" / (f"{case_id}_{reference_phase}.mha")
+        LUNG_CT_DIRLAB.data_directory(test_mode)
+        / "DirLab-4DCT"
+        / (f"{case_id}_{reference_phase}.mha")
     )
     phase_files = sorted(case_dir.glob(f"{case_id}_T??_ssm_surface.vtp"))
     for required_file in (fitted_reference_mesh_file, pca_file):

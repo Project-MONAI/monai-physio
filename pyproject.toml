@@ -14,7 +14,10 @@ maintainers = [
 ]
 readme = {file = "README.md", content-type = "text/markdown"}
 license = {text = "Apache-2.0"}
-requires-python = ">=3.10"
+# 3.11 is the floor because the [physicsnemo] extra needs nvidia-physicsnemo,
+# which supports >=3.11,<3.14. Declaring 3.10 made that extra unresolvable
+# there while claiming otherwise.
+requires-python = ">=3.11"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Healthcare Industry",
@@ -22,9 +25,9 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
     "Topic :: Scientific/Engineering :: Image Processing",
     "Topic :: Scientific/Engineering :: Visualization",
@@ -76,7 +79,10 @@ dependencies = [
     "einops>=0.6.1",
 
     # Registration
-    "antspyx>=0.4.0",
+    # 0.6.1 is the first release with a CPython 3.13 Windows wheel. Below it the
+    # solver is free to pick 0.5.3, whose newest Windows wheel is 3.12, and on
+    # 3.13 that means building ANTs and ITK from source -- which fails.
+    "antspyx>=0.6.1",
     "icon-registration>=1.0.0",
     "picsl-greedy>=0.0.12",
     "scipy>=1.10.0",
@@ -105,6 +111,11 @@ link-mode = "copy"
 # so torch (and setuptools) must already be installed before installing the
 # physicsnemo extra.
 no-build-isolation-package = ["torch-scatter"]
+# antspyx builds ANTs and ITK from source, which takes a long time and needs a
+# toolchain the runners do not all have. Refusing the sdist turns a silent
+# fallback to a doomed source build into an immediate resolution error naming
+# the interpreter that has no wheel.
+no-build-package = ["antspyx"]
 
 # PyTorch packages default to the CUDA 13.0 wheel index for uv-managed
 # environments. This avoids ambiguous resolution across multiple PyTorch CUDA
@@ -249,7 +260,11 @@ push = false
 ]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
+# The tutorials' parameter modules are plain sibling modules rather than a
+# package, so tests that import them need this on the search path, the same
+# way pythonpath does it for pytest.
+mypy_path = "tutorials"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -333,6 +348,7 @@ module = [
     # pre-commit mypy environment and ships no py.typed marker when installed.
     # mypy per-module patterns match whole components only, so each tutorial is
     # listed by name; add a line here when adding or renaming a tutorial.
+    "parameters_base",
     "parameters_duke_heart_labelmaps",
     "parameters_heart_ct_kcl",
     "parameters_lung_ct_dirlab",
@@ -394,7 +410,7 @@ addopts = [
     "--cov-report=xml"
 ]
 testpaths = ["tests"]
-pythonpath = ["."]
+pythonpath = [".", "tutorials"]
 # Surface every warning by default ("always"), then silence the third-party
 # ITK/SWIG binding noise emitted while wrapped C++ types are defined at import
 # on CPython >=3.12 ("builtin type Swig... has no __module__ attribute").
@@ -445,7 +461,7 @@ exclude_lines = [
 ]
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 line-length = 88
 extend-exclude = [
     ".git",

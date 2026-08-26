@@ -1,22 +1,38 @@
-"""Tutorial tests that run each tutorial end-to-end and compare screenshots.
+"""Tutorial tests that run each tutorial end-to-end and compare its output.
 
 Each test class maps to one tutorial script.  Tests are gated behind
 ``--run-tutorials`` (handled by conftest.py) and require the relevant dataset
-to be present (see data/README.md).
+to be present; the ``*_test_data`` fixtures in conftest.py build the small
+subsets a tutorial reads when run as a test.
 
-Screenshot comparison uses the existing ITK-based baseline infrastructure:
+Every tutorial runs with ``PHYSIOTWIN_RUNNING_AS_TEST`` set, which sends its
+reads and writes to the ``test`` subtree of each root in
+``parameters_base.ParametersBase``: it reads the downsampled datasets under
+``<input root>/test``, writes its results under ``<output root>/test`` and
+trains its networks into ``<weights root>/test``.  Running this suite therefore
+cannot read or overwrite the datasets, results or checkpoints of a full run.
+Each root defaults to its current in-repo location and is overridable by
+environment variable, so a runner can keep them off the checkout.
 
-1. Each tutorial script saves PNGs directly to its ``OUTPUT_DIR``.
-2. ``TestTools.compare_result_to_baseline_image`` reads each PNG from that
-   directory and compares it against a stored baseline with loose tolerances.
+Output is compared two ways, because neither catches what the other does:
 
-Run all tutorial tests::
+1. Screenshots.  Each tutorial saves PNGs to its output directory, which
+   ``TestTools.compare_result_to_baseline_image`` compares against a stored
+   baseline with tolerances loose enough to survive a driver change.
+2. Metrics.  The JSON and CSV of numbers each tutorial already reports, which
+   ``TestTools.compare_result_to_baseline_metrics`` compares within tolerance.
+   Two renderings can agree pixel for pixel while the numbers behind them move,
+   and only this catches that.  Wall-clock files (``*_runtimes.csv``) are left
+   out, being a property of the host rather than of the result.
 
-    pytest tests/test_tutorials.py --run-tutorials -v
+Run all tutorial tests (they are marked ``slow`` as well as ``tutorial``)::
 
-Create baselines on first run::
+    pytest tests/test_tutorials.py --run-all -v
 
-    pytest tests/test_tutorials.py --run-tutorials --create-baselines -v
+Create baselines on first run, then review the generated PNGs before
+committing them -- ``--create-baselines`` blesses whatever came out::
+
+    pytest tests/test_tutorials.py --run-all --create-baselines -v
 """
 
 from __future__ import annotations
@@ -29,17 +45,30 @@ from typing import Any
 
 import pytest
 
+from parameters_base import ParametersBase
 from physiotwin4d.test_tools import TestTools
+
+from .conftest import skip_or_fail_missing_data
 
 # Tolerances for screenshot comparison. Loose to survive minor rendering
 # differences across OS / GPU / driver versions.
 _PX_TOL = 10.0  # per-pixel absolute error (0-255 range)
 _MAX_PX = 2000  # maximum number of pixels allowed above _PX_TOL
 _TOT_TOL = float("inf")  # use the pixel-count criterion only
+# Tolerances for the numeric metrics each tutorial reports.  Loose enough to
+# survive the nondeterminism of GPU reductions and a driver change, tight
+# enough that a real change in accuracy shows up.  The absolute term is what
+# covers the metrics that sit near zero, where a relative one never triggers.
+_METRIC_REL_TOL = 0.05
+_METRIC_ABS_TOL = 1.0e-3
 _REPO_ROOT = Path(__file__).parent.parent
-# Where every tutorial writes, and where Tutorial 9 trains its networks to.
-_TUTORIAL_OUTPUT = _REPO_ROOT / "tutorials" / "output"
-_TUTORIAL_WEIGHTS = _REPO_ROOT / "tutorials" / "network_weights"
+# Where every tutorial writes under ``PHYSIOTWIN_RUNNING_AS_TEST``, and where
+# Tutorial 9 trains its networks to.  Kept apart from the ``output`` and
+# ``network_weights`` directories a full run uses, so that running the suite
+# cannot overwrite a full run's results or its trained checkpoints.
+_TUTORIAL_PATHS = ParametersBase()
+_TUTORIAL_OUTPUT = _TUTORIAL_PATHS.output_directory(test_mode=True)
+_TUTORIAL_WEIGHTS = _TUTORIAL_PATHS.weights_directory(test_mode=True)
 
 
 @pytest.fixture(autouse=True)
@@ -67,6 +96,20 @@ def _compare_screenshots(
         ), f"Screenshot baseline mismatch: {png_path.name}"
 
 
+def _compare_metrics(tt: TestTools, filenames: list[str]) -> None:
+    """Compare each reported metrics file against its baseline.
+
+    Screenshots catch what a rendering shows; these catch the accuracy drift
+    that a rendering can hide.
+    """
+    for filename in filenames:
+        assert tt.compare_result_to_baseline_metrics(
+            filename,
+            relative_tol=_METRIC_REL_TOL,
+            absolute_tol=_METRIC_ABS_TOL,
+        ), f"Metrics baseline mismatch: {filename}"
+
+
 def _run_tutorial_script(script_name: str) -> dict[str, Any]:
     """Run a tutorial script with no command-line arguments."""
     # runpy does not put the script's own directory on sys.path the way the
@@ -87,9 +130,14 @@ def _run_tutorial_script(script_name: str) -> dict[str, Any]:
 
 
 def _require_files(directory: Path, pattern: str, reason: str) -> None:
-    """Skip unless ``directory`` holds at least one entry matching ``pattern``."""
+    """Skip unless ``directory`` holds at least one entry matching ``pattern``.
+
+    Under ``--require-tutorial-data`` this fails instead, so a runner that is
+    supposed to hold every dataset cannot report a green run that tested
+    nothing.
+    """
     if not list(directory.glob(pattern)):
-        pytest.skip(f"No {pattern} under {directory}. {reason}")
+        skip_or_fail_missing_data(f"No {pattern} under {directory}. {reason}")
 
 
 def _baseline_tools(class_name: str, out_dir: Path, baselines_root: Path) -> TestTools:
@@ -109,7 +157,7 @@ class TestTutorial01HeartGatedCTToUSD:
     _class_name = "tutorial_01_heart_gated_ct_to_usd"
 
     def test_run(self, test_directories: dict[str, Path]) -> None:
-        out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_01_heart"
+        out_dir = _TUTORIAL_OUTPUT / "tutorial_01_heart"
         results = _run_tutorial_script("tutorial_01_heart_gated_ct_to_usd.py")
         assert results["usd_file"], "USD file path should not be empty"
         assert Path(results["usd_file"]).exists(), "USD file should exist"
@@ -130,10 +178,13 @@ class TestTutorial01LungGatedCTToUSD:
 
     _class_name = "tutorial_01_lung_gated_ct_to_usd"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
-        # This script reads the full dataset directory in either mode.
+    def test_run(
+        self,
+        test_directories: dict[str, Path],
+        dirlab_test_data: Path,
+    ) -> None:
         _require_files(
-            _REPO_ROOT / "data" / "DirLab-4DCT",
+            _TUTORIAL_PATHS.data_directory(test_mode=True) / "DirLab-4DCT",
             "Case1Pack_T??.mha",
             "DirLab-4DCT is acquired manually; see data/README.md.",
         )
@@ -164,7 +215,11 @@ class TestTutorial02DukeHeartDistancemapFinetuneICON:
 
     _class_name = "tutorial_02_duke_heart_distancemap_finetune_icon"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
+    def test_run(
+        self,
+        test_directories: dict[str, Path],
+        duke_heart_test_data: Path,
+    ) -> None:
         _require_files(
             test_directories["data"] / "Duke-Heart-4DLabelmaps",
             "pm*",
@@ -192,7 +247,11 @@ class TestTutorial02LungDistancemapFinetuneICON:
 
     _class_name = "tutorial_02_lung_distancemap_finetune_icon"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
+    def test_run(
+        self,
+        test_directories: dict[str, Path],
+        dirlab_test_data: Path,
+    ) -> None:
         _require_files(
             test_directories["data"] / "DirLab-4DCT",
             "Case*_T??.mha",
@@ -218,7 +277,11 @@ class TestTutorial02LungFinetuneICON:
 
     _class_name = "tutorial_02_lung_finetune_icon"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
+    def test_run(
+        self,
+        test_directories: dict[str, Path],
+        dirlab_test_data: Path,
+    ) -> None:
         _require_files(
             test_directories["data"] / "DirLab-4DCT",
             "Case*_T??.mha",
@@ -251,7 +314,7 @@ class TestTutorial03HeartReconstructHighres4DCT:
     def test_run(
         self, test_directories: dict[str, Path], test_images: list[Any]
     ) -> None:
-        out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_03_heart"
+        out_dir = _TUTORIAL_OUTPUT / "tutorial_03_heart"
         results = _run_tutorial_script("tutorial_03_heart_reconstruct_highres_4d_ct.py")
         assert results["reconstructed_files"], (
             "At least one reconstructed frame expected"
@@ -274,7 +337,11 @@ class TestTutorial03LungReconstructHighres4DCT:
 
     _class_name = "tutorial_03_lung_reconstruct_highres_4d_ct"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
+    def test_run(
+        self,
+        test_directories: dict[str, Path],
+        dirlab_test_data: Path,
+    ) -> None:
         # Match the phase files the script itself globs, not a directory layout
         # it never uses.
         dirlab_dir = test_directories["data"] / "DirLab-4DCT"
@@ -284,7 +351,7 @@ class TestTutorial03LungReconstructHighres4DCT:
                 "for instructions."
             )
 
-        out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_03_lung"
+        out_dir = _TUTORIAL_OUTPUT / "tutorial_03_lung"
         results = _run_tutorial_script("tutorial_03_lung_reconstruct_highres_4d_ct.py")
         assert results["reconstructed_files"], (
             "At least one reconstructed frame expected"
@@ -315,7 +382,7 @@ class TestTutorial04HeartCTToVTK:
     def test_run(
         self, test_directories: dict[str, Path], test_images: list[Any]
     ) -> None:
-        out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_04_heart"
+        out_dir = _TUTORIAL_OUTPUT / "tutorial_04_heart"
         results = _run_tutorial_script("tutorial_04_heart_ct_to_vtk.py")
         assert results["surface_file"].exists(), "Combined VTP surface should exist"
 
@@ -334,7 +401,11 @@ class TestTutorial04DukeHeartLabelmapToVTK:
 
     _class_name = "tutorial_04_duke_heart_labelmap_to_vtk"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
+    def test_run(
+        self,
+        test_directories: dict[str, Path],
+        duke_heart_test_data: Path,
+    ) -> None:
         _require_files(
             test_directories["data"] / "Duke-Heart-4DLabelmaps",
             "pm[0-9][0-9][0-9][0-9]",
@@ -359,7 +430,11 @@ class TestTutorial04LungCTToVTK:
 
     _class_name = "tutorial_04_lung"  # the script's project_name, its TestTools key
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
+    def test_run(
+        self,
+        test_directories: dict[str, Path],
+        dirlab_test_data: Path,
+    ) -> None:
         _require_files(
             test_directories["data"] / "DirLab-4DCT",
             "Case*_T??.mha",
@@ -394,14 +469,14 @@ class TestTutorial05HeartVTKToUSD:
     ) -> None:
         # The script reads this exact directory and offers no input override,
         # so bootstrap Tutorial 4 rather than pointing it at other surfaces.
-        input_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_04_heart"
+        input_dir = _TUTORIAL_OUTPUT / "tutorial_04_heart"
         if not list(input_dir.glob("patient_*.vtp")):
             _run_tutorial_script("tutorial_04_heart_ct_to_vtk.py")
             assert list(input_dir.glob("patient_*.vtp")), (
                 f"Tutorial 4 bootstrap did not create surfaces in: {input_dir}"
             )
 
-        out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_05_heart"
+        out_dir = _TUTORIAL_OUTPUT / "tutorial_05_heart"
         results = _run_tutorial_script("tutorial_05_heart_vtk_to_usd.py")
         assert results["usd_file"], "USD file path should not be empty"
         assert Path(results["usd_file"]).exists(), "USD file should exist"
@@ -469,7 +544,7 @@ class TestTutorial06CreateStatisticalModel:
     def test_run(
         self, test_directories: dict[str, Path], download_kcl_heart_model: Path
     ) -> None:
-        out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_06_heart"
+        out_dir = _TUTORIAL_OUTPUT / "tutorial_06_heart"
         results = _run_tutorial_script("tutorial_06_heart_create_statistical_model.py")
         assert results["model_file"].exists(), "pca_model.json should exist"
         assert results["mean_surface_file"].exists(), "Mean surface VTP should exist"
@@ -517,7 +592,11 @@ class TestTutorial06LungCreateStatisticalModel:
 
     _class_name = "tutorial_06_lung_create_statistical_model"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
+    def test_run(
+        self,
+        test_directories: dict[str, Path],
+        dirlab_test_data: Path,
+    ) -> None:
         # This variant segments the T70 phases itself, so the images are input.
         _require_files(
             test_directories["data"] / "DirLab-4DCT",
@@ -544,7 +623,10 @@ class TestTutorial07FitStatisticalModelToPatient:
     _class_name = "tutorial_07_heart_fit_statistical_model_to_patient"
 
     def test_run(
-        self, test_directories: dict[str, Path], download_kcl_heart_model: Path
+        self,
+        test_directories: dict[str, Path],
+        download_kcl_heart_model: Path,
+        dirlab_test_data: Path,
     ) -> None:
         # The patient scan comes from DIR-Lab, which must be acquired manually.
         if not (
@@ -555,9 +637,7 @@ class TestTutorial07FitStatisticalModelToPatient:
                 "for instructions."
             )
 
-        pca_json = (
-            _REPO_ROOT / "tutorials" / "output" / "tutorial_06_heart" / "pca_model.json"
-        )
+        pca_json = _TUTORIAL_OUTPUT / "tutorial_06_heart" / "pca_model.json"
         if not pca_json.exists():
             _run_tutorial_script("tutorial_06_heart_create_statistical_model.py")
             assert pca_json.exists(), (
@@ -565,7 +645,7 @@ class TestTutorial07FitStatisticalModelToPatient:
                 f"{pca_json}"
             )
 
-        out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_07_heart"
+        out_dir = _TUTORIAL_OUTPUT / "tutorial_07_heart"
         results = _run_tutorial_script(
             "tutorial_07_heart_fit_statistical_model_to_patient.py"
         )
@@ -581,6 +661,10 @@ class TestTutorial07FitStatisticalModelToPatient:
             baselines_dir=test_directories["baselines"] / self._class_name,
         )
         _compare_screenshots(results["screenshots"], tt)
+        _compare_metrics(
+            _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
+            ["tutorial_07_heart_registered_coefficients.json"],
+        )
 
 
 @pytest.mark.tutorial
@@ -590,7 +674,11 @@ class TestTutorial07DukeHeartFitStatisticalModelToPatient:
 
     _class_name = "tutorial_07_duke_heart"  # the script's project_name
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
+    def test_run(
+        self,
+        test_directories: dict[str, Path],
+        duke_heart_test_data: Path,
+    ) -> None:
         _require_files(
             test_directories["data"] / "Duke-Heart-4DLabelmaps",
             "pm*",
@@ -615,6 +703,10 @@ class TestTutorial07DukeHeartFitStatisticalModelToPatient:
             results["screenshots"],
             _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
         )
+        _compare_metrics(
+            _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
+            ["tutorial_07_duke_heart_registered_coefficients.json"],
+        )
 
 
 @pytest.mark.tutorial
@@ -624,7 +716,12 @@ class TestTutorial07LungFitStatisticalModelToPatient:
 
     _class_name = "tutorial_07_lung"  # the script's project_name
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
+    def test_run(
+        self,
+        test_directories: dict[str, Path],
+        dirlab_test_data: Path,
+        chest_ct_test_data: Path,
+    ) -> None:
         # The lung variant fits the ungated Chest-CT scan, which the
         # download CLI provides, rather than a gated DIR-Lab phase.
         _require_files(
@@ -650,6 +747,10 @@ class TestTutorial07LungFitStatisticalModelToPatient:
             results["screenshots"],
             _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
         )
+        _compare_metrics(
+            _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
+            ["tutorial_07_lung_registered_coefficients.json"],
+        )
 
 
 # -----------------------------------------------------------------------------
@@ -664,7 +765,11 @@ class TestTutorial08DukeHeartFitModelTo4DPatients:
 
     _class_name = "tutorial_08_duke_heart_fit_model_to_4d_patients"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
+    def test_run(
+        self,
+        test_directories: dict[str, Path],
+        duke_heart_test_data: Path,
+    ) -> None:
         _require_files(
             test_directories["data"] / "Duke-Heart-4DLabelmaps",
             "pm*",
@@ -699,10 +804,13 @@ class TestTutorial08LungFitModelTo4DPatients:
 
     _class_name = "tutorial_08_lung_fit_model_to_4d_patients"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
-        # This script reads the full dataset directory in either mode.
+    def test_run(
+        self,
+        test_directories: dict[str, Path],
+        dirlab_test_data: Path,
+    ) -> None:
         _require_files(
-            _REPO_ROOT / "data" / "DirLab-4DCT",
+            _TUTORIAL_PATHS.data_directory(test_mode=True) / "DirLab-4DCT",
             "Case*_T70.mha",
             "DirLab-4DCT is acquired manually; see data/README.md.",
         )
@@ -737,9 +845,11 @@ class TestTutorial08LungFitModelTo4DPatients:
 def _require_physicsnemo() -> None:
     """Skip unless both MGN dependencies are installed."""
     if importlib.util.find_spec("physicsnemo") is None:
-        pytest.skip("PhysicsNeMo not installed (optional [physicsnemo] extra).")
+        skip_or_fail_missing_data(
+            "PhysicsNeMo not installed (optional [physicsnemo] extra)."
+        )
     if importlib.util.find_spec("torch_geometric") is None:
-        pytest.skip(
+        skip_or_fail_missing_data(
             "PyTorch Geometric not installed; the MGN trainer needs it in addition "
             'to PhysicsNeMo. Install with: pip install "physiotwin4d[physicsnemo]" '
             "&& pip install torch-geometric"
@@ -749,10 +859,11 @@ def _require_physicsnemo() -> None:
 def _require_physicsnemo_and_tutorial_08() -> Path:
     """Skip unless the MGN dependencies and three Tutorial 8 cases are present."""
     _require_physicsnemo()
-    data_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_08_lung"
+    data_dir = _TUTORIAL_OUTPUT / "tutorial_08_lung"
     if len(list(data_dir.glob("Case*Pack"))) < 3:
-        pytest.skip(
-            "Fewer than three Tutorial 8 cases under tutorials/output/tutorial_08_lung. "
+        skip_or_fail_missing_data(
+            "Fewer than three Tutorial 8 cases under "
+            "the Tutorial 8 lung output directory. "
             "Run tutorial_08_lung_fit_model_to_4d_patients.py first."
         )
     return data_dir
@@ -764,7 +875,7 @@ def _require_physicsnemo_and_tutorial_08_duke() -> Path:
     data_dir = _TUTORIAL_OUTPUT / "tutorial_08_duke_heart"
     if not list(data_dir.glob("pm*")):
         pytest.skip(
-            "No Tutorial 8 cases under tutorials/output/tutorial_08_duke_heart. "
+            "No Tutorial 8 cases under the Tutorial 8 Duke heart output directory. "
             "Run tutorial_08_duke_heart_fit_model_to_4d_patients.py first."
         )
     return data_dir
@@ -790,7 +901,7 @@ class TestTutorial09LungTrainPhysicsNeMoMGN:
         # evaluation and the screenshots stay under the tutorial's output.
         tt = TestTools(
             class_name=self._class_name,
-            results_dir=_REPO_ROOT / "tutorials" / "output" / "tutorial_09_lung_mgn",
+            results_dir=_TUTORIAL_OUTPUT / "tutorial_09_lung_mgn",
             baselines_dir=test_directories["baselines"] / self._class_name,
         )
         _compare_screenshots(results["screenshots"], tt)
@@ -837,7 +948,7 @@ class TestTutorial10LungInferPhysicsNeMoMGN:
     def test_run(self, test_directories: dict[str, Path]) -> None:
         _require_physicsnemo_and_tutorial_08()
 
-        # ParametersLungCTDirLab.mgn_weights_dir, where Tutorial 9 trains to.
+        # ParametersLungCTDirLab.mgn_weights_directory, where Tutorial 9 trains to.
         model_dir = (
             _REPO_ROOT / "tutorials" / "network_weights" / "physicsnemo_mgn_lung_motion"
         )
@@ -854,9 +965,7 @@ class TestTutorial10LungInferPhysicsNeMoMGN:
         )
         assert Path(results["usd_file"]).exists(), "USD file should exist"
 
-        out_dir = (
-            _REPO_ROOT / "tutorials" / "output" / "tutorial_10_lung_mgn" / "Case1Pack"
-        )
+        out_dir = _TUTORIAL_OUTPUT / "tutorial_10_lung_mgn" / "Case1Pack"
         tt = TestTools(
             class_name=self._class_name,
             results_dir=out_dir,
@@ -873,10 +982,15 @@ class TestTutorial10DukeHeartInferPhysicsNeMoMGN:
 
     _class_name = "tutorial_10_duke_heart_infer_physicsnemo_mgn"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
+    def test_run(
+        self,
+        test_directories: dict[str, Path],
+        duke_heart_test_data: Path,
+    ) -> None:
         _require_physicsnemo_and_tutorial_08_duke()
 
-        # ParametersDukeHeartLabelmaps.mgn_weights_dir, where Tutorial 9 trains to.
+        # ParametersDukeHeartLabelmaps.mgn_weights_directory, where Tutorial 9
+        # trains to.
         model_dir = _TUTORIAL_WEIGHTS / "physicsnemo_mgn_duke_heart_motion"
         if not (model_dir / "mgn_stage_model.pt").exists():
             _run_tutorial_script("tutorial_09_duke_heart_train_physicsnemo_mgn.py")
@@ -911,7 +1025,11 @@ class TestTutorial11DukeHeartEvaluatePhysicsNeMo:
 
     _class_name = "tutorial_11_duke_heart_evaluate_physicsnemo"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
+    def test_run(
+        self,
+        test_directories: dict[str, Path],
+        duke_heart_test_data: Path,
+    ) -> None:
         _require_physicsnemo_and_tutorial_08_duke()
         # The acquired labelmaps every metric is measured against.
         _require_files(
@@ -938,6 +1056,10 @@ class TestTutorial11DukeHeartEvaluatePhysicsNeMo:
             results["screenshots"],
             _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
         )
+        _compare_metrics(
+            _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
+            ["evaluation_metrics.csv"],
+        )
 
 
 @pytest.mark.tutorial
@@ -948,7 +1070,11 @@ class TestTutorial11LungEvaluatePhysicsNeMo:
 
     _class_name = "tutorial_11_lung_evaluate_physicsnemo"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
+    def test_run(
+        self,
+        test_directories: dict[str, Path],
+        dirlab_test_data: Path,
+    ) -> None:
         _require_physicsnemo_and_tutorial_08()
         # The acquired phases this variant segments to get its ground truth.
         _require_files(
@@ -976,6 +1102,10 @@ class TestTutorial11LungEvaluatePhysicsNeMo:
             results["screenshots"],
             _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
         )
+        _compare_metrics(
+            _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
+            ["evaluation_metrics.csv"],
+        )
 
 
 # -----------------------------------------------------------------------------
@@ -991,7 +1121,11 @@ class TestTutorial12DukeHeartEndToEndInference:
 
     _class_name = "tutorial_12_duke_heart_end_to_end_inference"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
+    def test_run(
+        self,
+        test_directories: dict[str, Path],
+        duke_heart_test_data: Path,
+    ) -> None:
         _require_physicsnemo()
         # This tutorial starts from the raw labelmaps, so it needs Tutorial 6's
         # model and Tutorial 9's weights but not Tutorial 8's fits.
@@ -1022,6 +1156,10 @@ class TestTutorial12DukeHeartEndToEndInference:
             results["screenshots"],
             _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
         )
+        _compare_metrics(
+            _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
+            ["pm0027_ssm_pca_coefficients.json"],
+        )
 
 
 @pytest.mark.tutorial
@@ -1032,7 +1170,12 @@ class TestTutorial12LungEndToEndInference:
 
     _class_name = "tutorial_12_lung_end_to_end_inference"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
+    def test_run(
+        self,
+        test_directories: dict[str, Path],
+        dirlab_test_data: Path,
+        chest_ct_test_data: Path,
+    ) -> None:
         _require_physicsnemo()
         _require_files(
             test_directories["data"] / "DirLab-4DCT",
@@ -1061,6 +1204,10 @@ class TestTutorial12LungEndToEndInference:
             results["screenshots"],
             _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
         )
+        _compare_metrics(
+            _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
+            ["Case1Pack_ssm_pca_coefficients.json"],
+        )
 
 
 # -----------------------------------------------------------------------------
@@ -1080,7 +1227,13 @@ class TestTutorial13HeartAndLungMotion:
 
     _class_name = "tutorial_13_heart_and_lung_motion"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
+    def test_run(
+        self,
+        test_directories: dict[str, Path],
+        dirlab_test_data: Path,
+        duke_heart_test_data: Path,
+        chest_ct_test_data: Path,
+    ) -> None:
         _require_physicsnemo()
         # The ungated clinical scan both rhythms are inferred onto.
         _require_files(
@@ -1140,7 +1293,11 @@ class TestTutorial14DukeHeartShapeParameterSweep:
 
     _class_name = "tutorial_14_duke_heart_shape_parameter_sweep"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
+    def test_run(
+        self,
+        test_directories: dict[str, Path],
+        duke_heart_test_data: Path,
+    ) -> None:
         _require_physicsnemo_and_tutorial_08_duke()
         # The acquired labelmaps every metric is measured against.
         _require_files(
@@ -1170,6 +1327,13 @@ class TestTutorial14DukeHeartShapeParameterSweep:
             results["screenshots"],
             _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
         )
+        _compare_metrics(
+            _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
+            [
+                "shape_sweep_metrics.csv",
+                "shape_sweep_summary.csv",
+            ],
+        )
 
 
 @pytest.mark.tutorial
@@ -1180,7 +1344,11 @@ class TestTutorial14LungShapeParameterSweep:
 
     _class_name = "tutorial_14_lung_shape_parameter_sweep"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
+    def test_run(
+        self,
+        test_directories: dict[str, Path],
+        dirlab_test_data: Path,
+    ) -> None:
         _require_physicsnemo_and_tutorial_08()
         # The acquired phases this variant segments to get its ground truth.
         _require_files(
@@ -1209,6 +1377,13 @@ class TestTutorial14LungShapeParameterSweep:
             results["screenshots"],
             _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
         )
+        _compare_metrics(
+            _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
+            [
+                "shape_sweep_metrics.csv",
+                "shape_sweep_summary.csv",
+            ],
+        )
 
 
 # Both Tutorial 15 variants clamp themselves to this many folds under
@@ -1224,7 +1399,11 @@ class TestTutorial15LungLeaveOneOut:
 
     _class_name = "tutorial_15_lung_leave_one_out"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
+    def test_run(
+        self,
+        test_directories: dict[str, Path],
+        dirlab_test_data: Path,
+    ) -> None:
         _require_physicsnemo()
         # Nothing from Tutorials 6, 8 or 9 is needed: every fold builds its own
         # shape model, fits and network. The cohort itself is the only input.
@@ -1249,6 +1428,10 @@ class TestTutorial15LungLeaveOneOut:
             results["screenshots"],
             _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
         )
+        _compare_metrics(
+            _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
+            ["loo_metrics.csv"],
+        )
 
 
 @pytest.mark.tutorial
@@ -1259,7 +1442,11 @@ class TestTutorial15DukeHeartLeaveOneOut:
 
     _class_name = "tutorial_15_duke_heart_leave_one_out"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
+    def test_run(
+        self,
+        test_directories: dict[str, Path],
+        duke_heart_test_data: Path,
+    ) -> None:
         _require_physicsnemo()
         _require_files(
             test_directories["data"] / "Duke-Heart-4DLabelmaps",
@@ -1282,4 +1469,8 @@ class TestTutorial15DukeHeartLeaveOneOut:
         _compare_screenshots(
             results["screenshots"],
             _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
+        )
+        _compare_metrics(
+            _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
+            ["loo_metrics.csv"],
         )

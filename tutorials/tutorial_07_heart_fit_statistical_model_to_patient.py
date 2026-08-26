@@ -44,18 +44,20 @@ from physiotwin4d import (
 if __name__ == "__main__":
     # Data directory specification
     repo_root = Path(__file__).resolve().parent.parent
-    tutorials_dir = Path(__file__).resolve().parent
 
     project_name = "tutorial_07_heart"
 
-    output_dir = tutorials_dir / "output" / project_name
+    test_mode = TestTools.running_as_test()
+
+    output_dir = HEART_CT_KCL.output_directory(test_mode) / project_name
+    weights_dir = HEART_CT_KCL.weights_directory(test_mode)
+
     baselines_dir = repo_root / "tests" / "baselines"
 
     # PCA model + mean surface produced by Tutorial 6.
-    pca_json = HEART_CT_KCL.pca_json_file
-    pca_mean_file = HEART_CT_KCL.pca_mean_file
+    pca_json = HEART_CT_KCL.pca_model_file(test_mode)
+    pca_mean_file = HEART_CT_KCL.pca_mean_surface_file(test_mode)
 
-    test_mode = TestTools.running_as_test()
     data_dir = HEART_CT_KCL.hold_out_directory(test_mode)
     # The case Tutorial 6 leaves out of the model, so this fit is out of sample.
     patient_image_file = data_dir / f"{HEART_CT_KCL.hold_out_case}_T70.mha"
@@ -66,8 +68,7 @@ if __name__ == "__main__":
     # mask is far tighter, so heart distance maps saturate over a shorter radius
     # and do not share an intensity distribution with lung ones.
     icon_weights_path = (
-        tutorials_dir
-        / "network_weights"
+        weights_dir
         / "icon_duke_heart_distancemap"
         / "icon_duke_heart_distancemap_model"
         / "checkpoints"

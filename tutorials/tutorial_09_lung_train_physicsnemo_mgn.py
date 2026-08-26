@@ -66,7 +66,7 @@ Manifests, the held-out evaluation and the screenshots are written under
   * ``eval_mgn/Case*Pack/``     - predicted surfaces per held-out case
   * ``predicted_surface.png``   - screenshot of the held-out prediction
 
-The model lands in ``ParametersLungCTDirLab.mgn_weights_dir``
+The model lands in ``ParametersLungCTDirLab.mgn_weights_directory``
 (``network_weights/physicsnemo_mgn_lung_motion/``), where Tutorial 10 reads it:
 
   * ``mgn_stage_model.pt``      - trained MeshGraphNet checkpoint
@@ -190,19 +190,19 @@ def _write_case_manifest(
 if __name__ == "__main__":
     # Data directory specification
     tutorials_dir = Path(__file__).resolve().parent
+    test_mode = TestTools.running_as_test()
+    # Keep a test run out of the directories a full run reads and writes.
     # Fitted SSM surfaces and PCA coefficients written by Tutorial 8 (lung).
-    data_dir = tutorials_dir / "output" / "tutorial_08_lung"
+    data_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_08_lung"
     # PCA mean surface written by Tutorial 6 (lung); pca_model.json must sit
     # beside it, which is how Tutorial 6 writes them.
-    ssm_mean_surface_file = (
-        tutorials_dir / "output" / "tutorial_06_lung" / "pca_mean_surface.vtp"
-    )
+    ssm_mean_surface_file = LUNG_CT_DIRLAB.pca_mean_surface_file(test_mode)
     # Manifests, evaluation surfaces and screenshots are written here.
-    output_dir = tutorials_dir / "output" / "tutorial_09_lung_mgn"
+    output_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_09_lung_mgn"
     manifests_dir = output_dir / "manifests_mgn"
     # The trained model goes to the shared weights directory Tutorial 10 loads
     # it from, beside the ICON weights the registration tutorials finetune.
-    weights_dir = LUNG_CT_DIRLAB.mgn_weights_dir
+    weights_dir = LUNG_CT_DIRLAB.mgn_weights_directory(test_mode)
 
     # Warm-start from a previous run's checkpoint; None trains from scratch. When
     # resuming, training writes to a fresh sibling of weights_dir, e.g.
@@ -231,7 +231,6 @@ if __name__ == "__main__":
     logger = logging.getLogger(class_name)
 
     # In test mode, train for a couple of epochs to keep the run tractable.
-    test_mode = TestTools.running_as_test()
     if test_mode:
         epochs = 2
 

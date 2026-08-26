@@ -68,10 +68,12 @@ torchvision, and torchaudio are sourced from
 What Python version is required?
 ---------------------------------
 
-Python 3.10, 3.11 and 3.12 are supported.
+Python 3.11, 3.12 and 3.13 are supported.
 
-The one exception is the optional ``[physicsnemo]`` extra: ``nvidia-physicsnemo``
-requires Python >= 3.11, so the AI-surrogate tutorials need 3.11 or 3.12.
+The floor is set by the optional ``[physicsnemo]`` extra: ``nvidia-physicsnemo``
+supports >= 3.11, < 3.14, and the AI-surrogate tutorials need it. The rest of
+the library would run on 3.10, but declaring 3.10 would promise an install
+that cannot resolve that extra.
 
 Usage Questions
 ===============

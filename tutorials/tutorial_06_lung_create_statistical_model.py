@@ -61,14 +61,16 @@ from physiotwin4d import (
 if __name__ == "__main__":
     # Data directory specification
     repo_root = Path(__file__).resolve().parent.parent
-    tutorials_dir = Path(__file__).resolve().parent
 
     class_name = "tutorial_06_lung_create_statistical_model"
 
-    output_dir = tutorials_dir / "output" / "tutorial_06_lung"
+    test_mode = TestTools.running_as_test()
+
+    output_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_06_lung"
+    weights_dir = LUNG_CT_DIRLAB.weights_directory(test_mode)
+
     baselines_dir = repo_root / "tests" / "baselines"
 
-    test_mode = TestTools.running_as_test()
     data_dir = LUNG_CT_DIRLAB.input_directory(test_mode)
 
     number_of_pca_components = LUNG_CT_DIRLAB.pca_components(test_mode)
@@ -84,8 +86,7 @@ if __name__ == "__main__":
     # and the modes come out far too tight.  Tutorial 7 fits with the same
     # checkpoint.
     icon_weights_path = (
-        tutorials_dir
-        / "network_weights"
+        weights_dir
         / "icon_dirlab_4dct_distancemap"
         / "icon_dirlab_4dct_distancemap_model"
         / "checkpoints"
@@ -209,13 +210,13 @@ if __name__ == "__main__":
 
     # Result saving
     pca_model: dict[str, Any] = result["pca_model"]
-    model_file = LUNG_CT_DIRLAB.pca_json_file
+    model_file = LUNG_CT_DIRLAB.pca_model_file(test_mode)
     model_file.parent.mkdir(parents=True, exist_ok=True)
     with model_file.open("w", encoding="utf-8") as f:
         json.dump(pca_model, f, indent=2)
 
     mean_surface = result["pca_mean_surface"]
-    mean_surface_file = LUNG_CT_DIRLAB.pca_mean_file
+    mean_surface_file = LUNG_CT_DIRLAB.pca_mean_surface_file(test_mode)
     mean_surface.save(str(mean_surface_file))
 
     # Testing

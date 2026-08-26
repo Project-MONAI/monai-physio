@@ -7,6 +7,7 @@ in the tests directory via pytest's automatic fixture discovery.
 
 import logging
 import os
+import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
@@ -15,6 +16,7 @@ import itk
 import numpy as np
 import pytest
 
+from parameters_base import ParametersBase
 from physiotwin4d.contour_tools import ContourTools
 from physiotwin4d.data_download_tools import DataDownloadTools
 from physiotwin4d.register_images_ants import RegisterImagesANTS
@@ -105,6 +107,41 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         default=False,
         help="Create baseline files from current test outputs when missing (otherwise missing baseline fails)",
     )
+    parser.addoption(
+        "--max-test-seconds",
+        type=float,
+        default=0.0,
+        help=(
+            "Fail any test whose call phase runs longer than this many seconds. "
+            "Unlike the pytest-timeout backstop, the test is allowed to finish, "
+            "so the failure carries its duration and reaches the JUnit XML. "
+            "0 (the default) disables the budget."
+        ),
+    )
+    parser.addoption(
+        "--require-tutorial-data",
+        action="store_true",
+        default=False,
+        help=(
+            "Fail rather than skip when a tutorial's dataset is missing. For "
+            "runners that are supposed to have every dataset, where a skip "
+            "would report a green run that tested nothing."
+        ),
+    )
+
+
+def tutorial_data_is_required() -> bool:
+    """True when --require-tutorial-data turns missing-data skips into failures."""
+    if _pytest_config is None:
+        return False
+    return bool(_pytest_config.getoption("--require-tutorial-data", default=False))
+
+
+def skip_or_fail_missing_data(reason: str) -> None:
+    """Skip because a dataset is absent, or fail if the run demands it be there."""
+    if tutorial_data_is_required():
+        pytest.fail(f"{reason} (--require-tutorial-data is set)")
+    pytest.skip(reason)
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -194,6 +231,31 @@ def pytest_collection_modifyitems(
                     )
                 )
             )
+
+
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[None]) -> Any:
+    """Fail a test that passed but took longer than --max-test-seconds.
+
+    The pytest-timeout ``timeout`` setting in pyproject.toml is a backstop for a
+    genuine hang: on Windows it can only kill the whole process, which loses the
+    JUnit XML, the coverage data and every other test's result along with it. A
+    budget checked after the test has finished costs none of that -- the run
+    continues and the overrun is reported as an ordinary failure naming the
+    duration and the limit.
+    """
+    report = yield
+    if report.when != "call" or not report.passed or _pytest_config is None:
+        return report
+    limit = float(_pytest_config.getoption("--max-test-seconds", default=0.0) or 0.0)
+    if limit > 0.0 and report.duration > limit:
+        report.outcome = "failed"
+        report.longrepr = (
+            f"Exceeded the {limit:g}s runtime budget: took {report.duration:.1f}s. "
+            "Reduce the work this test does in test mode, or raise "
+            "--max-test-seconds if the cost is expected."
+        )
+    return report
 
 
 def pytest_runtest_logreport(report: pytest.TestReport) -> None:
@@ -349,7 +411,7 @@ def _format_duration(seconds: float) -> str:
 @pytest.fixture(scope="session")
 def test_directories() -> dict[str, Path]:
     """Set up test directories for data and results."""
-    data_dir = Path(__file__).parent.parent / "data" / "test"
+    data_dir = ParametersBase().data_directory(test_mode=True)
     slicer_heart_data_dir = data_dir / "slicer_heart"
     slicer_heart_small_data_dir = data_dir / "slicer_heart_small"
     output_dir = Path(__file__).parent / "results"
@@ -459,6 +521,140 @@ def test_images(
     images = [itk.imread(str(f)) for f in slice_files]
     logger.info("Loaded %d time points for testing", len(images))
     return images
+
+
+# Tutorial Test-Data Fixtures
+# ============================================================================
+#
+# The tutorials read data/<dataset> in a full run and data/test/<dataset> under
+# PHYSIOTWIN_RUNNING_AS_TEST.  These fixtures build the latter from the former,
+# small enough that a tutorial test finishes in minutes rather than hours.  Each
+# skips when its source dataset is absent, so a clone that has not downloaded
+# every dataset still runs whatever it can.
+
+
+def _downsample_image(source: Path, destination: Path, spacing_mm: float) -> None:
+    """Resample source to an isotropic pitch and write it to destination."""
+    image = itk.imread(str(source))
+    target_spacing = [spacing_mm] * 3
+    input_spacing = list(image.GetSpacing())
+    input_size = list(itk.size(image))
+    output_size = [
+        max(1, int(round(input_size[i] * input_spacing[i] / target_spacing[i])))
+        for i in range(3)
+    ]
+    resampler = itk.ResampleImageFilter.New(Input=image)
+    resampler.SetInterpolator(itk.LinearInterpolateImageFunction.New(image))
+    resampler.SetOutputSpacing(target_spacing)
+    resampler.SetSize(output_size)
+    resampler.SetOutputOrigin(image.GetOrigin())
+    resampler.SetOutputDirection(image.GetDirection())
+    resampler.Update()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    itk.imwrite(resampler.GetOutput(), str(destination), compression=True)
+
+
+def _downsample_labelmap(source: Path, destination: Path, spacing_mm: float) -> None:
+    """Resample a labelmap nearest-neighbour, so no label is interpolated away."""
+    image = itk.imread(str(source))
+    target_spacing = [spacing_mm] * 3
+    input_spacing = list(image.GetSpacing())
+    input_size = list(itk.size(image))
+    output_size = [
+        max(1, int(round(input_size[i] * input_spacing[i] / target_spacing[i])))
+        for i in range(3)
+    ]
+    resampler = itk.ResampleImageFilter.New(Input=image)
+    resampler.SetInterpolator(itk.NearestNeighborInterpolateImageFunction.New(image))
+    resampler.SetOutputSpacing(target_spacing)
+    resampler.SetSize(output_size)
+    resampler.SetOutputOrigin(image.GetOrigin())
+    resampler.SetOutputDirection(image.GetDirection())
+    resampler.Update()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    itk.imwrite(resampler.GetOutput(), str(destination), compression=True)
+
+
+# Cases kept in the test subsets.  Each list leads with the case the tutorials
+# hold out, and carries enough others that a model can still be built without it
+# (Tutorials 6 and 9 both refuse to run on fewer than three).
+_DIRLAB_TEST_CASES = ["Case1Pack", "Case2Pack", "Case3Pack"]
+_DUKE_HEART_TEST_CASES = ["pm0027", "pm0002", "pm0003", "pm0004"]
+
+
+@pytest.fixture(scope="session")
+def dirlab_test_data(test_directories: dict[str, Path]) -> Path:
+    """Build data/test/DirLab-4DCT: a few cases, downsampled to 3 mm."""
+    source_dir = ParametersBase().data_directory(test_mode=False) / "DirLab-4DCT"
+    target_dir = test_directories["data"] / "DirLab-4DCT"
+    if not source_dir.is_dir():
+        skip_or_fail_missing_data(
+            f"DIR-Lab data not found at {source_dir}. "
+            "See data/DirLab-4DCT/README.md; it must be downloaded by hand."
+        )
+
+    for case_id in _DIRLAB_TEST_CASES:
+        for phase_file in sorted(source_dir.glob(f"{case_id}_T??.mha")):
+            small_file = target_dir / phase_file.name
+            if not small_file.exists():
+                logger.info("Downsampling %s -> %s", phase_file.name, small_file)
+                _downsample_image(phase_file, small_file, 3.0)
+
+    if not list(target_dir.glob("*_T??.mha")):
+        skip_or_fail_missing_data(f"No DIR-Lab cases could be built under {target_dir}")
+    return target_dir
+
+
+@pytest.fixture(scope="session")
+def duke_heart_test_data(test_directories: dict[str, Path]) -> Path:
+    """Build data/test/Duke-Heart-4DLabelmaps: a few cases, downsampled to 2 mm."""
+    source_dir = (
+        ParametersBase().data_directory(test_mode=False) / "Duke-Heart-4DLabelmaps"
+    )
+    target_dir = test_directories["data"] / "Duke-Heart-4DLabelmaps"
+    if not source_dir.is_dir():
+        skip_or_fail_missing_data(f"Duke heart labelmaps not found at {source_dir}")
+
+    for case_id in _DUKE_HEART_TEST_CASES:
+        case_dir = source_dir / case_id
+        if not case_dir.is_dir():
+            continue
+        for labelmap_file in sorted(case_dir.glob("*_labelmap.nii.gz")):
+            small_file = target_dir / case_id / labelmap_file.name
+            if not small_file.exists():
+                logger.info("Downsampling %s -> %s", labelmap_file.name, small_file)
+                _downsample_labelmap(labelmap_file, small_file, 2.0)
+        # The landmarks are JSON in world coordinates, so resampling the
+        # labelmaps leaves them valid and they are copied as they are.
+        for landmark_file in sorted(case_dir.glob("*_landmark.mrk.json")):
+            small_file = target_dir / case_id / landmark_file.name
+            if not small_file.exists():
+                small_file.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(str(landmark_file), str(small_file))
+
+    built = [d for d in target_dir.glob("pm*") if d.is_dir()]
+    if len(built) < 3:
+        skip_or_fail_missing_data(
+            f"Only {len(built)} Duke heart case(s) under {target_dir}; need 3."
+        )
+    return target_dir
+
+
+@pytest.fixture(scope="session")
+def chest_ct_test_data(test_directories: dict[str, Path]) -> Path:
+    """Build data/test/Chest-CT: the single study, downsampled to 3 mm."""
+    source_file = (
+        ParametersBase().data_directory(test_mode=False) / "Chest-CT" / "Chest-CT.mha"
+    )
+    target_dir = test_directories["data"] / "Chest-CT"
+    if not source_file.exists():
+        skip_or_fail_missing_data(f"Chest-CT data not found at {source_file}")
+
+    target_file = target_dir / source_file.name
+    if not target_file.exists():
+        logger.info("Downsampling %s -> %s", source_file.name, target_file)
+        _downsample_image(source_file, target_file, 3.0)
+    return target_dir
 
 
 @pytest.fixture(scope="session")

@@ -87,18 +87,17 @@ from physiotwin4d import (
 # Python's spawn-cascade detector raises RuntimeError.
 if __name__ == "__main__":
     # Data directory specification
-    repo_root = Path(__file__).resolve().parent.parent
-    tutorials_dir = Path(__file__).resolve().parent
 
     class_name = "tutorial_01_lung_gated_ct_to_usd"
 
-    output_dir = tutorials_dir / "output" / "tutorial_01_lung"
+    test_mode = TestTools.running_as_test()
 
-    data_dir = repo_root / "data" / "DirLab-4DCT"
+    output_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_01_lung"
+
+    data_dir = LUNG_CT_DIRLAB.data_directory(test_mode) / "DirLab-4DCT"
 
     # .mha files are DirLab-4DCT data already converted to HU by
     # data/DirLab-4DCT/fix_downloaded_data.py.
-    test_mode = TestTools.running_as_test()
     if test_mode:
         number_of_iterations_greedy = [1, 0]
         frame_files = sorted(data_dir.glob("Case1Pack_T??.mha"))[0:2]

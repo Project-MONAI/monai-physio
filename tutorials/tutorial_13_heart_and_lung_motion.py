@@ -169,6 +169,8 @@ if __name__ == "__main__":
 
     # ---- Inputs ------------------------------------------------------------
     test_mode = TestTools.running_as_test()
+    # Keep a test run out of the directories a full run reads and writes.
+    weights_dir = DUKE_HEART.weights_directory(test_mode)
 
     # The ungated clinical scan every rhythm is inferred onto.
     patient_image_file = (
@@ -177,14 +179,14 @@ if __name__ == "__main__":
 
     # Tutorial 9 weights for each rhythm, and the Tutorial 6 shape model the
     # cardiac one was trained on.
-    lung_model_dir = LUNG_CT_DIRLAB.mgn_weights_dir
-    heart_model_dir = DUKE_HEART.mgn_weights_dir
-    heart_pca_json = DUKE_HEART.pca_json_file
-    heart_pca_mean_file = DUKE_HEART.pca_mean_file
+    lung_model_dir = LUNG_CT_DIRLAB.mgn_weights_directory(test_mode)
+    heart_model_dir = DUKE_HEART.mgn_weights_directory(test_mode)
+    heart_pca_json = DUKE_HEART.pca_model_file(test_mode)
+    heart_pca_mean_file = DUKE_HEART.pca_mean_surface_file(test_mode)
 
     # Tutorial 7 (lung) fit of this same scan: the network's reference geometry
     # and the shape parameters it is conditioned on.
-    tutorial_07_lung_dir = tutorials_dir / "output" / "tutorial_07_lung"
+    tutorial_07_lung_dir = DUKE_HEART.output_directory(test_mode) / "tutorial_07_lung"
     lung_coefficients_file = (
         tutorial_07_lung_dir / "tutorial_07_lung_registered_coefficients.json"
     )
@@ -196,8 +198,7 @@ if __name__ == "__main__":
     # tutorial_02_duke_heart_distancemap_finetune_icon.py, used by the heart fit
     # below; optional, the stock uniGradICON weights are used without them.
     heart_icon_weights_path = (
-        tutorials_dir
-        / "network_weights"
+        weights_dir
         / "icon_duke_heart_distancemap"
         / "icon_duke_heart_distancemap_model"
         / "checkpoints"
@@ -206,7 +207,7 @@ if __name__ == "__main__":
 
     # Needs about 43 GB free: a hundred frames of warped CT is 40 GB of it,
     # since resampling costs the compression the original scan had.
-    output_dir = tutorials_dir / "output" / "tutorial_13_heart_and_lung"
+    output_dir = DUKE_HEART.output_directory(test_mode) / "tutorial_13_heart_and_lung"
 
     # ---- Parameters --------------------------------------------------------
     # Respiratory stages, the DIR-Lab T00..T90 phases the lung network was

@@ -7,9 +7,10 @@ That is why the heart has its own distance-map finetuning tutorial rather than
 reusing the lung one's weights -- the two organs' distance maps do not share an
 intensity distribution.
 
-The directories and the shape-model files the tutorials read and write live here
-too, so that Tutorial 6 writes the model where Tutorial 7 looks for it.  Every
-path is derived from this file's location, so they hold wherever the clone is.
+The shape-model files the tutorials read and write live here too, so that
+Tutorial 6 writes the model where Tutorial 7 looks for it.  Every path hangs off
+one of the three roots :class:`parameters_base.ParametersBase` resolves, so
+pointing an environment variable at another disk moves them all together.
 """
 
 from __future__ import annotations
@@ -17,14 +18,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from parameters_base import ParametersBase
 from physiotwin4d import SegmentAnatomyBase, SegmentChestTotalSegmentator
-
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-_OUTPUT_ROOT = _REPO_ROOT / "tutorials" / "output" / "tutorial_06_heart"
 
 
 @dataclass(frozen=True)
-class ParametersHeartCTKCL:
+class ParametersHeartCTKCL(ParametersBase):
     """Settings shared by the heart tutorials.
 
     Attributes:
@@ -102,20 +101,29 @@ class ParametersHeartCTKCL:
 
     hold_out_case: str = "Case1Pack"
 
-    input_dir: Path = _REPO_ROOT / "data" / "KCL-Heart-Model"
-    input_dir_test: Path = _REPO_ROOT / "data" / "test" / "KCL-Heart-Model"
-    hold_out_dir: Path = _REPO_ROOT / "data" / "DirLab-4DCT"
-    hold_out_dir_test: Path = _REPO_ROOT / "data" / "test" / "DirLab-4DCT"
-    pca_json_file: Path = _OUTPUT_ROOT / "pca_model.json"
-    pca_mean_file: Path = _OUTPUT_ROOT / "pca_mean_surface.vtp"
-
     def input_directory(self, test_mode: bool) -> Path:
-        """Return the model population directory for this run mode."""
-        return self.input_dir_test if test_mode else self.input_dir
+        """Return the population Tutorial 6 builds the model from."""
+        return self.data_directory(test_mode) / "KCL-Heart-Model"
 
     def hold_out_directory(self, test_mode: bool) -> Path:
-        """Return the held-out case's directory for this run mode."""
-        return self.hold_out_dir_test if test_mode else self.hold_out_dir
+        """Return the dataset Tutorial 7 reads the held-out case from.
+
+        A different dataset from ``input_directory``: the model is built from
+        KCL meshes and fitted to a DIR-Lab patient.
+        """
+        return self.data_directory(test_mode) / "DirLab-4DCT"
+
+    def pca_model_file(self, test_mode: bool) -> Path:
+        """Return the shape model Tutorial 6 writes and Tutorial 7 reads."""
+        return self.output_directory(test_mode) / "tutorial_06_heart" / "pca_model.json"
+
+    def pca_mean_surface_file(self, test_mode: bool) -> Path:
+        """Return that model's mean surface, written and read the same way."""
+        return (
+            self.output_directory(test_mode)
+            / "tutorial_06_heart"
+            / "pca_mean_surface.vtp"
+        )
 
     def pca_components(self, test_mode: bool) -> int:
         """Return the PCA component count for this run mode."""

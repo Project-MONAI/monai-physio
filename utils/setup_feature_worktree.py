@@ -16,6 +16,10 @@ Usage:
   py utils/setup_feature_worktree.py my-feature --base-branch main
   py utils/setup_feature_worktree.py my-feature --worktree-root C:/worktrees
   py utils/setup_feature_worktree.py my-feature --dependency-mode editable
+
+Dependency modes: 'requirements' reads requirements.txt, 'pyproject' does a bare
+'-e .', and 'editable' does a full '-e .[all]' (staging setuptools/wheel and CUDA
+torch first, since the cuda13 and physicsnemo extras need them preinstalled).
 """
 
 from __future__ import annotations
@@ -123,11 +127,12 @@ def require_no_active_venv() -> None:
         sys.exit(1)
 
 
-def check_prerequisites() -> tuple[str, str]:
+def check_prerequisites() -> str:
     """Check that git and py.exe are available on PATH and no venv is active.
 
     Returns:
-        Tuple of (git_path, py_path).
+        The resolved path to py.exe. git is only checked, not returned — git is
+        always invoked as a bare "git" so it resolves through PATH.
     """
     print("[*] Checking prerequisites...")
     require_no_active_venv()
@@ -135,7 +140,7 @@ def check_prerequisites() -> tuple[str, str]:
     py_path = require_tool("py")
     print(f"    git : {git_path}")
     print(f"    py  : {py_path}")
-    return git_path, py_path
+    return py_path
 
 
 # ---------------------------------------------------------------------------
@@ -307,14 +312,14 @@ def create_venv(worktree_path: Path, py_path: str) -> Path:
     return venv_dir
 
 
-def install_uv(venv_dir: Path) -> Path:
+def install_uv(venv_dir: Path) -> tuple[Path, Path]:
     """Install uv into the venv using pip.
 
     Args:
         venv_dir: Path to the venv directory.
 
     Returns:
-        Path to the uv.exe executable inside the venv.
+        Tuple of (uv_exe, venv_python) — both inside the venv.
     """
     venv_python = venv_dir / "Scripts" / "python.exe"
     uv_exe = venv_dir / "Scripts" / "uv.exe"
@@ -334,7 +339,7 @@ def install_uv(venv_dir: Path) -> Path:
         sys.exit(1)
 
     print("    Done.")
-    return uv_exe
+    return uv_exe, venv_python
 
 
 # ---------------------------------------------------------------------------
@@ -365,13 +370,21 @@ def detect_dependency_mode(worktree_path: Path) -> str:
 
 def install_dependencies(
     uv_exe: Path,
+    venv_python: Path,
     worktree_path: Path,
     mode: str,
 ) -> None:
     """Install project dependencies using uv.
 
+    Every uv invocation passes ``--python venv_python`` explicitly. uv does not
+    infer the target environment from the uv.exe that runs it: it looks at
+    VIRTUAL_ENV, CONDA_PREFIX, then a directory named ``.venv``. The worktree venv
+    is named ``venv`` and ``require_no_active_venv`` guarantees VIRTUAL_ENV is
+    unset, so without ``--python`` uv aborts with "No virtual environment found".
+
     Args:
         uv_exe: Absolute path to the uv executable inside the venv.
+        venv_python: Absolute path to python.exe inside the venv.
         worktree_path: Root of the worktree (used as the working directory).
         mode: One of 'requirements', 'pyproject', 'editable', 'auto'.
 
@@ -384,13 +397,15 @@ def install_dependencies(
 
     print(f"[*] Installing dependencies (mode: {mode})...")
 
+    uv_pip_install = [str(uv_exe), "pip", "install", "--python", str(venv_python)]
+
     if mode == "requirements":
         req_file = worktree_path / "requirements.txt"
         if not req_file.exists():
             print(f"[ERROR] requirements.txt not found at: {req_file}")
             sys.exit(1)
         run(
-            [str(uv_exe), "pip", "install", "-r", str(req_file)],
+            uv_pip_install + ["-r", str(req_file)],
             cwd=worktree_path,
             description="uv pip install -r requirements.txt",
         )
@@ -400,8 +415,8 @@ def install_dependencies(
         # that the project uses uv's project workflow (uv sync). The most robust
         # fallback that works with any PEP 517 build backend is an editable install,
         # which reads [project.dependencies] from pyproject.toml and installs them.
-        # If the caller truly wants a non-editable install, they should use
-        # --dependency-mode editable and adjust afterwards.
+        # If the caller wants the project's optional extras as well, they should
+        # use --dependency-mode editable.
         pyproject_file = worktree_path / "pyproject.toml"
         if not pyproject_file.exists():
             print(f"[ERROR] pyproject.toml not found at: {pyproject_file}")
@@ -410,16 +425,43 @@ def install_dependencies(
             "    (pyproject mode: using editable install to read [project.dependencies])"
         )
         run(
-            [str(uv_exe), "pip", "install", "-e", "."],
+            uv_pip_install + ["-e", "."],
             cwd=worktree_path,
             description="uv pip install -e . (pyproject)",
         )
 
     elif mode == "editable":
+        # ".[all]" pulls in [cuda13] and [physicsnemo], which per the comment above
+        # the "all" extra in pyproject.toml require torch and setuptools to already
+        # be installed, plus --no-build-isolation when torch-scatter has no matching
+        # wheel. A brand-new venv has neither, so stage the prerequisites first.
+        # This mirrors .github/workflows/nightly-health.yml.
+        print("    Installing build prerequisites (setuptools, wheel)...")
         run(
-            [str(uv_exe), "pip", "install", "-e", "."],
+            uv_pip_install + ["setuptools", "wheel"],
             cwd=worktree_path,
-            description="uv pip install -e .",
+            description="uv pip install setuptools wheel",
+        )
+        print("    Installing torch from the CUDA 13.0 index.")
+        print("    This downloads several GB and can take many minutes.")
+        run(
+            uv_pip_install
+            + [
+                "torch",
+                "torchvision",
+                "torchaudio",
+                "--index-url",
+                "https://download.pytorch.org/whl/cu130",
+            ],
+            cwd=worktree_path,
+            description="uv pip install torch (cu130)",
+        )
+        print("    Installing the project with all extras...")
+        run(
+            uv_pip_install
+            + ["-e", ".[all]", "--no-build-isolation-package", "torch-scatter"],
+            cwd=worktree_path,
+            description="uv pip install -e .[all]",
         )
 
     else:
@@ -511,8 +553,9 @@ Examples:
             "How to install dependencies. "
             "auto (default): detect from project files. "
             "requirements: use requirements.txt. "
-            "pyproject: use pyproject.toml (via editable install). "
-            "editable: pip install -e ."
+            "pyproject: use pyproject.toml (via a bare editable install). "
+            'editable: editable install with all extras ("-e .[all]", '
+            "staging setuptools/wheel and CUDA torch first; downloads several GB)."
         ),
     )
 
@@ -529,7 +572,7 @@ def main() -> None:
     args = parse_args()
 
     # --- Prerequisites ---
-    git_path, py_path = check_prerequisites()
+    py_path = check_prerequisites()
 
     # --- Resolve repository root ---
     repo_root = get_repo_root()
@@ -568,10 +611,10 @@ def main() -> None:
     venv_dir = create_venv(worktree_path, py_path)
 
     # --- Install uv ---
-    uv_exe = install_uv(venv_dir)
+    uv_exe, venv_python = install_uv(venv_dir)
 
     # --- Install dependencies ---
-    install_dependencies(uv_exe, worktree_path, args.dependency_mode)
+    install_dependencies(uv_exe, venv_python, worktree_path, args.dependency_mode)
 
     # --- Summary ---
     print_summary(branch_name, worktree_path, venv_dir)

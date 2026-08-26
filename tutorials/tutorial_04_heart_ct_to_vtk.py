@@ -41,12 +41,12 @@ from physiotwin4d import (
 # spawn-cascade detector raises RuntimeError.
 if __name__ == "__main__":
     # Data directory specification
-    repo_root = Path(__file__).resolve().parent.parent
-    tutorials_dir = Path(__file__).resolve().parent
 
     class_name = "tutorial_04_heart_ct_to_vtk"
 
-    output_dir = tutorials_dir / "output" / "tutorial_04_heart"
+    test_mode = TestTools.running_as_test()
+
+    output_dir = HEART_CT_KCL.output_directory(test_mode) / "tutorial_04_heart"
 
     # In addition to the combined surface file always saved below, also
     # save one VTP per anatomy group (e.g. heart.vtp, lung.vtp) and/or one
@@ -57,11 +57,10 @@ if __name__ == "__main__":
     use_simpleware = False
     use_totalsegmentator_academic_license = True
 
-    test_mode = TestTools.running_as_test()
     if test_mode:
-        data_dir = repo_root / "data" / "test" / "slicer_heart_small"
+        data_dir = HEART_CT_KCL.data_directory(test_mode) / "slicer_heart_small"
     else:
-        data_dir = repo_root / "data" / "Slicer-Heart-CT"
+        data_dir = HEART_CT_KCL.data_directory(test_mode) / "Slicer-Heart-CT"
 
     frame_files = sorted(data_dir.glob("slice_???.mha"))
 

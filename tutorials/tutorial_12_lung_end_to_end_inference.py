@@ -111,7 +111,6 @@ def _record_step(times_s: dict[str, float], step: str, started: float) -> float:
 if __name__ == "__main__":
     # Data directory specification
     repo_root = Path(__file__).resolve().parent.parent
-    tutorials_dir = Path(__file__).resolve().parent
 
     class_name = "tutorial_12_lung_end_to_end_inference"
 
@@ -122,20 +121,23 @@ if __name__ == "__main__":
     # phase, so the network's reference frame is this one.
     reference_phase = "T70"
 
+    test_mode = TestTools.running_as_test()
+    # Keep a test run out of the directories a full run reads and writes.
+    weights_dir = LUNG_CT_DIRLAB.weights_directory(test_mode)
+
     # PCA model + mean surface produced by Tutorial 6 (lung).
-    pca_model_file = LUNG_CT_DIRLAB.pca_json_file
-    pca_mean_file = LUNG_CT_DIRLAB.pca_mean_file
+    pca_model_file = LUNG_CT_DIRLAB.pca_model_file(test_mode)
+    pca_mean_file = LUNG_CT_DIRLAB.pca_mean_surface_file(test_mode)
     # Weights Tutorial 9 trained, and the checkpoint epoch to infer with; None
     # uses the final weights.
-    model_dir = LUNG_CT_DIRLAB.mgn_weights_dir
+    model_dir = LUNG_CT_DIRLAB.mgn_weights_directory(test_mode)
     epoch: Optional[int] = None
 
     # Distance-map weights finetuned on DIR-Lab by
     # tutorial_02_lung_distancemap_finetune_icon.py, used by the
     # labelmap-to-labelmap stage of the SSM fit.
     icon_distancemap_weights_path = (
-        tutorials_dir
-        / "network_weights"
+        weights_dir
         / "icon_dirlab_4dct_distancemap"
         / "icon_dirlab_4dct_distancemap_model"
         / "checkpoints"
@@ -146,7 +148,9 @@ if __name__ == "__main__":
     # into the continuous field the CT is resampled through.
     smoothing_sigma_mm = 10.0
 
-    output_dir = tutorials_dir / "output" / "tutorial_12_lung" / case_id
+    output_dir = (
+        LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_12_lung" / case_id
+    )
     log_level = logging.INFO
 
     logging.basicConfig(level=log_level)
@@ -157,7 +161,6 @@ if __name__ == "__main__":
     step_times_s: dict[str, float] = {}
     step_start = time.perf_counter()
 
-    test_mode = TestTools.running_as_test()
     data_dir = LUNG_CT_DIRLAB.input_directory(test_mode)
     number_of_pca_components = LUNG_CT_DIRLAB.pca_components(test_mode)
 

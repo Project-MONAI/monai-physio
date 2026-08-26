@@ -92,7 +92,6 @@ from physiotwin4d import (
 if __name__ == "__main__":
     # Data directory specification
     repo_root = Path(__file__).resolve().parent.parent
-    tutorials_dir = Path(__file__).resolve().parent
 
     class_name = "tutorial_11_lung_evaluate_physicsnemo"
 
@@ -103,10 +102,12 @@ if __name__ == "__main__":
     reference_phase = "T70"
 
     # Fitted SSM surface and PCA coefficients written by Tutorial 8 (lung).
-    case_dir = tutorials_dir / "output" / "tutorial_08_lung" / case_id
+    test_mode = TestTools.running_as_test()
+    # Keep a test run out of the directories a full run reads and writes.
+    case_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_08_lung" / case_id
     # Weights Tutorial 9 trained, and the checkpoint epoch Tutorial 10 infers
     # with; None uses the final weights.
-    model_dir = LUNG_CT_DIRLAB.mgn_weights_dir
+    model_dir = LUNG_CT_DIRLAB.mgn_weights_directory(test_mode)
     epoch: Optional[int] = None
 
     # Gaussian sigma, in mm, that spreads the predicted surface displacements
@@ -129,14 +130,15 @@ if __name__ == "__main__":
     # in the wrong direction cannot hide in, and it costs one mesh read a phase.
     include_displacement_error = True
 
-    output_dir = tutorials_dir / "output" / "tutorial_11_lung" / case_id
+    output_dir = (
+        LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_11_lung" / case_id
+    )
     ground_truth_dir = output_dir / "ground_truth"
     log_level = logging.INFO
 
     logging.basicConfig(level=log_level)
     logger = logging.getLogger(class_name)
 
-    test_mode = TestTools.running_as_test()
     data_dir = LUNG_CT_DIRLAB.input_directory(test_mode)
 
     # Directory setup and data reading

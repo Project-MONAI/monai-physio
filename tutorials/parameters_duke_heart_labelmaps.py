@@ -7,9 +7,10 @@ on purpose: Tutorial 2 finetunes uniGradICON on distance maps whose appearance
 is fixed by ``mask_dilation_mm`` and ``distancemap_squared_max``, and Tutorial 7
 infers with those weights, so the two must agree.
 
-The directories and the shape-model files the tutorials read and write live here
-too, so that Tutorial 6 writes the model where Tutorial 7 looks for it.  Every
-path is derived from this file's location, so they hold wherever the clone is.
+The shape-model files the tutorials read and write live here too, so that
+Tutorial 6 writes the model where Tutorial 7 looks for it.  Every path hangs off
+one of the three roots :class:`parameters_base.ParametersBase` resolves, so
+pointing an environment variable at another disk moves them all together.
 """
 
 from __future__ import annotations
@@ -17,15 +18,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from parameters_base import ParametersBase
 from physiotwin4d import SegmentAnatomyBase, SegmentHeartSimplewareTrimmedBranches
-
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-_TUTORIAL_OUTPUT = _REPO_ROOT / "tutorials" / "output"
-_TUTORIAL_WEIGHTS = _REPO_ROOT / "tutorials" / "network_weights"
 
 
 @dataclass(frozen=True)
-class ParametersDukeHeartLabelmaps:
+class ParametersDukeHeartLabelmaps(ParametersBase):
     """Settings shared by the Duke heart tutorials.
 
     Attributes:
@@ -71,20 +69,6 @@ class ParametersDukeHeartLabelmaps:
             coronaries (7-10) vary too much in extent between patients to be
             part of a shape model.  What remains is the myocardium (5) and the
             heart wall (6).
-        input_dir: Surfaces Tutorial 6 builds the model from, which are what
-            Tutorial 4 wrote; ``input_dir_test`` is its counterpart under
-            ``TestTools.running_as_test``.
-        hold_out_dir: Labelmaps the held-out case is read from by Tutorials 2
-            and 7, and ``hold_out_dir_test`` its counterpart under
-            ``TestTools.running_as_test``.
-        pca_json_file: Shape model Tutorial 6 writes and Tutorials 7, 8 and 9
-            read.
-        pca_mean_file: Mean surface of that model, written and read the same way.
-        mgn_weights_dir: MeshGraphNet Tutorial 9 trains and Tutorial 10 infers
-            with, alongside the normalization statistics and PCA assets that
-            make that directory self-contained.  It sits beside the finetuned
-            ICON checkpoints rather than under ``output/``, because it is a
-            trained network rather than a per-run result.
         hold_out_case: Case held out of every fit: Tutorial 6 builds the shape
             model without it and Tutorial 7 fits that model to it, so the fit
             measures generalization rather than reconstruction.  Tutorial 2
@@ -117,27 +101,43 @@ class ParametersDukeHeartLabelmaps:
 
     hold_out_case: str = "pm0027"
 
-    input_dir: Path = _TUTORIAL_OUTPUT / "tutorial_04_duke_heart_labelmap"
-    input_dir_test: Path = _TUTORIAL_OUTPUT / "tutorial_04_duke_heart_labelmap"
-    hold_out_dir: Path = _REPO_ROOT / "data" / "Duke-Heart-4DLabelmaps"
-    hold_out_dir_test: Path = _REPO_ROOT / "data" / "test" / "Duke-Heart-4DLabelmaps"
-    pca_json_file: Path = _TUTORIAL_OUTPUT / "tutorial_06_duke_heart" / "pca_model.json"
-    pca_mean_file: Path = (
-        _TUTORIAL_OUTPUT / "tutorial_06_duke_heart" / "pca_mean_surface.vtp"
-    )
-    mgn_weights_dir: Path = _TUTORIAL_WEIGHTS / "physicsnemo_mgn_duke_heart_motion"
-
     def input_directory(self, test_mode: bool) -> Path:
-        """Return the model population directory for this run mode.
+        """Return the population Tutorial 6 builds the model from.
 
-        Tutorial 4 writes to one directory whichever mode it ran in, so both
-        modes read the same one.
+        These are the surfaces Tutorial 4 wrote, so each mode reads whichever
+        directory its own mode wrote.
         """
-        return self.input_dir_test if test_mode else self.input_dir
+        return self.output_directory(test_mode) / "tutorial_04_duke_heart_labelmap"
 
     def hold_out_directory(self, test_mode: bool) -> Path:
-        """Return the held-out case's directory for this run mode."""
-        return self.hold_out_dir_test if test_mode else self.hold_out_dir
+        """Return the labelmaps Tutorials 2 and 7 read the held-out case from."""
+        return self.data_directory(test_mode) / "Duke-Heart-4DLabelmaps"
+
+    def pca_model_file(self, test_mode: bool) -> Path:
+        """Return the shape model Tutorial 6 writes and 7, 8 and 9 read."""
+        return (
+            self.output_directory(test_mode)
+            / "tutorial_06_duke_heart"
+            / "pca_model.json"
+        )
+
+    def pca_mean_surface_file(self, test_mode: bool) -> Path:
+        """Return that model's mean surface, written and read the same way."""
+        return (
+            self.output_directory(test_mode)
+            / "tutorial_06_duke_heart"
+            / "pca_mean_surface.vtp"
+        )
+
+    def mgn_weights_directory(self, test_mode: bool) -> Path:
+        """Return the MeshGraphNet Tutorial 9 trains and Tutorial 10 infers with.
+
+        Holds the normalization statistics and PCA assets alongside the
+        checkpoint, which is what makes the directory self-contained. It sits
+        under the weights root rather than the output root because a trained
+        network outlives the run that produced it.
+        """
+        return self.weights_directory(test_mode) / "physicsnemo_mgn_duke_heart_motion"
 
     def pca_components(self, test_mode: bool) -> int:
         """Return the PCA component count for this run mode."""

@@ -57,14 +57,16 @@ from physiotwin4d import (
 if __name__ == "__main__":
     # Data directory specification
     repo_root = Path(__file__).resolve().parent.parent
-    tutorials_dir = Path(__file__).resolve().parent
 
     class_name = "tutorial_06_duke_heart_create_statistical_model"
 
-    output_dir = tutorials_dir / "output" / "tutorial_06_duke_heart"
+    test_mode = TestTools.running_as_test()
+
+    output_dir = DUKE_HEART.output_directory(test_mode) / "tutorial_06_duke_heart"
+    weights_dir = DUKE_HEART.weights_directory(test_mode)
+
     baselines_dir = repo_root / "tests" / "baselines"
 
-    test_mode = TestTools.running_as_test()
     input_dir = DUKE_HEART.input_directory(test_mode)
     number_of_pca_components = DUKE_HEART.pca_components(test_mode)
 
@@ -82,8 +84,7 @@ if __name__ == "__main__":
     # and the modes come out far too tight.  Tutorial 7 fits with the same
     # checkpoint.
     icon_weights_path = (
-        tutorials_dir
-        / "network_weights"
+        weights_dir
         / "icon_duke_heart_distancemap"
         / "icon_duke_heart_distancemap_model"
         / "checkpoints"
@@ -200,13 +201,13 @@ if __name__ == "__main__":
 
     # Result saving
     pca_model: dict[str, Any] = result["pca_model"]
-    model_file = DUKE_HEART.pca_json_file
+    model_file = DUKE_HEART.pca_model_file(test_mode)
     model_file.parent.mkdir(parents=True, exist_ok=True)
     with model_file.open("w", encoding="utf-8") as f:
         json.dump(pca_model, f, indent=2)
 
     mean_surface = result["pca_mean_surface"]
-    mean_surface_file = DUKE_HEART.pca_mean_file
+    mean_surface_file = DUKE_HEART.pca_mean_surface_file(test_mode)
     mean_surface.save(str(mean_surface_file))
 
     # Testing

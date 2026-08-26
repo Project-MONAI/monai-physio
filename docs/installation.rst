@@ -10,7 +10,7 @@ Prerequisites
 System Requirements
 -------------------
 
-* **Python**: 3.10, 3.11, or 3.12
+* **Python**: 3.11, 3.12, or 3.13
 * **GPU**: NVIDIA GPU with CUDA 13 — required for full capability and best performance; a CPU-only PyPI installation is a supported fallback, but it is slow, emits a runtime warning, and cannot run the AI-surrogate workflows
 * **RAM**: 16GB minimum (32GB+ recommended for large datasets)
 * **Storage**: 10GB+ for package and model weights

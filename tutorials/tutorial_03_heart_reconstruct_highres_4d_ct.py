@@ -22,6 +22,7 @@ from pathlib import Path
 
 import itk
 
+from parameters_base import ParametersBase
 from physiotwin4d import (
     RegisterImagesGreedy,
     TestTools,
@@ -38,21 +39,24 @@ from physiotwin4d import (
 if __name__ == "__main__":
     # Data directory specification
     repo_root = Path(__file__).resolve().parent.parent
-    tutorials_dir = Path(__file__).resolve().parent
 
     class_name = "tutorial_03_heart_reconstruct_highres_4d_ct"
 
-    output_dir = tutorials_dir / "output" / "tutorial_03_heart"
+    # Only the shared directory roots are needed here; no dataset-specific
+    # parameters module applies to this tutorial.
+    tutorial_paths = ParametersBase()
+    test_mode = TestTools.running_as_test()
+
+    output_dir = tutorial_paths.output_directory(test_mode) / "tutorial_03_heart"
     baselines_dir = repo_root / "tests" / "baselines"
 
     case_glob = "slice_???.mha"
 
-    test_mode = TestTools.running_as_test()
     if test_mode:
-        data_dir = repo_root / "data" / "test" / "slicer_heart_small"
+        data_dir = tutorial_paths.data_directory(test_mode) / "slicer_heart_small"
         number_of_iterations_greedy = [1, 0]
     else:
-        data_dir = repo_root / "data" / "Slicer-Heart-CT"
+        data_dir = tutorial_paths.data_directory(test_mode) / "Slicer-Heart-CT"
         number_of_iterations_greedy = [30, 15, 7, 3]
 
     log_level = logging.INFO
