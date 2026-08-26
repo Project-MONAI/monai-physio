@@ -9,6 +9,9 @@ name: Nightly Health
 #   - Artifact "health-dashboard": index.html + status.json (90-day retention)
 #   - Artifact "health-test-results": JUnit XML + coverage reports (90-day retention)
 #
+# The suite runs as two pytest invocations, core and tutorials, so that an
+# overrunning tutorial cannot destroy the core suite's results.
+#
 # The dashboard is NOT deployed to GitHub Pages to avoid overwriting the
 # documentation site published by docs.yml.  Use the workflow status badge
 # for a live pass/fail indicator in README:
@@ -41,10 +44,10 @@ jobs:
     timeout-minutes: 360
 
     outputs:
-      # Captures the pytest step's actual outcome (success / failure / skipped)
-      # for the dashboard. The job itself is failed by the gate step at the end,
+      # Captures the pytest steps' combined outcome (success / failure) for
+      # the dashboard. The job itself is failed by the gate step at the end,
       # after the artifacts have been uploaded.
-      test-outcome: ${{ steps.run-tests.outcome }}
+      test-outcome: ${{ (steps.run-core-tests.outcome == 'success' && steps.run-tutorial-tests.outcome == 'success') && 'success' || 'failure' }}
 
     steps:
       - name: Checkout code
@@ -154,26 +157,65 @@ jobs:
           print(f'OK: {n} GPU(s) visible to PyTorch and CuPy')
           "
 
-      - name: Run health test suite
-        id: run-tests
-        # continue-on-error keeps the job running so artifacts are always uploaded.
-        # The step outcome (success/failure) is still captured and passed downstream.
+      # The suite runs in two invocations rather than one. pytest-timeout on
+      # Windows can only kill the whole process, so a single overrunning
+      # tutorial used to take the JUnit XML, the coverage and every other
+      # test's result with it, leaving the dashboard nothing to render.
+      # Splitting the runs bounds that blast radius to one of them, and the
+      # tutorial run additionally isolates each test in an xdist worker.
+      #
+      # --max-test-seconds fails a test that finishes but took too long, so the
+      # overrun is reported with its duration and the rest of the suite still
+      # runs. --timeout is the pytest-timeout backstop above it, left to catch
+      # a genuine hang and nothing else. Both steps are continue-on-error so
+      # the artifacts are always uploaded; the gate step at the end fails the
+      # job.
+      - name: Run core test suite
+        id: run-core-tests
         continue-on-error: true
-        # --max-test-seconds fails a test that finishes but took too long, so the
-        # overrun is reported with its duration and the rest of the suite still
-        # runs. --timeout raises the pytest-timeout backstop above it: on
-        # Windows that backstop can only kill the whole process, which would
-        # take the JUnit XML and every other result with it, so it is left to
-        # catch a genuine hang and nothing else. Both numbers are provisional
-        # until the per-tutorial timings are measured.
         run: |
-          pytest tests/ -v --run-all --require-tutorial-data `
-            --max-test-seconds=900 `
-            --timeout=3600 `
+          pytest tests/ --ignore=tests/test_tutorials.py -v `
+            --run-all --require-tutorial-data `
+            --max-test-seconds=400 `
+            --timeout=900 `
             --cov=physiotwin4d `
+            --junitxml=test-results-core.xml
+        env:
+          CUDA_VISIBLE_DEVICES: 0
+          # The datasets, the results and the trained networks live on the
+          # runner's own disk rather than in the checkout, which
+          # actions/checkout wipes every run. Each root has a "test" subtree
+          # that this suite reads and writes, so a nightly run never touches a
+          # full run's files, and the downsampled subsets the fixtures build
+          # under <input>/test survive between runs instead of being rebuilt.
+          # Unset, each falls back to its in-repo default; see data/README.md.
+          PHYSIOTWIN_INPUT_DATA_DIR: D:\PhysioTwin4D\nightly-runner\data
+          PHYSIOTWIN_OUTPUT_DATA_DIR: D:\PhysioTwin4D\nightly-runner\output
+          PHYSIOTWIN_WEIGHTS_DIR: D:\PhysioTwin4D\nightly-runner\network_weights
+
+      - name: Run tutorial test suite
+        id: run-tutorial-tests
+        continue-on-error: true
+        # -n 1 keeps the tutorials strictly serial -- they share one GPU, one
+        # "test" output subtree, and several bootstrap their prerequisite
+        # tutorial inline -- while running them in an xdist worker process.
+        # pytest-timeout then kills the worker rather than the session: xdist
+        # reports that test as crashed, starts a fresh worker and carries on,
+        # so an overrun costs one tutorial instead of the whole run.
+        #
+        # --cov-append adds to the core run's data, and the reports are written
+        # here so that they cover both runs.
+        run: |
+          pytest tests/test_tutorials.py -v `
+            --run-all --require-tutorial-data `
+            -n 1 --max-worker-restart=40 `
+            --max-test-seconds=600 `
+            --timeout=900 `
+            --cov=physiotwin4d `
+            --cov-append `
             --cov-report=xml `
             --cov-report=json `
-            --junitxml=test-results.xml
+            --junitxml=test-results-tutorials.xml
         env:
           CUDA_VISIBLE_DEVICES: 0
           # The datasets, the results and the trained networks live on the
@@ -193,7 +235,8 @@ jobs:
         with:
           name: health-test-results
           path: |
-            test-results.xml
+            test-results-core.xml
+            test-results-tutorials.xml
             coverage.xml
             coverage.json
           retention-days: 90
@@ -204,9 +247,10 @@ jobs:
         # would report success even when tests failed or the step timed out,
         # and the workflow status badge would say green while nothing passed.
         # build-dashboard runs on if: always(), so it still gets its inputs.
-        if: steps.run-tests.outcome != 'success'
+        if: steps.run-core-tests.outcome != 'success' || steps.run-tutorial-tests.outcome != 'success'
         run: |
-          Write-Output "Health test suite outcome: ${{ steps.run-tests.outcome }}"
+          Write-Output "Core suite outcome: ${{ steps.run-core-tests.outcome }}"
+          Write-Output "Tutorial suite outcome: ${{ steps.run-tutorial-tests.outcome }}"
           Write-Output "See the health-test-results artifact for the JUnit XML."
           exit 1
 

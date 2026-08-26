@@ -77,7 +77,7 @@ if __name__ == "__main__":
 
     # Atlas iterations used to build the reference surface; 1 is a single
     # template-biased pass.
-    mean_surface_iterations = 3
+    mean_surface_iterations = 1 if test_mode else 3
 
     # Distance-map weights finetuned by
     # tutorial_02_lung_distancemap_finetune_icon.py.  Stock uniGradICON weights
