@@ -124,6 +124,27 @@ class TrainPhysicsNeMoBase(PhysioTwin4DBase):
         """
         raise NotImplementedError
 
+    def _compute_loss(
+        self,
+        pred: "torch.Tensor",
+        tgt: "torch.Tensor",
+        batch_len: int,
+        target_scale: float,
+        indices: np.ndarray,
+    ) -> "torch.Tensor":
+        """Return the training loss for one flattened mini-batch.
+
+        The base class scores displacement alone, so it needs only *pred* and
+        *tgt*. A subclass that adds a physics residual needs the rest:
+        *batch_len* to split the stacked rows back into whole samples,
+        *target_scale* to restore the physical units the targets were
+        normalized out of, and *indices* to recover which subject each sample
+        came from.
+        """
+        import torch
+
+        return torch.nn.functional.mse_loss(pred, tgt)
+
     # ─────────────────────────── Training loop ─────────────────────────────
     def train(
         self,
@@ -213,7 +234,6 @@ class TrainPhysicsNeMoBase(PhysioTwin4DBase):
             self._log_main(context, "torch.compile skipped on Windows.")
 
         optimizer = torch.optim.Adam(model.parameters(), lr=self.learning_rate)
-        loss_fn = torch.nn.MSELoss()
         target_scale = stats["target_scale"]
 
         losses: list[float] = []
@@ -222,7 +242,7 @@ class TrainPhysicsNeMoBase(PhysioTwin4DBase):
             model.train()
             epoch_loss = 0.0
             n_rows = 0
-            for node_feats, targets, batch_len in self._iter_batches(
+            for node_feats, targets, batch_len, indices in self._iter_batches(
                 train_dataset, rng, shuffle=True, context=context
             ):
                 nf = torch.from_numpy(node_feats).to(device)
@@ -230,7 +250,9 @@ class TrainPhysicsNeMoBase(PhysioTwin4DBase):
                 optimizer.zero_grad(set_to_none=True)
                 with self._autocast(device):
                     pred = self.forward(model, nf, batch_len)
-                    loss = loss_fn(pred, tgt)
+                    loss = self._compute_loss(
+                        pred, tgt, batch_len, target_scale, indices
+                    )
                 loss.backward()
                 optimizer.step()
                 epoch_loss += float(loss.detach()) * len(nf)
@@ -338,7 +360,11 @@ class TrainPhysicsNeMoBase(PhysioTwin4DBase):
         shuffle: bool,
         context: Optional[DistributedContext] = None,
     ) -> Any:
-        """Yield ``(node_feats, targets, batch_len)`` flattened mini-batches.
+        """Yield ``(node_feats, targets, batch_len, indices)`` mini-batches.
+
+        ``indices`` are the dataset positions the batch was drawn from, in the
+        order they were stacked, which is what lets :meth:`_compute_loss`
+        recover each sample's subject.
 
         With a distributed ``context``, each rank takes a strided slice of the
         one shared permutation, and the slice is then truncated to a whole
@@ -373,7 +399,7 @@ class TrainPhysicsNeMoBase(PhysioTwin4DBase):
                 perm = rng.permutation(len(node_feats))
                 node_feats = node_feats[perm]
                 targets = targets[perm]
-            yield node_feats, targets, len(idx)
+            yield node_feats, targets, len(idx), idx
 
     def _autocast(self, device: "torch.device") -> Any:
         """BF16 autocast on CUDA; a no-op context elsewhere."""
@@ -400,7 +426,7 @@ class TrainPhysicsNeMoBase(PhysioTwin4DBase):
         total_sq = 0.0
         n_points = 0
         with torch.no_grad():
-            for node_feats, targets, batch_len in self._iter_batches(
+            for node_feats, targets, batch_len, _ in self._iter_batches(
                 dataset, rng, shuffle=False
             ):
                 nf = torch.from_numpy(node_feats).to(device)

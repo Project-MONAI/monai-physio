@@ -319,6 +319,8 @@ module = [
     "pxr.*",
     "pyacvd",
     "pyacvd.*",
+    "sympy",
+    "sympy.*",
     "pyvista",
     "pyvista.*",
     "simpleware",
@@ -357,6 +359,7 @@ module = [
     # listed by name; add a line here when adding or renaming a tutorial.
     "parameters_base",
     "parameters_duke_heart_labelmaps",
+    "parameters_duke_heart_physics_informed",
     "parameters_heart_ct_kcl",
     "parameters_lung_ct_dirlab",
     "tutorial_01_heart_gated_ct_to_usd",
@@ -392,6 +395,9 @@ module = [
     "tutorial_14_lung_shape_parameter_sweep",
     "tutorial_15_duke_heart_leave_one_out",
     "tutorial_15_lung_leave_one_out",
+    "tutorial_16_duke_heart_physics_informed_motion_prep",
+    "tutorial_17_duke_heart_physics_informed_motion_train",
+    "tutorial_18_duke_heart_physics_informed_motion_infer",
 ]
 disable_error_code = ["import-not-found", "import-untyped"]
 

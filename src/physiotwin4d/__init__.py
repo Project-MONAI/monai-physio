@@ -104,6 +104,9 @@ from .infer_physicsnemo_mlp import InferPhysicsNeMoMLP
 from .train_physicsnemo_base import TrainPhysicsNeMoBase
 from .train_physicsnemo_mgn import TrainPhysicsNeMoMGN
 from .train_physicsnemo_mlp import TrainPhysicsNeMoMLP
+from .train_physicsnemo_physics_informed_motion import (
+    TrainPhysicsNeMoPhysicsInformedMotion,
+)
 from .workflow_train_physicsnemo import WorkflowTrainPhysicsNeMo
 from .physicsnemo_tools import DistributedContext, distributed_context
 
@@ -130,6 +133,7 @@ __all__ = [
     "TrainPhysicsNeMoBase",
     "TrainPhysicsNeMoMGN",
     "TrainPhysicsNeMoMLP",
+    "TrainPhysicsNeMoPhysicsInformedMotion",
     # Inference method classes
     "InferPhysicsNeMoBase",
     "InferPhysicsNeMoMGN",

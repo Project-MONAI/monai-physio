@@ -44,6 +44,7 @@ By Category
    * :class:`~physiotwin4d.WorkflowInferPhysicsNeMo` - Predict per-point targets
    * :class:`~physiotwin4d.WorkflowInferMovement` - Turn predictions back into geometry
    * :class:`~physiotwin4d.WorkflowEvaluateMovement` - Score predictions against the acquired frames
+   * :class:`~physiotwin4d.TrainPhysicsNeMoPhysicsInformedMotion` - Train against a neo-Hookean strain energy as well as displacement
 
 **Segmentation**
    * :class:`~physiotwin4d.SegmentAnatomyBase` - Base segmentation class

@@ -43,6 +43,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+import pyvista as pv
 import pytest
 
 from parameters_base import ParametersBase
@@ -1473,4 +1475,153 @@ class TestTutorial15DukeHeartLeaveOneOut:
         _compare_metrics(
             _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
             ["loo_metrics.csv"],
+        )
+
+
+def _require_physicsnemo_sym() -> None:
+    """Skip unless PhysicsNeMo Sym is importable.
+
+    It supplies ``PhysicsInformer``, which the physics-informed trainer builds
+    its residual on.  It ships inside ``nvidia-physicsnemo`` rather than as a
+    separate distribution, so an older PhysicsNeMo is what makes this fail.
+    """
+    _require_physicsnemo()
+    if importlib.util.find_spec("physicsnemo.sym") is None:
+        skip_or_fail_missing_data(
+            "physicsnemo.sym not available; it ships inside nvidia-physicsnemo, "
+            "so upgrade that package to get PhysicsInformer."
+        )
+
+
+def _require_tutorial_16() -> Path:
+    """Skip unless Tutorial 16 left manifests and a template behind."""
+    prep_dir = _TUTORIAL_OUTPUT / "tutorial_16_duke_heart_physics_informed_motion"
+    if not list(prep_dir.glob("manifests/*_manifest.json")):
+        skip_or_fail_missing_data(
+            "No Tutorial 16 manifests under its output directory. Run "
+            "tutorial_16_duke_heart_physics_informed_motion_prep.py first."
+        )
+    return prep_dir
+
+
+def _require_tutorial_17() -> Path:
+    """Skip unless Tutorial 17 trained a physics-informed checkpoint."""
+    weights_dir = _TUTORIAL_WEIGHTS / "physicsnemo_physics_informed_motion_duke_heart"
+    if not list(weights_dir.glob("*_stage_model.pt")):
+        skip_or_fail_missing_data(
+            "No physics-informed checkpoint under its weights directory. Run "
+            "tutorial_17_duke_heart_physics_informed_motion_train.py first."
+        )
+    return weights_dir
+
+
+@pytest.mark.tutorial
+@pytest.mark.slow
+class TestTutorial16DukeHeartPhysicsInformedMotionPrep:
+    """End-to-end test for tutorial_16_duke_heart_physics_informed_motion_prep.py."""
+
+    _class_name = "tutorial_16_duke_heart_physics_informed_motion_prep"
+
+    def test_run(self, test_directories: dict[str, Path]) -> None:
+        _require_files(
+            _TUTORIAL_OUTPUT / "tutorial_04_duke_heart_labelmap",
+            "*_ref_heart_minus_interior_chambers.vtp",
+            "Run tutorial_04_duke_heart_labelmap_to_vtk.py first.",
+        )
+        _require_files(
+            test_directories["data"] / "Duke-Heart-4DLabelmaps",
+            "pm*/*_ref_labelmap.nii.gz",
+            "Duke-Heart-4DLabelmaps is not public yet; "
+            "see data/Duke-Heart-4DLabelmaps/README.md.",
+        )
+
+        results = _run_tutorial_script(
+            "tutorial_16_duke_heart_physics_informed_motion_prep.py"
+        )
+        assert results["manifests"], "At least one case should yield a manifest"
+        assert results["template_file"].exists(), "The tet template should exist"
+        assert results["model_file"].exists(), "The volumetric model should exist"
+
+        # The whole point of this tutorial is that the model has an interior,
+        # so assert the template is volumetric rather than merely present.
+        template = pv.read(str(results["template_file"]))
+        tets = template.cells_dict[np.uint8(pv.CellType.TETRA)]
+        assert len(tets) > 0, "The template should carry tetrahedra"
+        quality = np.asarray(
+            template.cell_quality(["scaled_jacobian"]).cell_data["scaled_jacobian"]
+        )
+        assert quality.min() >= 0.1, (
+            "trim_tetrahedra_to_surface holds every cell above a scaled Jacobian "
+            f"of 0.1; the worst here is {quality.min():.3f}"
+        )
+
+        out_dir = _TUTORIAL_OUTPUT / "tutorial_16_duke_heart_physics_informed_motion"
+        _compare_screenshots(
+            results["screenshots"],
+            _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
+        )
+
+
+@pytest.mark.tutorial
+@pytest.mark.slow
+@pytest.mark.requires_physicsnemo
+class TestTutorial17DukeHeartPhysicsInformedMotionTrain:
+    """End-to-end test for tutorial_17_duke_heart_physics_informed_motion_train.py."""
+
+    _class_name = "tutorial_17_duke_heart_physics_informed_motion_train"
+
+    def test_run(self, test_directories: dict[str, Path]) -> None:
+        _require_physicsnemo_sym()
+        _require_tutorial_16()
+
+        results = _run_tutorial_script(
+            "tutorial_17_duke_heart_physics_informed_motion_train.py"
+        )
+        assert results["checkpoint"].exists(), "A checkpoint should be written"
+        assert results["runs"]["physics_informed"]["training_loss"], (
+            "The physics-informed run should report a per-epoch loss"
+        )
+
+        out_dir = _TUTORIAL_OUTPUT / "tutorial_16_duke_heart_physics_informed_motion"
+        _compare_screenshots(
+            results["screenshots"],
+            _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
+        )
+
+
+@pytest.mark.tutorial
+@pytest.mark.slow
+@pytest.mark.requires_physicsnemo
+class TestTutorial18DukeHeartPhysicsInformedMotionInfer:
+    """End-to-end test for tutorial_18_duke_heart_physics_informed_motion_infer.py."""
+
+    _class_name = "tutorial_18_duke_heart_physics_informed_motion_infer"
+
+    def test_run(self, test_directories: dict[str, Path]) -> None:
+        _require_physicsnemo_sym()
+        _require_tutorial_16()
+        _require_tutorial_17()
+
+        results = _run_tutorial_script(
+            "tutorial_18_duke_heart_physics_informed_motion_infer.py"
+        )
+        assert results["comparison_file"].exists(), "The comparison CSV should exist"
+        assert results["usd_file"].exists(), "The animated USD should exist"
+        assert results["stress_files"], "Every predicted phase should carry stress"
+
+        # The USD is colored by a scalar this tutorial never writes directly:
+        # it supplies the tensor, and ConvertVTKToUSD derives the scalar.
+        stressed = pv.read(str(results["stress_files"][0]))
+        assert stressed.point_data["stress"].shape[1] == 9, (
+            "compute_von_mises_stress needs a 9-component tensor to reduce"
+        )
+
+        out_dir = (
+            _TUTORIAL_OUTPUT
+            / "tutorial_18_duke_heart_physics_informed_motion"
+            / "pm0027"
+        )
+        _compare_screenshots(
+            results["screenshots"],
+            _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
         )

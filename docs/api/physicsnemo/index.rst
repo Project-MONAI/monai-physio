@@ -34,6 +34,9 @@ network.
    * - :class:`~physiotwin4d.InferPhysicsNeMoMGN` /
        :class:`~physiotwin4d.InferPhysicsNeMoMLP`
      - The matching networks at inference time
+   * - :class:`~physiotwin4d.TrainPhysicsNeMoPhysicsInformedMotion`
+     - A MeshGraphNet whose loss also prices the tissue's strain energy, and
+       which yields the stress that deformation implies
 
 PhysicsNeMo is an optional dependency::
 
@@ -50,3 +53,4 @@ imports happen lazily inside the methods that need them.
    train
    infer
    evaluate
+   physics_informed_motion

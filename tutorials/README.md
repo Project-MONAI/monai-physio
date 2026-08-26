@@ -58,6 +58,9 @@ current working directory.
 | 14 | [duke heart variant](tutorial_14_duke_heart_shape_parameter_sweep.py) | `WorkflowEvaluateMovement` (requires `[physicsnemo]` extra + `torch-geometric`) | Duke-Heart-4DLabelmaps plus Tutorial 8 and 9 (duke heart) output |
 | 15 | [tutorial_15_lung_leave_one_out.py](tutorial_15_lung_leave_one_out.py) | `WorkflowCreateStatisticalModel`, `WorkflowFitStatisticalModelToPatient`, `WorkflowTrainPhysicsNeMo`, `WorkflowEvaluateMovement` (requires `[physicsnemo]` extra + `torch-geometric`) | DirLab-4DCT |
 | 15 | [duke heart variant](tutorial_15_duke_heart_leave_one_out.py) | `WorkflowCreateStatisticalModel`, `WorkflowFitStatisticalModelToPatient`, `WorkflowTrainPhysicsNeMo`, `WorkflowEvaluateMovement` (requires `[physicsnemo]` extra + `torch-geometric`) | Duke-Heart-4DLabelmaps |
+| 16 | [tutorial_16_duke_heart_physics_informed_motion_prep.py](tutorial_16_duke_heart_physics_informed_motion_prep.py) | `ContourTools.extract_tetrahedra`, `WorkflowCreateStatisticalModel`, `WorkflowFitStatisticalModelToPatient` | Duke-Heart-4DLabelmaps plus Tutorial 4 (duke heart) output |
+| 17 | [tutorial_17_duke_heart_physics_informed_motion_train.py](tutorial_17_duke_heart_physics_informed_motion_train.py) | `TrainPhysicsNeMoPhysicsInformedMotion`, `WorkflowTrainPhysicsNeMo` (requires `[physicsnemo]` extra + `torch-geometric`) | Tutorial 16 output |
+| 18 | [tutorial_18_duke_heart_physics_informed_motion_infer.py](tutorial_18_duke_heart_physics_informed_motion_infer.py) | `WorkflowEvaluateMovement`, `ConvertVTKToUSD` (requires `[physicsnemo]` extra + `torch-geometric`) | Tutorial 16 and 17 output |
 
 The [tutorials page](https://project-monai.github.io/physiotwin4d/tutorials.html)
 covers the same set with previews of what each one produces and per-tutorial
@@ -162,12 +165,39 @@ registrations do not depend on which case is held out, so they are cached under
 under `torchrun --standalone --nproc_per_node=<gpus>` the training is
 data-parallel across ranks and the per-case loops are split across them.
 
+**Tutorials 16, 17 and 18** ask a different question of the same cardiac data:
+is the predicted motion something tissue could actually do? Tutorials 9 and 10
+score displacement alone, so nothing in their loss rules out an element
+inflating, thinning past what myocardium allows, or inverting outright. These
+three add a neo-Hookean strain energy to the loss, which prices exactly those
+deformations, and read out the stress it implies.
+
+That energy needs a deformation gradient, which needs volume elements, which the
+surface shape model of Tutorials 6 to 8 does not have. So **Tutorial 16** builds
+the model again volumetrically: it fills the mean surface with tetrahedra and
+decomposes the population against that template, then fits it to every case and
+phase. **Tutorial 17** trains the surrogate with the residual added, and by
+default trains a second model with the physics weight at zero on identical data
+- the only comparison that isolates the physics term rather than confounding it
+with the change of shape model. **Tutorial 18** predicts the held-out case with
+both, scores them side by side, derives the Cauchy stress from the same
+constitutive law the loss used, and exports the animation to USD colored by von
+Mises stress. Nothing in Tutorials 1 to 15 is modified; only Tutorial 4's
+surfaces and Tutorial 2's weights are read.
+
+The success criterion is worth stating plainly: the physics-informed model is
+not expected to *beat* the ablation on RMSE. A strain energy is a prior, and a
+prior that improved the data fit would be suspicious. What it should do is match
+it while keeping every element's Jacobian positive.
+
 The `duke_heart` variants form their own chain on Duke-Heart-4DLabelmaps,
 which no step above shares: Tutorial 4 (duke heart) -> 5 -> 6 -> 7 -> 8 -> 9 ->
 10 -> 11 -> 12, each reading the previous one's output, with Tutorial 2 (heart
 distancemap variant) supplying optional finetuned weights to Tutorials 7 and 8.
 Tutorials 14 and 15 (duke heart) branch off the same chain on the same dataset,
-14 from Tutorials 8 and 9, 15 from the cohort alone.
+14 from Tutorials 8 and 9, 15 from the cohort alone. Tutorials 16 to 18 branch
+from Tutorial 4 alone, building their own volumetric shape model rather than
+reusing the surface one.
 That dataset is being released soon; until then this chain cannot be run, and
 access can be requested from Stephen Aylward (<saylward@nvidia.com>). See
 [../data/Duke-Heart-4DLabelmaps/README.md](../data/Duke-Heart-4DLabelmaps/README.md).

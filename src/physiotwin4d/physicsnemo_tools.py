@@ -470,6 +470,16 @@ class PhaseSampleDataset:
         """Target width (columns of the stored target array)."""
         return self._n_target
 
+    @property
+    def subject_ids(self) -> list[str]:
+        """Subject id of every sample, in dataset order.
+
+        A physics residual is measured against the subject's own reference
+        geometry rather than the shared template, so a training method that
+        adds one needs to know which subject a batch row came from.
+        """
+        return [sample.subject_id for sample in self._samples]
+
     def _target_values(self, path: Path) -> np.ndarray:
         """Read (and cache) a phase's ``(n_points, n_target)`` target array."""
         cached = self._cache.get(path)

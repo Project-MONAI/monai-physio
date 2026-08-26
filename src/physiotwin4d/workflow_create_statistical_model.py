@@ -306,6 +306,10 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
         variance with it.  The shortfall is measured here against the measured
         ICP-aligned surface, and removed when ``project_to_measured_surfaces``
         is set, so that the modes are scaled by the population's real spread.
+
+        For a volume template only the boundary nodes are measured, since an
+        interior node's distance to the bounding surface says nothing about how
+        well the registration landed.
         """
         self.log_section("Step 4: Build PCA inputs (corresponded shapes)", width=70)
         assert self.reference_model is not None and self.forward_transforms
@@ -331,11 +335,25 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
             )
             measured_surface = self.contour_tools.extract_surface(aligned)
             points = np.asarray(pca_input_model.points)
+            measured_ids: Any = slice(None)
+            if not self.solve_for_surface_pca:
+                # A volume template's interior nodes sit a wall thickness away
+                # from the bounding surface by construction, so scoring them
+                # against it would report that thickness rather than the
+                # registration's shortfall.  Only the boundary is measured.
+                measured_ids = np.asarray(
+                    pca_input_model.extract_surface(
+                        algorithm="dataset_surface"
+                    ).point_data["vtkOriginalPointIds"]
+                )
+            measured_points = points[measured_ids]
             _, closest = cast(
                 "tuple[np.ndarray, np.ndarray]",
-                measured_surface.find_closest_cell(points, return_closest_point=True),
+                measured_surface.find_closest_cell(
+                    measured_points, return_closest_point=True
+                ),
             )
-            residuals = np.linalg.norm(closest - points, axis=1)
+            residuals = np.linalg.norm(closest - measured_points, axis=1)
             self.pca_input_residual_rms.append(float(np.sqrt(np.mean(residuals**2))))
             if project:
                 if self.projection_max_distance_mm is None:
