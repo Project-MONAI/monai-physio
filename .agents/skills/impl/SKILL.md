@@ -14,8 +14,9 @@ Instructions:
 5. Update docstrings and type hints for every changed public method.
 6. Run `ruff check . --fix && ruff format .` after editing Python files.
 7. Prefer compatibility. Break a public API only when the change is generally
-   beneficial to future users, and never via a deprecation shim — provide a
-   conversion script when the change is substantial.
+   beneficial to future users, and never via a deprecation shim, removed-symbol
+   re-export, or removed-symbol stub — provide a conversion script when the
+   change is substantial.
 8. Explicitly note any breaking changes introduced, and append an entry for
    each to `docs/developer/migration_next.md` using the template at the bottom
    of that file.

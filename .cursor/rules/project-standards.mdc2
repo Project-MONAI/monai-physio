@@ -49,14 +49,20 @@ git mv old_name.py new_name.py
 **Prefer compatibility.** Break a public API only when the change is generally
 beneficial to future users:
 
-- Do not add deprecation shims or removed-symbol re-exports
+- Do not add deprecation shims, removed-symbol re-exports, or removed-symbol
+  stubs
 - When a break is substantial, ship code that automates the conversion instead
 - Every commit that breaks a public API adds an entry to
   `docs/developer/migration_next.md` in that same commit — what changed, why it
-  benefits future users, before/after code, and the conversion script
-- At release: `git mv docs/developer/migration_next.md
-  docs/developer/migration_<version>.md`, retitle it, and start a fresh
-  `migration_next.md` from its entry template
+  benefits future users, before/after code, and the conversion script (or
+  `None needed` when the break is not substantial)
+- At release, archive the guide under the new version and start a fresh one:
+
+```bash
+VERSION=$(bumpver show --no-fetch | sed -n "s/^Current Version: //p")
+git mv docs/developer/migration_next.md "docs/developer/migration_$VERSION.md"
+# Retitle the archived file, then recreate migration_next.md from its template
+```
 
 ## Code Style
 

@@ -434,8 +434,9 @@ Maintainers only:
    bumpver update --patch
 
    # Archive the migration guide under the new version, then start a fresh one
-   git mv docs/developer/migration_next.md docs/developer/migration_<new_version>.md
-   # Retitle the archived file to "Migration Guide - <new_version>"
+   VERSION=$(bumpver show --no-fetch | sed -n "s/^Current Version: //p")
+   git mv docs/developer/migration_next.md "docs/developer/migration_$VERSION.md"
+   # Retitle the archived file to "Migration Guide - $VERSION"
    # Recreate docs/developer/migration_next.md from its entry template
 
    # Build package

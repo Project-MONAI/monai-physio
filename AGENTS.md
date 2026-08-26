@@ -102,9 +102,9 @@ Version bumping: `bumpver update --patch`, `--minor`, or `--major`.
 ## Migration Guide
 
 PhysioTwin4D prefers compatibility. Break a public API only when the change is
-generally beneficial to future users. Never add deprecation shims or
-removed-symbol re-exports; when a break is substantial, ship code that
-automates the conversion instead.
+generally beneficial to future users. Never add deprecation shims,
+removed-symbol re-exports, or removed-symbol stubs; when a break is
+substantial, ship code that automates the conversion instead.
 
 At commit time: if the diff breaks a public API, append an entry to
 `docs/developer/migration_next.md` in that same commit — what changed, why it
@@ -216,9 +216,9 @@ graphify update .               # refresh after code changes (AST-only, no API c
   changes.
 - Keep diffs small and reviewable.
 - Prefer editing existing modules over creating new ones.
-- No deprecation shims or removed-symbol re-exports. Change the code, log the
-  break in `docs/developer/migration_next.md`, and provide a conversion script
-  when the change is substantial.
+- No deprecation shims, removed-symbol re-exports, or removed-symbol stubs.
+  Change the code, log the break in `docs/developer/migration_next.md`, and
+  provide a conversion script when the change is substantial.
 
 ## Testing Role
 

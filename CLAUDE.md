@@ -73,8 +73,9 @@ Strong success criteria let you loop independently. Weak criteria
 
 - Prefer compatibility. Break a public API only when the change is generally
   beneficial to future users.
-- Never add deprecation shims or removed-symbol re-exports. When a break is
-  substantial, ship code that automates the conversion instead.
+- Never add deprecation shims, removed-symbol re-exports, or removed-symbol
+  stubs. When a break is substantial, ship code that automates the conversion
+  instead.
 - Every commit that breaks a public API must add an entry to
   `docs/developer/migration_next.md`: what changed, why it benefits future
   users, before/after code, and the conversion script (or `None needed`).
