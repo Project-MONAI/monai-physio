@@ -71,7 +71,17 @@ Strong success criteria let you loop independently. Weak criteria
 
 ## 5. Project-Specific Rules
 
-- Breaking changes are acceptable. Backward-compatibility shims are not.
+- Prefer compatibility. Break a public API only when the change is generally
+  beneficial to future users.
+- Never add deprecation shims, removed-symbol re-exports, or removed-symbol
+  stubs. When a break is substantial, ship code that automates the conversion
+  instead.
+- Every commit that breaks a public API must add an entry to
+  `docs/developer/migration_next.md`: what changed, why it benefits future
+  users, before/after code, and the conversion script (or `None needed`).
+- At release time, `git mv docs/developer/migration_next.md
+  docs/developer/migration_<version>.md`, retitle it, and start a fresh
+  `migration_next.md` from its entry template.
 
 ---
 
@@ -174,12 +184,16 @@ Use `git mv` / `git rm` — not `mv` / `rm` — to preserve history.
 Do **not** create new `.md` files unless explicitly requested.
 Document via docstrings and inline comments.
 
+Exception: the migration guide. Append to `docs/developer/migration_next.md`
+whenever a commit breaks a public API, and create
+`docs/developer/migration_<version>.md` plus a fresh `migration_next.md` at
+release time.
+
 ## Code Style
 
 - Double quotes for strings and docstrings
 - Full type hints (`mypy` strict; `disallow_untyped_defs = true`)
 - `Optional[X]` not `X | None` (ruff `UP007` suppressed)
-- Breaking changes are acceptable — backward compatibility is not a priority
 - Max line length: 88 characters
 - Follow behavior guidelines.
 

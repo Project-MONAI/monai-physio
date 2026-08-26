@@ -231,6 +231,10 @@ Pull Request Guidelines
 * **Pass all tests**: CI must pass
 * **Update documentation**: Document new features
 * **Add release note**: Document user-facing changes in the pull request
+* **Log breaking changes**: If the change breaks a public API, add an entry to
+  ``docs/developer/migration_next.md`` in the same commit, covering what
+  changed, why it benefits future users, before/after code, and the script that
+  automates the conversion. Do not add deprecation shims instead.
 
 Testing
 =======
@@ -375,7 +379,9 @@ Review Criteria
 * **Tests**: Are there adequate tests?
 * **Documentation**: Is it properly documented?
 * **Performance**: Are there any performance concerns?
-* **Compatibility**: Does it maintain backwards compatibility?
+* **Compatibility**: Does it avoid needless breaking changes, and is every
+  unavoidable break recorded in ``docs/developer/migration_next.md`` with a
+  conversion path rather than a deprecation shim?
 
 Reporting Issues
 ================
@@ -427,11 +433,21 @@ Maintainers only:
    # Bump version
    bumpver update --patch
 
+   # Archive the migration guide under the new version, then start a fresh one
+   VERSION=$(bumpver show --no-fetch | sed -n "s/^Current Version: //p")
+   git mv docs/developer/migration_next.md "docs/developer/migration_$VERSION.md"
+   # Retitle the archived file to "Migration Guide - $VERSION"
+   # Recreate docs/developer/migration_next.md from its entry template
+
    # Build package
    python -m build
 
    # Upload to PyPI
    python -m twine upload dist/*
+
+The ``Developer Guides`` toctree in ``docs/index.rst`` globs
+``developer/migration_*``, so archived guides appear in the sidebar without
+further edits.
 
 Community Guidelines
 ====================

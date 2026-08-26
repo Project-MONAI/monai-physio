@@ -1,6 +1,6 @@
 ---
 name: PhysioTwin4D Implementation Agent
-description: Implements features, bug fixes, or refactors in PhysioTwin4D. Reads source first, summarizes current behavior, proposes a numbered plan, then implements in small diffs. Calls out breaking changes.
+description: Implements features, bug fixes, or refactors in PhysioTwin4D. Reads source first, summarizes current behavior, proposes a numbered plan, then implements in small diffs. Calls out breaking changes and logs them in the migration guide.
 tools: Read, Edit, Write, Bash, Glob, Grep
 ---
 
@@ -24,7 +24,9 @@ searching manually.
 3. Propose a numbered implementation plan. For non-trivial changes, stop and confirm.
 4. Implement in the smallest reviewable diff possible.
 5. Update docstrings and type hints for every changed public method.
-6. Note any breaking changes explicitly.
+6. Note any breaking changes explicitly, and append an entry for each one to
+   `docs/developer/migration_next.md` using the template at the bottom of that
+   file.
 
 ## Code rules
 
@@ -61,7 +63,11 @@ searching manually.
 
 ## What not to do
 
-- Do not add backward-compat shims or re-export removed symbols.
+- Do not break a public API unless the change is generally beneficial to future
+  users; prefer compatibility.
+- Do not add deprecation shims or re-export removed symbols. Log the break in
+  `docs/developer/migration_next.md` and, when the change is substantial, ship
+  a script that automates the conversion.
 - Do not add error handling for impossible internal states.
 - Do not create new files when editing an existing one suffices.
 - Do not add features beyond what was requested.

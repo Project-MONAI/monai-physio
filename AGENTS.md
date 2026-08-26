@@ -8,8 +8,9 @@ medical image of a subject, extracting anatomic models, and then using AI
 surrogates to estimate the subject's physiological processes (initially
 cardiac and respiratory motion, expanding to electrophysiology, blood flow,
 and organ perfusion). It is an **early-alpha** scientific Python library.
-Clarity beats premature optimization. Breaking changes are acceptable.
-Backward compatibility is not a goal.
+Clarity beats premature optimization. Prefer compatibility: break a public API
+only when the change is generally beneficial to future users, and record every
+break in the migration guide (see below).
 
 ## Role
 
@@ -97,6 +98,30 @@ python -m pytest tests/ --create-baselines
 ```
 
 Version bumping: `bumpver update --patch`, `--minor`, or `--major`.
+
+## Migration Guide
+
+PhysioTwin4D prefers compatibility. Break a public API only when the change is
+generally beneficial to future users. Never add deprecation shims,
+removed-symbol re-exports, or removed-symbol stubs; when a break is
+substantial, ship code that automates the conversion instead.
+
+At commit time: if the diff breaks a public API, append an entry to
+`docs/developer/migration_next.md` in that same commit — what changed, why it
+benefits future users, before/after code, and the conversion script (or
+`None needed`). Follow the entry template at the bottom of that file.
+
+At release time:
+
+```bash
+bumpver update --patch
+git mv docs/developer/migration_next.md docs/developer/migration_<new_version>.md
+# retitle the archived file to "Migration Guide - <new_version>"
+# recreate docs/developer/migration_next.md from its entry template
+```
+
+The `Developer Guides` toctree in `docs/index.rst` globs
+`developer/migration_*`, so archived guides need no further wiring.
 
 ## graphify
 
@@ -191,7 +216,9 @@ graphify update .               # refresh after code changes (AST-only, no API c
   changes.
 - Keep diffs small and reviewable.
 - Prefer editing existing modules over creating new ones.
-- No backward-compatibility shims: just change the code.
+- No deprecation shims, removed-symbol re-exports, or removed-symbol stubs.
+  Change the code, log the break in `docs/developer/migration_next.md`, and
+  provide a conversion script when the change is substantial.
 
 ## Testing Role
 
