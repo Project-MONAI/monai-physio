@@ -49,7 +49,7 @@ survive a checkout and are built once rather than every run.
 
 The layout under an overridden input root is the same as here:
 
-```
+```text
 <PHYSIOTWIN_INPUT_DATA_DIR>/
   DirLab-4DCT/             Case1Pack_T00.mha, ...
   Duke-Heart-4DLabelmaps/  pm0027/*_labelmap.nii.gz, *_landmark.mrk.json

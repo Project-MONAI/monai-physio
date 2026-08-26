@@ -169,6 +169,9 @@ dev = [
     "pre-commit>=3.0.0",
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
+    # See the [test] extra: conftest.py needs a pluggy new enough for
+    # pytest.hookimpl(wrapper=True), which pytest>=7.0 alone does not pin.
+    "pluggy>=1.2.0",
     "mypy>=2.1.0",
     "ruff>=0.1.0",
     "scipy-stubs>=1.14.0.0,<1.16.0.0",
@@ -201,6 +204,10 @@ test = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-xdist>=3.0.0",
+    # conftest.py's pytest_runtest_makereport uses pytest.hookimpl(wrapper=True),
+    # a new-style hook wrapper that pluggy only grew in 1.2.0. pytest>=7.0 alone
+    # permits an older pluggy, where that keyword raises at collection time.
+    "pluggy>=1.2.0",
     "pytest-timeout>=2.0.0",
     "coverage[toml]>=7.0.0",
 ]

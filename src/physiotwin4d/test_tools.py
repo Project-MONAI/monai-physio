@@ -224,8 +224,10 @@ class TestTools(PhysioTwin4DBase):
         self,
     ) -> tuple[bool, int]:
         """
-        Return (pass, value) for number of values above tolerance from the most recent compare_result_to_baseline_transform call.
-        pass is True if value <= max_number_of_values_above_tol that was used in that call.
+        Return (pass, value) for number of values above tolerance from the
+        most recent compare_result_to_baseline_transform call.
+        pass is True if value <= max_number_of_values_above_tol that was used
+        in that call.
         """
         if (
             self._last_transform_number_of_values_above_tol is None
@@ -238,7 +240,8 @@ class TestTools(PhysioTwin4DBase):
 
     def transform_pass_fail_and_total_absolute_error(self) -> tuple[bool, float]:
         """
-        Return (pass, value) for total absolute error from the most recent compare_result_to_baseline_transform call.
+        Return (pass, value) for total absolute error from the most recent
+        compare_result_to_baseline_transform call.
         pass is True if value <= total_absolute_error_tol that was used in that call.
         """
         if (
@@ -251,7 +254,8 @@ class TestTools(PhysioTwin4DBase):
         return (passed, val)
 
     def transform_difference(self) -> Any:
-        """Return the difference transform (itk.Transform) from the most recent compare_result_to_baseline_transform call."""
+        """Return the difference transform (itk.Transform) from the most
+        recent compare_result_to_baseline_transform call."""
         if self._last_transform_difference_transform is None:
             raise RuntimeError("No previous compare_result_to_baseline_transform call")
         return self._last_transform_difference_transform
@@ -282,7 +286,8 @@ class TestTools(PhysioTwin4DBase):
         if not baseline_path.exists():
             if not _create_baseline_if_missing:
                 self.log_error(
-                    "Baseline transform missing: %s (run pytest with --create-baselines to create from current output)",
+                    "Baseline transform missing: %s (run pytest with "
+                    "--create-baselines to create from current output)",
                     baseline_path,
                 )
                 return False
@@ -328,7 +333,8 @@ class TestTools(PhysioTwin4DBase):
 
         if passed:
             self.log_info(
-                "PASS: number_of_values_above_tol=%d (max=%d), total_absolute_error=%.6g (tol=%.6g)",
+                "PASS: number_of_values_above_tol=%d (max=%d), "
+                "total_absolute_error=%.6g (tol=%.6g)",
                 self._last_transform_number_of_values_above_tol,
                 self._last_transform_max_number_of_values_above_tol,
                 self._last_transform_total_absolute_error,
@@ -336,7 +342,8 @@ class TestTools(PhysioTwin4DBase):
             )
         else:
             self.log_error(
-                "FAIL: number_of_values_above_tol=%d (max=%d), total_absolute_error=%.6g (tol=%.6g)",
+                "FAIL: number_of_values_above_tol=%d (max=%d), "
+                "total_absolute_error=%.6g (tol=%.6g)",
                 self._last_transform_number_of_values_above_tol,
                 self._last_transform_max_number_of_values_above_tol,
                 self._last_transform_total_absolute_error,
@@ -379,7 +386,8 @@ class TestTools(PhysioTwin4DBase):
         if not baseline_path.exists():
             if not _create_baseline_if_missing:
                 self.log_error(
-                    "Baseline image missing: %s (run pytest with --create-baselines to create from current output)",
+                    "Baseline image missing: %s (run pytest with "
+                    "--create-baselines to create from current output)",
                     baseline_path,
                 )
                 return False
@@ -400,7 +408,8 @@ class TestTools(PhysioTwin4DBase):
 
         if arr_result.shape != arr_baseline.shape:
             raise ValueError(
-                f"Shape mismatch: result {arr_result.shape} vs baseline {arr_baseline.shape}"
+                f"Shape mismatch: result {arr_result.shape} vs "
+                f"baseline {arr_baseline.shape}"
             )
 
         diff_magnitude = np.abs(arr_result - arr_baseline)
@@ -434,7 +443,8 @@ class TestTools(PhysioTwin4DBase):
 
         if passed:
             self.log_info(
-                "PASS: number_of_pixels_above_tol=%d (max=%d), total_absolute_error=%.6g (tol=%.6g)",
+                "PASS: number_of_pixels_above_tol=%d (max=%d), "
+                "total_absolute_error=%.6g (tol=%.6g)",
                 number_of_pixels_above_tol,
                 max_number_of_pixels_above_tol,
                 total_absolute_error,
@@ -442,7 +452,8 @@ class TestTools(PhysioTwin4DBase):
             )
         else:
             self.log_error(
-                "FAIL: number_of_pixels_above_tol=%d (max=%d), total_absolute_error=%.6g (tol=%.6g)",
+                "FAIL: number_of_pixels_above_tol=%d (max=%d), "
+                "total_absolute_error=%.6g (tol=%.6g)",
                 number_of_pixels_above_tol,
                 max_number_of_pixels_above_tol,
                 total_absolute_error,
@@ -494,7 +505,8 @@ class TestTools(PhysioTwin4DBase):
         if not baseline_path.exists():
             if not _create_baseline_if_missing:
                 self.log_error(
-                    "Baseline metrics missing: %s (run pytest with --create-baselines to create from current output)",
+                    "Baseline metrics missing: %s (run pytest with "
+                    "--create-baselines to create from current output)",
                     baseline_path,
                 )
                 return False

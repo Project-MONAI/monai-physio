@@ -948,10 +948,10 @@ class TestTutorial10LungInferPhysicsNeMoMGN:
     def test_run(self, test_directories: dict[str, Path]) -> None:
         _require_physicsnemo_and_tutorial_08()
 
-        # ParametersLungCTDirLab.mgn_weights_directory, where Tutorial 9 trains to.
-        model_dir = (
-            _REPO_ROOT / "tutorials" / "network_weights" / "physicsnemo_mgn_lung_motion"
-        )
+        # ParametersLungCTDirLab.mgn_weights_directory under test mode, which is
+        # where Tutorial 9 trains to. Reading the full-run directory instead
+        # would look for a checkpoint the test run never writes.
+        model_dir = _TUTORIAL_WEIGHTS / "physicsnemo_mgn_lung_motion"
         if not (model_dir / "mgn_stage_model.pt").exists():
             _run_tutorial_script("tutorial_09_lung_train_physicsnemo_mgn.py")
             assert (model_dir / "mgn_stage_model.pt").exists(), (

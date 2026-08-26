@@ -526,8 +526,10 @@ def test_images(
 # Tutorial Test-Data Fixtures
 # ============================================================================
 #
-# The tutorials read data/<dataset> in a full run and data/test/<dataset> under
-# PHYSIOTWIN_RUNNING_AS_TEST.  These fixtures build the latter from the former,
+# The tutorials read <input root>/<dataset> in a full run and
+# <input root>/test/<dataset> under PHYSIOTWIN_RUNNING_AS_TEST, where the root is
+# ParametersBase().data_directory() -- PHYSIOTWIN_INPUT_DATA_DIR, or the clone's
+# data/ when that is unset.  These fixtures build the latter from the former,
 # small enough that a tutorial test finishes in minutes rather than hours.  Each
 # skips when its source dataset is absent, so a clone that has not downloaded
 # every dataset still runs whatever it can.
@@ -584,7 +586,12 @@ _DUKE_HEART_TEST_CASES = ["pm0027", "pm0002", "pm0003", "pm0004"]
 
 @pytest.fixture(scope="session")
 def dirlab_test_data(test_directories: dict[str, Path]) -> Path:
-    """Build data/test/DirLab-4DCT: a few cases, downsampled to 3 mm."""
+    """Build the DIR-Lab test subset: a few cases, downsampled to 3 mm.
+
+    Reads ``<input root>/DirLab-4DCT`` and writes ``<input root>/test/
+    DirLab-4DCT``, where the root is whatever ``PHYSIOTWIN_INPUT_DATA_DIR``
+    names and defaults to the clone's ``data/``.
+    """
     source_dir = ParametersBase().data_directory(test_mode=False) / "DirLab-4DCT"
     target_dir = test_directories["data"] / "DirLab-4DCT"
     if not source_dir.is_dir():
@@ -607,7 +614,12 @@ def dirlab_test_data(test_directories: dict[str, Path]) -> Path:
 
 @pytest.fixture(scope="session")
 def duke_heart_test_data(test_directories: dict[str, Path]) -> Path:
-    """Build data/test/Duke-Heart-4DLabelmaps: a few cases, downsampled to 2 mm."""
+    """Build the Duke heart test subset: a few cases, downsampled to 2 mm.
+
+    Reads ``<input root>/Duke-Heart-4DLabelmaps`` and writes ``<input root>/
+    test/Duke-Heart-4DLabelmaps``, where the root is whatever
+    ``PHYSIOTWIN_INPUT_DATA_DIR`` names and defaults to the clone's ``data/``.
+    """
     source_dir = (
         ParametersBase().data_directory(test_mode=False) / "Duke-Heart-4DLabelmaps"
     )
@@ -642,7 +654,12 @@ def duke_heart_test_data(test_directories: dict[str, Path]) -> Path:
 
 @pytest.fixture(scope="session")
 def chest_ct_test_data(test_directories: dict[str, Path]) -> Path:
-    """Build data/test/Chest-CT: the single study, downsampled to 3 mm."""
+    """Build the Chest-CT test subset: the single study, downsampled to 3 mm.
+
+    Reads ``<input root>/Chest-CT`` and writes ``<input root>/test/Chest-CT``,
+    where the root is whatever ``PHYSIOTWIN_INPUT_DATA_DIR`` names and
+    defaults to the clone's ``data/``.
+    """
     source_file = (
         ParametersBase().data_directory(test_mode=False) / "Chest-CT" / "Chest-CT.mha"
     )

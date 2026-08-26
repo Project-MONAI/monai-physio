@@ -22,19 +22,23 @@ subsets here only when run as tests, under `PHYSIOTWIN_RUNNING_AS_TEST`.
   used by tests that need a smaller/faster image (labelmaps and
   transforms computed from this data are cached here too).
 - `KCL-Heart-Model/` — downloaded by the `download_kcl_heart_model` fixture.
-- `DirLab-4DCT/` — a few cases from `data/DirLab-4DCT`, downsampled to 3 mm
-  by the `dirlab_test_data` fixture.
-- `Duke-Heart-4DLabelmaps/` — a few cases from `data/Duke-Heart-4DLabelmaps`,
-  their labelmaps downsampled to 2 mm nearest-neighbour by the
-  `duke_heart_test_data` fixture.
-- `Chest-CT/` — `data/Chest-CT` downsampled to 3 mm by the `chest_ct_test_data`
-  fixture.
+- `DirLab-4DCT/` — a few cases from `<input root>/DirLab-4DCT`, downsampled to
+  3 mm by the `dirlab_test_data` fixture.
+- `Duke-Heart-4DLabelmaps/` — a few cases from
+  `<input root>/Duke-Heart-4DLabelmaps`, their labelmaps downsampled to 2 mm
+  nearest-neighbour by the `duke_heart_test_data` fixture.
+- `Chest-CT/` — `<input root>/Chest-CT` downsampled to 3 mm by the
+  `chest_ct_test_data` fixture.
+
+Here `<input root>` is whatever `PHYSIOTWIN_INPUT_DATA_DIR` names, defaulting to
+the `data/` directory of the clone — so each subset is built from the full
+dataset alongside it, wherever that root has been pointed.
 
 Every subdirectory is created on demand by `tests/conftest.py` fixtures
 the first time a test needs them, and is `.gitignore`d — do not commit
 their contents. The subsets derived from another dataset are only built
-when that source dataset is present under `data/`; otherwise the tests that
-need them skip, or fail if `--require-tutorial-data` was passed.
+when that source dataset is present under the input root; otherwise the tests
+that need them skip, or fail if `--require-tutorial-data` was passed.
 
 The tutorials read these directories rather than the full datasets whenever
 `PHYSIOTWIN_RUNNING_AS_TEST` is set, and write to the matching `test` subtree of
