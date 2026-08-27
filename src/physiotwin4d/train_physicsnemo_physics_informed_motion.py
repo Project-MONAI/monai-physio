@@ -345,12 +345,28 @@ class PhysicsInformedMotion(PhysioTwin4DBase):
         # Kept on the device and summed there, so counting inversions costs no
         # host synchronization in the training loop.
         self._inverted = torch.zeros((), dtype=torch.long, device=self._device)
+        if device is None:
+            self.log_warning(
+                "No device given, so the residual is built on the CPU. Training "
+                "on a GPU needs device= to match, or its tensors will not meet "
+                "the predictions."
+            )
         self.log_info(
             "Neo-Hookean residual over %d elements (mu=%.3g kPa, lambda=%.3g kPa)",
             len(tets),
             mu_kpa,
             lambda_lame_kpa,
         )
+
+    @property
+    def device(self) -> "torch.device":
+        """Device this residual's connectivity and symbolic graph were built on.
+
+        Fixed at construction: ``PhysicsInformer`` is given the device when its
+        graph is compiled, so the residual cannot be moved afterwards. The
+        trainer checks this against the device it predicts on.
+        """
+        return self._device
 
     @property
     def inverted_element_count(self) -> int:
@@ -513,6 +529,7 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
                 raise ValueError("Call set_mechanics() before training.")
             if self._tets is None:
                 raise ValueError("Call set_elements() before training.")
+            self._require_matching_device(context)
             self._sample_subjects = train_dataset.subject_ids
             self._bind_reference_meshes(context, len(template_coords))
         return super().train(
@@ -540,6 +557,29 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
             }
         )
         return fields
+
+    def _require_matching_device(self, context: DistributedContext) -> None:
+        """Refuse a residual built on a device other than the one training uses.
+
+        The residual's connectivity and compiled symbolic graph are bound when
+        it is constructed and cannot be moved afterwards, while the reference
+        geometry and the predictions live on ``context.device``. A mismatch
+        surfaces deep inside the gradient reconstruction as an opaque tensor
+        error, so it is caught here where it can name both devices.
+
+        Raises:
+            ValueError: If the residual's device is not the training device.
+        """
+        if self._residual is None:
+            return
+        if self._residual.device.type != context.device.type:
+            raise ValueError(
+                f"The physics residual was built on {self._residual.device} but "
+                f"training runs on {context.device}; its connectivity and "
+                "symbolic graph cannot meet the predictions. Pass "
+                "device=<training device> when constructing "
+                "PhysicsInformedMotion."
+            )
 
     def _bind_reference_meshes(
         self, context: DistributedContext, n_points: int
@@ -632,18 +672,35 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
         on normalized displacement and the physics term in millimeters and
         kilopascals, so ``lambda_physics`` is only choosable by watching them
         separately.
+
+        Every rank saw a disjoint slice, so the sums are pooled before they are
+        divided, exactly as the epoch total above them is.  Reporting one rank's
+        slice beside a total covering all of them would make the two disagree
+        for no visible reason.  This runs on every rank because the reduction is
+        collective; only rank 0 prints.
         """
-        batches = max(self._epoch_batches, 1)
         data = self._epoch_data_loss
         physics = self._epoch_physics_loss
+        data_sum, batches = self._reduce_sums(
+            context,
+            float(data.item()) if data is not None else 0.0,
+            self._epoch_batches,
+        )
+        physics_sum, inverted = self._reduce_sums(
+            context,
+            float(physics.item()) if physics is not None else 0.0,
+            self.inverted_element_count,
+        )
+
+        divisor = max(batches, 1)
+        physics_mean = physics_sum / divisor
         self._log_main(
             context,
             "    data=%.6f  physics=%.6f  (weighted %.6f)  inverted=%d",
-            float(data.item()) / batches if data is not None else 0.0,
-            float(physics.item()) / batches if physics is not None else 0.0,
-            self.lambda_physics
-            * (float(physics.item()) / batches if physics is not None else 0.0),
-            self.inverted_element_count,
+            data_sum / divisor,
+            physics_mean,
+            self.lambda_physics * physics_mean,
+            inverted,
         )
         self._epoch_data_loss = None
         self._epoch_physics_loss = None

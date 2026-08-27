@@ -321,6 +321,43 @@ def test_inverted_elements_are_counted_during_training() -> None:
     )
 
 
+def test_a_residual_on_the_wrong_device_is_refused() -> None:
+    """A CPU residual cannot serve GPU training, and says so before it starts.
+
+    The residual's connectivity and compiled symbolic graph are bound at
+    construction and cannot be moved, so a residual built without an explicit
+    device defaults to the CPU and will not meet predictions made on a GPU.
+    Caught here rather than as an opaque tensor error inside the gradient
+    reconstruction. No CUDA is needed to check this: the device is only
+    compared, never allocated on.
+    """
+    import torch
+
+    from physiotwin4d.physicsnemo_tools import DistributedContext
+    from physiotwin4d.train_physicsnemo_physics_informed_motion import (
+        TrainPhysicsNeMoPhysicsInformedMotion,
+    )
+
+    class _CpuResidual:
+        """Stands in for a residual left on its default device."""
+
+        device = torch.device("cpu")
+
+    method = TrainPhysicsNeMoPhysicsInformedMotion()
+    method._residual = cast(Any, _CpuResidual())
+
+    cuda_context = DistributedContext(
+        device=torch.device("cuda"), rank=0, local_rank=0, world_size=1
+    )
+    with pytest.raises(ValueError, match="cannot meet the predictions"):
+        method._require_matching_device(cuda_context)
+
+    cpu_context = DistributedContext(
+        device=torch.device("cpu"), rank=0, local_rank=0, world_size=1
+    )
+    method._require_matching_device(cpu_context)
+
+
 def test_the_epoch_log_separates_the_two_loss_terms() -> None:
     """The data and physics terms are reported apart, then reset.
 

@@ -7,8 +7,8 @@ diverged, every sample landed outside the moving image, and the resampler filled
 the grid with its background value.
 
 These exercise the guard that turns that into a diagnosis. They call the check
-directly on hand-built images, so they need no GPU, no ICON and no data, and run
-in the default fast suite.
+directly on synthetic 4x4x4 ITK images, so they need no GPU, no ICON and no
+data, and run in the default fast suite.
 """
 
 from __future__ import annotations
