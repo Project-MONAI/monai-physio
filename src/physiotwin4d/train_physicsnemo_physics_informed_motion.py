@@ -591,24 +591,31 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
         if self.lambda_physics <= 0.0 or self._residual is None:
             return data_loss
 
-        # The residual is a physical quantity, so it is evaluated in float32 on
-        # displacements returned to millimeters; bf16 autocast resolves neither
-        # det(F) nor log(J) well enough to price an almost-inverted element.
-        displacement = pred.float() * target_scale
-        n_points = displacement.shape[0] // batch_len
-        energy = displacement.new_zeros(())
-        incompressibility = displacement.new_zeros(())
-        for position, index in enumerate(indices):
-            subject_id = self._sample_subjects[int(index)]
-            reference, volumes = self._reference_cache[subject_id]
-            rows = displacement[position * n_points : (position + 1) * n_points]
-            sample_energy, sample_incompressibility = self._residual(
-                reference, rows, volumes
-            )
-            energy = energy + sample_energy
-            incompressibility = incompressibility + sample_incompressibility
+        import torch
 
-        physics_loss = (energy + incompressibility) / max(batch_len, 1)
+        # The residual is a physical quantity and has to be computed in float32.
+        # Upcasting the input is not enough: this runs inside the training
+        # loop's bf16 autocast, which intercepts the *operations*, so the
+        # matmuls, det(F) and the least-squares solve would all be cast back
+        # down whatever dtype they were handed. bf16 carries about three decimal
+        # digits, which cannot tell an almost-inverted element from an inverted
+        # one -- the distinction this loss exists to price.
+        with torch.amp.autocast(device_type=pred.device.type, enabled=False):
+            displacement = pred.float() * target_scale
+            n_points = displacement.shape[0] // batch_len
+            energy = displacement.new_zeros(())
+            incompressibility = displacement.new_zeros(())
+            for position, index in enumerate(indices):
+                subject_id = self._sample_subjects[int(index)]
+                reference, volumes = self._reference_cache[subject_id]
+                rows = displacement[position * n_points : (position + 1) * n_points]
+                sample_energy, sample_incompressibility = self._residual(
+                    reference, rows, volumes
+                )
+                energy = energy + sample_energy
+                incompressibility = incompressibility + sample_incompressibility
+
+            physics_loss = (energy + incompressibility) / max(batch_len, 1)
         self._accumulate("_epoch_physics_loss", physics_loss)
         return data_loss + self.lambda_physics * physics_loss
 

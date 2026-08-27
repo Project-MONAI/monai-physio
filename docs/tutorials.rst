@@ -52,8 +52,8 @@ animates. ``DirLab-4DCT`` — used by Lung Tutorials 1, 2, 3, 4, 6, 8, 10, 11 an
 each case individually and may require registration.
 
 Tutorials 5 and 9 need no dataset of their own; they consume the outputs of
-Tutorials 4 and 8. ``Duke-Heart-4DLabelmaps`` drives the twelve ``duke_heart``
-variants: an eleven-tutorial chain from Tutorial 4 through Tutorial 15, plus
+Tutorials 4 and 8. ``Duke-Heart-4DLabelmaps`` drives the fifteen ``duke_heart``
+variants: a fourteen-tutorial chain from Tutorial 4 through Tutorial 18, plus
 the separate, optional Tutorial 2 ICON finetuning variant; the dataset is
 being released soon, and until then access can be requested from Stephen Aylward
 (saylward@nvidia.com). See ``data/DirLab-4DCT/README.md``,
@@ -166,7 +166,7 @@ Tutorials are straightforward Python scripts: run one with
 ``python tutorials/tutorial_01_heart_gated_ct_to_usd.py``, or open it in your
 editor and read it top to bottom. Numbers 1, 4 and 5 are the fastest way to see
 the toolkit
-work end-to-end; 6 through 15 build the statistical-model and AI-surrogate
+work end-to-end; 6 through 18 build the statistical-model and AI-surrogate
 pipeline on top.
 
 1. **Tutorial 1** — after downloading Slicer-Heart-CT.
@@ -194,6 +194,11 @@ pipeline on top.
 15. **Tutorial 15** — needs only the cohort. It rebuilds the shape model, the
     fits and the network per fold, so nothing from Tutorials 6, 8 or 9 is read;
     those outputs are reused as a cache when they happen to be there.
+16. **Tutorials 16, 17 and 18** (Duke heart) — in that order, after Tutorial 4.
+    They branch off the chain rather than continuing it: a strain energy needs
+    volume elements, so Tutorial 16 rebuilds the shape model tetrahedrally
+    instead of reusing the surface one from Tutorials 6 to 8. Tutorial 17 then
+    trains against that energy and Tutorial 18 scores it and reads out stress.
 
 Tutorial 1: Gated 4D CT to Animated USD
 =======================================

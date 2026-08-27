@@ -23,6 +23,20 @@ from the deformation gradient of each tetrahedron. Spatial derivatives come
 from PhysicsNeMo Sym's least-squares gradient reconstruction, its method for
 unstructured meshes.
 
+The two appearances of :math:`J` are not the same quantity in code. An inverted
+element makes :math:`\det F` non-positive, and :math:`\ln J` would then poison
+the whole loss with a NaN, so the logarithmic terms use
+:math:`\max(J, 10^{-6})`: an inversion costs a large finite penalty and stays
+trainable rather than ending the run. The incompressibility penalty
+:math:`(J - 1)^2` uses the raw determinant, which is signed and therefore
+already prices an inversion correctly.
+
+That clamp is also why the inversion count matters. It keeps an inverted element
+finite, which is exactly what would let one pass unnoticed, so
+``PhysicsInformedMotion.inverted_element_count`` reports the unclamped
+determinant's non-positive entries and is the only signal that the predicted
+motion turned tissue inside out.
+
 Requirements
 ============
 
