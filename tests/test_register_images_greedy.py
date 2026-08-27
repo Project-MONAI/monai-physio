@@ -227,6 +227,60 @@ class TestRegisterImagesGreedy:
             f"started ({ncc:.4f} vs {unregistered_ncc:.4f})"
         )
 
+    @pytest.mark.parametrize(
+        "case_name",
+        ["known_affine_case_near_origin", "known_affine_case_far_from_origin"],
+    )
+    def test_recovers_a_known_affine_at_any_distance_from_the_origin(
+        self,
+        case_name: str,
+        request: pytest.FixtureRequest,
+    ) -> None:
+        """Greedy must recover a known rotation wherever the grid sits in space.
+
+        ``test_recovers_known_shift`` moves content by a pure translation, so the
+        affine's linear block is the identity and every reading of that block
+        agrees. This case rotates, and runs the same rotation twice: once near
+        the world origin and once on a grid at ``z ~ 1800 mm``, the CT table
+        coordinates the cardiac cohorts live in.
+
+        That pairing is the point. ``RegisterImagesGreedy._matrix_to_itk_affine``
+        reads Greedy's 4x4 as a world affine about the origin, ``y = Mx + t``, and
+        encodes it with ``SetCenter(0, 0, 0)``. If that reading is right, distance
+        from the origin is irrelevant and both cases recover the rotation equally
+        well. If it is wrong, the error scales with ``|p|``: a few degrees at
+        ``z ~ 1800`` is tens of millimeters, so the far case fails while the near
+        one passes.
+
+        The probes are spread across the volume rather than taken at its center,
+        because a linear-block error is invisible at a single point -- any one
+        displacement can be absorbed by the translation.
+        """
+        case = request.getfixturevalue(case_name)
+
+        registrar = RegisterImagesGreedy()
+        registrar.set_modality("ct")
+        registrar.set_transform_type("Affine")
+        registrar.set_number_of_iterations([60, 30, 10])
+        registrar.set_fixed_image(case.fixed)
+
+        result = registrar.register(moving_image=case.moving)
+        errors_mm = case.probe_errors_mm(result["forward_transform"])
+
+        print(f"\nGreedy known-affine recovery ({case_name}):")
+        print(f"  origin offset: {case.origin_offset_mm} mm")
+        print(f"  probe errors: {np.round(errors_mm, 2).tolist()} mm")
+        print(f"  worst: {errors_mm.max():.2f} mm")
+
+        assert errors_mm.max() < 3.0, (
+            f"Greedy recovered the known affine {errors_mm.max():.2f} mm off at "
+            f"the worst probe, with the grid at origin offset "
+            f"{case.origin_offset_mm}. An error that appears only far from the "
+            "origin means the linear block is not the world-origin affine that "
+            "RegisterImagesGreedy._matrix_to_itk_affine assumes when it pairs "
+            "SetMatrix(M) with SetCenter(0, 0, 0)."
+        )
+
     def test_transform_application(
         self,
         registrar_greedy: RegisterImagesGreedy,

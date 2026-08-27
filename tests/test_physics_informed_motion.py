@@ -285,3 +285,83 @@ def test_a_batch_reports_which_samples_it_drew() -> None:
         assert len(indices) == batch_len
         # Rows are stacked sample by sample, so the indices name them in order.
         assert [int(value) for value in node_feats[::2, 0]] == list(indices)
+
+
+def test_inverted_elements_are_counted_during_training() -> None:
+    """The residual notices motion that turns tissue inside out.
+
+    The energy clamps ``J`` so an inversion stays finite and trainable, which is
+    exactly what would let one pass unnoticed. This is the only signal that it
+    happened, so a counter that cannot move is worse than no counter at all.
+    """
+    pytest.importorskip("physicsnemo.sym")
+    import torch
+
+    from physiotwin4d.train_physicsnemo_physics_informed_motion import (
+        PhysicsInformedMotion,
+    )
+
+    points, tets = _grid_mesh(size=4)
+    motion = PhysicsInformedMotion(
+        tets=tets, n_points=len(points), mu_kpa=_MU_KPA, lambda_lame_kpa=_LAMBDA_KPA
+    )
+    reference = torch.tensor(points, dtype=torch.float64)
+    volumes = torch.tensor(tet_volumes(points, tets)[1], dtype=torch.float64)
+
+    # A mild stretch: nothing inverts.
+    motion(reference, 0.05 * reference, volumes)
+    assert motion.inverted_element_count == 0
+
+    # u = -2x turns the x axis inside out, so J goes negative everywhere.
+    reflection = torch.zeros_like(reference)
+    reflection[:, 0] = -2.0 * reference[:, 0]
+    motion(reference, reflection, volumes)
+    assert motion.inverted_element_count > 0, (
+        "A reflected field inverts every element; the counter must move"
+    )
+
+
+def test_the_epoch_log_separates_the_two_loss_terms() -> None:
+    """The data and physics terms are reported apart, then reset.
+
+    They are in different units -- normalized displacement against kilopascals --
+    so a total alone cannot say how they balance, and ``lambda_physics`` is not
+    choosable without seeing them separately.
+    """
+    import torch
+
+    from physiotwin4d.physicsnemo_tools import DistributedContext
+    from physiotwin4d.train_physicsnemo_physics_informed_motion import (
+        TrainPhysicsNeMoPhysicsInformedMotion,
+    )
+
+    method = TrainPhysicsNeMoPhysicsInformedMotion()
+    method.lambda_physics = 0.25
+    method._epoch_data_loss = torch.tensor(2.0)
+    method._epoch_physics_loss = torch.tensor(8.0)
+    method._epoch_batches = 2
+
+    messages: list[str] = []
+    method.log_info = lambda *args: messages.append(str(args[0]) % args[1:])  # type: ignore[method-assign]
+
+    context = DistributedContext(
+        device=torch.device("cpu"), rank=0, local_rank=0, world_size=1
+    )
+    method._log_epoch(context, epoch=0, epochs=1)
+
+    assert messages, "The epoch hook should report something"
+    reported = messages[-1]
+    assert "data=1.000000" in reported, f"Data term should be the mean: {reported}"
+    assert "physics=4.000000" in reported, (
+        f"Physics term should be the mean: {reported}"
+    )
+    assert "1.000000)" in reported, f"Weighted physics term should appear: {reported}"
+
+    # The accumulators reset, or every epoch would report the previous ones too.
+    method._log_epoch(context, epoch=1, epochs=2)
+    assert "data=0.000000" in messages[-1], (
+        f"An epoch that accumulated nothing should report zero: {messages[-1]}"
+    )
+    assert "physics=0.000000" in messages[-1], (
+        f"An epoch that accumulated nothing should report zero: {messages[-1]}"
+    )

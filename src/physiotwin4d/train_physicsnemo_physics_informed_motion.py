@@ -167,22 +167,31 @@ class NeoHookeanResidual(PhysioTwin4DBase):
             raise ValueError(f"lambda_lame_kpa must be > 0, got {lambda_lame_kpa}")
         self.mu_kpa = mu_kpa
         self.lambda_lame_kpa = lambda_lame_kpa
-        #: Elements whose Jacobian went non-positive since this was constructed.
-        self.inverted_element_count = 0
+        # Accumulated on whatever device the gradients arrive on, so counting
+        # costs no host synchronization; only the property below pays one.
+        self._inverted: Optional["torch.Tensor"] = None
+
+    @property
+    def inverted_element_count(self) -> int:
+        """Elements whose Jacobian went non-positive since this was constructed.
+
+        Non-zero means the deformation turns tissue inside out somewhere.  The
+        clamp in :meth:`jacobian` keeps the energy finite so training can
+        continue, which is also what would let an inversion pass unnoticed.
+        """
+        if self._inverted is None:
+            return 0
+        return int(self._inverted.item())
 
     def jacobian(self, deformation_gradient: "torch.Tensor") -> "torch.Tensor":
         """Return ``det(F)`` clamped away from zero, counting any inversion."""
         import torch
 
         jacobian = torch.linalg.det(deformation_gradient)
-        n_inverted = int(torch.sum(jacobian <= 0.0).item())
-        if n_inverted:
-            self.inverted_element_count += n_inverted
-            self.log_warning(
-                "%d element(s) inverted (J <= 0); clamping to %.1e.",
-                n_inverted,
-                _MIN_JACOBIAN,
-            )
+        inverted = (jacobian <= 0.0).sum().detach()
+        self._inverted = (
+            inverted if self._inverted is None else self._inverted + inverted
+        )
         return torch.clamp(jacobian, min=_MIN_JACOBIAN)
 
     def strain_energy(self, deformation_gradient: "torch.Tensor") -> "torch.Tensor":
@@ -268,6 +277,11 @@ def neo_hookean_pde(mu_kpa: float, lambda_lame_kpa: float) -> Any:
                 - mu * log(safe_jacobian)
                 + lambda_lame / 2 * log(safe_jacobian) ** 2,
                 "incompressibility": (jacobian - Number(1)) ** 2,
+                # The unclamped determinant, exposed so a caller can count the
+                # elements that inverted.  The clamp above keeps the energy
+                # finite but hides them, and an inversion is the one failure
+                # that says the predicted motion is not motion tissue can do.
+                "jacobian": jacobian,
             }
 
     return NeoHookeanEnergy(mu_kpa, lambda_lame_kpa)
@@ -318,15 +332,19 @@ class PhysicsInformedMotion(PhysioTwin4DBase):
             for tensor in compute_connectivity_tensor(node_ids, edges)
         )
         self._informer = PhysicsInformer(
-            required_outputs=["neo_hookean_energy", "incompressibility"],
+            required_outputs=[
+                "neo_hookean_energy",
+                "incompressibility",
+                "jacobian",
+            ],
             equations=neo_hookean_pde(mu_kpa, lambda_lame_kpa),
             grad_method="least_squares",
             compute_connectivity=False,
             device=str(self._device),
         )
-        #: Shared with the tensor law below, so an inversion is counted once
-        #: wherever it is detected.
-        self._law = NeoHookeanResidual(mu_kpa, lambda_lame_kpa, log_level=log_level)
+        # Kept on the device and summed there, so counting inversions costs no
+        # host synchronization in the training loop.
+        self._inverted = torch.zeros((), dtype=torch.long, device=self._device)
         self.log_info(
             "Neo-Hookean residual over %d elements (mu=%.3g kPa, lambda=%.3g kPa)",
             len(tets),
@@ -336,8 +354,13 @@ class PhysicsInformedMotion(PhysioTwin4DBase):
 
     @property
     def inverted_element_count(self) -> int:
-        """Elements whose Jacobian went non-positive since this was built."""
-        return self._law.inverted_element_count
+        """Nodes whose Jacobian went non-positive since this was built.
+
+        Non-zero means the network predicted motion that turns tissue inside out
+        somewhere.  The energy clamps ``J`` to stay finite and trainable, so
+        without this count an inversion would leave no trace.
+        """
+        return int(self._inverted.item())
 
     def __call__(
         self,
@@ -368,6 +391,9 @@ class PhysicsInformedMotion(PhysioTwin4DBase):
                 "w": displacement_mm[:, 2:3],
             }
         )
+        # Accumulated on the device; only the property pays a synchronization.
+        self._inverted += (residuals["jacobian"] <= 0.0).sum().detach()
+
         weights = nodal_volumes / nodal_volumes.sum()
         energy = (residuals["neo_hookean_energy"].squeeze(-1) * weights).sum()
         incompressibility = (residuals["incompressibility"].squeeze(-1) * weights).sum()
@@ -406,8 +432,11 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
         self._reference_cache: dict[str, tuple[Any, Any]] = {}
         self._sample_subjects: list[str] = []
         # Epoch bookkeeping, so the two loss terms can be reported apart.
-        self._epoch_data_loss = 0.0
-        self._epoch_physics_loss = 0.0
+        # Summed on the device and read once per logged epoch, so separating the
+        # terms costs no per-batch synchronization.
+        self._epoch_data_loss: Optional["torch.Tensor"] = None
+        self._epoch_physics_loss: Optional["torch.Tensor"] = None
+        self._epoch_batches = 0
 
     def set_mechanics(
         self,
@@ -557,7 +586,8 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
     ) -> "torch.Tensor":
         """Return the data loss plus the weighted neo-Hookean residual."""
         data_loss = super()._compute_loss(pred, tgt, batch_len, target_scale, indices)
-        self._epoch_data_loss += float(data_loss.detach())
+        self._accumulate("_epoch_data_loss", data_loss)
+        self._epoch_batches += 1
         if self.lambda_physics <= 0.0 or self._residual is None:
             return data_loss
 
@@ -579,5 +609,35 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
             incompressibility = incompressibility + sample_incompressibility
 
         physics_loss = (energy + incompressibility) / max(batch_len, 1)
-        self._epoch_physics_loss += float(physics_loss.detach())
+        self._accumulate("_epoch_physics_loss", physics_loss)
         return data_loss + self.lambda_physics * physics_loss
+
+    def _accumulate(self, name: str, value: "torch.Tensor") -> None:
+        """Add *value* to the named epoch accumulator, on its own device."""
+        running = getattr(self, name)
+        detached = value.detach()
+        setattr(self, name, detached if running is None else running + detached)
+
+    def _log_epoch(self, context: DistributedContext, epoch: int, epochs: int) -> None:
+        """Report the data and physics terms apart, then start the next epoch.
+
+        The total alone cannot say how the two balance: the data term is scored
+        on normalized displacement and the physics term in millimeters and
+        kilopascals, so ``lambda_physics`` is only choosable by watching them
+        separately.
+        """
+        batches = max(self._epoch_batches, 1)
+        data = self._epoch_data_loss
+        physics = self._epoch_physics_loss
+        self._log_main(
+            context,
+            "    data=%.6f  physics=%.6f  (weighted %.6f)  inverted=%d",
+            float(data.item()) / batches if data is not None else 0.0,
+            float(physics.item()) / batches if physics is not None else 0.0,
+            self.lambda_physics
+            * (float(physics.item()) / batches if physics is not None else 0.0),
+            self.inverted_element_count,
+        )
+        self._epoch_data_loss = None
+        self._epoch_physics_loss = None
+        self._epoch_batches = 0

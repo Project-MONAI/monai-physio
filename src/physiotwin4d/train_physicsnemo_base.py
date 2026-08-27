@@ -145,6 +145,16 @@ class TrainPhysicsNeMoBase(PhysioTwin4DBase):
 
         return torch.nn.functional.mse_loss(pred, tgt)
 
+    def _log_epoch(self, context: DistributedContext, epoch: int, epochs: int) -> None:
+        """Report anything the epoch accumulated beyond its total loss.
+
+        Called right after the epoch's loss is logged, and only on the epochs
+        that log.  The base class has nothing to add, since its loss has one
+        term; a subclass whose loss sums terms in different units overrides this
+        to report them apart, because a total alone cannot say how they balance.
+        """
+        return None
+
     # ─────────────────────────── Training loop ─────────────────────────────
     def train(
         self,
@@ -266,6 +276,7 @@ class TrainPhysicsNeMoBase(PhysioTwin4DBase):
                 self._log_main(
                     context, "  epoch %05d/%d  loss=%.6f", epoch + 1, epochs, losses[-1]
                 )
+                self._log_epoch(context, epoch, epochs)
 
             scored_epoch = (
                 epoch + 1

@@ -891,3 +891,164 @@ class KnownShiftCase:
 def known_shift_case(test_images: list[Any]) -> KnownShiftCase:
     """A moving/fixed pair separated by a known (6, -4, 3) mm shift."""
     return KnownShiftCase(test_images[0], (6.0, -4.0, 3.0))
+
+
+class KnownAffineCase:
+    """A registration case with a known *non-identity* affine, placed anywhere.
+
+    :class:`KnownShiftCase` moves content by a pure translation, so the affine's
+    linear block is the identity. That makes it blind to how the linear block is
+    interpreted -- about the world origin, or about the data -- because both
+    readings agree when the block is ``I``.
+
+    They disagree everywhere else, and the disagreement grows with distance from
+    the origin, since a linear block applied about the origin displaces a point
+    in proportion to ``|p|``. On a grid at ``z ~ 1800 mm`` -- CT table
+    coordinates, where this project's cardiac cohorts live -- a few degrees of
+    rotation is tens of millimeters. So this case rotates as well as translates
+    and can be placed far from the origin, which is what lets it tell a correct
+    conversion from a misread convention.
+
+    ``moving`` is built by resampling ``fixed`` through ``A``, so
+    ``moving(q) == fixed(A(q))``. Warping ``moving`` back onto the fixed grid
+    therefore needs a ``forward_transform`` of ``A^-1``, which is the exact
+    answer every probe is measured against.
+    """
+
+    def __init__(
+        self,
+        fixed_image: itk.Image,
+        rotation_degrees: tuple[float, float, float] = (2.0, 1.0, 3.0),
+        translation_mm: tuple[float, float, float] = (4.0, -3.0, 2.0),
+        origin_offset_mm: tuple[float, float, float] = (0.0, 0.0, 0.0),
+    ):
+        """Build the pair.
+
+        Args:
+            fixed_image: Image used as the registration target.
+            rotation_degrees: Rotation about each axis, applied about the image
+                centroid. Different per axis so an axis swap cannot pass.
+            translation_mm: Translation applied after the rotation.
+            origin_offset_mm: Added to the image origin before anything else,
+                moving the data in world space without touching a voxel. Use it
+                to place the grid far from the world origin.
+        """
+        self.transform_tools = TransformTools()
+
+        self.fixed = self._offset_origin(fixed_image, origin_offset_mm)
+        self.origin_offset_mm = origin_offset_mm
+
+        size = itk.size(self.fixed)
+        self._center = np.array(
+            list(
+                self.fixed.TransformIndexToPhysicalPoint(
+                    [int(size[i]) // 2 for i in range(3)]
+                )
+            )
+        )
+
+        matrix = self._rotation_matrix(rotation_degrees)
+        # A rotation about the image centroid, written as a world affine: the
+        # translation absorbs the center, which is the form a bare 4x4
+        # homogeneous matrix carries.
+        offset = self._center - matrix @ self._center + np.asarray(translation_mm)
+
+        self.applied = itk.AffineTransform[itk.D, 3].New()
+        self.applied.SetCenter(itk.Point[itk.D, 3]())
+        self.applied.SetMatrix(itk.GetMatrixFromArray(matrix))
+        applied_translation = itk.Vector[itk.D, 3]()
+        for i in range(3):
+            applied_translation[i] = float(offset[i])
+        self.applied.SetTranslation(applied_translation)
+
+        self.expected = itk.AffineTransform[itk.D, 3].New()
+        self.applied.GetInverse(self.expected)
+
+        self.moving = self.transform_tools.transform_image(
+            self.fixed, self.applied, self.fixed, interpolation_method="linear"
+        )
+
+    @staticmethod
+    def _offset_origin(
+        image: itk.Image, offset_mm: tuple[float, float, float]
+    ) -> itk.Image:
+        """Return *image* with its origin moved, leaving every voxel untouched."""
+        if not any(offset_mm):
+            return image
+        moved = itk.GetImageFromArray(itk.array_from_image(image))
+        moved.CopyInformation(image)
+        origin = np.asarray(list(image.GetOrigin())) + np.asarray(offset_mm)
+        moved.SetOrigin(origin.tolist())
+        return moved
+
+    @staticmethod
+    def _rotation_matrix(degrees: tuple[float, float, float]) -> np.ndarray:
+        """Return the rotation matrix for x, then y, then z rotations."""
+        ax, ay, az = (np.deg2rad(value) for value in degrees)
+        rx = np.array(
+            [
+                [1.0, 0.0, 0.0],
+                [0.0, np.cos(ax), -np.sin(ax)],
+                [0.0, np.sin(ax), np.cos(ax)],
+            ]
+        )
+        ry = np.array(
+            [
+                [np.cos(ay), 0.0, np.sin(ay)],
+                [0.0, 1.0, 0.0],
+                [-np.sin(ay), 0.0, np.cos(ay)],
+            ]
+        )
+        rz = np.array(
+            [
+                [np.cos(az), -np.sin(az), 0.0],
+                [np.sin(az), np.cos(az), 0.0],
+                [0.0, 0.0, 1.0],
+            ]
+        )
+        rotation: np.ndarray = rz @ ry @ rx
+        return rotation
+
+    def probe_points(self) -> list[list[float]]:
+        """Return points spread across the volume, not just its center.
+
+        A linear-block misreading is invisible at one point -- any single
+        displacement can be absorbed by the translation -- and grows with
+        distance from the origin, so the spread is what catches it.
+        """
+        size = itk.size(self.fixed)
+        indices = [
+            [int(size[0]) // 4, int(size[1]) // 4, int(size[2]) // 4],
+            [3 * int(size[0]) // 4, int(size[1]) // 4, int(size[2]) // 4],
+            [int(size[0]) // 4, 3 * int(size[1]) // 4, int(size[2]) // 4],
+            [int(size[0]) // 4, int(size[1]) // 4, 3 * int(size[2]) // 4],
+            [3 * int(size[0]) // 4, 3 * int(size[1]) // 4, 3 * int(size[2]) // 4],
+        ]
+        points = [list(self.fixed.TransformIndexToPhysicalPoint(i)) for i in indices]
+        points.append(self._center.tolist())
+        return points
+
+    def probe_errors_mm(self, forward_transform: itk.Transform) -> np.ndarray:
+        """Return the per-probe distance, in mm, from the exact answer."""
+        errors = []
+        for point in self.probe_points():
+            recovered = np.array(list(forward_transform.TransformPoint(point)))
+            exact = np.array(list(self.expected.TransformPoint(point)))
+            errors.append(float(np.linalg.norm(recovered - exact)))
+        return np.asarray(errors)
+
+
+@pytest.fixture(scope="session")
+def known_affine_case_near_origin(test_images: list[Any]) -> KnownAffineCase:
+    """A known rotation plus translation, on a grid near the world origin."""
+    return KnownAffineCase(test_images[0])
+
+
+@pytest.fixture(scope="session")
+def known_affine_case_far_from_origin(test_images: list[Any]) -> KnownAffineCase:
+    """The same known affine, on a grid at ``z ~ 1800 mm``.
+
+    This is where the Duke heart cohort lives, and where an origin-based reading
+    of the linear block differs from a data-centered one by tens of millimeters.
+    """
+    return KnownAffineCase(test_images[0], origin_offset_mm=(0.0, 0.0, 1800.0))

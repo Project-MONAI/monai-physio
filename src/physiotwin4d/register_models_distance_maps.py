@@ -193,6 +193,60 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
         """
         self.registrar_ICON.set_weights_path(weights_path)
 
+    @staticmethod
+    def _require_non_constant(
+        image: itk.Image, description: str, greedy_loss: Optional[float] = None
+    ) -> None:
+        """Raise if *image* carries no contrast, naming what went wrong.
+
+        A constant image reaches ICON as a uniform volume and trips a bare
+        assertion inside ``icon_registration``'s ``register_pair`` that names
+        neither which side degenerated nor why.  There are two ways to get one: a
+        rasterization that caught no surface, and a registration stage that moved
+        every sample outside the image it was resampling, leaving the resampler
+        to fill the whole grid with its background value.
+
+        Args:
+            image: Image to check.
+            description: What the image is, named the way the caller would
+                recognize it.
+            greedy_loss: Loss of the Greedy stage that produced *image*, when it
+                came through one.  Supplied so the message can distinguish a
+                diverged registration from an empty rasterization.
+
+        Raises:
+            RuntimeError: If every voxel carries the same value.
+        """
+        array = itk.GetArrayViewFromImage(image)
+        minimum, maximum = float(array.min()), float(array.max())
+        if minimum != maximum:
+            return
+
+        message = [
+            f"The {description} is constant ({minimum:.6g} everywhere), so there "
+            "is nothing for a registration metric to align."
+        ]
+        if greedy_loss is not None:
+            message.append(
+                f"The Greedy stage that produced it reported a loss of "
+                f"{greedy_loss:.6g}. A loss at or near zero means that stage "
+                "diverged, so every sample landed outside the moving image and "
+                "the resampler filled the grid with its background value."
+            )
+            message.append(
+                "Greedy is seeded nondeterministically, so this is usually "
+                "transient rather than a property of the data. Re-running is the "
+                "first thing to try; the workflows that call this cache their "
+                "artifacts, so a re-run resumes at the failed item rather than "
+                "starting over."
+            )
+        else:
+            message.append(
+                "Check that the model falls inside the reference image and that "
+                "it has surface geometry to rasterize."
+            )
+        raise RuntimeError(" ".join(message))
+
     def _create_masks_from_models(self) -> None:
         """Generate distance maps and binary registration masks from moving and fixed models.
 
@@ -263,6 +317,15 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
         else:
             self.moving_mask_image = None
 
+        # Caught here rather than several stages later inside ICON, where the
+        # same degeneracy surfaces as an assertion naming neither side nor cause.
+        self._require_non_constant(
+            self.fixed_distance_map_image, "fixed model's distance map"
+        )
+        self._require_non_constant(
+            self.moving_distance_map_image, "moving model's distance map"
+        )
+
         self.log_info("Distance map and mask generation complete")
 
     def register(
@@ -323,6 +386,7 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
 
         forward_transform_Greedy = None
         inverse_transform_Greedy = None
+        greedy_loss: Optional[float] = None
         if greedy_type != "None":
             self.log_info("Performing Greedy %s registration...", greedy_type)
             self.registrar_Greedy.set_fixed_image(self.fixed_distance_map_image)
@@ -336,6 +400,7 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
             )
             forward_transform_Greedy = result_Greedy["forward_transform"]
             inverse_transform_Greedy = result_Greedy["inverse_transform"]
+            greedy_loss = result_Greedy.get("loss")
         else:
             identity_transform = itk.AffineTransform[itk.D, 3].New()
             identity_transform.SetIdentity()
@@ -357,6 +422,15 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
                     self.reference_image,
                     interpolation_method="linear",
                 )
+            )
+            # A diverged Greedy affine puts every sample outside the moving
+            # image, and transform_image then fills the grid with its background
+            # value. Catch that here, where the Greedy loss is still in hand to
+            # explain it, rather than inside ICON where it is a bare assertion.
+            self._require_non_constant(
+                moving_distance_map_affine_transformed,
+                "moving distance map after the Greedy affine",
+                greedy_loss=greedy_loss,
             )
             # moving_mask_affine_transformed = self.transform_tools.transform_image(
             # self.moving_mask_image,
