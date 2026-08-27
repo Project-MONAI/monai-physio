@@ -124,7 +124,7 @@ def test_workflow_convert_image_to_usd_default_operation(
     result_filenames = workflow.process()
 
     assert result_filenames == {"all": "slicer_heart_small.all_painted.usd"}
-    assert workflow.reference_segmentation is not None
+    assert workflow.reference_segmentation_results is not None
     assert "all" in workflow.reference_contours
     assert len(workflow.transformed_contours["all"]) == 1
     assert len(workflow.registration_results) == 1
@@ -134,13 +134,15 @@ def test_workflow_convert_image_to_usd_default_operation(
 
     reference_labelmap = cast(
         itk.Image,
-        workflow.reference_segmentation["labelmap"],
+        workflow.reference_segmentation_results["labelmap"],
     )
     assert itk.size(reference_labelmap) == itk.size(reference_image)
 
+    # No slice_NNN_labelmap.mha here: the workflow segments each moving frame
+    # only when dynamic_labelmap_ids is non-empty, and the default operation
+    # this test covers leaves it empty.
     expected_outputs = [
         "reference_labelmap.mha",
-        "slice_000_labelmap.mha",
         "slicer_heart_small.all.usd",
         "slicer_heart_small.all_painted.usd",
     ]

@@ -205,12 +205,19 @@ jobs:
         #
         # --cov-append adds to the core run's data, and the reports are written
         # here so that they cover both runs.
+        #
+        # --timeout sits well above --max-test-seconds on purpose. Killing a
+        # worker discards everything the tutorial had printed, which is exactly
+        # the record needed to see where its time went, so the backstop must
+        # only catch a tutorial that will never finish. An overrun that does
+        # finish is reported by --max-test-seconds instead, with its duration
+        # and its output intact.
         run: |
           pytest tests/test_tutorials.py -v `
             --run-all --require-tutorial-data `
             -n 1 --max-worker-restart=40 `
             --max-test-seconds=600 `
-            --timeout=900 `
+            --timeout=2400 `
             --cov=physiotwin4d `
             --cov-append `
             --cov-report=xml `

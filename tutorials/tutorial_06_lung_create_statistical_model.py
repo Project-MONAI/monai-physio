@@ -35,7 +35,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import itk
 import numpy as np
@@ -78,6 +78,11 @@ if __name__ == "__main__":
     # Atlas iterations used to build the reference surface; 1 is a single
     # template-biased pass.
     mean_surface_iterations = 1 if test_mode else 3
+
+    # Points kept per surface; 0 keeps every point.  The lung surfaces feed
+    # both the atlas below and the model after it, so reducing them here cuts
+    # the cost of each.
+    model_points = LUNG_CT_DIRLAB.points_per_model(test_mode)
 
     # Distance-map weights finetuned by
     # tutorial_02_lung_distancemap_finetune_icon.py.  Stock uniGradICON weights
@@ -133,7 +138,12 @@ if __name__ == "__main__":
                 output_dir / f"{sample_image_file.stem}_labelmap.nii.gz"
             )
             itk.imwrite(sample_labelmap, str(sample_labelmap_file), compression=True)
-        sample_surfaces.append(pv.read(str(sample_surface_file)))
+        sample_surface = cast(pv.PolyData, pv.read(str(sample_surface_file)))
+        if model_points:
+            sample_surface = contour_tools.remesh_and_smooth_surface(
+                sample_surface, 1.0 - model_points / sample_surface.n_points, 0
+            )
+        sample_surfaces.append(sample_surface)
 
     # The reference surface defines the topology every PCA input is expressed
     # in, so picking one case makes the model inherit that case's shape. Use the
@@ -146,6 +156,7 @@ if __name__ == "__main__":
     # another is the one way the two can disagree without saying so.
     mean_surface_settings = {
         "iterations": mean_surface_iterations,
+        "model_points": model_points,
         "mask_dilation_mm": LUNG_CT_DIRLAB.mask_dilation_mm,
         "distance_squared_max": LUNG_CT_DIRLAB.distancemap_squared_max,
         "icon_weights": (
@@ -184,6 +195,10 @@ if __name__ == "__main__":
         sample_meshes=sample_surfaces,
         reference_mesh=reference_surface,
         number_of_pca_components=number_of_pca_components,
+        # The distance maps step 3 registers are rasterized at this resolution,
+        # and generating, dilating and affinely registering them is what the
+        # step costs.  2 mm is an eighth of the voxels of the 1 mm default.
+        reference_spatial_resolution=2.0 if test_mode else 1.0,
         icp_transform_type=LUNG_CT_DIRLAB.icp_transform_type,
         mask_dilation_mm=LUNG_CT_DIRLAB.mask_dilation_mm,
         distance_squared_max=LUNG_CT_DIRLAB.distancemap_squared_max,
