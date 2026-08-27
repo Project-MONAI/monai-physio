@@ -176,14 +176,13 @@ class TestSegmentHeartSimpleware:
             unique_values = set(np.unique(group_labelmap_arr).tolist())
             assert 0 in unique_values, f"{group} labelmap should contain background"
 
-            # "other" collects whatever ids no group claimed, so it has no
-            # fixed id set to check against.
-            if group != "other":
-                allowed_values = {0} | set(taxonomy.labels_in_group(group).keys())
-                assert unique_values <= allowed_values, (
-                    f"{group} labelmap contains unexpected label ids: "
-                    f"{unique_values - allowed_values}"
-                )
+            # "other" is checked too: _finalize_other_group claims every id
+            # no other group took, so it has just as fixed an id set.
+            allowed_values = {0} | set(taxonomy.labels_in_group(group).keys())
+            assert unique_values <= allowed_values, (
+                f"{group} labelmap contains unexpected label ids: "
+                f"{unique_values - allowed_values}"
+            )
 
             assert itk.size(group_labelmap) == itk.size(input_image), (
                 f"{group} labelmap size mismatch"

@@ -409,7 +409,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
             # exist raises out of the optimizer partway through the fit.  Read
             # the count the model actually carries instead.
             available_components = len(pca_model.get("components", []))
-            if 0 < available_components < number_of_pca_components:
+            if available_components < number_of_pca_components:
                 self.log_info(
                     "PCA model carries %d mode(s), fewer than the %d requested; "
                     "fitting with the %d available.",

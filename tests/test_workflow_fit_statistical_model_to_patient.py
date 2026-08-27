@@ -262,3 +262,54 @@ def test_pca_component_count_of_zero_still_means_every_mode() -> None:
     )
 
     assert workflow.number_of_pca_components == 0
+
+
+def test_empty_pca_model_reduces_a_positive_request_to_zero() -> None:
+    """A model carrying no modes must not leave a positive request standing.
+
+    ``RegisterModelsPCA`` raises when asked for more modes than it holds, so a
+    request that survived an empty model would fail inside the optimizer rather
+    than here.  Zero is the documented "use every mode" sentinel, which for an
+    empty model is zero modes.
+    """
+    workflow = _fit_workflow_for_pca()
+
+    workflow.set_use_pca_registration(
+        use_pca_registration=True,
+        pca_model={"eigenvalues": [], "components": []},
+        number_of_pca_components=5,
+    )
+
+    assert workflow.number_of_pca_components == 0
+
+
+def test_clamped_component_count_reaches_the_pca_registrar() -> None:
+    """The reduced count must be what register_model_to_model_pca passes on.
+
+    Reducing the stored count would be pointless if the registrar were built
+    from the originally requested one.
+    """
+    captured: dict[str, Any] = {}
+
+    def _capture(**kwargs: Any) -> None:
+        captured.update(kwargs)
+        raise RuntimeError("stop after capturing the registrar configuration")
+
+    workflow = _fit_workflow_for_pca()
+    workflow.set_use_pca_registration(
+        use_pca_registration=True,
+        pca_model={"eigenvalues": [4.0, 1.0], "components": [[0.0], [0.0]]},
+        number_of_pca_components=5,
+    )
+
+    from physiotwin4d import workflow_fit_statistical_model_to_patient as module
+
+    original = module.RegisterModelsPCA.from_pca_model
+    module.RegisterModelsPCA.from_pca_model = staticmethod(_capture)
+    try:
+        with pytest.raises(RuntimeError):
+            workflow.register_model_to_model_pca()
+    finally:
+        module.RegisterModelsPCA.from_pca_model = original
+
+    assert captured["pca_number_of_modes"] == 2

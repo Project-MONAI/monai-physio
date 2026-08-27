@@ -227,7 +227,22 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
 
     @staticmethod
     def _academic_license_is_valid() -> bool:
-        """Return True when TotalSegmentator reports an installed license."""
+        """Return True when TotalSegmentator reports an installed license.
+
+        Deliberately the same offline check ``show_license_info`` performs
+        before a licensed task, so this predicts exactly whether that call
+        would exit.  The offline check only tests that a license number is
+        configured and 18 characters long, so a stale or revoked key of the
+        right length still reads as installed; TotalSegmentator would then
+        exit while downloading the licensed weights, which no pre-check of
+        ours can prevent.
+
+        ``has_valid_license`` would catch that by asking the backend, but it
+        reports a network failure as ``invalid_license`` too, so a runner that
+        is merely offline would silently segment without the licensed tasks
+        and quietly produce different anatomy.  Wrongly degrading a valid
+        licensed run is worse than the revoked-key case this misses.
+        """
         from totalsegmentator.libs import (  # noqa: PLC0415
             has_valid_license_offline,
         )

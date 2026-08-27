@@ -330,3 +330,40 @@ def test_declining_the_academic_license_never_checks_for_one(
     segmenter.set_has_academic_license(False)
 
     assert segmenter.has_academic_license is False
+
+
+def test_license_check_tracks_totalsegmentators_own_offline_gate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The check must agree with the gate it is predicting, weakness included.
+
+    ``show_license_info`` exits unless ``has_valid_license_offline`` returns
+    "yes", and that only tests for a configured 18-character key.  A key of the
+    right length but no longer entitled therefore reads as installed here, and
+    TotalSegmentator fails later, while downloading the licensed weights.
+    Asking the backend instead would report an offline runner as unlicensed and
+    silently change the anatomy it produces, so the weaker check is the
+    deliberate choice and this pins it.
+    """
+    import totalsegmentator.libs as ts_libs
+
+    monkeypatch.setattr(
+        ts_libs,
+        "has_valid_license_offline",
+        lambda: ("yes", "SUCCESS: License is valid."),
+    )
+    assert SegmentChestTotalSegmentator._academic_license_is_valid() is True
+
+    monkeypatch.setattr(
+        ts_libs,
+        "has_valid_license_offline",
+        lambda: ("invalid_license", "ERROR: Invalid license number (too-short)."),
+    )
+    assert SegmentChestTotalSegmentator._academic_license_is_valid() is False
+
+    monkeypatch.setattr(
+        ts_libs,
+        "has_valid_license_offline",
+        lambda: ("missing_license", "ERROR: A license number has not been set."),
+    )
+    assert SegmentChestTotalSegmentator._academic_license_is_valid() is False
