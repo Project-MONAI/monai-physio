@@ -44,7 +44,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
     group.
 
     Attributes:
-        target_spacing (float): Target spacing set to 1.5mm for TotalSegmentator.
+        target_spacing (float): Target spacing set to 1.0mm for TotalSegmentator.
 
     Example:
         >>> segmenter = SegmentChestTotalSegmentator()
@@ -225,12 +225,56 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
 
         self.has_academic_license = False
 
+    @staticmethod
+    def _academic_license_is_valid() -> bool:
+        """Return True when TotalSegmentator reports an installed license.
+
+        Deliberately the same offline check ``show_license_info`` performs
+        before a licensed task, so this predicts exactly whether that call
+        would exit.  The offline check only tests that a license number is
+        configured and 18 characters long, so a stale or revoked key of the
+        right length still reads as installed; TotalSegmentator would then
+        exit while downloading the licensed weights, which no pre-check of
+        ours can prevent.
+
+        ``has_valid_license`` would catch that by asking the backend, but it
+        reports a network failure as ``invalid_license`` too, so a runner that
+        is merely offline would silently segment without the licensed tasks
+        and quietly produce different anatomy.  Wrongly degrading a valid
+        licensed run is worse than the revoked-key case this misses.
+        """
+        from totalsegmentator.libs import (  # noqa: PLC0415
+            has_valid_license_offline,
+        )
+
+        status, _ = has_valid_license_offline()
+        return bool(status == "yes")
+
     def set_has_academic_license(self, has_academic_license: bool) -> None:
-        """Set whether the academic license is available.
+        """Request the licensed tasks, if a license is actually installed.
+
+        ``heartchambers_highres`` and ``tissue_4_types`` are not openly
+        available.  Asking for them without a license makes
+        ``totalsegmentator`` print its licensing notice and call
+        ``sys.exit(1)`` from inside the segmentation, which surfaces as a bare
+        ``SystemExit`` partway through whatever workflow was running.  Check
+        here instead, so that a machine without a key segments the heart as
+        one structure rather than aborting the run.  The fallback is logged,
+        because it is a coarser segmentation than a licensed run produces.
 
         Args:
             has_academic_license (bool): Whether the academic license is available
         """
+        if has_academic_license and not self._academic_license_is_valid():
+            self.log_warning(
+                "No valid TotalSegmentator license found; skipping the "
+                "'heartchambers_highres' and 'tissue_4_types' tasks, so the "
+                "heart is segmented as a single structure and no chamber "
+                "labels (141-144) are produced. Install one with "
+                "'totalseg_set_license -l <key>'; a free academic license is "
+                "at https://backend.totalsegmentator.com/license-academic/"
+            )
+            has_academic_license = False
         self.has_academic_license = has_academic_license
 
     def _add_extra_taxonomy_groups(self) -> None:

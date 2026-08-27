@@ -29,13 +29,13 @@ class TestRegisterTimeSeriesImages:
     _class_name = "registration_time_series_images"
 
     def test_registrar_initialization_default(self) -> None:
-        """Test that the default registration_method is RegisterImagesGreedyICON."""
+        """Test that the default registration_method is RegisterImagesGreedy."""
         registrar = RegisterTimeSeriesImages()
-        assert isinstance(registrar.registrar, RegisterImagesGreedyICON), (
-            "Default registrar should be RegisterImagesGreedyICON"
+        assert isinstance(registrar.registrar, RegisterImagesGreedy), (
+            "Default registrar should be RegisterImagesGreedy"
         )
 
-        print("\nTime series registrar defaults to RegisterImagesGreedyICON")
+        print("\nTime series registrar defaults to RegisterImagesGreedy")
 
     def test_registrar_initialization_Greedy_ICON(self) -> None:
         """Initializes correctly with a RegisterImagesGreedyICON instance."""

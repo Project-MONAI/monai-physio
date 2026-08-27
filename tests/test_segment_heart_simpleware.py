@@ -47,13 +47,16 @@ class TestSegmentHeartSimpleware:
         assert len(taxonomy.labels_in_group("major_vessels")) > 0, (
             "Major vessels mask IDs not defined"
         )
-        # ASCardio does not segment lung or bone — those groups are never
-        # registered, so labels_in_group returns an empty dict for them.
-        # soft_tissue still contains the base-class placeholder (id 133).
+        # ASCardio segments neither lung, bone, soft tissue nor contrast, and
+        # SegmentAnatomyBase seeds no defaults, so labels_in_group returns an
+        # empty dict for each of them.
         assert taxonomy.labels_in_group("lung") == {}, "ASCardio does not segment lungs"
         assert taxonomy.labels_in_group("bone") == {}, "ASCardio does not segment bone"
-        assert taxonomy.labels_in_group("soft_tissue") == {133: "soft_tissue"}, (
-            "Only the base-class soft_tissue placeholder should be present"
+        assert taxonomy.labels_in_group("soft_tissue") == {}, (
+            "ASCardio does not segment soft tissue"
+        )
+        assert taxonomy.labels_in_group("contrast") == {}, (
+            "ASCardio does not detect contrast"
         )
 
         assert seg.simpleware_exe_path is not None, "Simpleware executable path not set"
@@ -101,27 +104,24 @@ class TestSegmentHeartSimpleware:
 
         assert isinstance(result, dict), "Result should be a dictionary"
         # The Simpleware segmenter only registers the groups it actually
-        # populates: heart + major_vessels (subclass) and soft_tissue +
-        # contrast (inherited base-class placeholders). lung and bone are
-        # NOT in the result because ASCardio does not segment them; callers
-        # that need those groups must check membership first.
+        # populates: heart and major_vessels from the subclass, plus the
+        # "other" group that collects every unclaimed id. lung, bone,
+        # soft_tissue and contrast are NOT in the result, because ASCardio
+        # does not produce them and SegmentAnatomyBase seeds no placeholder
+        # for them; callers that need those groups must check membership.
         expected_keys = [
             "labelmap",
             "heart",
             "major_vessels",
-            "soft_tissue",
-            "contrast",
             "other",
         ]
         for key in expected_keys:
             assert key in result, f"Missing key '{key}' in result"
             assert result[key] is not None, f"Result['{key}'] is None"
-        assert "lung" not in result, (
-            "ASCardio does not segment lung; key must be absent"
-        )
-        assert "bone" not in result, (
-            "ASCardio does not segment bone; key must be absent"
-        )
+        for absent in ("lung", "bone", "soft_tissue", "contrast"):
+            assert absent not in result, (
+                f"ASCardio does not produce {absent}; key must be absent"
+            )
 
         labelmap = result["labelmap"]
         assert itk.size(labelmap) == itk.size(input_image), "Labelmap size mismatch"
@@ -142,12 +142,17 @@ class TestSegmentHeartSimpleware:
         )
         print(f"  Saved to: {seg_output_dir / 'heart_labelmap_simpleware.nii.gz'}")
 
-    def test_anatomy_group_masks(
+    def test_anatomy_group_labelmaps(
         self,
         segmenter_simpleware: SegmentHeartSimpleware,
         test_images: list[Any],
     ) -> None:
-        """Test that anatomy group masks are created (heart, vessels, etc.)."""
+        """Test that anatomy group labelmaps are created (heart, vessels, etc.).
+
+        A group entry is a labelmap carrying that group's own label ids, not a
+        binary mask, so the ids are checked against the taxonomy rather than
+        the value count.
+        """
         if not _simpleware_available(segmenter_simpleware):
             pytest.skip("Simpleware Medical not found. Install to run this test.")
 
@@ -158,42 +163,54 @@ class TestSegmentHeartSimpleware:
         anatomy_groups = [
             "heart",
             "major_vessels",
-            "soft_tissue",
             "other",
         ]
+        taxonomy = segmenter_simpleware.taxonomy
+
         for group in anatomy_groups:
-            assert group in result, f"{group} mask should be present"
-            mask = result[group]
-            assert mask is not None, f"{group} mask is None"
-            mask_arr = itk.array_from_image(mask)
-            unique_values = np.unique(mask_arr)
-            assert len(unique_values) <= 2, f"{group} mask should be binary"
-            assert 0 in unique_values or mask_arr.size == 0
-            assert itk.size(mask) == itk.size(input_image), (
-                f"{group} mask size mismatch"
+            assert group in result, f"{group} labelmap should be present"
+            group_labelmap = result[group]
+            assert group_labelmap is not None, f"{group} labelmap is None"
+
+            group_labelmap_arr = itk.array_from_image(group_labelmap)
+            unique_values = set(np.unique(group_labelmap_arr).tolist())
+            assert 0 in unique_values, f"{group} labelmap should contain background"
+
+            # "other" is checked too: _finalize_other_group claims every id
+            # no other group took, so it has just as fixed an id set.
+            allowed_values = {0} | set(taxonomy.labels_in_group(group).keys())
+            assert unique_values <= allowed_values, (
+                f"{group} labelmap contains unexpected label ids: "
+                f"{unique_values - allowed_values}"
+            )
+
+            assert itk.size(group_labelmap) == itk.size(input_image), (
+                f"{group} labelmap size mismatch"
             )
 
         heart_arr = itk.array_from_image(result["heart"])
         vessels_arr = itk.array_from_image(result["major_vessels"])
-        print("\nAll anatomy group masks created correctly")
+        print("ANATOMY GROUP LABELMAPS")
         print(f"  heart: {np.sum(heart_arr > 0)} voxels")
         print(f"  major_vessels: {np.sum(vessels_arr > 0)} voxels")
 
-    def test_contrast_detection(
+    def test_contrast_group_is_absent(
         self,
         segmenter_simpleware: SegmentHeartSimpleware,
         test_images: list[Any],
     ) -> None:
-        """Test contrast mask is returned (base class behavior)."""
+        """ASCardio does not detect contrast, so no contrast group is reported.
+
+        SegmentAnatomyBase used to seed a contrast placeholder that this
+        segmenter inherited; it seeds nothing now, so callers must check for
+        the key instead of indexing it.
+        """
         if not _simpleware_available(segmenter_simpleware):
             pytest.skip("Simpleware Medical not found. Install to run this test.")
 
         input_image = test_images[3]
         result = segmenter_simpleware.segment(input_image)
-        contrast_mask = result["contrast"]
-        assert contrast_mask is not None
-        assert itk.size(contrast_mask) == itk.size(input_image)
-        print("\nContrast mask returned")
+        assert "contrast" not in result
 
     def test_postprocessing(
         self,

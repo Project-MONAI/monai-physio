@@ -390,7 +390,9 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
                 WorkflowCreateStatisticalModel result["pca_model"]) with keys
                 "eigenvalues" and "components".
             number_of_pca_components: Required when use is True. Number of PCA
-                components to use. Default 0 means use all components.
+                components to use. Default 0 means use all components.  A count
+                larger than the model actually carries is reduced to what it
+                carries; see below.
             use_surface: Whether to use the surface of the patient model for PCA registration.
         Raises:
             ValueError: If use is True and pca_model is None.
@@ -400,6 +402,22 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
                 raise ValueError(
                     "When enabling PCA registration, pca_model must be provided."
                 )
+            # A PCA model carries at most one fewer mode than it had samples,
+            # and WorkflowCreateStatisticalModel already caps it there.  The
+            # count configured for a full population is therefore too large for
+            # a model built from a small one, and asking for more modes than
+            # exist raises out of the optimizer partway through the fit.  Read
+            # the count the model actually carries instead.
+            available_components = len(pca_model.get("components", []))
+            if available_components < number_of_pca_components:
+                self.log_info(
+                    "PCA model carries %d mode(s), fewer than the %d requested; "
+                    "fitting with the %d available.",
+                    available_components,
+                    number_of_pca_components,
+                    available_components,
+                )
+                number_of_pca_components = available_components
             self.pca_model = pca_model
             self.number_of_pca_components = number_of_pca_components
         else:

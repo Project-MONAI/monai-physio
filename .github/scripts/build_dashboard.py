@@ -85,6 +85,28 @@ def parse_junit(xml_path: Path) -> dict:
         }
 
 
+def parse_junit_dir(results_dir: Path) -> dict:
+    """Merge every ``test-results*.xml`` in ``results_dir`` into one summary.
+
+    The nightly suite runs as more than one pytest invocation, so that an
+    overrun in one cannot take the other's results with it.  Each writes its
+    own JUnit XML and the dashboard reports their sum.
+    """
+    reports = [
+        parse_junit(path) for path in sorted(results_dir.glob("test-results*.xml"))
+    ]
+    available = [report for report in reports if report["available"]]
+    if not available:
+        return parse_junit(results_dir / "test-results.xml")
+
+    merged = {
+        key: sum(report[key] for report in available)
+        for key in ("tests", "passed", "failed", "errors", "skipped")
+    }
+    merged["available"] = True
+    return merged
+
+
 def parse_coverage(json_path: Path) -> dict:
     """Return coverage percentage from a coverage.py JSON report."""
     if not json_path.exists():
@@ -357,7 +379,7 @@ def main() -> None:
     parser.add_argument(
         "--results-dir",
         default="results/",
-        help="Directory containing test-results.xml and coverage.json",
+        help="Directory containing the test-results*.xml files and coverage.json",
     )
     parser.add_argument(
         "--output-dir",
@@ -384,7 +406,7 @@ def main() -> None:
     )
 
     data = {
-        "junit": parse_junit(results_dir / "test-results.xml"),
+        "junit": parse_junit_dir(results_dir),
         "coverage": parse_coverage(results_dir / "coverage.json"),
         "run_url": args.run_url,
         "timestamp": timestamp,

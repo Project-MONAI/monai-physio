@@ -200,3 +200,116 @@ def test_fit_icp_transform_type_defaults_to_affine_and_validates() -> None:
 
     with pytest.raises(ValueError, match="Invalid ICP transform"):
         workflow.set_icp_transform_type("Deformable")
+
+
+def _fit_workflow_for_pca() -> WorkflowFitStatisticalModelToPatient:
+    """A minimal fit workflow, for exercising the PCA configuration only."""
+    image = itk.image_from_array(np.zeros((3, 3, 3), dtype=np.float32))
+    model = pv.PolyData(np.zeros((3, 3), dtype=np.float64))
+    return WorkflowFitStatisticalModelToPatient(
+        template_model=model,
+        patient_models=[model],
+        patient_image=image,
+    )
+
+
+def test_requested_pca_components_drop_to_what_the_model_carries() -> None:
+    """A model built from a small population carries fewer modes than asked for.
+
+    WorkflowCreateStatisticalModel caps a model at one fewer mode than it had
+    samples, so a count configured for a full population is too large for a
+    model built from a handful of cases.  Asking the optimizer for modes that
+    do not exist raises partway through the fit, so the count is reduced here.
+    """
+    workflow = _fit_workflow_for_pca()
+    pca_model = {"eigenvalues": [4.0, 1.0], "components": [[0.0], [0.0]]}
+
+    workflow.set_use_pca_registration(
+        use_pca_registration=True,
+        pca_model=pca_model,
+        number_of_pca_components=5,
+    )
+
+    assert workflow.number_of_pca_components == 2
+
+
+def test_requested_pca_components_are_kept_when_the_model_carries_them() -> None:
+    """Reducing the count must not touch a request the model can satisfy."""
+    workflow = _fit_workflow_for_pca()
+    pca_model = {
+        "eigenvalues": [4.0, 2.0, 1.0],
+        "components": [[0.0], [0.0], [0.0]],
+    }
+
+    workflow.set_use_pca_registration(
+        use_pca_registration=True,
+        pca_model=pca_model,
+        number_of_pca_components=2,
+    )
+
+    assert workflow.number_of_pca_components == 2
+
+
+def test_pca_component_count_of_zero_still_means_every_mode() -> None:
+    """0 is the documented "use all" sentinel and must survive the reduction."""
+    workflow = _fit_workflow_for_pca()
+    pca_model = {"eigenvalues": [4.0, 1.0], "components": [[0.0], [0.0]]}
+
+    workflow.set_use_pca_registration(
+        use_pca_registration=True,
+        pca_model=pca_model,
+        number_of_pca_components=0,
+    )
+
+    assert workflow.number_of_pca_components == 0
+
+
+def test_empty_pca_model_reduces_a_positive_request_to_zero() -> None:
+    """A model carrying no modes must not leave a positive request standing.
+
+    ``RegisterModelsPCA`` raises when asked for more modes than it holds, so a
+    request that survived an empty model would fail inside the optimizer rather
+    than here.  Zero is the documented "use every mode" sentinel, which for an
+    empty model is zero modes.
+    """
+    workflow = _fit_workflow_for_pca()
+
+    workflow.set_use_pca_registration(
+        use_pca_registration=True,
+        pca_model={"eigenvalues": [], "components": []},
+        number_of_pca_components=5,
+    )
+
+    assert workflow.number_of_pca_components == 0
+
+
+def test_clamped_component_count_reaches_the_pca_registrar() -> None:
+    """The reduced count must be what register_model_to_model_pca passes on.
+
+    Reducing the stored count would be pointless if the registrar were built
+    from the originally requested one.
+    """
+    captured: dict[str, Any] = {}
+
+    def _capture(**kwargs: Any) -> None:
+        captured.update(kwargs)
+        raise RuntimeError("stop after capturing the registrar configuration")
+
+    workflow = _fit_workflow_for_pca()
+    workflow.set_use_pca_registration(
+        use_pca_registration=True,
+        pca_model={"eigenvalues": [4.0, 1.0], "components": [[0.0], [0.0]]},
+        number_of_pca_components=5,
+    )
+
+    from physiotwin4d import workflow_fit_statistical_model_to_patient as module
+
+    original = module.RegisterModelsPCA.from_pca_model
+    module.RegisterModelsPCA.from_pca_model = staticmethod(_capture)
+    try:
+        with pytest.raises(RuntimeError):
+            workflow.register_model_to_model_pca()
+    finally:
+        module.RegisterModelsPCA.from_pca_model = original
+
+    assert captured["pca_number_of_modes"] == 2

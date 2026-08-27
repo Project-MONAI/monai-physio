@@ -28,7 +28,7 @@ class TestSegmentChestTotalSegmentator:
     ) -> None:
         """Test that SegmentChestTotalSegmentator initializes correctly."""
         assert segmenter_total_segmentator is not None, "Segmenter not initialized"
-        assert segmenter_total_segmentator.target_spacing == 1.5, (
+        assert segmenter_total_segmentator.target_spacing == 1.0, (
             "Target spacing not set correctly"
         )
 
@@ -271,3 +271,99 @@ class TestSegmentChestTotalSegmentator:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "-s"])
+
+
+def test_academic_license_request_is_honoured_when_a_license_is_installed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """With a license present, the licensed tasks stay requested."""
+    # staticmethod(), because setattr on the class would otherwise install a
+    # plain function and the call would pass self into it.
+    monkeypatch.setattr(
+        SegmentChestTotalSegmentator,
+        "_academic_license_is_valid",
+        staticmethod(lambda: True),
+    )
+    segmenter = SegmentChestTotalSegmentator()
+
+    segmenter.set_has_academic_license(True)
+
+    assert segmenter.has_academic_license is True
+
+
+def test_academic_license_request_falls_back_when_no_license_is_installed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Without a license, asking for the licensed tasks must not abort the run.
+
+    ``heartchambers_highres`` and ``tissue_4_types`` are not openly available.
+    Requesting them unlicensed makes ``totalsegmentator`` call ``sys.exit(1)``
+    from inside the segmentation, which surfaces as a bare ``SystemExit``
+    partway through whatever workflow was running.  The request is dropped
+    here instead, so the heart is segmented as one structure.
+    """
+    monkeypatch.setattr(
+        SegmentChestTotalSegmentator,
+        "_academic_license_is_valid",
+        staticmethod(lambda: False),
+    )
+    segmenter = SegmentChestTotalSegmentator()
+
+    segmenter.set_has_academic_license(True)
+
+    assert segmenter.has_academic_license is False
+
+
+def test_declining_the_academic_license_never_checks_for_one(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Only a request for the licensed tasks should cost a license lookup."""
+
+    def _fail() -> bool:
+        raise AssertionError("license checked when it was not requested")
+
+    monkeypatch.setattr(
+        SegmentChestTotalSegmentator, "_academic_license_is_valid", staticmethod(_fail)
+    )
+    segmenter = SegmentChestTotalSegmentator()
+
+    segmenter.set_has_academic_license(False)
+
+    assert segmenter.has_academic_license is False
+
+
+def test_license_check_tracks_totalsegmentators_own_offline_gate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The check must agree with the gate it is predicting, weakness included.
+
+    ``show_license_info`` exits unless ``has_valid_license_offline`` returns
+    "yes", and that only tests for a configured 18-character key.  A key of the
+    right length but no longer entitled therefore reads as installed here, and
+    TotalSegmentator fails later, while downloading the licensed weights.
+    Asking the backend instead would report an offline runner as unlicensed and
+    silently change the anatomy it produces, so the weaker check is the
+    deliberate choice and this pins it.
+    """
+    import totalsegmentator.libs as ts_libs
+
+    monkeypatch.setattr(
+        ts_libs,
+        "has_valid_license_offline",
+        lambda: ("yes", "SUCCESS: License is valid."),
+    )
+    assert SegmentChestTotalSegmentator._academic_license_is_valid() is True
+
+    monkeypatch.setattr(
+        ts_libs,
+        "has_valid_license_offline",
+        lambda: ("invalid_license", "ERROR: Invalid license number (too-short)."),
+    )
+    assert SegmentChestTotalSegmentator._academic_license_is_valid() is False
+
+    monkeypatch.setattr(
+        ts_libs,
+        "has_valid_license_offline",
+        lambda: ("missing_license", "ERROR: A license number has not been set."),
+    )
+    assert SegmentChestTotalSegmentator._academic_license_is_valid() is False
