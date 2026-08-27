@@ -45,6 +45,9 @@ class ParametersLungCTDirLab(ParametersBase):
         mesh_reduction_rate: Fraction of the voxel resolution removed along
             each axis before a labelmap is meshed into tetrahedra, so the
             tetrahedron count falls by roughly ``(1 - rate) ** 3``.
+        model_points: Points kept per surface when building the shape model.
+            ``0`` keeps every point, which is what a full run does.
+        model_points_test: Same, under ``TestTools.running_as_test``.
         number_of_pca_components: PCA components retained when building the
             lung statistical model, and used when fitting it to a patient.
         number_of_pca_components_test: Same, under ``TestTools.running_as_test``.
@@ -82,6 +85,9 @@ class ParametersLungCTDirLab(ParametersBase):
 
     surface_reduction_rate: float = 0.0
     mesh_reduction_rate: float = 0.0
+
+    model_points: int = 0
+    model_points_test: int = 20000
 
     number_of_pca_components: int = 6
     number_of_pca_components_test: int = 5
@@ -134,6 +140,10 @@ class ParametersLungCTDirLab(ParametersBase):
             if test_mode
             else (self.number_of_pca_components)
         )
+
+    def points_per_model(self, test_mode: bool) -> int:
+        """Return the per-surface point budget for this run mode."""
+        return self.model_points_test if test_mode else self.model_points
 
     def greedy_iterations(self, test_mode: bool) -> list[int]:
         """Return the Greedy iteration schedule for this run mode."""

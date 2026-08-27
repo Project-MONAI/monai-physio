@@ -46,6 +46,11 @@ class ParametersHeartCTKCL(ParametersBase):
             is resampled to before it is meshed into tetrahedra, which is the
             resulting element size.  Below the thinnest wall of the heart, so
             that the myocardium survives the coarsening.
+        model_points: Points kept per surface when building the shape model.
+            ``0`` keeps every point, which is what a full run does.
+        model_points_test: Same, under ``TestTools.running_as_test``, where the
+            KCL meshes are read at full resolution because that dataset has no
+            downsampled test subset.
         number_of_pca_components: PCA components retained when building the
             heart statistical model, and used when fitting it to a patient.
         number_of_pca_components_test: Same, under ``TestTools.running_as_test``.
@@ -84,6 +89,9 @@ class ParametersHeartCTKCL(ParametersBase):
 
     surface_reduction_rate: float = 0.5
     mesh_element_size_mm: float = 1.5
+
+    model_points: int = 0
+    model_points_test: int = 20000
 
     number_of_pca_components: int = 10
     number_of_pca_components_test: int = 5
@@ -132,6 +140,10 @@ class ParametersHeartCTKCL(ParametersBase):
             if test_mode
             else (self.number_of_pca_components)
         )
+
+    def points_per_model(self, test_mode: bool) -> int:
+        """Return the per-surface point budget for this run mode."""
+        return self.model_points_test if test_mode else self.model_points
 
     def greedy_iterations(self, test_mode: bool) -> list[int]:
         """Return the Greedy iteration schedule for this run mode."""

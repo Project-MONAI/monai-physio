@@ -75,10 +75,10 @@ class SegmentHeartSimpleware(SegmentAnatomyBase):
         self.target_spacing = 1.0
 
         # Heart and major-vessel labels from Simpleware Medical ASCardio.
-        # Lung / bone / soft_tissue are not segmented by ASCardio; they will
-        # be folded into the 'other' group by _finalize_other_group().
-        # Contrast (135) and soft_tissue (133) defaults are inherited from
-        # SegmentAnatomyBase.
+        # Lung, bone, soft_tissue and contrast are not segmented by ASCardio,
+        # and SegmentAnatomyBase seeds no defaults for them, so those groups
+        # stay empty and never reach a result. Ids ASCardio does emit but no
+        # group claims are folded into 'other' by _finalize_other_group().
         for group_name, organs in (
             (
                 "heart",
