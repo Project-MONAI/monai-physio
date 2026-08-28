@@ -328,8 +328,8 @@ material properties assigned to each tissue. Note that the ``usd-core``
 package installed with MONAI Physio provides the OpenUSD *libraries* only and
 contains no viewer.
 
-:doc:`viewing_usd` covers where to get it, how to set it up, and how to open a
-MONAI Physio scene - including switching to the camera defined in the scene,
+:doc:`viewing_meshes` covers where to get it, how to set it up, and how to open
+a MONAI Physio scene - including switching to the camera defined in the scene,
 whose clipping planes are fitted to the anatomy's scale.
 
 The intermediate meshes need no USD tooling:

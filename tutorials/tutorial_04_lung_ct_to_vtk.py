@@ -1,16 +1,22 @@
-"""
-Tutorial 4 (Lung): CT Segmentation to VTK Surfaces
+"""Tutorial 4 (Lung): CT segmentation to VTK surfaces with NV-Segment-CTMR.
 
 Purpose
 -------
-Segment one 3D CT frame into anatomical groups and save a combined VTK
-surface file. The output can be inspected directly in PyVista or used as
-input for Tutorial 5.
+Convert one CT frame into a detailed labelmap, a lung-only labelmap, and VTK
+surfaces. This exposes the image-to-anatomy boundary that participants replace
+when adapting the pipeline to another organ.
 
 Data Required
 -------------
 Full data: ``data/DirLab-4DCT/Case1Pack_T??.mha``
 Test data: ``data/test/DirLab-4DCT/Case1Pack_T??.mha``
+
+Segmentation Models
+-------------------
+This tutorial uses the shared lung segmenter, ``SegmentNVSegmentCTMRI``. Its
+weights use the NVIDIA OneWay Non-Commercial License. The output keeps the
+model's published label IDs; the lung-only labelmap retains the five lobe IDs
+and any other predicted lung labels while clearing non-lung voxels.
 """
 
 # Imports
@@ -20,28 +26,26 @@ import logging
 from pathlib import Path
 
 import itk
+import numpy as np
 import pyvista as pv
 
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
 from monai_physio import (
     ContourTools,
-    SegmentChestTotalSegmentator,
     TestTools,
     WorkflowConvertImageToVTK,
 )
 
 # Only run if this script is not imported as a module
 
-# nnUNetv2 (used by TotalSegmentator inside several workflows) spawns a
-# multiprocessing.Pool. On Windows the spawn start method re-imports this
-# script in each child; without the __name__ == "__main__" guard around
-# top-level work, that re-import fires the segmenter again and Python's
-# spawn-cascade detector raises RuntimeError.
+# Keep GPU segmentation and file writes below the main guard so importing this
+# tutorial for documentation or test discovery has no runtime side effects.
 if __name__ == "__main__":
     # Data directory specification
 
     project_name = "tutorial_04_lung"
+    output_prefix = "patient_nvsegmentctmri"
 
     test_mode = TestTools.running_as_test()
 
@@ -61,9 +65,7 @@ if __name__ == "__main__":
     frame_files = sorted(data_dir.glob("Case1Pack_T??.mha"))
 
     log_level = logging.INFO
-
-    segmentation_method = SegmentChestTotalSegmentator(log_level=log_level)
-    segmentation_method.set_has_academic_license(True)
+    segmentation_method = LUNG_CT_DIRLAB.segmenter_class(log_level=log_level)
 
     # Directory setup and data reading
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -90,6 +92,7 @@ if __name__ == "__main__":
     # surface_reduction_rate decimates each exported VTP surface.
     result = workflow.process(
         input_image=ct_image,
+        anatomy_groups=[LUNG_CT_DIRLAB.anatomy_group],
         surface_reduction_rate=LUNG_CT_DIRLAB.surface_reduction_rate,
         extract_label_surfaces=save_label_surfaces,
     )
@@ -107,19 +110,35 @@ if __name__ == "__main__":
     surface_file = Path(
         ContourTools.save_combined_surfaces(
             combined_input,
-            str(output_dir / "patient_surfaces.vtp"),
+            str(output_dir / f"{output_prefix}_surfaces.vtp"),
         )
     )
     if save_group_surfaces:
         ContourTools.save_surfaces(
-            result["surfaces"], str(output_dir), prefix="patient"
+            result["surfaces"], str(output_dir), prefix=output_prefix
         )
     if save_label_surfaces:
         ContourTools.save_surfaces(
-            result["label_surfaces"], str(output_dir), prefix="patient"
+            result["label_surfaces"], str(output_dir), prefix=output_prefix
         )
-    labelmap_file = output_dir / "patient_labelmap.mha"
+    labelmap_file = output_dir / f"{output_prefix}_labelmap.mha"
     itk.imwrite(result["labelmap"], str(labelmap_file), compression=True)
+
+    # Keep the model's native lobe ids but clear every non-lung label. This is
+    # the labelmap participants inspect or replace for another organ.
+    lung_label_ids = np.array(
+        sorted(
+            segmentation_method.taxonomy.labels_in_group(LUNG_CT_DIRLAB.anatomy_group)
+        ),
+        dtype=np.uint16,
+    )
+    full_labelmap_arr = itk.GetArrayViewFromImage(result["labelmap"])
+    lung_labelmap = itk.GetImageFromArray(
+        np.where(np.isin(full_labelmap_arr, lung_label_ids), full_labelmap_arr, 0)
+    )
+    lung_labelmap.CopyInformation(result["labelmap"])
+    lung_labelmap_file = output_dir / f"{output_prefix}_lung_labelmap.mha"
+    itk.imwrite(lung_labelmap, str(lung_labelmap_file), compression=True)
 
     # Testing
     tt = TestTools(
@@ -138,7 +157,7 @@ if __name__ == "__main__":
             colormap="gray",
             vmin=-200,
             vmax=600,
-            overlay_mask=result["labelmap"],
+            overlay_mask=lung_labelmap,
         )
     )
 
@@ -161,5 +180,6 @@ if __name__ == "__main__":
         "result": result,
         "surface_file": surface_file,
         "labelmap_file": labelmap_file,
+        "lung_labelmap_file": lung_labelmap_file,
         "screenshots": screenshots,
     }

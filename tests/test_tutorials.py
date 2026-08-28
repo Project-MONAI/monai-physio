@@ -447,6 +447,7 @@ class TestTutorial04LungCTToVTK:
         results = _run_tutorial_script("tutorial_04_lung_ct_to_vtk.py")
         assert results["surface_file"].exists(), "Lung VTP surface should exist"
         assert results["labelmap_file"].exists(), "Lung labelmap should exist"
+        assert results["lung_labelmap_file"].exists(), "Lung-only labelmap should exist"
 
         _compare_screenshots(
             results["screenshots"],

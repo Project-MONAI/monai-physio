@@ -7,11 +7,12 @@ Final inference stage of the lung 4D deep-learning pipeline (Tutorials 8 -> 9 ->
 10). A thin driver over :class:`monai_physio.WorkflowInferPhysicsNeMo` and its
 displacement decoder :class:`monai_physio.WorkflowInferMovement`:
 
-1. Discover the per-phase SSM surfaces that Tutorial 8
+1. Discover the per-phase SSM surfaces and respiratory transforms that Tutorial 8
    (``tutorial_08_lung_fit_model_to_4d_patients.py``) wrote for
    ``ParametersLungCTDirLab.mgn_hold_out_case`` -- the case Tutorial 9 held out
-   of training, so this scores generalization rather than recall. Stages are
-   parsed from the ``T{PP}`` phase filenames.
+   of training. Refit its reference anatomy to the PCA model bundled with the
+   checkpoint, then propagate that checkpoint-compatible topology with the
+   existing transforms. Stages are parsed from the ``T{PP}`` phase filenames.
 
 2. Predict that case's surface at *every* respiratory stage with the
    MeshGraphNet trained by Tutorial 9
@@ -38,6 +39,10 @@ Data Required
   * ``network_weights/physicsnemo_mgn_lung_motion/mgn_stage_model.pt``
     - Tutorial 9 checkpoint (``ParametersLungCTDirLab.mgn_weights_directory``)
 
+The checkpoint-compatible fit is cached under
+``output/tutorial_08_lung_checkpoint/<case>/``. The original Tutorial 6 and 8
+outputs are not overwritten.
+
 Outputs (under ``output/tutorial_10_lung_mgn/<case>/``)
 -------------------------------------------------------
   * ``<case>_ssm_pca_coefficients_s{TTT}_pred.vtp``   - predicted surface
@@ -54,6 +59,7 @@ from typing import Any, Optional, cast
 
 import itk
 import pyvista as pv
+from lung_mgn_checkpoint_tools import prepare_checkpoint_compatible_lung_case
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
 from monai_physio import (
@@ -64,7 +70,7 @@ from monai_physio import (
 
 
 def _respiratory_stage_from_filename(surface_file: Path) -> float:
-    """Extract the normalized respiratory stage [0, 1] from a ``T{PP}`` filename stem."""
+    """Extract the normalized stage [0, 1] from a ``T{PP}`` filename stem."""
     for part in surface_file.stem.split("_"):
         if part.startswith("T") and part[1:].isdigit():
             return int(part[1:]) / 100.0
@@ -82,8 +88,9 @@ if __name__ == "__main__":
     tutorials_dir = Path(__file__).resolve().parent
     test_mode = TestTools.running_as_test()
     # Keep a test run out of the directories a full run reads and writes.
-    # Fitted SSM surfaces and PCA coefficients written by Tutorial 8 (lung).
-    data_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_08_lung"
+    # Fitted anatomy and respiratory transforms written by Tutorial 8 (lung).
+    output_root = LUNG_CT_DIRLAB.output_directory(test_mode)
+    source_data_dir = output_root / "tutorial_08_lung"
     # Weights Tutorial 9 trained. A resumed Tutorial 9 run writes to a numbered
     # sibling of this directory, which is what would be evaluated instead.
     model_dir = LUNG_CT_DIRLAB.mgn_weights_directory(test_mode)
@@ -99,9 +106,15 @@ if __name__ == "__main__":
     # into the continuous field the CT is resampled through.
     smoothing_sigma_mm = 10.0
 
-    output_dir = (
-        LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_10_lung_mgn" / case_id
+    icon_distancemap_weights_path = (
+        LUNG_CT_DIRLAB.weights_directory(test_mode)
+        / "icon_dirlab_4dct_distancemap"
+        / "icon_dirlab_4dct_distancemap_model"
+        / "checkpoints"
+        / "network_weights_final.trch"
     )
+
+    output_dir = output_root / "tutorial_10_lung_mgn" / case_id
     log_level = logging.INFO
 
     class_name = "tutorial_10_lung_infer_physicsnemo_mgn"
@@ -122,23 +135,34 @@ if __name__ == "__main__":
             "Run tutorials/tutorial_09_lung_train_physicsnemo_mgn.py first."
         )
 
-    case_dir = data_dir / case_id
-    fitted_reference_mesh_file = case_dir / f"{case_id}_ssm_surface.vtp"
-    pca_file = case_dir / f"{case_id}_ssm_pca_coefficients.json"
+    source_case_dir = source_data_dir / case_id
+    compatible_case = prepare_checkpoint_compatible_lung_case(
+        source_case_dir=source_case_dir,
+        model_dir=model_dir,
+        output_dir=(output_root / "tutorial_08_lung_checkpoint" / case_id),
+        mask_dilation_mm=LUNG_CT_DIRLAB.mask_dilation_mm,
+        distancemap_squared_max=LUNG_CT_DIRLAB.distancemap_squared_max,
+        icon_weights_path=icon_distancemap_weights_path,
+        log_level=log_level,
+    )
+    fitted_reference_mesh_file = compatible_case.reference_mesh
+    pca_file = compatible_case.pca_coefficients
     reference_ct_file = (
         LUNG_CT_DIRLAB.data_directory(test_mode)
         / "DirLab-4DCT"
         / (f"{case_id}_{reference_phase}.mha")
     )
-    phase_files = sorted(case_dir.glob(f"{case_id}_T??_ssm_surface.vtp"))
+    phase_files = compatible_case.phase_meshes
     for required_file in (fitted_reference_mesh_file, pca_file):
         if not required_file.exists():
             raise FileNotFoundError(
-                f"Tutorial 8 output not found: {required_file}\n"
-                "Run tutorials/tutorial_08_lung_fit_model_to_4d_patients.py first."
+                f"Checkpoint-compatible Tutorial 8 output not found: "
+                f"{required_file}"
             )
     if not phase_files:
-        raise FileNotFoundError(f"No respiratory phase surfaces found in {case_dir}")
+        raise FileNotFoundError(
+            f"No checkpoint-compatible respiratory surfaces found for {case_id}"
+        )
     if not reference_ct_file.exists():
         raise FileNotFoundError(
             f"Reference-phase CT not found: {reference_ct_file}\n"

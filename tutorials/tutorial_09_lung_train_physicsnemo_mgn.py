@@ -31,18 +31,35 @@ continuum: adjacent vertices co-vary smoothly. MeshGraphNet encodes that prior
 directly by passing messages along mesh edges, giving an explicit
 continuum-deformation inductive bias the MLP must infer from coordinates alone.
 
-Node features (per vertex):   [mean_shape_x, mean_shape_y, mean_shape_z, pca_c1 ... pca_cN, stage]
+Node features (per vertex):
+    [mean_shape_x, mean_shape_y, mean_shape_z, pca_c1 ... pca_cN, stage]
 Edge features (per edge):     [rel_x, rel_y, rel_z, distance]   (from the mean shape)
 Output (per vertex):          [dx, dy, dz]  (displacement in mm)
 
 Runtime
 -------
 Measured on the full 10-case DIR-Lab set with the Tutorial 6 lung template
-(179k points, 1.07M mesh-graph edges): one training step of ``batch_size`` 4
+(283k points, 1.70M directed mesh-graph edges): one training step of
+``batch_size`` 4
 takes ~430 ms and peaks near 43 GiB of GPU memory, giving ~9 s per epoch and
 roughly 4 hours for the 1500 epochs below. Lower ``batch_size``, or call
 ``training_method.set_num_processor_checkpoint_segments(...)`` to trade compute
 for memory, on a smaller card.
+
+For the course-safe wiring check, reuse the prepared manifests and supplied
+checkpoint without creating an optimizer or writing any files::
+
+    python tutorials/tutorial_09_lung_train_physicsnemo_mgn.py --smoke-test
+
+This runs one forward and backward pass, verifies that the checkpoint checksum
+did not change, and stops before held-out inference. Run the unflagged command
+only for an intentional full training run.
+
+Extra Install Required
+----------------------
+PhysicsNeMo and PyTorch Geometric must be installed::
+
+    pip install "monai-physio"
 
 Data Required
 -------------
@@ -81,8 +98,11 @@ that directory instead, which is what ``tutorial_results`` reports as
 # Imports
 from __future__ import annotations
 
+import argparse
+import hashlib
 import json
 import logging
+import time
 from pathlib import Path
 from typing import Any, Optional, cast
 
@@ -102,8 +122,17 @@ from monai_physio import (
 TARGET_ARRAY = "displacement"
 
 
+def _sha256(file_path: Path) -> str:
+    """Return the SHA-256 digest of one file without modifying it."""
+    digest = hashlib.sha256()
+    with file_path.open("rb") as file_handle:
+        for chunk in iter(lambda: file_handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def _respiratory_stage_from_filename(surface_file: Path) -> float:
-    """Extract the normalized respiratory stage [0, 1] from a ``T{PP}`` filename stem."""
+    """Extract normalized respiratory stage [0, 1] from a ``T{PP}`` filename."""
     for part in surface_file.stem.split("_"):
         if part.startswith("T") and part[1:].isdigit():
             return int(part[1:]) / 100.0
@@ -175,6 +204,119 @@ def _write_case_manifest(
     return manifest_path
 
 
+def _existing_case_manifest(
+    case_dir: Path, manifests_dir: Path, logger: logging.Logger
+) -> Optional[Path]:
+    """Return a prepared manifest path without regenerating any training data."""
+    manifest_path = manifests_dir / f"{case_dir.name}_manifest.json"
+    if not manifest_path.exists():
+        logger.warning("Skipping %s: missing %s", case_dir.name, manifest_path)
+        return None
+    return manifest_path
+
+
+def _run_no_save_smoke(
+    train_workflow: WorkflowTrainPhysicsNeMo,
+    training_method: TrainPhysicsNeMoMGN,
+    checkpoint_file: Path,
+) -> dict[str, Any]:
+    """Run one forward/backward batch while leaving the checkpoint unchanged."""
+    import torch
+
+    from monai_physio import physicsnemo_tools as pnt
+
+    if not checkpoint_file.exists():
+        raise FileNotFoundError(
+            f"Supplied checkpoint not found: {checkpoint_file}\n"
+            "Download the tutorial checkpoint before running --smoke-test."
+        )
+
+    started = time.perf_counter()
+    checksum_before = _sha256(checkpoint_file)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    train_workflow.log_info("Smoke-test device: %s", device.type)
+
+    subjects = train_workflow._load_subjects()
+    checkpoint = torch.load(str(checkpoint_file), map_location="cpu", weights_only=True)
+    stats = train_workflow._compute_normalization(subjects, checkpoint)
+    train_dataset, _ = train_workflow._build_datasets(subjects, stats)
+
+    training_method.set_batch_size(1)
+    model = training_method.build_model(
+        train_dataset.n_features, train_dataset.n_target
+    ).to(device)
+    state = checkpoint.get("model_state_dict", checkpoint)
+    model.load_state_dict(pnt.strip_compile_prefix(state))
+    training_method.setup_inputs(
+        device,
+        train_workflow._template_mesh,
+        train_workflow._template_coords,
+    )
+
+    torch.manual_seed(training_method.seed)
+    rng = np.random.default_rng(training_method.seed)
+    if device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats(device)
+
+    node_features, targets, batch_len = next(
+        training_method._iter_batches(train_dataset, rng, shuffle=True)
+    )
+    model.train()
+    feature_tensor = torch.from_numpy(node_features).to(device)
+    target_tensor = torch.from_numpy(targets).to(device)
+    with training_method._autocast(device):
+        prediction = training_method.forward(model, feature_tensor, batch_len)
+        loss = torch.nn.functional.mse_loss(prediction, target_tensor)
+    loss.backward()
+    if device.type == "cuda":
+        torch.cuda.synchronize(device)
+
+    checksum_after = _sha256(checkpoint_file)
+    if checksum_after != checksum_before:
+        raise RuntimeError(f"Smoke test modified checkpoint: {checkpoint_file}")
+
+    elapsed_seconds = time.perf_counter() - started
+    edge_count = int(training_method._shared_edge_index.shape[1])
+    peak_gpu_gib = (
+        float(torch.cuda.max_memory_allocated(device)) / (1024**3)
+        if device.type == "cuda"
+        else 0.0
+    )
+    results: dict[str, Any] = {
+        "status": "PASS",
+        "device": device.type,
+        "training_samples": len(train_dataset),
+        "batch_samples": batch_len,
+        "mesh_points": int(node_features.shape[0] // batch_len),
+        "graph_edges": edge_count,
+        "input_features": train_dataset.n_features,
+        "target_features": train_dataset.n_target,
+        "loss": float(loss.detach()),
+        "elapsed_seconds": elapsed_seconds,
+        "peak_gpu_gib": peak_gpu_gib,
+        "checkpoint_sha256": checksum_after,
+        "optimizer_created": False,
+        "files_written": False,
+    }
+    train_workflow.log_info(
+        "Smoke test PASS - samples=%d, points=%d, edges=%d, in_features=%d, "
+        "n_target=%d, loss=%.6f, elapsed=%.2fs, peak_gpu=%.2f GiB",
+        results["training_samples"],
+        results["mesh_points"],
+        results["graph_edges"],
+        results["input_features"],
+        results["target_features"],
+        results["loss"],
+        results["elapsed_seconds"],
+        results["peak_gpu_gib"],
+    )
+    train_workflow.log_info(
+        "Checkpoint unchanged (SHA-256 %s); no optimizer or save path was used.",
+        checksum_after,
+    )
+    return results
+
+
 # Only run if this script is not imported as a module
 
 # PhysicsNeMo and torch spawn worker processes for data loading. On Windows the
@@ -182,6 +324,17 @@ def _write_case_manifest(
 # __name__ == "__main__" guard around top-level work, that re-import would
 # restart training in every worker.
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoke-test",
+        action="store_true",
+        help=(
+            "Reuse prepared manifests and the supplied checkpoint for one "
+            "forward/backward batch; create no optimizer and write no files."
+        ),
+    )
+    args = parser.parse_args()
+
     # Data directory specification
     tutorials_dir = Path(__file__).resolve().parent
     test_mode = TestTools.running_as_test()
@@ -239,7 +392,11 @@ if __name__ == "__main__":
     # so match on "Case*" to avoid silently dropping it.
     manifests: dict[str, Path] = {}
     for case_dir in sorted(p for p in data_dir.glob("Case*") if p.is_dir()):
-        manifest_path = _write_case_manifest(case_dir, manifests_dir, logger)
+        manifest_path = (
+            _existing_case_manifest(case_dir, manifests_dir, logger)
+            if args.smoke_test
+            else _write_case_manifest(case_dir, manifests_dir, logger)
+        )
         if manifest_path is not None:
             manifests[case_dir.name] = manifest_path
 
@@ -286,10 +443,26 @@ if __name__ == "__main__":
         val_manifests=val_manifests,
         pca_mean_mesh=ssm_mean_surface_file,
         output_directory=weights_dir,
-        resume_from=resume_from,
+        resume_from=(
+            weights_dir / "mgn_stage_model.pt" if args.smoke_test else resume_from
+        ),
         training_method=training_method,
         log_level=log_level,
     )
+    if args.smoke_test:
+        checkpoint_file = weights_dir / "mgn_stage_model.pt"
+        tutorial_results = {
+            "model_directory": weights_dir,
+            "smoke_test": _run_no_save_smoke(
+                train_workflow, training_method, checkpoint_file
+            ),
+        }
+        logger.info(
+            "Held-out inference skipped in smoke mode; Tutorials 10 and 11 use "
+            "the supplied checkpoint-compatible evaluation cache."
+        )
+        raise SystemExit(0)
+
     train_result = train_workflow.process()
 
     # Step 3: evaluate held-out test cases against their ground-truth phases.

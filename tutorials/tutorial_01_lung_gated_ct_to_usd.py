@@ -60,6 +60,14 @@ Dataset: DirLab-4DCT - see ``data/DirLab-4DCT/README.md``.
 This script expects the HU-corrected ``Case1Pack_T??.mha`` phase volumes to
 already exist under ``data/DirLab-4DCT/``. Download the DirLab-4DCT case and run
 ``data/DirLab-4DCT/fix_downloaded_data.py`` before running this tutorial.
+
+Segmentation Models
+-------------------
+By default this tutorial uses only TotalSegmentator tasks permitted without a
+separate model license. Lung lobes, vessels, airways, and the body task remain
+available; high-resolution heart chambers and tissue classes are omitted. Set
+``use_totalsegmentator_licensed_tasks`` to ``True`` only after configuring the
+corresponding TotalSegmentator license.
 """
 
 # Imports
@@ -106,12 +114,13 @@ if __name__ == "__main__":
         frame_files = sorted(data_dir.glob("Case1Pack_T??.mha"))
 
     log_level = logging.INFO
+    use_totalsegmentator_licensed_tasks = False
 
     registration_method = RegisterImagesGreedy(log_level=log_level)
     registration_method.set_number_of_iterations(number_of_iterations_greedy)
 
     segmentation_method = SegmentChestTotalSegmentator(log_level=log_level)
-    segmentation_method.set_has_academic_license(True)
+    segmentation_method.set_has_academic_license(use_totalsegmentator_licensed_tasks)
 
     # Directory setup and data reading
 

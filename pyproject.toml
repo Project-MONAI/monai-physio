@@ -229,6 +229,11 @@ cuda12 = [
     "torchvision",
     "torchaudio",
 ]
+viewer = [
+    "trame>=3.9.0",
+    "trame-vtk>=2.8.0",
+    "trame-vuetify>=3.0.0",
+]
 # Development, testing, and documentation tooling -- no CUDA/cupy component,
 # for pairing with `uv pip install --torch-backend=auto -e ".[dev]"`.
 dev = [
@@ -297,6 +302,7 @@ monai-physio-fit-statistical-model-to-patient = "monai_physio.cli.fit_statistica
 monai-physio-train-physicsnemo = "monai_physio.cli.train_physicsnemo:main"
 monai-physio-infer-physicsnemo = "monai_physio.cli.infer_physicsnemo:main"
 monai-physio-reconstruct-highres-4d-ct = "monai_physio.cli.reconstruct_highres_4d_ct:main"
+monai-physio-view-meshes = "monai_physio.cli.view_meshes:main"
 monai-physio-visualize-pca-modes = "monai_physio.cli.visualize_pca_modes:main"
 
 [tool.setuptools.packages.find]

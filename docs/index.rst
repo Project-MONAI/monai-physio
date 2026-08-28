@@ -119,9 +119,9 @@
          <h3>CLI Workflows</h3>
          <p>Use production command-line workflows for conversion, reconstruction, modeling, and USD export.</p>
        </a>
-       <a class="mphysio-topic-card" href="viewing_usd.html">
-         <h3>Viewing USD Files</h3>
-         <p>Set up an Omniverse Kit app with RTX rendering and open the scenes the workflows produce.</p>
+       <a class="mphysio-topic-card" href="viewing_meshes.html">
+         <h3>Viewing Meshes and USD</h3>
+         <p>Preview VTP and USD in the browser, or use Omniverse Kit for full RTX rendering.</p>
        </a>
        <a class="mphysio-topic-card" href="cli_scripts/byod_tutorials.html">
          <h3>Bring Your Own Data</h3>
@@ -173,7 +173,7 @@ close every section.
    installation
    quickstart
    tutorials
-   viewing_usd
+   viewing_meshes
    cli_scripts/byod_tutorials
    architecture
 
