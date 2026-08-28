@@ -42,6 +42,9 @@ PhysicsNeMo and PyTorch Geometric::
     pip install "physiotwin4d[physicsnemo]"
     pip install torch-geometric
 
+A CUDA GPU is required; a CPU-only run is not a supported
+configuration.
+
 PhysicsNeMo Sym, which supplies ``PhysicsInformer``, ships inside
 ``nvidia-physicsnemo``; no separate install is needed.
 
@@ -233,7 +236,14 @@ if __name__ == "__main__":
 
     import torch
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # A GPU is assumed. Training this graph on a CPU is not a supported
+    # configuration, so say so now rather than after the data is loaded.
+    if not torch.cuda.is_available():
+        raise RuntimeError(
+            "No CUDA device is visible. Tutorials 16 to 18 assume a GPU; a "
+            "CPU-only run is not supported and would take days."
+        )
+    device = torch.device("cuda")
 
     def _train(
         weight_of_physics: float, output_directory: Path, label: str

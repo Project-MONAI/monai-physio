@@ -211,9 +211,11 @@ def test_the_symbolic_and_tensor_energies_agree() -> None:
         tets=tets, n_points=len(points), mu_kpa=_MU_KPA, lambda_lame_kpa=_LAMBDA_KPA
     )
     energy, incompressibility = motion(
-        torch.tensor(points, dtype=torch.float64),
-        torch.tensor(displacement, dtype=torch.float64),
-        torch.tensor(tet_volumes(points, tets)[1], dtype=torch.float64),
+        torch.tensor(points, dtype=torch.float64, device=motion.device),
+        torch.tensor(displacement, dtype=torch.float64, device=motion.device),
+        torch.tensor(
+            tet_volumes(points, tets)[1], dtype=torch.float64, device=motion.device
+        ),
     )
 
     residual = NeoHookeanResidual(_MU_KPA, _LAMBDA_KPA)
@@ -240,13 +242,18 @@ def test_the_physics_residual_is_trainable() -> None:
         tets=tets, n_points=len(points), mu_kpa=_MU_KPA, lambda_lame_kpa=_LAMBDA_KPA
     )
     displacement = torch.zeros(
-        (len(points), 3), dtype=torch.float64, requires_grad=True
+        (len(points), 3),
+        dtype=torch.float64,
+        device=motion.device,
+        requires_grad=True,
     )
 
     energy, incompressibility = motion(
-        torch.tensor(points, dtype=torch.float64),
+        torch.tensor(points, dtype=torch.float64, device=motion.device),
         displacement,
-        torch.tensor(tet_volumes(points, tets)[1], dtype=torch.float64),
+        torch.tensor(
+            tet_volumes(points, tets)[1], dtype=torch.float64, device=motion.device
+        ),
     )
     (energy + incompressibility).backward()
 
@@ -305,8 +312,10 @@ def test_inverted_elements_are_counted_during_training() -> None:
     motion = PhysicsInformedMotion(
         tets=tets, n_points=len(points), mu_kpa=_MU_KPA, lambda_lame_kpa=_LAMBDA_KPA
     )
-    reference = torch.tensor(points, dtype=torch.float64)
-    volumes = torch.tensor(tet_volumes(points, tets)[1], dtype=torch.float64)
+    reference = torch.tensor(points, dtype=torch.float64, device=motion.device)
+    volumes = torch.tensor(
+        tet_volumes(points, tets)[1], dtype=torch.float64, device=motion.device
+    )
 
     # A mild stretch: nothing inverts.
     motion(reference, 0.05 * reference, volumes)

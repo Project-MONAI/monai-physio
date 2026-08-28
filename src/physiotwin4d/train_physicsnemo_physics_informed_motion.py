@@ -301,7 +301,10 @@ class PhysicsInformedMotion(PhysioTwin4DBase):
         n_points: Node count of the template.
         mu_kpa: Shear modulus, in kilopascals.
         lambda_lame_kpa: First Lame parameter, in kilopascals.
-        device: Device the residual is evaluated on.
+        device: Device the residual is evaluated on.  Defaults to the GPU when
+            there is one, since this is the most expensive part of the loss and
+            has to sit where the predictions are.  Pass it explicitly when
+            training somewhere other than the default device.
         log_level: Logging level.  Default: ``logging.INFO``.
     """
 
@@ -323,7 +326,14 @@ class PhysicsInformedMotion(PhysioTwin4DBase):
         self.mu_kpa = mu_kpa
         self.lambda_lame_kpa = lambda_lame_kpa
         self.n_points = n_points
-        self._device = device if device is not None else torch.device("cpu")
+        # A GPU is assumed, so the residual goes there unless told otherwise:
+        # it is evaluated once per sample per step and is the most expensive
+        # part of the loss.
+        self._device = (
+            device
+            if device is not None
+            else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        )
 
         edges = torch.from_numpy(tet_edges(tets).astype(np.int64))
         node_ids = torch.arange(n_points).reshape(-1, 1)
@@ -345,15 +355,11 @@ class PhysicsInformedMotion(PhysioTwin4DBase):
         # Kept on the device and summed there, so counting inversions costs no
         # host synchronization in the training loop.
         self._inverted = torch.zeros((), dtype=torch.long, device=self._device)
-        if device is None:
-            self.log_warning(
-                "No device given, so the residual is built on the CPU. Training "
-                "on a GPU needs device= to match, or its tensors will not meet "
-                "the predictions."
-            )
         self.log_info(
-            "Neo-Hookean residual over %d elements (mu=%.3g kPa, lambda=%.3g kPa)",
+            "Neo-Hookean residual over %d elements on %s "
+            "(mu=%.3g kPa, lambda=%.3g kPa)",
             len(tets),
+            self._device,
             mu_kpa,
             lambda_lame_kpa,
         )

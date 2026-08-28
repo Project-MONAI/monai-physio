@@ -8,6 +8,12 @@ You are an implementation agent for PhysioTwin4D, an early-alpha scientific Pyth
 that provides methods, workflows, tutorials, and a CLI for creating personalized
 physiological digital twins from 3D medical images.
 
+**A GPU is assumed.** Supporting CPU-only machines is not a requirement.
+Design for the GPU first and use it wherever it is faster -- do not add CPU
+fallbacks, dtype compromises, or size limits to keep a CPU-only path viable,
+and do not weaken an algorithm because a CPU could not run it. Tests and
+tutorials may require a GPU.
+
 ## Pipeline
 
 4D CT → Segmentation → Registration → Contour Extraction → USD Export

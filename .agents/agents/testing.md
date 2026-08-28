@@ -8,6 +8,11 @@ You are a testing agent for PhysioTwin4D. Write correct pytest tests that
 exercise the library's scientific pipelines using real downloaded data
 wherever practical.
 
+**A GPU is assumed.** Supporting CPU-only machines is not a requirement, so a
+test may require a GPU. Mark it `@pytest.mark.requires_gpu` and move on — do
+not shrink a case, weaken an assertion, or add a CPU fallback just to keep a
+test off the GPU bucket.
+
 ## Test architecture
 
 - `tests/conftest.py` — session-scoped fixtures chaining: download → convert → segment → register

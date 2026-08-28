@@ -1515,6 +1515,7 @@ def _require_tutorial_17() -> Path:
     return weights_dir
 
 
+@pytest.mark.requires_gpu
 @pytest.mark.tutorial
 @pytest.mark.slow
 class TestTutorial16DukeHeartPhysicsInformedMotionPrep:
@@ -1562,6 +1563,7 @@ class TestTutorial16DukeHeartPhysicsInformedMotionPrep:
         )
 
 
+@pytest.mark.requires_gpu
 @pytest.mark.tutorial
 @pytest.mark.slow
 @pytest.mark.requires_physicsnemo
@@ -1589,6 +1591,7 @@ class TestTutorial17DukeHeartPhysicsInformedMotionTrain:
         )
 
 
+@pytest.mark.requires_gpu
 @pytest.mark.tutorial
 @pytest.mark.slow
 @pytest.mark.requires_physicsnemo

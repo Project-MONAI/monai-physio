@@ -14,8 +14,16 @@ break in the migration guide (see below).
 
 ## Role
 
-We are developing open-source code for scientific AI libraries. Leverage
-GPU-accelerated methods when appropriate.
+We are developing open-source code for scientific AI libraries.
+
+**A GPU is assumed.** Supporting CPU-only machines is not a requirement.
+Design for the GPU first and use it wherever it is faster — do not add CPU
+fallbacks, dtype compromises, or size limits to keep a CPU-only path viable,
+and do not weaken an algorithm because a CPU could not run it.
+
+It follows that tests and tutorials may require a GPU. Mark those that do with
+`@pytest.mark.requires_gpu` so the bucket stays honest, but do not contort a
+test to avoid the marker.
 
 ## Priorities
 

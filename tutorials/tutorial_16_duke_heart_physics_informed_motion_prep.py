@@ -40,6 +40,9 @@ Extra Install Required
 ----------------------
 None beyond the base install; Tutorial 17 is what needs PhysicsNeMo.
 
+A CUDA GPU is required.  Every registration below runs on one, and a
+CPU-only run is not a supported configuration.
+
 Data Required
 -------------
 Surfaces: Tutorial 4 (Duke Heart) output
@@ -248,6 +251,16 @@ if __name__ == "__main__":
     # Directory setup and data reading
     logging.basicConfig(level=log_level)
     logger = logging.getLogger(class_name)
+
+    # A GPU is assumed. Every registration, fit and network pass below runs on
+    # one, so fail here rather than hours into the cohort at the first call.
+    import torch
+
+    if not torch.cuda.is_available():
+        raise RuntimeError(
+            "No CUDA device is visible. Tutorials 16 to 18 assume a GPU; a "
+            "CPU-only run is not supported and would take days."
+        )
 
     output_dir.mkdir(parents=True, exist_ok=True)
     contour_tools = ContourTools(log_level=log_level)
