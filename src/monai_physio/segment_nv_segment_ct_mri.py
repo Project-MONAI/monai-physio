@@ -568,11 +568,18 @@ class SegmentNVSegmentCTMRI(SegmentAnatomyBase):
 
             self.log_warning(self.license_warning)
             self.log_info("Downloading %s (cached after first use)", self.hf_repo_id)
+            local_files_only = os.environ.get("HF_HUB_OFFLINE", "").upper() in {
+                "1",
+                "ON",
+                "YES",
+                "TRUE",
+            }
             self._snapshot_dir = snapshot_download(
                 repo_id=self.hf_repo_id,
                 revision=self.hf_revision,
                 cache_dir=self.model_cache_dir,
                 allow_patterns=list(self.hf_allow_patterns),
+                local_files_only=local_files_only,
             )
         return self._snapshot_dir
 
