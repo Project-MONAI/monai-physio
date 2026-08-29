@@ -12,7 +12,39 @@ break is recorded here in the commit that introduces it.
 At release time this file is renamed `migration_<version>.md` and a fresh
 `migration_next.md` is started for the next cycle.
 
-_No breaking changes recorded since 2026.08.0._
+## `WorkflowCreateStatisticalModel.inverse_transforms` — removed
+
+**Change:** the attribute is gone. `forward_transforms` is unaffected.
+
+**Why:** it was populated but never read — not by the workflow, nor by any
+tutorial, test or CLI in the repository. Each entry held a `CompositeTransform`
+owning dense full-grid displacement fields, so on a cohort of a few dozen
+samples the list retained gigabytes of host memory for the life of the workflow.
+That was enough, on a memory-capped Linux host, to get the process killed by the
+OOM killer partway through building a shape model. Removing it roughly halves
+the workflow's peak memory and costs nothing, because the value had no consumer.
+
+Callers that genuinely need the inverse of a correspondence can invert the
+matching `forward_transforms` entry with `itk.Transform.GetInverse`, which
+computes it on demand rather than holding one per sample for the whole run.
+
+**Before**
+
+```python
+workflow.process()
+inverse = workflow.inverse_transforms[index]
+```
+
+**After**
+
+```python
+workflow.process()
+inverse = itk.CompositeTransform[itk.D, 3].New()
+workflow.forward_transforms[index].GetInverse(inverse)
+```
+
+**Automated conversion:** `None needed` — no caller in the repository, the
+tutorials, the tests or the CLI referenced the attribute.
 
 ## Entry template
 

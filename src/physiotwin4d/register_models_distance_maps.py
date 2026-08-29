@@ -489,9 +489,43 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
             "%s distance-map-based registration complete.", transform_type.upper()
         )
 
+        self._release_intermediates()
+
         # Return results as dictionary
         return {
             "forward_transform": self.forward_transform,
             "inverse_transform": self.inverse_transform,
             "registered_model": self.registered_model,
         }
+
+    def _release_intermediates(self) -> None:
+        """Drop the working images once the result no longer depends on them.
+
+        A registration builds four full-grid images here and hands two more
+        preprocessed copies plus a pair of dense transforms to each sub-registrar.
+        Together that is close to a gigabyte, held for as long as this object
+        lives -- and callers construct one of these per frame, so with a cohort
+        of any size the peak is set by how much is still reachable rather than by
+        how much any one registration needs.
+
+        Only the working set goes.  ``forward_transform``, ``inverse_transform``
+        and ``registered_model`` are the result and are left alone.
+        """
+        self.fixed_distance_map_image = None
+        self.moving_distance_map_image = None
+        self.fixed_mask_image = None
+        self.moving_mask_image = None
+        for registrar in (self.registrar_Greedy, self.registrar_ICON):
+            registrar.fixed_image = None
+            registrar.fixed_image_pre = None
+            registrar.fixed_mask = None
+            registrar.fixed_labelmap = None
+            registrar.moving_image = None
+            registrar.moving_image_pre = None
+            registrar.moving_mask = None
+            registrar.moving_labelmap = None
+            registrar.moving_image_registered = None
+            # The composed result above no longer refers to these, and each is a
+            # dense field on the reference grid.
+            registrar.forward_transform = None
+            registrar.inverse_transform = None

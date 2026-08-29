@@ -917,7 +917,6 @@ class KnownAffineCase:
 
     def __init__(
         self,
-        fixed_image: itk.Image,
         rotation_degrees: tuple[float, float, float] = (2.0, 1.0, 3.0),
         translation_mm: tuple[float, float, float] = (4.0, -3.0, 2.0),
         origin_offset_mm: tuple[float, float, float] = (0.0, 0.0, 0.0),
@@ -925,17 +924,15 @@ class KnownAffineCase:
         """Build the pair.
 
         Args:
-            fixed_image: Image used as the registration target.
             rotation_degrees: Rotation about each axis, applied about the image
                 centroid. Different per axis so an axis swap cannot pass.
             translation_mm: Translation applied after the rotation.
-            origin_offset_mm: Added to the image origin before anything else,
-                moving the data in world space without touching a voxel. Use it
-                to place the grid far from the world origin.
+            origin_offset_mm: Placed the grid's origin here, moving the data in
+                world space. Use it to sit far from the world origin.
         """
         self.transform_tools = TransformTools()
 
-        self.fixed = self._offset_origin(fixed_image, origin_offset_mm)
+        self.fixed = self._synthetic_volume(origin_offset_mm)
         self.origin_offset_mm = origin_offset_mm
 
         size = itk.size(self.fixed)
@@ -969,17 +966,24 @@ class KnownAffineCase:
         )
 
     @staticmethod
-    def _offset_origin(
-        image: itk.Image, offset_mm: tuple[float, float, float]
-    ) -> itk.Image:
-        """Return *image* with its origin moved, leaving every voxel untouched."""
-        if not any(offset_mm):
-            return image
-        moved = itk.GetImageFromArray(itk.array_from_image(image))
-        moved.CopyInformation(image)
-        origin = np.asarray(list(image.GetOrigin())) + np.asarray(offset_mm)
-        moved.SetOrigin(origin.tolist())
-        return moved
+    def _synthetic_volume(origin_mm: tuple[float, float, float]) -> itk.Image:
+        """Return a blocky test volume whose origin sits at *origin_mm*.
+
+        Synthetic rather than a real scan on purpose. The question here is only
+        whether recovery depends on distance from the world origin, and a real
+        cardiac volume answers it unreliably: Greedy's optimizer sometimes fails
+        outright on one (``vnl_lbfgs`` reports a Netlib failure and the recovered
+        affine is off by more than a hundred millimeters), which swamps the
+        millimeter-scale effect being measured. A high-contrast block converges
+        every time, so a failure here means what the assertion says it means.
+        """
+        volume = np.zeros((70, 70, 70), dtype=np.float32)
+        volume[15:55, 15:55, 15:55] = 400.0
+        volume[25:45, 20:50, 22:48] = 900.0
+        image = itk.GetImageFromArray(volume)
+        image.SetSpacing([1.5, 1.5, 1.5])
+        image.SetOrigin(list(origin_mm))
+        return image
 
     @staticmethod
     def _rotation_matrix(degrees: tuple[float, float, float]) -> np.ndarray:
@@ -1039,16 +1043,16 @@ class KnownAffineCase:
 
 
 @pytest.fixture(scope="session")
-def known_affine_case_near_origin(test_images: list[Any]) -> KnownAffineCase:
+def known_affine_case_near_origin() -> KnownAffineCase:
     """A known rotation plus translation, on a grid near the world origin."""
-    return KnownAffineCase(test_images[0])
+    return KnownAffineCase()
 
 
 @pytest.fixture(scope="session")
-def known_affine_case_far_from_origin(test_images: list[Any]) -> KnownAffineCase:
+def known_affine_case_far_from_origin() -> KnownAffineCase:
     """The same known affine, on a grid at ``z ~ 1800 mm``.
 
     This is where the Duke heart cohort lives, and where an origin-based reading
     of the linear block differs from a data-centered one by tens of millimeters.
     """
-    return KnownAffineCase(test_images[0], origin_offset_mm=(0.0, 0.0, 1800.0))
+    return KnownAffineCase(origin_offset_mm=(0.0, 0.0, 1800.0))

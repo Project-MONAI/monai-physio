@@ -18,6 +18,58 @@ CUDA Out of Memory
 2. Use ``--registration-method Greedy`` when CUDA is unavailable.
 3. Process fewer frames per run.
 
+Process Killed During Registration (Host Out of Memory)
+-------------------------------------------------------
+
+**Problem**: a run stops with a bare ``Killed`` and no traceback, typically just
+after a line of ICON finetuning output:
+
+.. code-block:: text
+
+   ICONLoss(all_loss=tensor(1.0676, device='cuda:0', ...), ...)
+   Killed
+
+**Cause**: the Linux OOM killer, not CUDA. A GPU shortage raises a catchable
+``RuntimeError: CUDA out of memory`` with a Python traceback; ``Killed`` is the
+shell reporting that the kernel sent ``SIGKILL`` because the machine ran out of
+*host* RAM.
+
+Confirm it, and see how much was in use at the time:
+
+.. code-block:: bash
+
+   dmesg | grep -i "killed process"
+
+Read ``anon-rss`` in that line. It is the process's own heap; if ``file-rss`` is
+near zero the memory was genuinely allocated, rather than reclaimable file cache.
+
+**Cause on WSL2**: WSL2 caps its virtual machine at **half the host's RAM** by
+default, so a 128 GB machine gives Linux only about 64 GB and the OOM killer
+fires at that ceiling rather than at the physical limit. Check what Linux
+actually sees:
+
+.. code-block:: bash
+
+   grep MemTotal /proc/meminfo
+
+**Solutions**:
+
+1. On WSL2, raise the ceiling in the Windows-side ``.wslconfig`` (in your user
+   profile directory), then run ``wsl --shutdown`` and restart the
+   distribution:
+
+   .. code-block:: ini
+
+      [wsl2]
+      memory=112GB
+      swap=32GB
+
+2. Process fewer cases or frames per run. The cohort workflows cache every
+   artifact they write, so a re-run resumes where it stopped rather than
+   starting over.
+3. Coarsen the registration grid, which sets the size of the distance maps and
+   displacement fields held during a registration.
+
 CUDA Version Mismatch
 ---------------------
 

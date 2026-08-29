@@ -303,19 +303,24 @@ class RegisterImagesICON(RegisterImagesBase):
         """
         if self.net is not None:
             return
+
+        # Built per instance, and callers construct a registrar per frame, so a
+        # cohort run rebuilds this hundreds of times -- four 3D U-Nets on the
+        # CPU, a second host copy of the checkpoint, and recursive identity maps
+        # each time.  Sharing one network across registrars was measured and
+        # rejected: ``finetune_execute`` restores the weights it started from,
+        # but a reused network still disagreed with a freshly built one by
+        # 0.009 mm against a 0.003 mm run-to-run nondeterminism floor, so the
+        # restore is not complete.  The difference is small, but it is
+        # systematic, and correctness of the registration is not the place to
+        # spend it to save memory.
         icon, _, _, _, get_multigradicon, get_unigradicon, _ = _load_icon()
-        if self.use_multi_modality:
-            self.net = get_multigradicon(
-                loss_fn=icon.LNCC(sigma=5),
-                apply_intensity_conservation_loss=self.use_mass_preservation,
-                weights_location=self.weights_path,
-            )
-        else:
-            self.net = get_unigradicon(
-                loss_fn=icon.LNCC(sigma=5),
-                apply_intensity_conservation_loss=self.use_mass_preservation,
-                weights_location=self.weights_path,
-            )
+        build = get_multigradicon if self.use_multi_modality else get_unigradicon
+        self.net = build(
+            loss_fn=icon.LNCC(sigma=5),
+            apply_intensity_conservation_loss=self.use_mass_preservation,
+            weights_location=self.weights_path,
+        )
 
     def _image_to_resized_tensor(
         self, image: itk.Image, shape: "torch.Size"
