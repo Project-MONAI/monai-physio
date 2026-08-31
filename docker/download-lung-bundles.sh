@@ -8,7 +8,7 @@ cache_dir="$repo_root/.cache/monai-physio"
 container_root="/workspace/monai-physio"
 image="${MONAI_PHYSIO_IMAGE:-monai-physio:tutorials}"
 bundle_repo="${LUNG_BUNDLE_REPO:-maximilianofir/physioMotionWorkshop}"
-bundle_revision="${LUNG_BUNDLE_REVISION:-459c538385d36eb2ebb7a92bb0086494ee2ebdcf}"
+bundle_revision="${LUNG_BUNDLE_REVISION:-a6127dd1d2e27c5b59ed3a81c5b4e7490b4bd1bf}"
 
 if [[ -z "${HF_TOKEN:-}" ]]; then
     echo "HF_TOKEN is required to download the private workshop bundles" >&2
@@ -36,3 +36,19 @@ docker run --rm \
         --revision "$bundle_revision" \
         --profile course \
         --profile offline-segmentation
+
+chest_ct_file="$repo_root/data/Chest-CT/Chest-CT.mha"
+if [[ -s "$chest_ct_file" ]]; then
+    echo "Reusing the public Chest-CT input at $chest_ct_file"
+else
+    echo "Downloading the public Chest-CT input for Tutorial 7..."
+    docker run --rm \
+        --user "$(id -u):$(id -g)" \
+        --volume "$repo_root:$container_root" \
+        --volume "$cache_dir:/cache" \
+        --workdir "$container_root" \
+        --env HOME=/cache/home \
+        --env XDG_CACHE_HOME=/cache/xdg \
+        "$image" \
+        monai-physio-download-data Chest-CT --directory data/Chest-CT
+fi
