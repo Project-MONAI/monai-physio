@@ -367,6 +367,48 @@ def test_a_residual_on_the_wrong_device_is_refused() -> None:
     method._require_matching_device(cpu_context)
 
 
+def test_a_residual_on_another_gpu_is_refused() -> None:
+    """Two GPUs are as incompatible as a GPU and a CPU, and must be caught too.
+
+    Under distributed training each rank owns one GPU, so a residual built on
+    cuda:0 cannot serve a rank predicting on cuda:1. Comparing only the device
+    *type* would wave that through and leave it to fail deep inside the gradient
+    reconstruction.
+
+    The converse also has to hold: ``torch.device("cuda")`` carries no index and
+    compares unequal to ``cuda:0``, so a check that ignored that would reject a
+    perfectly matched pair. No CUDA is needed -- devices are compared, never
+    allocated on -- beyond resolving the index-less form, which is skipped when
+    no GPU is present.
+    """
+    import torch
+
+    from physiotwin4d.physicsnemo_tools import DistributedContext
+    from physiotwin4d.train_physicsnemo_physics_informed_motion import (
+        TrainPhysicsNeMoPhysicsInformedMotion,
+    )
+
+    class _ResidualOn:
+        """Stands in for a residual whose tensors live on one specific GPU."""
+
+        def __init__(self, device: "torch.device") -> None:
+            self.device = device
+
+    method = TrainPhysicsNeMoPhysicsInformedMotion()
+
+    def context_on(device: "torch.device") -> DistributedContext:
+        return DistributedContext(device=device, rank=0, local_rank=0, world_size=1)
+
+    method._residual = cast(Any, _ResidualOn(torch.device("cuda", 0)))
+    with pytest.raises(ValueError, match="cannot meet the predictions"):
+        method._require_matching_device(context_on(torch.device("cuda", 1)))
+
+    # Same GPU named two ways must still be accepted.
+    method._require_matching_device(context_on(torch.device("cuda", 0)))
+    if torch.cuda.is_available() and torch.cuda.current_device() == 0:
+        method._require_matching_device(context_on(torch.device("cuda")))
+
+
 def test_the_epoch_log_separates_the_two_loss_terms() -> None:
     """The data and physics terms are reported apart, then reset.
 

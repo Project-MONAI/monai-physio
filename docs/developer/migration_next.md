@@ -40,8 +40,12 @@ inverse = workflow.inverse_transforms[index]
 ```python
 workflow.process()
 inverse = itk.CompositeTransform[itk.D, 3].New()
-workflow.forward_transforms[index].GetInverse(inverse)
+if not workflow.forward_transforms[index].GetInverse(inverse):
+    raise RuntimeError(f"Correspondence transform {index} is not invertible")
 ```
+
+``GetInverse`` returns whether it succeeded rather than raising, and leaves
+*inverse* unusable when it does not, so the result has to be checked.
 
 **Automated conversion:** `None needed` — no caller in the repository, the
 tutorials, the tests or the CLI referenced the attribute.

@@ -51,6 +51,26 @@ if TYPE_CHECKING:  # typed for mypy; imported lazily at runtime
 #: trainable rather than fatal.
 _MIN_JACOBIAN = 1.0e-6
 
+
+def _resolved_device(device: "torch.device") -> "torch.device":
+    """Return *device* with its CUDA index filled in.
+
+    ``torch.device("cuda")`` carries no index and compares unequal to
+    ``cuda:0``, even though a tensor allocated on it lands there.  Comparing
+    devices without resolving that would reject a matched pair, while comparing
+    only their types would accept ``cuda:0`` against ``cuda:1`` -- a real
+    mismatch under distributed training, where each rank owns one GPU.
+    """
+    import torch
+
+    # torch's stubs declare ``index`` as ``int``, so mypy reads the branch below
+    # as dead; at runtime ``torch.device("cuda").index`` really is None.
+    index: Optional[int] = device.index
+    if device.type == "cuda" and index is None:
+        return torch.device("cuda", torch.cuda.current_device())
+    return device
+
+
 #: The six node pairs spanning a tetrahedron's edges.
 _TET_EDGE_PAIRS = ((0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3))
 
@@ -371,8 +391,12 @@ class PhysicsInformedMotion(PhysioTwin4DBase):
         Fixed at construction: ``PhysicsInformer`` is given the device when its
         graph is compiled, so the residual cannot be moved afterwards. The
         trainer checks this against the device it predicts on.
+
+        Read from a tensor the residual actually owns, so the CUDA index is
+        concrete even when the caller passed an index-less
+        ``torch.device("cuda")``.
         """
-        return self._device
+        return self._inverted.device
 
     @property
     def inverted_element_count(self) -> int:
@@ -578,10 +602,14 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
         """
         if self._residual is None:
             return
-        if self._residual.device.type != context.device.type:
+        # Full identity, not just the type: under distributed training each rank
+        # owns one GPU, so a residual on cuda:0 is as unusable to a rank
+        # training on cuda:1 as one left on the CPU would be.
+        training_device = _resolved_device(context.device)
+        if self._residual.device != training_device:
             raise ValueError(
                 f"The physics residual was built on {self._residual.device} but "
-                f"training runs on {context.device}; its connectivity and "
+                f"training runs on {training_device}; its connectivity and "
                 "symbolic graph cannot meet the predictions. Pass "
                 "device=<training device> when constructing "
                 "PhysicsInformedMotion."
