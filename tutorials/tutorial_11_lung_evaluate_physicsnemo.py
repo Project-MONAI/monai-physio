@@ -40,13 +40,8 @@ the lobes and the ground truth.
 Data Required
 -------------
   * ``data/TCIA-4DLung/<case>/<case>_g0??.nii.gz``  - the gated CT sequence
-  * ``output/tutorial_08_lung/<case>/``  - Tutorial 8 fit + phase transforms
+  * ``output/tutorial_08_lung/<case>/``  - Tutorial 8 SSM surface + coefficients
   * ``network_weights/physicsnemo_mgn_lung_motion/`` - Tutorial 9 checkpoint
-
-The Tutorial 8 anatomy is automatically refitted to the PCA domain bundled
-with the checkpoint and cached under
-``output/tutorial_08_lung_checkpoint/<case>/``. The original Tutorial 6 and 8
-outputs are not overwritten.
 
 Outputs (under ``output/tutorial_11_lung/<case>/``)
 ---------------------------------------------------
@@ -71,7 +66,6 @@ from typing import Any, Optional, cast
 
 import itk
 import pyvista as pv
-from lung_mgn_checkpoint_tools import prepare_checkpoint_compatible_lung_case
 from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
@@ -91,8 +85,6 @@ from monai_physio import (
 if __name__ == "__main__":
     # Data directory specification
     repo_root = Path(__file__).resolve().parent.parent
-    test_mode = ProcessTests.running_as_test()
-    output_root = TCIA_4D_LUNG.output_directory(test_mode)
 
     class_name = "tutorial_11_lung_evaluate_physicsnemo"
 
@@ -102,8 +94,10 @@ if __name__ == "__main__":
     # the predicted deformations carry into every other phase.
     reference_phase = "g070"
 
-    # Fitted anatomy and respiratory transforms written by Tutorial 8 (lung).
-    source_case_dir = output_root / "tutorial_08_lung" / case_id
+    # Fitted SSM surface and PCA coefficients written by Tutorial 8 (lung).
+    test_mode = ProcessTests.running_as_test()
+    # Keep a test run out of the directories a full run reads and writes.
+    case_dir = TCIA_4D_LUNG.output_directory(test_mode) / "tutorial_08_lung" / case_id
     # Weights Tutorial 9 trained, and the checkpoint epoch Tutorial 10 infers
     # with; None uses the final weights.
     model_dir = TCIA_4D_LUNG.mgn_weights_directory(test_mode)
@@ -129,15 +123,7 @@ if __name__ == "__main__":
     # in the wrong direction cannot hide in, and it costs one mesh read a phase.
     include_displacement_error = True
 
-    icon_distancemap_weights_path = (
-        TCIA_4D_LUNG.weights_directory(test_mode)
-        / "icon_tcia_4dlung_distancemap"
-        / "icon_tcia_4dlung_distancemap_model"
-        / "checkpoints"
-        / "network_weights_final.trch"
-    )
-
-    output_dir = output_root / "tutorial_11_lung" / case_id
+    output_dir = TCIA_4D_LUNG.output_directory(test_mode) / "tutorial_11_lung" / case_id
     ground_truth_dir = output_dir / "ground_truth"
     log_level = logging.INFO
 
@@ -150,22 +136,13 @@ if __name__ == "__main__":
 
     ground_truth_dir.mkdir(parents=True, exist_ok=True)
 
-    compatible_case = prepare_checkpoint_compatible_lung_case(
-        source_case_dir=source_case_dir,
-        model_dir=model_dir,
-        output_dir=(output_root / "tutorial_08_lung_checkpoint" / case_id),
-        mask_dilation_mm=TCIA_4D_LUNG.mask_dilation_mm,
-        distancemap_squared_max=TCIA_4D_LUNG.distancemap_squared_max,
-        icon_weights_path=icon_distancemap_weights_path,
-        log_level=log_level,
-    )
-    fitted_reference_mesh_file = compatible_case.reference_mesh
-    pca_file = compatible_case.pca_coefficients
+    fitted_reference_mesh_file = case_dir / f"{case_id}_ssm_surface.vtp"
+    pca_file = case_dir / f"{case_id}_ssm_pca_coefficients.json"
     for required_file in (fitted_reference_mesh_file, pca_file):
         if not required_file.exists():
             raise FileNotFoundError(
-                f"Checkpoint-compatible Tutorial 8 output not found: "
-                f"{required_file}"
+                f"Tutorial 8 output not found: {required_file}\n"
+                "Run tutorials/tutorial_08_lung_fit_model_to_4d_patients.py first."
             )
 
     # Step 1: the cohort assembles what this case is scored against.  Every
@@ -180,7 +157,7 @@ if __name__ == "__main__":
     ground_truth = cohort.assemble_ground_truth(
         case_id=case_id,
         frame_directory=data_dir,
-        fit_directory=output_root / "tutorial_08_lung_checkpoint" / case_id,
+        fit_directory=case_dir,
         cache_directory=ground_truth_dir,
     )
 
