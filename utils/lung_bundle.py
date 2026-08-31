@@ -17,7 +17,7 @@ from typing import Any, Optional, Sequence
 
 BUNDLE_FORMAT_VERSION = 1
 DEFAULT_REPO_ID = "maximilianofir/physioMotionWorkshop"
-DEFAULT_REVISION = "459c538385d36eb2ebb7a92bb0086494ee2ebdcf"
+DEFAULT_REVISION = "a6127dd1d2e27c5b59ed3a81c5b4e7490b4bd1bf"
 NV_SEGMENT_REVISION = "4fb8b4a6b2532be9f1c449a3726fe5440ab4213a"
 
 COURSE_PATTERNS = (
@@ -35,18 +35,15 @@ COURSE_PATTERNS = (
     "tutorials/output/tutorial_08_lung/Case1Pack/Case1Pack_ssm_surface.vtp",
     "tutorials/output/tutorial_08_lung/Case1Pack/"
     "Case1Pack_ssm_pca_coefficients.json",
-    "tutorials/output/tutorial_08_lung/Case1Pack/" "Case1Pack_T??_forward_tfm.hdf",
+    "tutorials/output/tutorial_08_lung/Case1Pack/Case1Pack_T??_ssm_surface.vtp",
     "tutorials/output/tutorial_08_lung/Case2Pack/Case2Pack_ssm_surface.vtp",
     "tutorials/output/tutorial_08_lung/Case2Pack/"
     "Case2Pack_ssm_pca_coefficients.json",
+    "tutorials/output/tutorial_08_lung/Case2Pack/Case2Pack_T??_ssm_surface.vtp",
     "tutorials/output/tutorial_08_lung/Case3Pack/Case3Pack_ssm_surface.vtp",
     "tutorials/output/tutorial_08_lung/Case3Pack/"
     "Case3Pack_ssm_pca_coefficients.json",
-    "tutorials/output/tutorial_08_lung_checkpoint/Case1Pack/**/*",
-    "tutorials/output/tutorial_09_lung_mgn/manifests_mgn/"
-    "Case[123]Pack_manifest.json",
-    "tutorials/output/tutorial_09_lung_mgn/manifests_mgn/"
-    "Case[123]Pack_T??_ssm_surface_target.vtp",
+    "tutorials/output/tutorial_08_lung/Case3Pack/Case3Pack_T??_ssm_surface.vtp",
     "tutorials/network_weights/physicsnemo_mgn_lung_motion/" "mgn_stage_model.pt",
     "tutorials/network_weights/physicsnemo_mgn_lung_motion/"
     "mgn_stage_model_metadata.json",

@@ -46,8 +46,9 @@ roughly 4 hours for the 1500 epochs below. Lower ``batch_size``, or call
 ``training_method.set_num_processor_checkpoint_segments(...)`` to trade compute
 for memory, on a smaller card.
 
-For the course-safe wiring check, reuse the prepared manifests and supplied
-checkpoint without creating an optimizer or writing any files::
+For the course-safe wiring check, refresh the manifests and targets from
+Tutorial 8, then use the supplied checkpoint without creating an optimizer or
+writing model weights::
 
     python tutorials/tutorial_09_lung_train_physicsnemo_mgn.py --smoke-test
 
@@ -204,17 +205,6 @@ def _write_case_manifest(
     return manifest_path
 
 
-def _existing_case_manifest(
-    case_dir: Path, manifests_dir: Path, logger: logging.Logger
-) -> Optional[Path]:
-    """Return a prepared manifest path without regenerating any training data."""
-    manifest_path = manifests_dir / f"{case_dir.name}_manifest.json"
-    if not manifest_path.exists():
-        logger.warning("Skipping %s: missing %s", case_dir.name, manifest_path)
-        return None
-    return manifest_path
-
-
 def _run_no_save_smoke(
     train_workflow: WorkflowTrainPhysicsNeMo,
     training_method: TrainPhysicsNeMoMGN,
@@ -296,7 +286,7 @@ def _run_no_save_smoke(
         "peak_gpu_gib": peak_gpu_gib,
         "checkpoint_sha256": checksum_after,
         "optimizer_created": False,
-        "files_written": False,
+        "checkpoint_written": False,
     }
     train_workflow.log_info(
         "Smoke test PASS - samples=%d, points=%d, edges=%d, in_features=%d, "
@@ -329,8 +319,9 @@ if __name__ == "__main__":
         "--smoke-test",
         action="store_true",
         help=(
-            "Reuse prepared manifests and the supplied checkpoint for one "
-            "forward/backward batch; create no optimizer and write no files."
+            "Refresh manifests and targets from Tutorial 8, then use the "
+            "supplied checkpoint for one forward/backward batch; create no "
+            "optimizer and write no model weights."
         ),
     )
     args = parser.parse_args()
@@ -392,11 +383,7 @@ if __name__ == "__main__":
     # so match on "Case*" to avoid silently dropping it.
     manifests: dict[str, Path] = {}
     for case_dir in sorted(p for p in data_dir.glob("Case*") if p.is_dir()):
-        manifest_path = (
-            _existing_case_manifest(case_dir, manifests_dir, logger)
-            if args.smoke_test
-            else _write_case_manifest(case_dir, manifests_dir, logger)
-        )
+        manifest_path = _write_case_manifest(case_dir, manifests_dir, logger)
         if manifest_path is not None:
             manifests[case_dir.name] = manifest_path
 
@@ -459,7 +446,7 @@ if __name__ == "__main__":
         }
         logger.info(
             "Held-out inference skipped in smoke mode; Tutorials 10 and 11 use "
-            "the supplied checkpoint-compatible evaluation cache."
+            "the supplied checkpoint."
         )
         raise SystemExit(0)
 
