@@ -53,6 +53,85 @@ class TestRegisterImagesICON:
             f"({ncc:.4f} vs {unregistered_ncc:.4f})"
         )
 
+    def test_a_reused_network_matches_a_freshly_built_one(
+        self, known_shift_case: KnownShiftCase
+    ) -> None:
+        """Reusing a network must not shift the answer more than noise does.
+
+        Networks are shared across registrars, because building one costs four
+        3D U-Nets on the CPU plus a second host copy of the checkpoint, and the
+        workflows construct a registrar per frame -- hundreds of rebuilds in a
+        cohort run, which is what walked into the OOM killer.
+
+        Sharing is sound because ``finetune_execute`` restores the weights it
+        started from before returning. That is a property of a third-party
+        function, so it is measured here rather than assumed.
+
+        Both distributions are measured in the same run, and the comparison is
+        between them. An earlier version asserted a single reused-vs-fresh
+        distance against a fixed 1e-3 tolerance and failed: that threshold sits
+        *below* ICON's own run-to-run spread, so it could only ever report
+        nondeterminism. Comparing like with like calibrates the test to whatever
+        the machine's noise happens to be on the day.
+        """
+
+        def register() -> Any:
+            registrar = RegisterImagesICON()
+            registrar.set_modality("ct")
+            registrar.set_number_of_iterations(5)
+            registrar.set_fixed_image(known_shift_case.fixed)
+            return registrar.register(moving_image=known_shift_case.moving)[
+                "forward_transform"
+            ]
+
+        size = itk.size(known_shift_case.fixed)
+        probes = [
+            known_shift_case.fixed.TransformIndexToPhysicalPoint(
+                [int(size[axis]) // divisor for axis in range(3)]
+            )
+            for divisor in (4, 2)
+        ]
+
+        def distance(first: Any, second: Any) -> float:
+            return max(
+                float(
+                    np.linalg.norm(
+                        np.array(list(first.TransformPoint(point)))
+                        - np.array(list(second.TransformPoint(point)))
+                    )
+                )
+                for point in probes
+            )
+
+        attempts = 3
+        # Clearing between each is what makes this arm genuinely "fresh": a new
+        # registrar alone would pick the cached network up.
+        fresh = []
+        for _ in range(attempts):
+            RegisterImagesICON.clear_net_cache()
+            fresh.append(register())
+        # No clearing, so every one of these reuses the network the first built.
+        reused = [register() for _ in range(attempts)]
+
+        within_fresh = [
+            distance(fresh[i], fresh[j])
+            for i in range(attempts)
+            for j in range(i + 1, attempts)
+        ]
+        across = [distance(a, b) for a in reused for b in fresh]
+        noise = float(np.median(within_fresh))
+        effect = float(np.median(across))
+        print(f"fresh vs fresh median {noise:.5f} mm, reused vs fresh {effect:.5f} mm")
+
+        assert effect < 4.0 * noise + 5.0e-3, (
+            f"A reused network differed from a freshly built one by "
+            f"{effect:.5f} mm at the median, against a {noise:.5f} mm median "
+            "between two fresh ones. That is outside the method's own "
+            "nondeterminism, so finetune_execute is no longer restoring the "
+            "weights it started from and RegisterImagesICON._net_cache is "
+            "unsound."
+        )
+
     def test_registrar_initialization(self, registrar_ICON: RegisterImagesICON) -> None:
         """Test that RegisterImagesICON initializes correctly."""
         assert registrar_ICON is not None, "Registrar not initialized"

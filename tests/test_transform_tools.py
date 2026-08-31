@@ -149,6 +149,110 @@ def test_generate_grid_image_clamps_boundary_lines() -> None:
     assert grid_arr[0, 0, 0] == 5.0
 
 
+def _small_reference_image() -> itk.Image:
+    """Return a small grid to compose against."""
+    image = itk.Image[itk.F, 3].New()
+    region = itk.ImageRegion[3]()
+    region.SetSize([40, 40, 40])
+    image.SetRegions(region)
+    image.SetSpacing([2.0, 2.0, 2.0])
+    image.SetOrigin([-40.0, -40.0, -40.0])
+    image.Allocate()
+    image.FillBuffer(0)
+    return image
+
+
+def _affine_and_translation() -> tuple[Any, Any]:
+    """Return two transforms whose composition is not the identity."""
+    affine = itk.AffineTransform[itk.D, 3].New()
+    affine.SetMatrix(
+        itk.GetMatrixFromArray(
+            np.array([[1.02, 0.01, 0.0], [0.0, 0.99, 0.02], [0.01, 0.0, 1.01]])
+        )
+    )
+    offset = itk.Vector[itk.D, 3]()
+    for index, value in enumerate((1.5, -2.0, 0.75)):
+        offset[index] = value
+    affine.SetTranslation(offset)
+
+    translation = itk.TranslationTransform[itk.D, 3].New()
+    translation.SetOffset([0.6, -0.4, 0.9])
+    return affine, translation
+
+
+def test_composing_at_unit_weight_chains_the_inputs_instead_of_rasterizing() -> None:
+    """Composing with nothing to apply must not build a displacement field.
+
+    A CompositeTransform chains its members lazily, so rasterizing them first
+    only reproduces what it would compute anyway -- less accurately, since
+    sampling onto a grid and interpolating back adds error that evaluating the
+    originals does not.
+
+    It is also what dominated memory. The distance-map caller composes on a grid
+    padded to 2.5 * mask_dilation_mm per side; on the lung chest CT that is
+    758 x 758 x 664, where one ``Vector<double, 3>`` field is 9.2 GB, and both
+    directions together retained 36.6 GB to hold what is really an affine plus a
+    175-cubed field.
+    """
+    transform_tools = TransformTools()
+    affine, translation = _affine_and_translation()
+
+    composed = transform_tools.combine_displacement_field_transforms(
+        affine, translation, reference_image=_small_reference_image(), mode="compose"
+    )
+
+    # The members are the inputs themselves, not fields sampled from them.
+    # Every ITK transform surfaces in Python as ``itkTransformD33``, so
+    # ``isinstance`` cannot tell them apart and would pass vacuously here;
+    # ``GetNameOfClass`` is what actually discriminates.
+    assert composed.GetNumberOfTransforms() == 2
+    members = [
+        composed.GetNthTransform(index).GetNameOfClass()
+        for index in range(composed.GetNumberOfTransforms())
+    ]
+    assert members == ["AffineTransform", "TranslationTransform"], (
+        f"Composing at unit weight should chain the inputs unchanged, got {members}"
+    )
+
+    expected = itk.CompositeTransform[itk.D, 3].New()
+    expected.AddTransform(affine)
+    expected.AddTransform(translation)
+    for point in (
+        [-20.0, -10.0, 5.0],
+        [0.0, 0.0, 0.0],
+        [15.0, 20.0, -25.0],
+        [30.0, -30.0, 30.0],
+    ):
+        got = np.array(list(composed.TransformPoint(point)))
+        want = np.array(list(expected.TransformPoint(point)))
+        assert np.allclose(got, want, atol=1e-9), (
+            f"Chained composition disagreed with an explicit CompositeTransform "
+            f"at {point}: {got} vs {want}"
+        )
+
+
+def test_composing_with_a_weight_or_a_blur_still_rasterizes() -> None:
+    """Weighting and blurring need the field, so those keep the sampling path.
+
+    This is the half of the branch the existing callers rely on: scaling or
+    smoothing a transform cannot be expressed by chaining it unchanged.
+    """
+    transform_tools = TransformTools()
+    affine, translation = _affine_and_translation()
+    reference = _small_reference_image()
+
+    for description, kwargs in (
+        ("a non-unit weight", {"tfm2_weight": 0.5}),
+        ("a blur", {"tfm2_blur_sigma": 0.5}),
+    ):
+        composed = transform_tools.combine_displacement_field_transforms(
+            affine, translation, reference_image=reference, mode="compose", **kwargs
+        )
+        assert (
+            composed.GetNthTransform(1).GetNameOfClass() == "DisplacementFieldTransform"
+        ), f"Composing with {description} must still build a displacement field"
+
+
 @pytest.mark.slow
 class TestTransformTools:
     """Test suite for TransformTools functionality."""

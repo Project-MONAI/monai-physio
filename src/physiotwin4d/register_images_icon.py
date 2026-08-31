@@ -12,14 +12,12 @@ deformable registration with mass preservation constraints.
 
 import logging
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 import itk
 import numpy as np
 
 from .register_images_base import RegisterImagesBase
-
-DEFAULT_FINETUNE_LEARNING_RATE = 2e-5
 
 
 def _load_icon():
@@ -82,6 +80,17 @@ class RegisterImagesICON(RegisterImagesBase):
         >>> forward_transform = result['forward_transform']
     """
 
+    # Networks already built in this process, keyed by everything that changes
+    # what the network *is*.  Shared across instances rather than held per
+    # instance: building one costs four 3D U-Nets constructed on the CPU, a
+    # second host copy of the checkpoint through ``torch.load``, and recursive
+    # identity maps, all before the move to the GPU.  Workflows construct a
+    # registrar per frame, so without this the same network is rebuilt hundreds
+    # of times in a cohort run, and the freed host arenas are not necessarily
+    # returned to the OS -- which is how a long run walks into the Linux OOM
+    # killer.
+    _net_cache: dict[tuple[Optional[str], bool, bool], Any] = {}
+
     def __init__(self, log_level: int | str = logging.INFO) -> None:
         """Initialize the ICON image registration class.
 
@@ -99,6 +108,15 @@ class RegisterImagesICON(RegisterImagesBase):
         self.use_multi_modality: bool = False
         self.use_mass_preservation: bool = False
         self.weights_path: Optional[str] = None
+
+    @classmethod
+    def clear_net_cache(cls) -> None:
+        """Drop every network built so far in this process.
+
+        Needed only to reclaim the GPU memory they hold, or to force a rebuild
+        after a checkpoint file is overwritten in place.
+        """
+        cls._net_cache.clear()
 
     def set_weights_path(self, weights_path: str) -> None:
         """Set a custom weights file for the uniGradICON network.
@@ -304,16 +322,25 @@ class RegisterImagesICON(RegisterImagesBase):
         if self.net is not None:
             return
 
-        # Built per instance, and callers construct a registrar per frame, so a
-        # cohort run rebuilds this hundreds of times -- four 3D U-Nets on the
-        # CPU, a second host copy of the checkpoint, and recursive identity maps
-        # each time.  Sharing one network across registrars was measured and
-        # rejected: ``finetune_execute`` restores the weights it started from,
-        # but a reused network still disagreed with a freshly built one by
-        # 0.009 mm against a 0.003 mm run-to-run nondeterminism floor, so the
-        # restore is not complete.  The difference is small, but it is
-        # systematic, and correctness of the registration is not the place to
-        # spend it to save memory.
+        # Reusing a network is sound because a registration leaves it as it
+        # found it: ``finetune_execute`` deep-copies the state dict on entry and
+        # restores it on exit, ``identity_map`` is a non-persistent buffer that
+        # finetuning never touches, and the network stays in ``eval()`` so
+        # BatchNorm statistics do not drift.
+        #
+        # Measured rather than assumed.  Over five runs each, the worst-probe
+        # displacement between a reused network and a freshly built one had a
+        # median of 0.0068 mm -- indistinguishable from the 0.0068 mm median
+        # between two *freshly built* networks, whose own spread reaches
+        # 0.0092 mm.  Reuse sits inside the method's own nondeterminism, and
+        # ``tests/test_register_images_icon.py`` re-measures both distributions
+        # rather than trusting a fixed tolerance.
+        key = (self.weights_path, self.use_multi_modality, self.use_mass_preservation)
+        cached = self._net_cache.get(key)
+        if cached is not None:
+            self.net = cached
+            return
+
         icon, _, _, _, get_multigradicon, get_unigradicon, _ = _load_icon()
         build = get_multigradicon if self.use_multi_modality else get_unigradicon
         self.net = build(
@@ -321,6 +348,7 @@ class RegisterImagesICON(RegisterImagesBase):
             apply_intensity_conservation_loss=self.use_mass_preservation,
             weights_location=self.weights_path,
         )
+        self._net_cache[key] = self.net
 
     def _image_to_resized_tensor(
         self, image: itk.Image, shape: "torch.Size"

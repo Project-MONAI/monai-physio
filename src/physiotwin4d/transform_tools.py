@@ -86,8 +86,41 @@ class TransformTools(PhysioTwin4DBase):
         ``compose`` follows ITK's CompositeTransform convention, where the
         last-added transform is applied first: the result evaluates
         ``tfm1(tfm2(x))``, so ``tfm2`` is the stage that runs first.
+
+        In ``compose`` mode at unit weights with no blurring there is nothing to
+        apply to the fields, so the inputs are chained as they are and no field
+        is rasterized at all.  See the comment on that branch below for what
+        that saves.
         """
         assert mode in ["add", "compose"], "Invalid mode"
+
+        if (
+            mode == "compose"
+            and tfm1_weight == 1.0
+            and tfm2_weight == 1.0
+            and tfm1_blur_sigma == 0.0
+            and tfm2_blur_sigma == 0.0
+        ):
+            # A CompositeTransform chains its members lazily, so rasterizing
+            # them first only reproduces what it would compute anyway -- less
+            # accurately, because sampling onto *reference_image* and
+            # interpolating back introduces error that evaluating the originals
+            # does not.
+            #
+            # It is also what dominates memory here.  The distance-map caller
+            # composes on a grid padded to 2.5 * mask_dilation_mm per side; on
+            # the lung chest CT that is 758 x 758 x 664, where one
+            # ``Vector<double, 3>`` field is 9.2 GB.  Rasterizing both sides of
+            # both directions retained 36.6 GB and peaked far above that, to
+            # hold an affine and a 175-cubed field that together are under
+            # 130 MB.
+            #
+            # Weighting or blurring a transform genuinely needs its field, so
+            # those keep the path below.
+            passthrough_tfm = itk.CompositeTransform[itk.D, 3].New()
+            passthrough_tfm.AddTransform(tfm1)
+            passthrough_tfm.AddTransform(tfm2)
+            return passthrough_tfm
 
         dtfm1 = self.convert_transform_to_displacement_field_transform(
             tfm1, reference_image
