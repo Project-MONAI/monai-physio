@@ -337,8 +337,9 @@ def test_a_residual_on_the_wrong_device_is_refused() -> None:
     construction and cannot be moved, so a residual built without an explicit
     device defaults to the CPU and will not meet predictions made on a GPU.
     Caught here rather than as an opaque tensor error inside the gradient
-    reconstruction. No CUDA is needed to check this: the device is only
-    compared, never allocated on.
+    reconstruction. Devices are compared, never allocated on, so this runs
+    wherever the fast suite does -- including a machine with no NVIDIA driver,
+    which ``test_the_device_check_runs_without_a_driver`` pins down.
     """
     import torch
 
@@ -365,6 +366,50 @@ def test_a_residual_on_the_wrong_device_is_refused() -> None:
         device=torch.device("cpu"), rank=0, local_rank=0, world_size=1
     )
     method._require_matching_device(cpu_context)
+
+
+def test_the_device_check_runs_without_a_driver() -> None:
+    """The device check must not need a GPU to say a GPU is missing.
+
+    Resolving an index-less ``torch.device("cuda")`` to a concrete index asks
+    torch for the current device, and that raises outright on a machine with no
+    NVIDIA driver rather than reporting none. Guarding it matters because this
+    check runs in the fast suite, which is expected to pass anywhere.
+
+    Simulated rather than skipped, so the path is exercised on a machine that
+    does have a GPU -- which is where the regression was written.
+    """
+    from unittest import mock
+
+    import torch
+
+    from physiotwin4d.physicsnemo_tools import DistributedContext
+    from physiotwin4d.train_physicsnemo_physics_informed_motion import (
+        TrainPhysicsNeMoPhysicsInformedMotion,
+        _resolved_device,
+    )
+
+    def no_driver(*args: Any, **kwargs: Any) -> Any:
+        raise RuntimeError("Found no NVIDIA driver on your system.")
+
+    class _CpuResidual:
+        device = torch.device("cpu")
+
+    method = TrainPhysicsNeMoPhysicsInformedMotion()
+    method._residual = cast(Any, _CpuResidual())
+    cuda_context = DistributedContext(
+        device=torch.device("cuda"), rank=0, local_rank=0, world_size=1
+    )
+
+    with (
+        mock.patch("torch.cuda.is_available", lambda: False),
+        mock.patch("torch.cuda.current_device", no_driver),
+    ):
+        # Unresolvable, so left as-is rather than raising.
+        assert _resolved_device(torch.device("cuda")) == torch.device("cuda")
+        # And an unresolved cuda still does not match a CPU residual.
+        with pytest.raises(ValueError, match="cannot meet the predictions"):
+            method._require_matching_device(cuda_context)
 
 
 def test_a_residual_on_another_gpu_is_refused() -> None:

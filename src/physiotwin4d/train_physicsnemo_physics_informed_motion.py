@@ -60,13 +60,18 @@ def _resolved_device(device: "torch.device") -> "torch.device":
     devices without resolving that would reject a matched pair, while comparing
     only their types would accept ``cuda:0`` against ``cuda:1`` -- a real
     mismatch under distributed training, where each rank owns one GPU.
+
+    Left unchanged when no CUDA device is visible: there is no current device to
+    resolve to, and asking for one raises rather than returning nothing.  An
+    unresolved ``cuda`` still compares unequal to ``cpu``, which is the answer
+    the caller wants on such a machine anyway.
     """
     import torch
 
     # torch's stubs declare ``index`` as ``int``, so mypy reads the branch below
     # as dead; at runtime ``torch.device("cuda").index`` really is None.
     index: Optional[int] = device.index
-    if device.type == "cuda" and index is None:
+    if device.type == "cuda" and index is None and torch.cuda.is_available():
         return torch.device("cuda", torch.cuda.current_device())
     return device
 
