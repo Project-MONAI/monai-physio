@@ -9,6 +9,10 @@ container_root="/workspace/monai-physio"
 image="${MONAI_PHYSIO_IMAGE:-monai-physio:tutorials}"
 bundle_repo="${LUNG_BUNDLE_REPO:-maximilianofir/physioMotionWorkshop}"
 bundle_revision="${LUNG_BUNDLE_REVISION:-a6127dd1d2e27c5b59ed3a81c5b4e7490b4bd1bf}"
+docker_command=(docker)
+if [[ "${MONAI_PHYSIO_DOCKER_USE_SUDO:-false}" == "true" ]]; then
+    docker_command=(sudo --preserve-env=HF_TOKEN docker)
+fi
 
 if [[ -z "${HF_TOKEN:-}" ]]; then
     echo "HF_TOKEN is required to download the private workshop bundles" >&2
@@ -18,7 +22,7 @@ fi
 mkdir -p "$cache_dir/home" "$repo_root/tutorials/network_weights" \
     "$repo_root/tutorials/output"
 
-docker run --rm \
+"${docker_command[@]}" run --rm \
     --user "$(id -u):$(id -g)" \
     --volume "$repo_root:$container_root" \
     --volume "$cache_dir:/cache" \
@@ -42,7 +46,7 @@ if [[ -s "$chest_ct_file" ]]; then
     echo "Reusing the public Chest-CT input at $chest_ct_file"
 else
     echo "Downloading the public Chest-CT input for Tutorial 7..."
-    docker run --rm \
+    "${docker_command[@]}" run --rm \
         --user "$(id -u):$(id -g)" \
         --volume "$repo_root:$container_root" \
         --volume "$cache_dir:/cache" \
