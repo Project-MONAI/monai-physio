@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock
 
 import numpy as np
 import pytest
@@ -64,6 +66,29 @@ def _create_triangle_surface(path: Path, z_offset: float) -> None:
         ]
     )
     pv.PolyData(points, faces=[3, 0, 1, 2]).save(path)
+
+
+def _add_animated_display_appearance(path: Path) -> None:
+    """Add two sampled display colors and opacities to the test triangle."""
+    stage = Usd.Stage.Open(str(path))
+    assert stage is not None
+    mesh = UsdGeom.Mesh(stage.GetPrimAtPath("/World/Triangle"))
+    primvars = UsdGeom.PrimvarsAPI(mesh)
+    colors = primvars.CreatePrimvar(
+        "displayColor",
+        Sdf.ValueTypeNames.Color3fArray,
+        UsdGeom.Tokens.constant,
+    )
+    colors.Set([Gf.Vec3f(1.0, 0.0, 0.0)], 0.0)
+    colors.Set([Gf.Vec3f(0.0, 0.0, 1.0)], 2.0)
+    opacities = primvars.CreatePrimvar(
+        "displayOpacity",
+        Sdf.ValueTypeNames.FloatArray,
+        UsdGeom.Tokens.constant,
+    )
+    opacities.Set([1.0], 0.0)
+    opacities.Set([0.25], 2.0)
+    stage.Save()
 
 
 def test_viewer_discovers_and_evaluates_animated_frames(tmp_path: Path) -> None:
@@ -131,6 +156,26 @@ def test_viewer_preloads_animated_points(tmp_path: Path) -> None:
     assert len(frames) == 2
     assert np.allclose(frames[0][:, 2], 0.0)
     assert np.allclose(frames[1][:, 2], 1.0)
+
+
+def test_viewer_updates_preloaded_color_and_opacity(tmp_path: Path) -> None:
+    """Fast-path playback updates sampled RGBA values with the points."""
+    usd_path = tmp_path / "animated_appearance.usd"
+    _create_triangle_stage(usd_path, animated=True)
+    _add_animated_display_appearance(usd_path)
+    viewer = MeshWebViewer(usd_path)
+    initial_mesh = viewer.mesh_at_index(0)
+    viewer._display_mesh = initial_mesh
+    viewer._point_frames = viewer._preload_point_frames(initial_mesh)
+    viewer._plotter = Mock()
+    viewer._state = SimpleNamespace()
+
+    viewer._on_frame_index_changed(1)
+
+    assert np.allclose(initial_mesh.points[:, 2], 1.0)
+    assert np.all(initial_mesh.point_data["openusd_rgb"] == [0, 0, 255])
+    assert np.all(initial_mesh.point_data["openusd_rgba"] == [0, 0, 255, 63])
+    viewer._plotter.render.assert_called_once()
 
 
 def test_viewer_uses_one_default_frame_for_static_stage(tmp_path: Path) -> None:
