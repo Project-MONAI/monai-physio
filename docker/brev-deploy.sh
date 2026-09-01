@@ -4,7 +4,7 @@
 
 set -Eeuo pipefail
 
-readonly NGC_IMAGE="nvcr.io/0569033758414229/physiomotion:v0.3-cu126"
+readonly NGC_IMAGE="nvcr.io/0569033758414229/physiomotion:v0.4-cu126"
 readonly LOCAL_IMAGE="monai-physio:tutorials"
 readonly INSTALL_DIR="${HOME}/monai-physio"
 
@@ -123,7 +123,6 @@ The course and offline-segmentation bundles have been downloaded and verified.
 Run:
 
   cd ${INSTALL_DIR}
-  ./docker/check-host.sh
   ./docker/tutorial-shell.sh
 
 The NGC and Hugging Face credentials were used only during setup and have been

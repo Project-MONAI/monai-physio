@@ -182,7 +182,7 @@ USD Not Animating
    https://developer.nvidia.com/usd.
 
 2. Open the scene in an Omniverse Kit application, switch the viewport to the
-   scene's ``/World/Camera``, and press Play; see :doc:`viewing_usd`.
+   scene's ``/World/Camera``, and press Play; see :doc:`viewing_meshes`.
 
 3. Verify that the generated USD contains time samples.
 
@@ -225,4 +225,3 @@ If you still have issues:
    * CUDA version
    * Complete error message
    * Minimal code to reproduce
-
