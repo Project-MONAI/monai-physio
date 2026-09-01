@@ -237,14 +237,30 @@ class MeshWebViewer(MONAIPhysioBase):
 
     @staticmethod
     def _collect_time_codes(root_prim: Any) -> tuple[float, ...]:
-        """Collect mesh point samples beneath a root prim."""
+        """Collect mesh point and inherited transform samples beneath a root."""
         time_codes: set[float] = set()
+        visited_xforms: set[str] = set()
         for prim in Usd.PrimRange(root_prim):
-            if prim.IsA(UsdGeom.Mesh):
-                mesh = UsdGeom.Mesh(prim)
-                time_codes.update(
-                    float(value) for value in mesh.GetPointsAttr().GetTimeSamples()
-                )
+            if not prim.IsA(UsdGeom.Mesh):
+                continue
+
+            mesh = UsdGeom.Mesh(prim)
+            time_codes.update(
+                float(value) for value in mesh.GetPointsAttr().GetTimeSamples()
+            )
+
+            ancestor = prim
+            while ancestor.IsValid():
+                path = str(ancestor.GetPath())
+                if path not in visited_xforms and ancestor.IsA(UsdGeom.Xformable):
+                    xformable = UsdGeom.Xformable(ancestor)
+                    time_codes.update(
+                        float(value) for value in xformable.GetTimeSamples()
+                    )
+                    visited_xforms.add(path)
+                if ancestor == root_prim:
+                    break
+                ancestor = ancestor.GetParent()
         if not time_codes:
             return (0.0,)
         return tuple(sorted(time_codes))

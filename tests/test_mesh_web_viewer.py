@@ -13,12 +13,24 @@ from monai_physio.mesh_web_viewer import MeshWebViewer
 from monai_physio.usd_tools import USDTools
 
 
-def _create_triangle_stage(path: Path, animated: bool) -> None:
+def _create_triangle_stage(
+    path: Path,
+    animated: bool,
+    animated_transform: bool = False,
+) -> None:
     """Create a tiny static or animated triangle stage."""
     stage = Usd.Stage.CreateNew(str(path))
     world = stage.DefinePrim("/World", "Xform")
     stage.SetDefaultPrim(world)
-    mesh = UsdGeom.Mesh.Define(stage, "/World/Triangle")
+    mesh_path = "/World/Triangle"
+    if animated_transform:
+        moving = UsdGeom.Xform.Define(stage, "/World/Moving")
+        translate_op = moving.AddTranslateOp()
+        translate_op.Set(Gf.Vec3d(0.0, 0.0, 0.0), 0.0)
+        translate_op.Set(Gf.Vec3d(0.0, 0.0, 2.0), 2.0)
+        mesh_path = "/World/Moving/Triangle"
+
+    mesh = UsdGeom.Mesh.Define(stage, mesh_path)
     mesh.CreateFaceVertexCountsAttr([3])
     mesh.CreateFaceVertexIndicesAttr([0, 1, 2])
     points = mesh.CreatePointsAttr()
@@ -35,9 +47,10 @@ def _create_triangle_stage(path: Path, animated: bool) -> None:
         ]
         points.Set(frame_zero, 0.0)
         points.Set(frame_two, 2.0)
-        stage.SetTimeCodesPerSecond(12.0)
     else:
         points.Set(frame_zero)
+    if animated or animated_transform:
+        stage.SetTimeCodesPerSecond(12.0)
     stage.Save()
 
 
@@ -67,6 +80,19 @@ def test_viewer_discovers_and_evaluates_animated_frames(tmp_path: Path) -> None:
     assert np.allclose(viewer.mesh_at_index(1).points[:, 2], 1.0)
     with pytest.raises(IndexError, match="Frame index out of range"):
         viewer.mesh_at_index(2)
+
+
+def test_viewer_discovers_inherited_transform_frames(tmp_path: Path) -> None:
+    """Static points inherit the timeline and motion of an animated parent."""
+    usd_path = tmp_path / "transform_animated.usd"
+    _create_triangle_stage(usd_path, animated=False, animated_transform=True)
+
+    viewer = MeshWebViewer(usd_path)
+
+    assert viewer.time_codes == (0.0, 2.0)
+    frame_zero = viewer.mesh_at_index(0).points
+    frame_two = viewer.mesh_at_index(1).points
+    assert np.allclose(frame_two - frame_zero, [0.0, 0.0, 2.0])
 
 
 def test_viewer_overrides_playback_rate_without_changing_stage(tmp_path: Path) -> None:
