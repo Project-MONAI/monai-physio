@@ -41,11 +41,11 @@ these launch parameters:
 | `HF_TOKEN` | Yes | Read token for the private workshop dataset; leave the default empty |
 
 The setup script logs in to NGC through standard input, pulls and checks the
-fixed `nvcr.io/0569033758414229/physiomotion:v0.2-cu126` image, seeds a
+fixed `nvcr.io/0569033758414229/physiomotion:v0.3-cu126` image, seeds a
 persistent workspace at `$HOME/monai-physio`, and downloads the `course` and
 `offline-segmentation` profiles from the private
 `maximilianofir/physioMotionWorkshop` Hugging Face dataset at pinned revision
-`459c538385d36eb2ebb7a92bb0086494ee2ebdcf`. Brev makes launch parameters
+`a6127dd1d2e27c5b59ed3a81c5b4e7490b4bd1bf`. Brev makes launch parameters
 available only during setup, and the script removes both credentials when it
 finishes. Do not embed either credential in the script or use one as a
 parameter default. See the [Brev Launchables
@@ -100,12 +100,13 @@ registration, ITK, VTK/PyVista, OpenUSD, and Trame dependencies. Model weights
 and datasets remain mounted because their licenses and update mechanisms differ
 from the source image.
 
-The rebuilt Docker image is approximately 12.46 GB (11.61 GiB). The private
-course archive is 1.11 GB (1.04 GiB) compressed and installs 3.13 GB
-(2.91 GiB). The offline-segmentation archive is 2.58 GB (2.40 GiB) compressed
-and installs 2.80 GB (2.61 GiB). Allow at least 20 GiB for the image, both
-installed profiles, the Git checkout, Docker layer overhead, and regenerated
-outputs.
+The rebuilt Docker image is approximately 12.46 GB (11.60 GiB). At the pinned
+bundle revision, the private course archive is 0.84 GB (0.78 GiB) compressed
+and installs 1.38 GB (1.28 GiB). The offline-segmentation archive is 2.58 GB
+(2.40 GiB) compressed and installs 2.80 GB (2.61 GiB). The image, persisted
+archives, and installed profiles therefore occupy 18.68 GiB. Allow at least
+25 GiB for the compact workshop so the workspace, Docker layer overhead, and
+regenerated one-patient outputs have about 6.3 GiB of headroom.
 
 | Required content | Size | Purpose |
 |---|---:|---|
