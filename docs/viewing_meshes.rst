@@ -69,8 +69,9 @@ To compare the two Tutorial 7 lung surfaces directly:
        tutorials/output/tutorial_07_lung/tutorial_07_lung_template_surface_registered.vtp
 
 Open ``http://127.0.0.1:8080/index.html``. Use ``--port`` to select another
-port and ``--fps 3`` to play a 10-phase respiratory cycle in about 3.3 seconds.
-Each input directory is mounted read-only, so surfaces may come from different
+port. The VTP comparison above is a static overlay; for animated USD input,
+use ``--fps 3`` to play a 10-phase respiratory cycle in about 3.3 seconds. Each
+input directory is mounted read-only, so surfaces may come from different
 directories and relative USD references remain available. The server is
 published only on the local host.
 
