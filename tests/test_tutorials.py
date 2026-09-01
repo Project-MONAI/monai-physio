@@ -43,11 +43,13 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import itk
 import numpy as np
 import pyvista as pv
 import pytest
 
 from parameters_base import ParametersBase
+from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 from monai_physio.test_tools import TestTools
 
 from .conftest import skip_or_fail_missing_data, tutorial_data_is_required
@@ -448,6 +450,21 @@ class TestTutorial04LungCTToVTK:
         assert results["surface_file"].exists(), "Lung VTP surface should exist"
         assert results["labelmap_file"].exists(), "Lung labelmap should exist"
         assert results["lung_labelmap_file"].exists(), "Lung-only labelmap should exist"
+
+        full_labelmap = itk.imread(str(results["labelmap_file"]))
+        lung_labelmap = itk.imread(str(results["lung_labelmap_file"]))
+        full_array = itk.GetArrayViewFromImage(full_labelmap)
+        lung_array = itk.GetArrayViewFromImage(lung_labelmap)
+        segmenter = LUNG_CT_DIRLAB.segmenter_class()
+        lung_label_ids = segmenter.taxonomy.labels_in_group(
+            LUNG_CT_DIRLAB.anatomy_group
+        )
+        expected_lung_array = np.where(
+            np.isin(full_array, list(lung_label_ids)),
+            full_array,
+            0,
+        )
+        np.testing.assert_array_equal(lung_array, expected_lung_array)
 
         _compare_screenshots(
             results["screenshots"],
