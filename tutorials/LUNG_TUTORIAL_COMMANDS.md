@@ -9,7 +9,11 @@ tutorial shell.
 ```bash
 docker/check-host.sh
 docker build -t monai-physio:tutorials .
-HF_TOKEN=... docker/download-lung-bundles.sh
+(
+  read -rsp "Hugging Face token: " hf_token
+  printf "\n"
+  HF_TOKEN="$hf_token" docker/download-lung-bundles.sh
+)
 docker/tutorial-shell.sh
 ```
 

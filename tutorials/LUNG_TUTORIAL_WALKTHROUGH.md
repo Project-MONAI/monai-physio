@@ -13,7 +13,11 @@ From the repository root on the GPU host:
 ```bash
 docker/check-host.sh
 docker build -t monai-physio:tutorials .
-HF_TOKEN=... docker/download-lung-bundles.sh
+(
+  read -rsp "Hugging Face token: " hf_token
+  printf "\n"
+  HF_TOKEN="$hf_token" docker/download-lung-bundles.sh
+)
 docker/tutorial-shell.sh
 ```
 
@@ -47,10 +51,14 @@ finishes. Do not embed either credential in the script or use one as a
 parameter default. See the [Brev Launchables
 documentation][brev-launchables] for the current VM-mode configuration steps.
 
-To download or repair the bundles later, export a read token and rerun:
+To download or repair the bundles later, enter a read token and rerun:
 
 ```bash
-HF_TOKEN=... docker/download-lung-bundles.sh
+(
+  read -rsp "Hugging Face token: " hf_token
+  printf "\n"
+  HF_TOKEN="$hf_token" docker/download-lung-bundles.sh
+)
 ```
 
 After the VM starts, use the same host commands as above:
