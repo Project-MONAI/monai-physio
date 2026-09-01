@@ -4,7 +4,7 @@
 
 set -Eeuo pipefail
 
-readonly NGC_IMAGE="nvcr.io/0569033758414229/physiomotion:v0.2-cu126"
+readonly NGC_IMAGE="nvcr.io/0569033758414229/physiomotion:v0.3-cu126"
 readonly LOCAL_IMAGE="monai-physio:tutorials"
 readonly INSTALL_DIR="${HOME}/monai-physio"
 
@@ -105,6 +105,7 @@ docker_cmd run --rm \
     -c 'cp -a /workspace/monai-physio/. /deployment/'
 
 echo "Downloading the private lung workshop bundles..."
+MONAI_PHYSIO_DOCKER_USE_SUDO="${use_sudo}" \
 MONAI_PHYSIO_IMAGE="${LOCAL_IMAGE}" \
     "${INSTALL_DIR}/docker/download-lung-bundles.sh"
 unset HF_TOKEN
