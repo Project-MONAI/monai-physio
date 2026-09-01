@@ -1,13 +1,16 @@
-"""Tests for the lung workshop bundle utility."""
+"""Tests for the lung workshop bundle installer."""
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
+import io
 import json
 import sys
 import tarfile
 from pathlib import Path
 from types import ModuleType
+from typing import Any
 
 import pytest
 
@@ -26,32 +29,83 @@ def _load_bundle_module() -> ModuleType:
 lung_bundle = _load_bundle_module()
 
 
-def test_build_and_verify_profile(
+def _create_release(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
+    release_directory = tmp_path / "release"
+    release_directory.mkdir()
+    payload = tmp_path / "sample.bin"
+    payload.write_bytes(b"monai-physio")
+
+    archive_path = release_directory / "test-profile.tar.gz"
+    with tarfile.open(archive_path, "w:gz") as archive:
+        archive.add(payload, arcname="data/sample.bin")
+
+    manifest = {
+        "format_version": 1,
+        "profiles": {
+            "test-profile": {
+                "archive": archive_path.name,
+                "archive_size": archive_path.stat().st_size,
+                "archive_sha256": hashlib.sha256(archive_path.read_bytes()).hexdigest(),
+            }
+        },
+    }
+    (release_directory / "manifest.json").write_text(
+        json.dumps(manifest), encoding="utf-8"
+    )
+    return release_directory, manifest
+
+
+def _mock_huggingface_download(
+    monkeypatch: pytest.MonkeyPatch, release_directory: Path
+) -> None:
+    huggingface_hub = ModuleType("huggingface_hub")
+
+    def fake_hf_hub_download(**kwargs: str) -> str:
+        assert kwargs["repo_type"] == "dataset"
+        return str(release_directory / kwargs["filename"])
+
+    huggingface_hub.__dict__["hf_hub_download"] = fake_hf_hub_download
+    monkeypatch.setitem(sys.modules, "huggingface_hub", huggingface_hub)
+
+
+def test_install_verifies_and_extracts_bundle(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A built archive preserves and verifies its declared payload."""
+    """The installer verifies and extracts a downloaded archive."""
+    release_directory, _ = _create_release(tmp_path)
+    _mock_huggingface_download(monkeypatch, release_directory)
+
     repository_root = tmp_path / "repository"
-    source_file = repository_root / "data" / "sample.bin"
-    source_file.parent.mkdir(parents=True)
-    source_file.write_bytes(b"monai-physio")
-    monkeypatch.setitem(
-        lung_bundle.PROFILE_PATTERNS, "test-profile", ("data/sample.bin",)
+    installed_manifest = lung_bundle.install_bundles(
+        repository_root,
+        repo_id="example/workshop",
+        revision="pinned-revision",
+        profiles=["test-profile"],
     )
 
-    output_directory = tmp_path / "release"
-    manifest_path = lung_bundle.build_bundles(
-        repository_root, output_directory, ["test-profile"]
-    )
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    profile = manifest["profiles"]["test-profile"]
-    assert profile["installed_size"] == len(b"monai-physio")
+    installed_file = repository_root / "data" / "sample.bin"
+    assert installed_file.read_bytes() == b"monai-physio"
+    assert installed_manifest.is_file()
 
-    installed_root = tmp_path / "installed"
-    installed_root.mkdir()
-    lung_bundle._extract_archive(output_directory / profile["archive"], installed_root)
-    lung_bundle._restore_profile_mtimes(installed_root, manifest, "test-profile")
-    lung_bundle.verify_profiles(installed_root, manifest, ["test-profile"])
-    assert (installed_root / "data" / "sample.bin").read_bytes() == b"monai-physio"
+
+def test_install_rejects_archive_checksum(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The installer rejects an archive that does not match its manifest."""
+    release_directory, manifest = _create_release(tmp_path)
+    manifest["profiles"]["test-profile"]["archive_sha256"] = "0" * 64
+    (release_directory / "manifest.json").write_text(
+        json.dumps(manifest), encoding="utf-8"
+    )
+    _mock_huggingface_download(monkeypatch, release_directory)
+
+    with pytest.raises(RuntimeError, match="Archive checksum mismatch"):
+        lung_bundle.install_bundles(
+            tmp_path / "repository",
+            repo_id="example/workshop",
+            revision="pinned-revision",
+            profiles=["test-profile"],
+        )
 
 
 def test_extract_rejects_parent_traversal(tmp_path: Path) -> None:
@@ -68,25 +122,22 @@ def test_extract_rejects_parent_traversal(tmp_path: Path) -> None:
         lung_bundle._extract_archive(archive_path, repository_root)
 
 
-def test_collect_profile_reports_missing_pattern(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """A profile fails before packaging when required input is missing."""
-    monkeypatch.setitem(
-        lung_bundle.PROFILE_PATTERNS, "test-profile", ("missing/*.bin",)
-    )
-    with pytest.raises(FileNotFoundError, match="missing/\\*.bin"):
-        lung_bundle.collect_profile_files(tmp_path, "test-profile")
+def test_extract_allows_internal_cache_symlink(tmp_path: Path) -> None:
+    """Extraction preserves a Hugging Face cache link that stays in the root."""
+    archive_path = tmp_path / "cache.tar.gz"
+    with tarfile.open(archive_path, "w:gz") as archive:
+        blob = tarfile.TarInfo("cache/models/example/blobs/model")
+        blob.size = len(b"weights")
+        archive.addfile(blob, io.BytesIO(b"weights"))
+        link = tarfile.TarInfo("cache/models/example/snapshots/revision/model.pt")
+        link.type = tarfile.SYMTYPE
+        link.linkname = "../../blobs/model"
+        archive.addfile(link)
 
+    repository_root = tmp_path / "repository"
+    repository_root.mkdir()
+    lung_bundle._extract_archive(archive_path, repository_root)
 
-def test_git_head_is_unknown_without_git(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Bundle metadata remains usable in runtime images without Git."""
-
-    def missing_git(*args: object, **kwargs: object) -> None:
-        raise FileNotFoundError("git")
-
-    monkeypatch.setattr(lung_bundle.subprocess, "run", missing_git)
-
-    assert lung_bundle._git_head(tmp_path) == "unknown"
+    assert (
+        repository_root / "cache/models/example/snapshots/revision/model.pt"
+    ).read_bytes() == b"weights"

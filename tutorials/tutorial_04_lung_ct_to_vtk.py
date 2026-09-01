@@ -46,6 +46,7 @@ if __name__ == "__main__":
 
     project_name = "tutorial_04_lung"
     output_prefix = "patient_nvsegmentctmri"
+    repo_root = Path(__file__).resolve().parent.parent
 
     test_mode = TestTools.running_as_test()
 
@@ -144,6 +145,7 @@ if __name__ == "__main__":
     tt = TestTools(
         class_name=project_name,
         results_dir=output_dir,
+        baselines_dir=repo_root / "tests" / "baselines" / project_name,
         log_level=log_level,
     )
 

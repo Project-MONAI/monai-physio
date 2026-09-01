@@ -23,27 +23,16 @@ current working directory.
 
 ## Docker
 
-The tutorial image includes the CUDA, PhysicsNeMo, segmentation, registration,
-OpenUSD, and Trame dependencies used by the lung course. Datasets, checkpoints,
-outputs, and model caches remain on the host.
+The lung image includes CUDA, PhysicsNeMo, segmentation, registration, OpenUSD,
+and Trame. Data, checkpoints, outputs, and caches remain on the host.
 
 ```bash
-docker/check-host.sh
 docker build -t monai-physio:tutorials .
-docker/tutorial-shell.sh
+./docker/tutorial-shell.sh
 ```
 
-Run the featured lessons inside that shell:
-
-```bash
-python tutorials/tutorial_01_lung_gated_ct_to_usd.py
-```
-
-The shell runs as the host UID/GID and bind-mounts the repository plus
-`.cache/monai-physio/`. Type `exit` to remove the container while preserving
-data, weights, outputs, and caches. DIR-Lab and the supplied checkpoints must be
-obtained separately. See [LUNG_TUTORIAL_WALKTHROUGH.md](LUNG_TUTORIAL_WALKTHROUGH.md)
-for the exact lung-only course commands and minimal deployment manifest.
+See [LUNG_TUTORIAL_COMMANDS.md](LUNG_TUTORIAL_COMMANDS.md) for bundle download,
+processing, visualization, and remote port-forwarding commands.
 
 ## Tutorial Index
 

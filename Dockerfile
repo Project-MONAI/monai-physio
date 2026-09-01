@@ -77,7 +77,11 @@ ENV HF_HOME=/cache/huggingface \
 
 WORKDIR /workspace/monai-physio
 COPY --chown=1000:1000 tutorials ./tutorials
-COPY --chown=1000:1000 docker ./docker
+COPY --chown=1000:1000 \
+    docker/download-lung-bundles.sh \
+    docker/tutorial-shell.sh \
+    docker/view-meshes.sh \
+    ./docker/
 COPY --chown=1000:1000 \
     utils/create_motion_comparison_usd.py \
     utils/lung_bundle.py \

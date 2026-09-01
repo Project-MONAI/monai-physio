@@ -34,7 +34,7 @@ mkdir -p "$cache_dir/home" "$repo_root/tutorials/network_weights" \
     --env PYTHONPATH="$container_root/src" \
     --env USER=monai-physio \
     "$image" \
-    python utils/lung_bundle.py download \
+    python utils/lung_bundle.py \
         --repository-root "$container_root" \
         --repo-id "$bundle_repo" \
         --revision "$bundle_revision" \
