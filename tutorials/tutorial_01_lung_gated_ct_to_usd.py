@@ -95,6 +95,7 @@ if __name__ == "__main__":
     # Data directory specification
 
     class_name = "tutorial_01_lung_gated_ct_to_usd"
+    repo_root = Path(__file__).resolve().parent.parent
 
     test_mode = ProcessTests.running_as_test()
 
@@ -165,6 +166,7 @@ if __name__ == "__main__":
     tt = ProcessTests(
         class_name=class_name,
         results_dir=output_dir,
+        baselines_dir=repo_root / "tests" / "baselines" / class_name,
         log_level=log_level,
     )
 
