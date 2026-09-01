@@ -127,6 +127,7 @@ class MeshWebViewer(MONAIPhysioBase):
         self._view: Optional[Any] = None
         self._display_mesh: Optional[pv.PolyData] = None
         self._point_frames: Optional[tuple[np.ndarray, ...]] = None
+        self._rgba_frames: Optional[tuple[np.ndarray, ...]] = None
         self._surface_actors: list[Any] = []
 
     @property
@@ -269,7 +270,8 @@ class MeshWebViewer(MONAIPhysioBase):
         self,
         initial_mesh: pv.PolyData,
     ) -> Optional[tuple[np.ndarray, ...]]:
-        """Preload animated points when the scene has fixed mesh topology."""
+        """Preload animated points and colors for fixed mesh topology."""
+        self._rgba_frames = None
         if self._stage is None:
             return None
         root_prim = self._stage.GetPrimAtPath(self.prim_path)
@@ -292,11 +294,13 @@ class MeshWebViewer(MONAIPhysioBase):
 
         started = time.perf_counter()
         point_frames: list[np.ndarray] = []
+        rgba_frames: list[np.ndarray] = []
         expected_chunk_sizes: Optional[tuple[int, ...]] = None
         for time_code in self._time_codes:
             usd_time = Usd.TimeCode(time_code)
             xform_cache = UsdGeom.XformCache(usd_time)
             point_chunks: list[np.ndarray] = []
+            rgba_chunks: list[np.ndarray] = []
             for prim in mesh_prims:
                 mesh = UsdGeom.Mesh(prim)
                 points_value = mesh.GetPointsAttr().Get(usd_time)
@@ -323,6 +327,17 @@ class MeshWebViewer(MONAIPhysioBase):
                 homogeneous[:, :3] = local_points
                 homogeneous[:, 3] = 1.0
                 point_chunks.append((homogeneous @ matrix)[:, :3].astype(np.float32))
+                rgb = self._usd_tools._usd_display_color(
+                    mesh,
+                    len(local_points),
+                    usd_time,
+                )
+                opacity = self._usd_tools._usd_display_opacity(
+                    mesh,
+                    len(local_points),
+                    usd_time,
+                )
+                rgba_chunks.append(np.column_stack((rgb, opacity)))
 
             chunk_sizes = tuple(len(points) for points in point_chunks)
             if expected_chunk_sizes is None:
@@ -333,6 +348,7 @@ class MeshWebViewer(MONAIPhysioBase):
                 )
                 return None
             point_frames.append(np.concatenate(point_chunks, axis=0))
+            rgba_frames.append(np.concatenate(rgba_chunks, axis=0))
 
         if any(points.shape != initial_mesh.points.shape for points in point_frames):
             self.log_warning(
@@ -347,15 +363,33 @@ class MeshWebViewer(MONAIPhysioBase):
             )
             return None
 
-        frames = tuple(point_frames)
-        cache_mib = sum(points.nbytes for points in frames) / (1024.0**2)
+        initial_rgba = np.asarray(initial_mesh.point_data["openusd_rgba"])
+        if any(rgba.shape != initial_rgba.shape for rgba in rgba_frames):
+            self.log_warning(
+                "Preloaded color layout does not match the display mesh; "
+                "using per-frame USD reloads"
+            )
+            return None
+        if not np.array_equal(rgba_frames[0], initial_rgba):
+            self.log_warning(
+                "Preloaded color order does not match the display mesh; "
+                "using per-frame USD reloads"
+            )
+            return None
+
+        point_frame_tuple = tuple(point_frames)
+        self._rgba_frames = tuple(rgba_frames)
+        cache_mib = (
+            sum(points.nbytes for points in point_frame_tuple)
+            + sum(rgba.nbytes for rgba in self._rgba_frames)
+        ) / (1024.0**2)
         self.log_info(
-            "Preloaded %d point frames (%.1f MiB) in %.2f seconds",
-            len(frames),
+            "Preloaded %d point/color frames (%.1f MiB) in %.2f seconds",
+            len(point_frame_tuple),
             cache_mib,
             time.perf_counter() - started,
         )
-        return frames
+        return point_frame_tuple
 
     def _build_application(self, host: str) -> None:
         """Create the Trame server, VTK view, and controls."""
@@ -524,9 +558,19 @@ class MeshWebViewer(MONAIPhysioBase):
         index = max(0, min(int(frame_index), len(self._time_codes) - 1))
         assert self._plotter is not None
         assert self._state is not None
-        if self._display_mesh is not None and self._point_frames is not None:
+        if (
+            self._display_mesh is not None
+            and self._point_frames is not None
+            and self._rgba_frames is not None
+        ):
             self._display_mesh.points[:] = self._point_frames[index]
+            rgba = self._rgba_frames[index]
+            self._display_mesh.point_data["openusd_rgba"][:] = rgba
+            self._display_mesh.point_data["openusd_rgb"][:] = rgba[:, :3]
             self._display_mesh.GetPoints().Modified()
+            for array_name in ("openusd_rgba", "openusd_rgb"):
+                vtk_array = self._display_mesh.GetPointData().GetArray(array_name)
+                vtk_array.Modified()
             self._display_mesh.Modified()
             self._plotter.render()
         else:
