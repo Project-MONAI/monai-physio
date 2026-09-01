@@ -6,6 +6,7 @@ import argparse
 from pathlib import Path
 from typing import Optional, Sequence
 
+import numpy as np
 import pyvista as pv
 from pxr import Sdf, Usd, UsdGeom, UsdShade
 
@@ -51,6 +52,7 @@ def _load_sequence(paths: Sequence[Path], series_name: str) -> list[pv.PolyData]
 
     meshes: list[pv.PolyData] = []
     expected_topology: Optional[tuple[int, int]] = None
+    expected_connectivity: Optional[np.ndarray] = None
     for path in paths:
         if not path.exists():
             raise FileNotFoundError(f"{series_name} frame not found: {path}")
@@ -60,11 +62,17 @@ def _load_sequence(paths: Sequence[Path], series_name: str) -> list[pv.PolyData]
         topology = (mesh.n_points, mesh.n_cells)
         if expected_topology is None:
             expected_topology = topology
-        elif topology != expected_topology:
-            raise ValueError(
-                f"{series_name} topology changes at {path}: {topology}, "
-                f"expected {expected_topology}."
-            )
+            expected_connectivity = mesh.faces.copy()
+        else:
+            assert expected_connectivity is not None
+            if topology != expected_topology or not np.array_equal(
+                mesh.faces,
+                expected_connectivity,
+            ):
+                raise ValueError(
+                    f"{series_name} topology changes at {path}: {topology}, "
+                    f"expected {expected_topology} with identical face connectivity."
+                )
         meshes.append(mesh)
     return meshes
 
