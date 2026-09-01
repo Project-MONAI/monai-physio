@@ -12,6 +12,7 @@
 !tutorials/**
 !utils/
 !utils/create_motion_comparison_usd.py
+!utils/lung_bundle.py
 tutorials/network_weights/
 tutorials/output/
 **/__pycache__/
