@@ -584,6 +584,53 @@ class TestReconstructTimeSeriesCompositeMode:
             arr = itk.array_from_image(img)
             assert np.allclose(arr, 20.0), "max composite value mismatch"
 
+    def test_composite_mode_mean_mismatched_extents(self) -> None:
+        """Voxels outside a smaller moving image's extent are excluded from
+        the mean rather than diluted by extrapolated background fill."""
+        fixed_size = 6
+        moving_size = 4
+        fixed_image = _make_constant_image(10.0, size=fixed_size)
+        moving_image = _make_constant_image(20.0, size=moving_size)
+
+        registrar = RegisterTimeSeriesImages(registration_method=RegisterImagesGreedy())
+        registrar.set_fixed_image(fixed_image)
+
+        composite = registrar._compute_composite_reference(
+            moving_images=[moving_image],
+            forward_transforms=self._identity_transforms(1),
+            mode="mean",
+        )
+        arr = itk.array_from_image(composite)
+
+        # Voxels covered by the smaller moving image average fixed + moving.
+        covered = arr[:moving_size, :moving_size, :moving_size]
+        assert np.allclose(covered, 15.0), "covered voxels should average to 15"
+
+        # Voxels outside the moving image's extent must not be pulled toward
+        # the -1000 HU "no tissue" fill value used for extrapolated regions.
+        uncovered = arr[moving_size:, :, :]
+        assert np.allclose(uncovered, 10.0), (
+            "uncovered voxels should keep the fixed image's value, not "
+            "extrapolated background fill"
+        )
+
+    def test_composite_mode_invalid_value(self) -> None:
+        """An unrecognized composite_mode raises ValueError instead of
+        silently falling back to mean/max behavior."""
+        fixed_image = _make_constant_image(10.0)
+        moving_images = [_make_constant_image(20.0)]
+
+        registrar = RegisterTimeSeriesImages(registration_method=RegisterImagesGreedy())
+        registrar.set_fixed_image(fixed_image)
+
+        with pytest.raises(ValueError, match="composite_mode"):
+            registrar.reconstruct_time_series(
+                moving_images=moving_images,
+                inverse_transforms=self._identity_transforms(1),
+                forward_transforms=self._identity_transforms(1),
+                composite_mode="bogus",  # type: ignore[arg-type]
+            )
+
     def test_composite_mode_requires_forward_transforms(self) -> None:
         """mean/max composite_mode without forward_transforms raises ValueError."""
         fixed_image = _make_constant_image(10.0)

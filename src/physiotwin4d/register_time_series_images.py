@@ -449,7 +449,12 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
 
         Warps every moving image onto the fixed grid using its
         forward_transform, then combines those registered images with the
-        fixed image pixel-by-pixel using the given reduction.
+        fixed image pixel-by-pixel using the given reduction. Moving images
+        whose extent does not fully cover the fixed grid contribute only
+        where they actually have data -- voxels resampled from outside a
+        moving image's bounds (extrapolated fill) are excluded from the
+        reduction rather than treated as real samples. The fixed image
+        counts as one valid sample at every voxel.
 
         Args:
             moving_images (list[itk.Image]): Moving images to warp and combine
@@ -461,11 +466,15 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             itk.Image: Composite image on the fixed image's grid
         """
         assert self.fixed_image is not None
-        fixed_arr = itk.array_from_image(self.fixed_image)
+        fixed_arr = itk.GetArrayViewFromImage(self.fixed_image)
         dtype = fixed_arr.dtype
 
         if mode == "mean":
-            accumulator = fixed_arr.astype(np.float64)
+            # float32 keeps peak memory bounded for large volumes; only
+            # widen to float64 when the source data already needs it.
+            accumulator_dtype = np.float64 if dtype == np.float64 else np.float32
+            accumulator = fixed_arr.astype(accumulator_dtype)
+            valid_count = np.ones_like(accumulator)
         else:
             accumulator = fixed_arr.copy()
 
@@ -476,14 +485,30 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
                 self.fixed_image,
                 background_value=self._prewarp_background_value(moving_image),
             )
-            registered_arr = itk.array_from_image(registered)
+            registered_arr = itk.GetArrayViewFromImage(registered)
+
+            coverage_image = itk.image_from_array(
+                np.ones(itk.GetArrayViewFromImage(moving_image).shape, dtype=np.uint8)
+            )
+            coverage_image.CopyInformation(moving_image)
+            registered_coverage = self.transform_tools.transform_image(
+                coverage_image,
+                forward_transform,
+                self.fixed_image,
+                interpolation_method="nearest",
+                background_value=0,
+            )
+            valid_mask = itk.GetArrayViewFromImage(registered_coverage) != 0
+
             if mode == "mean":
-                accumulator += registered_arr
+                accumulator += np.where(valid_mask, registered_arr, 0)
+                valid_count += valid_mask
             else:
-                np.maximum(accumulator, registered_arr, out=accumulator)
+                masked = np.where(valid_mask, registered_arr, accumulator)
+                np.maximum(accumulator, masked, out=accumulator)
 
         if mode == "mean":
-            accumulator /= len(moving_images) + 1
+            accumulator /= valid_count
         reduced = accumulator.astype(dtype)
 
         composite = itk.image_from_array(np.ascontiguousarray(reduced))
