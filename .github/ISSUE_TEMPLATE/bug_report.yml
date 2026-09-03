@@ -1,0 +1,67 @@
+name: Bug report
+description: Something isn't working as expected.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. See the
+        [Bug Reports](https://project-monai.github.io/physiotwin4d/contributing.html#bug-reports)
+        section of the contributing guide for what makes a good report.
+
+  - type: input
+    id: version
+    attributes:
+      label: PhysioTwin4D version
+      placeholder: "e.g. 2026.09.0, or a commit SHA if installed from source"
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version
+      placeholder: "e.g. 3.12.4"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "e.g. Windows 11, Ubuntu 22.04"
+    validations:
+      required: true
+
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU / CUDA version
+      description: Leave blank if not applicable.
+      placeholder: "e.g. RTX 4090, CUDA 12.4"
+    validations:
+      required: false
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal code to reproduce
+      description: A minimal script or command that reproduces the issue.
+      render: python
+    validations:
+      required: true
+
+  - type: textarea
+    id: error
+    attributes:
+      label: Error messages and stack trace
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual behavior
+    validations:
+      required: true

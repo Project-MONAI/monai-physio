@@ -1,0 +1,46 @@
+name: Feature request
+description: Suggest a new capability, workflow, or extension.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        See the
+        [Feature Requests](https://project-monai.github.io/physiotwin4d/contributing.html#feature-requests)
+        section of the contributing guide for what makes a good request.
+        For open-ended ideas you're not sure are worth a formal request yet,
+        consider starting a
+        [Discussion](https://github.com/Project-MONAI/physiotwin4d/discussions)
+        instead.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Clear description
+      description: What should PhysioTwin4D do that it doesn't today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case and motivation
+      description: What problem does this solve, and for whom?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-api
+    attributes:
+      label: Proposed API or interface
+      description: Sketch the workflow class, CLI flag, or signature you have in mind, if any.
+      render: python
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Potential challenges or alternatives considered
+    validations:
+      required: false

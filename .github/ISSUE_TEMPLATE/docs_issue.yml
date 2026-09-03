@@ -1,0 +1,27 @@
+name: Documentation issue
+description: Something in the docs, tutorials, or docstrings is wrong, unclear, or missing.
+labels: ["documentation"]
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Page or file
+      description: Link to the hosted doc page, or the source path (e.g. docs/tutorials.rst, tutorials/tutorial_09_*.py docstring).
+      placeholder: "https://project-monai.github.io/physiotwin4d/... or docs/..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's wrong or missing
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested fix
+      description: Optional — a proposed rewrite, or what you expected to find instead.
+    validations:
+      required: false

@@ -11,8 +11,8 @@ Tutorials
      <p class="pt4d-kicker">PhysioTwin4D tutorials</p>
      <h1>From a CT scan to an animated digital twin</h1>
      <p>
-       Fifteen numbered stages across 33 Python scripts, 21 of them runnable
-       today: the twelve <code>duke_heart</code> variants wait on a dataset
+       Eighteen numbered stages across 36 Python scripts, 21 of them runnable
+       today: the fifteen <code>duke_heart</code> variants wait on a dataset
        that is being released soon.
        Each one drives the real workflow classes end-to-end on downloadable
        data, shows what it produced, and ends with the handful of constants
@@ -156,6 +156,24 @@ second run is cheap and later tutorials pick up earlier results automatically.
        <h2>Leave-One-Out Cross-Validation</h2>
        <p>Rebuild the model, refit, retrain and rescore once per fold, for a spread rather than a number.</p>
        <span class="pt4d-card__meta">DIR-Lab &middot; Duke-Heart-4DLabelmaps</span>
+     </a>
+     <a class="pt4d-card" href="#tutorial-16-build-a-volumetric-shape-model-of-the-myocardium">
+       <span class="pt4d-card__number">16</span>
+       <h2>Build a Volumetric Shape Model of the Myocardium</h2>
+       <p>Fill the mean surface with tetrahedra so a strain energy has a deformation gradient to act on.</p>
+       <span class="pt4d-card__meta">Duke-Heart-4DLabelmaps &middot; Tutorial 4 output</span>
+     </a>
+     <a class="pt4d-card" href="#tutorial-17-train-a-mechanics-aware-cardiac-motion-surrogate">
+       <span class="pt4d-card__number">17</span>
+       <h2>Train a Mechanics-Aware Cardiac Motion Surrogate</h2>
+       <p>Add a neo-Hookean strain energy to the displacement loss, and train an unweighted ablation to isolate it.</p>
+       <span class="pt4d-card__meta">Tutorial 16 output</span>
+     </a>
+     <a class="pt4d-card" href="#tutorial-18-predict-myocardial-motion-and-the-stress-it-implies">
+       <span class="pt4d-card__number">18</span>
+       <h2>Predict Myocardial Motion and the Stress It Implies</h2>
+       <p>Score the physics-informed surrogate against its ablation and export the motion colored by von Mises stress.</p>
+       <span class="pt4d-card__meta">Tutorials 16 and 17 output</span>
      </a>
    </section>
 
@@ -1254,6 +1272,15 @@ Requirements
    segmentation weights --- every grid point is scored against independently
    segmented frames, exactly as Tutorial 11 scores its one fit.
 
+Preview
+   .. figure:: assets/tutorial_14_duke_heart_parameter_sweep.png
+      :alt: Displacement error across the shape-parameter sweep grid
+      :width: 90%
+
+      The Duke Heart variant's sweep summary: pooled displacement error at
+      every grid point, with the all-zero combination as the unperturbed
+      baseline. No lung-variant figure exists yet.
+
 What it does
    Tutorial 11 scores the inferred motion at the one point in shape space the
    statistical-model fit happened to land on. This tutorial sweeps that point:
@@ -1327,6 +1354,10 @@ Requirements
    The ``[physicsnemo]`` extra plus ``torch-geometric``. Written for a
    multi-GPU Linux host, though it runs as a single process too.
 
+.. TODO(image): no preview media exists yet for Tutorial 15. Add a
+   ``loo_metrics_by_label.png``-derived figure (or similar) here once one is
+   captured, matching the ``Preview`` pattern used by the other tutorials.
+
 What it does
    Tutorials 6 through 11 report accuracy for one fixed held-out case, which is
    a single observation: it says nothing about how far the number would move
@@ -1375,101 +1406,243 @@ Adapt to your data
    one that tutorial trains --- lower them for a quicker sweep, at the cost of
    comparability.
 
-Tutorials 16-18: Physics-Informed Myocardial Motion
-===================================================
+Tutorial 16: Build a Volumetric Shape Model of the Myocardium
+==============================================================
 
 Script
    ``tutorials/tutorial_16_duke_heart_physics_informed_motion_prep.py``
 
-   ``tutorials/tutorial_17_duke_heart_physics_informed_motion_train.py``
-
-   ``tutorials/tutorial_18_duke_heart_physics_informed_motion_infer.py``
-
 Workflow
-   :class:`~physiotwin4d.WorkflowCreateStatisticalModel` and
-   :class:`~physiotwin4d.WorkflowFitStatisticalModelToPatient` on a
-   *tetrahedral* template, then
-   :class:`~physiotwin4d.TrainPhysicsNeMoPhysicsInformedMotion` under
-   :class:`~physiotwin4d.WorkflowTrainPhysicsNeMo`, and finally
-   :class:`~physiotwin4d.WorkflowEvaluateMovement` and
-   :class:`~physiotwin4d.ConvertVTKToUSD`.
+   :class:`~physiotwin4d.WorkflowCreateStatisticalModel` with
+   ``solve_for_surface_pca=False`` on a tetrahedral template built by
+   :meth:`~physiotwin4d.ContourTools.extract_tetrahedra` and
+   :meth:`~physiotwin4d.ContourTools.trim_tetrahedra_to_surface`, then
+   :class:`~physiotwin4d.WorkflowFitStatisticalModelToPatient` per case and
+   gated frame.
 
 Dataset
-   Duke-Heart-4DLabelmaps, plus Tutorial 4 (duke heart) surfaces and, optionally,
-   Tutorial 2's finetuned distance-map ICON weights. Nothing in Tutorials 1 to 15
-   is modified.
+   Duke-Heart-4DLabelmaps, plus Tutorial 4 (duke heart)'s surfaces and,
+   optionally, Tutorial 2's finetuned distance-map ICON weights --- the stock
+   uniGradICON weights are used when absent, which understates the
+   population's variance. Nothing in Tutorials 1 to 15 is modified.
 
 Requirements
-   The ``[physicsnemo]`` extra plus ``torch-geometric`` for Tutorials 17 and 18.
-   ``physicsnemo.sym``, which supplies ``PhysicsInformer``, ships inside
-   ``nvidia-physicsnemo``; no separate install is needed. Tutorial 16 needs
-   neither.
+   None beyond the base install; Tutorial 17 is what needs PhysicsNeMo. A CUDA
+   GPU is required --- every registration runs on one. This is the most
+   expensive tutorial in the chain: an atlas pass over the population, one
+   deformable registration per case for the model, then one fit plus one
+   registration per gated frame per case, against a template far denser than
+   the surface one. Every stage is cached, so a re-run only redoes what is
+   missing.
+
+.. TODO(image): no preview media exists yet for Tutorial 16. Add a render of
+   ``pca_mean_surface.vtp`` or the tetrahedral template once one is captured,
+   matching the ``Preview`` pattern used by the other tutorials.
 
 What it does
-   Tutorials 9 and 10 score predicted cardiac motion on displacement alone, so
-   nothing in their loss rules out motion no myocardium could undergo: an element
-   may inflate, thin past what tissue allows, or invert outright. These three add
-   a neo-Hookean strain energy to the loss, which prices those deformations, and
-   read out the stress it implies.
+   Tutorials 9 and 10 predict cardiac motion from a surface shape model, which
+   has no interior and so cannot form a deformation gradient --- the quantity
+   Tutorial 17's strain energy needs. This tutorial rebuilds the same model
+   volumetrically: it builds the unbiased mean surface exactly as Tutorial 6
+   does, fills it with tetrahedra (holding every cell above a scaled Jacobian
+   of 0.1), decomposes the population into shape modes against that
+   tetrahedral template, and fits the model to every case and cardiac phase.
+   Because every subject inherits the template's topology, one set of element
+   node ids stays valid across the cohort.
 
-   That energy needs a deformation gradient, which needs volume elements, which a
-   surface shape model does not have. **Tutorial 16** therefore rebuilds the model
-   volumetrically: it fills the unbiased mean surface with tetrahedra
-   (:meth:`~physiotwin4d.ContourTools.extract_tetrahedra` then
-   :meth:`~physiotwin4d.ContourTools.trim_tetrahedra_to_surface`, which holds
-   every cell above a scaled Jacobian of 0.1), decomposes the population against
-   that template, and fits it to every case and gated frame. Because every subject
-   inherits the template's topology, one set of element node ids stays valid
-   across the cohort.
+   Only the reference mesh has to be volumetric: correspondence is
+   established by warping it through each subject's displacement field, which
+   carries interior nodes along, while the samples merely supply the distance
+   maps that drive the registration.
 
-   **Tutorial 17** trains the surrogate with the residual added, evaluated through
-   PhysicsNeMo Sym's least-squares gradient reconstruction. The residual is
-   measured against each case's *own* fitted reference, not the population mean:
-   the targets are displacements from that reference, so it is the undeformed
-   state. By default a second model is trained with the physics weight at zero on
-   identical data, which is the only comparison that isolates the physics term
-   rather than confounding it with the change of shape model.
-
-   **Tutorial 18** predicts the held-out case with both models, scores them side
-   by side, derives the Cauchy stress from the same constitutive law the loss
-   used, and exports the animation to USD colored by von Mises stress. The
-   tutorial supplies only the 9-component stress tensor;
-   :meth:`~physiotwin4d.ConvertVTKToUSD.compute_von_mises_stress` derives the
-   scalar.
-
-   The success criterion is worth stating plainly: the physics-informed model is
-   not expected to *beat* the ablation on RMSE. A strain energy is a prior, and a
-   prior that improved the data fit would be suspicious. What it should do is
-   match it while keeping every element's Jacobian positive.
+   The last step writes one training manifest per case, naming each frame's
+   displacement from that case's *own* fitted reference rather than the
+   population mean --- the physics residual Tutorial 17 trains against is
+   measured at the fitted reference's points, and measuring against the mean
+   would charge every subject a strain energy for merely being shaped unlike
+   it.
 
 Run
    .. code-block:: bash
 
       python tutorials/tutorial_16_duke_heart_physics_informed_motion_prep.py
-      python tutorials/tutorial_17_duke_heart_physics_informed_motion_train.py
-      python tutorials/tutorial_18_duke_heart_physics_informed_motion_infer.py
 
 Outputs
    Under ``tutorials/output/tutorial_16_duke_heart_physics_informed_motion/``:
-   ``ssm_template.vtu``, ``pca_model.json`` and ``pca_mean.vtu``, one
-   ``<case>/`` directory of fitted models per case, and ``manifests/``. Under
-   ``tutorials/network_weights/physicsnemo_physics_informed_motion_duke_heart/``
-   (and ``..._ablation/``): the trained checkpoints and loss logs. Under
-   ``tutorials/output/tutorial_18_duke_heart_physics_informed_motion/<case>/``:
-   ``mechanics_comparison.csv``, per-frame ``stress/*.vtu`` and
-   ``heart_physics_informed_motion.usd``.
+   ``ssm_template.vtu`` (the tetrahedral template), ``pca_model.json`` and
+   ``pca_mean.vtu`` (the volumetric shape model), ``pca_mean_surface.vtp``
+   (its boundary, for display), one ``<case>/`` directory of fitted and
+   phase-propagated models per case, and ``manifests/`` for Tutorial 17.
 
 Adapt to your data
    ``ssm_element_size_mm`` in ``parameters_duke_heart_physics_informed.py`` is
-   the one number that decides how much of the myocardium the physics term ever
-   sees, because ``extract_tetrahedra`` resamples with a vote and drops any wall
-   thinner than the element size. Measured against the 208,259 mm^3 the Duke mean
-   surface encloses, the template holds 99.5% of it at 1.0 mm (305,696 nodes),
-   88.3% at 1.5 mm (100,903 nodes) and 72.1% at 2.0 mm (43,826 nodes); the
-   default is 1.5 mm. ``mu_kpa`` and ``lambda_lame_kpa`` are the tissue's
-   constitutive parameters, and ``lambda_physics`` weighs the residual against a
-   displacement loss scored in different units --- sweep it rather than trusting
-   it.
+   the one number that decides how much of the myocardium the physics term
+   ever sees, because ``extract_tetrahedra`` resamples with a vote and drops
+   any wall thinner than the element size. Measured against the 208,259 mm^3
+   the Duke mean surface encloses, the template holds 99.5% of it at 1.0 mm
+   (305,696 nodes), 88.3% at 1.5 mm (100,903 nodes) and 72.1% at 2.0 mm
+   (43,826 nodes); the default is 1.5 mm.
+
+Tutorial 17: Train a Mechanics-Aware Cardiac Motion Surrogate
+==============================================================
+
+Script
+   ``tutorials/tutorial_17_duke_heart_physics_informed_motion_train.py``
+
+Workflow
+   :class:`~physiotwin4d.WorkflowTrainPhysicsNeMo` driving
+   :class:`~physiotwin4d.TrainPhysicsNeMoPhysicsInformedMotion`.
+
+Dataset
+   Tutorial 16 output: ``manifests/*_manifest.json``, ``pca_mean.vtu`` and
+   ``ssm_template.vtu``.
+
+Requirements
+   The ``[physicsnemo]`` extra plus ``torch-geometric``:
+
+   .. code-block:: bash
+
+      pip install "physiotwin4d[physicsnemo]"
+      pip install torch-geometric
+
+   ``physicsnemo.sym``, which supplies ``PhysicsInformer``, ships inside
+   ``nvidia-physicsnemo``; no separate install is needed. A CUDA GPU is
+   required. The mesh graph is several times larger than Tutorial 9's surface
+   one, so expect to lower ``batch_size`` and leave gradient checkpointing on;
+   training the ablation baseline (on by default) doubles the run.
+
+.. TODO(image): no preview media exists yet for Tutorial 17. Add the
+   ``training_losses.png`` comparison of both runs' loss curves once one is
+   captured, matching the ``Preview`` pattern used by the other tutorials.
+
+What it does
+   Trains the same MeshGraphNet architecture Tutorial 9 trains, on the
+   volumetric shape model Tutorial 16 built, but scores it against a
+   neo-Hookean strain energy as well as against measured displacement.
+   Tutorial 9's loss is L2 on displacement alone, so it has no opinion about
+   motion no myocardium could undergo --- an element may inflate, thin past
+   what tissue allows, or invert outright, and the loss only notices to the
+   extent the vertices land in the wrong place. A strain energy prices exactly
+   those deformations. The loss becomes::
+
+       data + lambda_physics * (strain_energy + incompressibility)
+
+   with the strain energy of a compressible neo-Hookean solid,
+
+       W = (mu / 2)(I1 - 3) - mu ln(J) + (lambda / 2) ln(J)^2
+
+   evaluated from the deformation gradient of each tetrahedron via PhysicsNeMo
+   Sym's least-squares gradient reconstruction, its method for unstructured
+   meshes.
+
+   The residual is measured against each case's own fitted reference model,
+   not the population mean: the targets are displacements from that
+   reference, so it is the undeformed state. Measuring against the mean would
+   confuse variation between subjects with deformation within one.
+
+   By default a second model trains on identical data with
+   ``lambda_physics = 0``. That ablation is the only comparison that isolates
+   the physics term --- comparing against Tutorial 9 instead would confound it
+   with the change from a surface shape model to a volumetric one --- and
+   Tutorial 18 scores the two against each other.
+
+Run
+   .. code-block:: bash
+
+      python tutorials/tutorial_17_duke_heart_physics_informed_motion_train.py
+
+Outputs
+   Under
+   ``tutorials/network_weights/physicsnemo_physics_informed_motion_duke_heart/``
+   (and ``..._ablation/`` for the comparison model): the trained checkpoint
+   (``physics_informed_motion_stage_model.pt``), per-epoch loss
+   (``training_losses.json``), and intermittent validation RMSE
+   (``training_validation_rmse.csv``). Under
+   ``tutorials/output/tutorial_16_duke_heart_physics_informed_motion/``:
+   ``training_losses.png``, both runs' loss curves.
+
+Adapt to your data
+   ``mu_kpa`` and ``lambda_lame_kpa`` in
+   ``parameters_duke_heart_physics_informed.py`` are the tissue's constitutive
+   parameters, and ``lambda_physics`` weighs the residual against a
+   displacement loss scored in different units --- sweep it rather than
+   trusting it. Set ``train_ablation_baseline`` to ``False`` to skip the
+   comparison model.
+
+Tutorial 18: Predict Myocardial Motion and the Stress It Implies
+=================================================================
+
+Script
+   ``tutorials/tutorial_18_duke_heart_physics_informed_motion_infer.py``
+
+Workflow
+   :class:`~physiotwin4d.WorkflowInferMovement` driving
+   :class:`~physiotwin4d.WorkflowInferPhysicsNeMo` for both models,
+   :class:`~physiotwin4d.WorkflowEvaluateMovement` to score them, and
+   :class:`~physiotwin4d.ConvertVTKToUSD` (with
+   :meth:`~physiotwin4d.ConvertVTKToUSD.compute_von_mises_stress`) for the
+   export.
+
+Dataset
+   Tutorial 16 output (fitted models, manifests, template), Tutorial 17
+   output (the trained networks), and the held-out case's
+   ``data/Duke-Heart-4DLabelmaps/<case>/*_labelmap.nii.gz``.
+
+Requirements
+   The ``[physicsnemo]`` extra plus ``torch-geometric``, and a CUDA GPU ---
+   same as Tutorial 17. Far cheaper than Tutorials 16 and 17: two inference
+   passes and two evaluations over the held-out case's gated frames, then one
+   stress evaluation per frame.
+
+.. TODO(image): no preview media exists yet for Tutorial 18. Add a still or
+   clip of ``heart_physics_informed_motion.usd`` colored by von Mises stress
+   once one is captured, matching the ``Preview`` pattern used by the other
+   tutorials.
+
+What it does
+   Scores the mechanics-aware surrogate Tutorial 17 trained, and turns what it
+   predicts into something a mechanics-aware model can say and a data-only one
+   cannot: a stress field.
+
+   It predicts the held-out case's motion with the physics-informed network
+   and again with the ``lambda_physics = 0`` ablation Tutorial 17 trained on
+   identical data --- the only honest comparison, since scoring against
+   Tutorial 9 would confound the physics term with the change from a surface
+   shape model to a volumetric one. Both are scored with
+   ``WorkflowEvaluateMovement`` into one table comparing them per phase,
+   including the minimum Jacobian, which says whether the predicted motion
+   ever turns tissue inside out.
+
+   It then derives the Cauchy stress each predicted deformation implies, from
+   the same neo-Hookean law the training loss used, and reduces it to von
+   Mises stress --- the tutorial supplies only the 9-component stress tensor,
+   and ``ConvertVTKToUSD.compute_von_mises_stress`` derives the scalar ---
+   before exporting the animated result to USD with a stress colormap.
+
+   The success criterion worth holding this to is not that the
+   physics-informed model wins on RMSE. It is that it is no worse while
+   keeping every element's Jacobian positive: a strain energy is a prior, and
+   a prior that improved the data fit would be suspicious. Read
+   ``mechanics_comparison.csv`` and report what it says.
+
+Run
+   .. code-block:: bash
+
+      python tutorials/tutorial_18_duke_heart_physics_informed_motion_infer.py
+
+Outputs
+   Under
+   ``tutorials/output/tutorial_18_duke_heart_physics_informed_motion/<case>/``:
+   ``mechanics_comparison.csv`` (per-phase scores, both models),
+   ``physics_informed/`` and ``ablation/`` (each model's predictions and
+   report), ``stress/<frame>_stress.vtu`` (predicted motion carrying stress),
+   and ``heart_physics_informed_motion.usd`` (animated, colored by von Mises
+   stress).
+
+Adapt to your data
+   Point ``case_id`` at a different held-out subject to score that one
+   instead; everything it reads comes from Tutorials 16 and 17, so no other
+   change is needed.
 
 
 Where to Go Next

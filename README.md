@@ -30,8 +30,9 @@ for users and contributors. Key sections:
 - [CLI & Scripts Guide](https://project-monai.github.io/physiotwin4d/cli_scripts/overview.html) — command-line tools for conversion, segmentation, registration, and USD workflows
 - [API Reference](https://project-monai.github.io/physiotwin4d/api/index.html) — workflow, registration, segmentation, and USD classes
 - [Developer Guides](https://project-monai.github.io/physiotwin4d/developer/architecture.html) — architecture, extension points, and implementation conventions
-- [Contributing](https://project-monai.github.io/physiotwin4d/contributing.html) and [Testing](https://project-monai.github.io/physiotwin4d/testing.html)
+- [Contributing](CONTRIBUTING.md) and [Testing](https://project-monai.github.io/physiotwin4d/testing.html)
 - [FAQ](https://project-monai.github.io/physiotwin4d/faq.html) and [Troubleshooting](https://project-monai.github.io/physiotwin4d/troubleshooting.html)
+- [Issues](https://github.com/Project-MONAI/physiotwin4d/issues) and [Discussions](https://github.com/Project-MONAI/physiotwin4d/discussions)
 
 ## Highlights
 
@@ -127,7 +128,7 @@ See the [quickstart](https://project-monai.github.io/physiotwin4d/quickstart.htm
 
 ## Contributing
 
-See the [contributing guide](https://project-monai.github.io/physiotwin4d/contributing.html) for code style, testing, IDE setup, and pull request conventions.
+See [CONTRIBUTING.md](CONTRIBUTING.md) (also published at [project-monai.github.io/physiotwin4d/contributing.html](https://project-monai.github.io/physiotwin4d/contributing.html)) for code style, testing, IDE setup, and pull request conventions.
 
 ## License
 
