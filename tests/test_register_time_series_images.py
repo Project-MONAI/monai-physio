@@ -510,9 +510,9 @@ class TestRegisterTimeSeriesImages:
         print(f"  All {len(forward_transforms)} transforms generated")
 
 
-def _make_constant_image(value: float, size: int = 4) -> Any:
-    """Build a tiny constant-valued float image for composite-mode tests."""
-    arr = np.full((size, size, size), value, dtype=np.float32)
+def _make_constant_image(value: float, size: int = 4, dtype: Any = np.float32) -> Any:
+    """Build a tiny constant-valued image for composite-mode tests."""
+    arr = np.full((size, size, size), value, dtype=dtype)
     image = itk.image_from_array(arr)
     return image
 
@@ -613,6 +613,25 @@ class TestReconstructTimeSeriesCompositeMode:
             "uncovered voxels should keep the fixed image's value, not "
             "extrapolated background fill"
         )
+
+    def test_composite_mode_mean_integer_dtype_rounds(self) -> None:
+        """Integer pixel types round to nearest, not truncate toward zero."""
+        fixed_image = _make_constant_image(-1000, dtype=np.int16)
+        moving_image = _make_constant_image(-1007, dtype=np.int16)
+
+        registrar = RegisterTimeSeriesImages(registration_method=RegisterImagesGreedy())
+        registrar.set_fixed_image(fixed_image)
+
+        composite = registrar._compute_composite_reference(
+            moving_images=[moving_image],
+            forward_transforms=self._identity_transforms(1),
+            mode="mean",
+        )
+        arr = itk.array_from_image(composite)
+
+        # True mean is -1003.5; rounding gives -1004, truncation toward zero
+        # (plain astype) would wrongly give -1003.
+        assert np.all(arr == -1004), f"expected rounded mean -1004, got {arr.flat[0]}"
 
     def test_composite_mode_invalid_value(self) -> None:
         """An unrecognized composite_mode raises ValueError instead of

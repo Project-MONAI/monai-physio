@@ -509,6 +509,8 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
 
         if mode == "mean":
             accumulator /= valid_count
+            if np.issubdtype(dtype, np.integer):
+                accumulator = np.round(accumulator)
         reduced = accumulator.astype(dtype)
 
         composite = itk.image_from_array(np.ascontiguousarray(reduced))
