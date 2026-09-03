@@ -1552,8 +1552,7 @@ Run
       python tutorials/tutorial_17_duke_heart_physics_informed_motion_train.py
 
 Outputs
-   Under
-   ``tutorials/network_weights/physicsnemo_physics_informed_motion_duke_heart/``
+   Under ``tutorials/network_weights/physicsnemo_physics_informed_motion_duke_heart/``
    (and ``..._ablation/`` for the comparison model): the trained checkpoint
    (``physics_informed_motion_stage_model.pt``), per-epoch loss
    (``training_losses.json``), and intermittent validation RMSE
@@ -1631,8 +1630,7 @@ Run
       python tutorials/tutorial_18_duke_heart_physics_informed_motion_infer.py
 
 Outputs
-   Under
-   ``tutorials/output/tutorial_18_duke_heart_physics_informed_motion/<case>/``:
+   Under ``tutorials/output/tutorial_18_duke_heart_physics_informed_motion/<case>/``:
    ``mechanics_comparison.csv`` (per-phase scores, both models),
    ``physics_informed/`` and ``ablation/`` (each model's predictions and
    report), ``stress/<frame>_stress.vtu`` (predicted motion carrying stress),

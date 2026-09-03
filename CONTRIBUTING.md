@@ -34,10 +34,15 @@ Thank you for your interest in contributing to PhysioTwin4D! This guide will hel
    ```
 
    To install the full developer environment with CUDA 13, documentation, test,
-   and development dependencies, use either of these equivalent uv forms:
+   and development dependencies:
 
    ```bash
    uv pip install -e ".[cuda13,docs,test,dev]"
+   ```
+
+   Or install every declared extra, including `physicsnemo`:
+
+   ```bash
    uv pip install -e . --all-extras
    ```
 
