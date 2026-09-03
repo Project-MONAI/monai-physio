@@ -395,7 +395,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
 
         if composite_mode == "reference":
             source_image = self.fixed_image
-        else:
+        elif composite_mode in ("mean", "max"):
             if forward_transforms is None or len(forward_transforms) != len(
                 moving_images
             ):
@@ -406,6 +406,11 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
                 )
             source_image = self._compute_composite_reference(
                 moving_images, forward_transforms, composite_mode
+            )
+        else:
+            raise ValueError(
+                "composite_mode must be 'reference', 'mean', or 'max', "
+                f"got {composite_mode!r}"
             )
 
         reconstructed_images: list[itk.Image] = []
@@ -418,7 +423,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
                     moving_image, self.fixed_image
                 )
             else:
-                # Use fixed image as reference
+                # Use the moving image's own grid as the output space
                 reference_image = moving_image
 
             # Transform the source image to the reference space.  The source
@@ -456,7 +461,14 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             itk.Image: Composite image on the fixed image's grid
         """
         assert self.fixed_image is not None
-        arrays = [itk.array_from_image(self.fixed_image)]
+        fixed_arr = itk.array_from_image(self.fixed_image)
+        dtype = fixed_arr.dtype
+
+        if mode == "mean":
+            accumulator = fixed_arr.astype(np.float64)
+        else:
+            accumulator = fixed_arr.copy()
+
         for moving_image, forward_transform in zip(moving_images, forward_transforms):
             registered = self.transform_tools.transform_image(
                 moving_image,
@@ -464,13 +476,15 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
                 self.fixed_image,
                 background_value=self._prewarp_background_value(moving_image),
             )
-            arrays.append(itk.array_from_image(registered))
+            registered_arr = itk.array_from_image(registered)
+            if mode == "mean":
+                accumulator += registered_arr
+            else:
+                np.maximum(accumulator, registered_arr, out=accumulator)
 
-        stacked = np.stack(arrays, axis=0)
-        reduced = (
-            np.mean(stacked, axis=0) if mode == "mean" else np.max(stacked, axis=0)
-        )
-        reduced = reduced.astype(arrays[0].dtype)
+        if mode == "mean":
+            accumulator /= len(moving_images) + 1
+        reduced = accumulator.astype(dtype)
 
         composite = itk.image_from_array(np.ascontiguousarray(reduced))
         composite.CopyInformation(self.fixed_image)
