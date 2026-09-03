@@ -24,7 +24,7 @@ Key Features:
 """
 
 import logging
-from typing import Optional
+from typing import Literal, Optional
 
 import itk
 
@@ -64,6 +64,10 @@ class WorkflowReconstructHighres4DCT(PhysioTwin4DBase):
         register_reference_time_frame_to_reference_image (bool): Whether to register
             the reference time frame to the reference image
         upsample_to_fixed_resolution (bool): Whether to upsample reconstruction
+        composite_mode (Literal["reference", "mean", "max"]): Which image is
+            warped back to each time point during reconstruction: the
+            reference image as-is, or a pixel-by-pixel mean/max composite of
+            the reference image and all registered time-series images
         registrar (RegisterTimeSeriesImages): Internal registration object
         forward_transforms (list[itk.Transform]): one per frame; each warps its
             moving image onto the reference grid
@@ -151,6 +155,7 @@ class WorkflowReconstructHighres4DCT(PhysioTwin4DBase):
 
         # Initialize parameters with defaults
         self.upsample_to_fixed_resolution: bool = True
+        self.composite_mode: Literal["reference", "mean", "max"] = "reference"
         self.modality: str = "ct"
         self.mask_dilation_mm: float = 0.0
         self.fixed_mask: Optional[itk.Image] = None
@@ -285,6 +290,30 @@ class WorkflowReconstructHighres4DCT(PhysioTwin4DBase):
         """
         self.upsample_to_fixed_resolution = upsample_to_fixed_resolution
 
+    def set_composite_mode(
+        self, composite_mode: Literal["reference", "mean", "max"]
+    ) -> None:
+        """Set which image is warped back to each time point during reconstruction.
+
+        Args:
+            composite_mode (Literal["reference", "mean", "max"]): "reference"
+                warps the reference image back to each time point (default).
+                "mean"/"max" first build a composite of the reference image
+                and every registered time-series image (pixel-by-pixel mean
+                or max on the reference grid), then warp that composite back
+                to each time point instead.
+
+        Raises:
+            ValueError: If composite_mode is not one of "reference", "mean",
+                or "max"
+        """
+        if composite_mode not in ("reference", "mean", "max"):
+            raise ValueError(
+                f"composite_mode must be 'reference', 'mean', or 'max', "
+                f"got {composite_mode!r}"
+            )
+        self.composite_mode = composite_mode
+
     def reconstruct_time_series(self) -> dict:
         """Reconstruct high-resolution time series using inverse transforms.
 
@@ -312,12 +341,15 @@ class WorkflowReconstructHighres4DCT(PhysioTwin4DBase):
         self.log_info(
             f"Upsampling to fixed resolution: {self.upsample_to_fixed_resolution}"
         )
+        self.log_info(f"Composite mode: {self.composite_mode}")
 
         # Reconstruct time series
         self.reconstructed_images = self.registrar.reconstruct_time_series(
             moving_images=self.time_series_images,
             inverse_transforms=self.inverse_transforms,
             upsample_to_fixed_resolution=self.upsample_to_fixed_resolution,
+            forward_transforms=self.forward_transforms,
+            composite_mode=self.composite_mode,
         )
 
         self.log_info("Stage 2 complete: Time series reconstruction finished.")

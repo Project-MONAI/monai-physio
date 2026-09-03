@@ -510,5 +510,95 @@ class TestRegisterTimeSeriesImages:
         print(f"  All {len(forward_transforms)} transforms generated")
 
 
+def _make_constant_image(value: float, size: int = 4) -> Any:
+    """Build a tiny constant-valued float image for composite-mode tests."""
+    arr = np.full((size, size, size), value, dtype=np.float32)
+    image = itk.image_from_array(arr)
+    return image
+
+
+class TestReconstructTimeSeriesCompositeMode:
+    """Test suite for the composite_mode option of reconstruct_time_series."""
+
+    def _identity_transforms(self, n: int) -> list[Any]:
+        return [itk.IdentityTransform[itk.D, 3].New() for _ in range(n)]
+
+    def test_composite_mode_reference_matches_default(self) -> None:
+        """composite_mode='reference' warps the fixed image back, unchanged."""
+        fixed_image = _make_constant_image(10.0)
+        moving_images = [_make_constant_image(20.0), _make_constant_image(30.0)]
+
+        registrar = RegisterTimeSeriesImages(registration_method=RegisterImagesGreedy())
+        registrar.set_fixed_image(fixed_image)
+
+        reconstructed = registrar.reconstruct_time_series(
+            moving_images=moving_images,
+            inverse_transforms=self._identity_transforms(len(moving_images)),
+            composite_mode="reference",
+        )
+
+        for img in reconstructed:
+            arr = itk.array_from_image(img)
+            assert np.allclose(arr, 10.0), (
+                "reference mode should warp fixed image as-is"
+            )
+
+    def test_composite_mode_mean(self) -> None:
+        """composite_mode='mean' warps back the mean of fixed + registered images."""
+        fixed_image = _make_constant_image(10.0)
+        moving_images = [_make_constant_image(20.0), _make_constant_image(30.0)]
+        n = len(moving_images)
+
+        registrar = RegisterTimeSeriesImages(registration_method=RegisterImagesGreedy())
+        registrar.set_fixed_image(fixed_image)
+
+        reconstructed = registrar.reconstruct_time_series(
+            moving_images=moving_images,
+            inverse_transforms=self._identity_transforms(n),
+            forward_transforms=self._identity_transforms(n),
+            composite_mode="mean",
+        )
+
+        expected_mean = (10.0 + 20.0 + 30.0) / 3.0
+        for img in reconstructed:
+            arr = itk.array_from_image(img)
+            assert np.allclose(arr, expected_mean), "mean composite value mismatch"
+
+    def test_composite_mode_max(self) -> None:
+        """composite_mode='max' warps back the max of fixed + registered images."""
+        fixed_image = _make_constant_image(10.0)
+        moving_images = [_make_constant_image(20.0), _make_constant_image(5.0)]
+        n = len(moving_images)
+
+        registrar = RegisterTimeSeriesImages(registration_method=RegisterImagesGreedy())
+        registrar.set_fixed_image(fixed_image)
+
+        reconstructed = registrar.reconstruct_time_series(
+            moving_images=moving_images,
+            inverse_transforms=self._identity_transforms(n),
+            forward_transforms=self._identity_transforms(n),
+            composite_mode="max",
+        )
+
+        for img in reconstructed:
+            arr = itk.array_from_image(img)
+            assert np.allclose(arr, 20.0), "max composite value mismatch"
+
+    def test_composite_mode_requires_forward_transforms(self) -> None:
+        """mean/max composite_mode without forward_transforms raises ValueError."""
+        fixed_image = _make_constant_image(10.0)
+        moving_images = [_make_constant_image(20.0)]
+
+        registrar = RegisterTimeSeriesImages(registration_method=RegisterImagesGreedy())
+        registrar.set_fixed_image(fixed_image)
+
+        with pytest.raises(ValueError, match="forward_transforms"):
+            registrar.reconstruct_time_series(
+                moving_images=moving_images,
+                inverse_transforms=self._identity_transforms(1),
+                composite_mode="mean",
+            )
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "-s"])

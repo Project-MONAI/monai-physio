@@ -52,6 +52,23 @@ Registration Options
        --prior-weight 0.5 \
        --output-dir ./results
 
+Composite Mode
+===============
+
+By default, the high-resolution reference image is warped back to each time
+point. ``--composite-mode mean`` or ``--composite-mode max`` instead build a
+pixel-by-pixel mean or max composite of the reference image and every
+registered time-series image first, then warp that composite back to each
+time point — useful when anatomy or contrast is only visible in some frames.
+
+.. code-block:: bash
+
+   physiotwin4d-reconstruct-highres-4d-ct \
+       --time-series-images frame_*.mha \
+       --fixed-image highres_reference.mha \
+       --composite-mode mean \
+       --output-dir ./results
+
 Outputs
 =======
 

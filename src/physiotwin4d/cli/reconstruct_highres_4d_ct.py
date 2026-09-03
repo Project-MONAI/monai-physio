@@ -62,6 +62,13 @@ Examples:
     --registration-method ICON \\
     --ICON-iterations 50 \\
     --output-dir ./results
+
+  # Reconstruction using a mean composite instead of the reference image
+  %(prog)s \\
+    --time-series-images frame_*.mha \\
+    --fixed-image highres.mha \\
+    --composite-mode mean \\
+    --output-dir ./results
         """,
     )
 
@@ -139,6 +146,19 @@ Examples:
         "--modality",
         default="ct",
         help="Imaging modality for registration optimization (default: ct)",
+    )
+
+    # Reconstruction options
+    parser.add_argument(
+        "--composite-mode",
+        choices=["reference", "mean", "max"],
+        default="reference",
+        help=(
+            "Image warped back to each time point: 'reference' uses the "
+            "fixed image as-is (default); 'mean'/'max' first build a "
+            "pixel-by-pixel mean/max composite of the fixed image and all "
+            "registered time-series images"
+        ),
     )
 
     # Output options
@@ -302,6 +322,7 @@ Examples:
         print("\nStarting reconstruction pipeline...")
         print("=" * 70)
         workflow.set_upsample_to_fixed_resolution(True)
+        workflow.set_composite_mode(args.composite_mode)
         result = workflow.process()
 
         # Save results
