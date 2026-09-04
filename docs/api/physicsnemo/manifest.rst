@@ -2,8 +2,8 @@
 The Per-Subject Manifest
 =========================
 
-.. module:: physiotwin4d.physicsnemo_tools
-.. currentmodule:: physiotwin4d.physicsnemo_tools
+.. module:: monai_physio.physicsnemo_tools
+.. currentmodule:: monai_physio.physicsnemo_tools
 
 The manifest is the contract between your data and the training stack. It is
 the only thing you must produce to train on your own subjects: one JSON file
@@ -45,12 +45,12 @@ decides which domain the model lives on.
 Reference
 =========
 
-These live in :mod:`physiotwin4d.physicsnemo_tools`, which is not re-exported
+These live in :mod:`monai_physio.physicsnemo_tools`, which is not re-exported
 from the top-level package — import it by module:
 
 .. code-block:: python
 
-   from physiotwin4d.physicsnemo_tools import SubjectManifest, parse_manifest
+   from monai_physio.physicsnemo_tools import SubjectManifest, parse_manifest
 
 .. autoclass:: SubjectManifest
    :exclude-members: subject_id, fitted_reference_mesh, pca_coefficients, target_array, phases

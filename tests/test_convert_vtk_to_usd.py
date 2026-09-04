@@ -14,8 +14,8 @@ import pytest
 import pyvista as pv
 from pxr import UsdGeom
 
-from physiotwin4d import ConvertVTKToUSD
-from physiotwin4d.contour_tools import ContourTools
+from monai_physio import ConvertVTKToUSD
+from monai_physio.contour_tools import ContourTools
 
 
 def _make_poly(label_ids: list[int] | None = None) -> pv.PolyData:
@@ -666,7 +666,7 @@ class TestSyntheticConversion:
     def test_mask_ids_groups_by_segmenter_type(self, tmp_path: Path) -> None:
         """When a segmenter is supplied, labels are grouped under their
         anatomy type (heart/lung/...) for both meshes and materials."""
-        from physiotwin4d.segment_chest_total_segmentator import (
+        from monai_physio.segment_chest_total_segmentator import (
             SegmentChestTotalSegmentator,
         )
 

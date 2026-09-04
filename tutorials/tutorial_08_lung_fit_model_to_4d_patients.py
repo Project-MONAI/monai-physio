@@ -56,7 +56,7 @@ import itk
 import pyvista as pv
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
-from physiotwin4d import (
+from monai_physio import (
     ContourTools,
     RegisterImagesGreedy,
     SegmentNVSegmentCTMRI,

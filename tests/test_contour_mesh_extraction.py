@@ -14,7 +14,7 @@ import numpy as np
 import pytest
 import pyvista as pv
 
-from physiotwin4d.contour_tools import ContourTools
+from monai_physio.contour_tools import ContourTools
 
 #: A label that reaches the volume border, so its surface only closes if the
 #: mask is padded first.

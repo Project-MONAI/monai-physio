@@ -1,7 +1,7 @@
 # %%
 import os
 
-from physiotwin4d.data_download_tools import DataDownloadTools
+from monai_physio.data_download_tools import DataDownloadTools
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 

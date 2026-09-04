@@ -4,7 +4,7 @@ Tutorial 9 (Lung, MGN): Train a PhysicsNeMo MeshGraphNet on the Fitted Lung SSM
 Purpose
 -------
 Runs on the public DIR-Lab 4D CT data. A thin driver over the reusable
-:class:`physiotwin4d.WorkflowTrainPhysicsNeMo` workflow:
+:class:`monai_physio.WorkflowTrainPhysicsNeMo` workflow:
 
 1. Discover the per-phase SSM surfaces produced by Tutorial 8
    (``tutorial_08_lung_fit_model_to_4d_patients.py``), write the training target
@@ -21,8 +21,8 @@ Runs on the public DIR-Lab 4D CT data. A thin driver over the reusable
    driving ``TrainPhysicsNeMoMGN``).
 
 3. Evaluate the held-out test cases against their ground-truth phases with
-   :class:`physiotwin4d.WorkflowInferPhysicsNeMo` wrapped in
-   :class:`physiotwin4d.WorkflowInferMovement`.
+   :class:`monai_physio.WorkflowInferPhysicsNeMo` wrapped in
+   :class:`monai_physio.WorkflowInferMovement`.
 
 Why a GNN?
 ----------
@@ -48,7 +48,7 @@ Extra Install Required
 ----------------------
 PhysicsNeMo and PyTorch Geometric must be installed::
 
-    pip install "physiotwin4d[physicsnemo]"
+    pip install "monai-physio[physicsnemo]"
 
 Data Required
 -------------
@@ -96,7 +96,7 @@ import numpy as np
 import pyvista as pv
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
-from physiotwin4d import (
+from monai_physio import (
     TestTools,
     TrainPhysicsNeMoMGN,
     WorkflowInferMovement,

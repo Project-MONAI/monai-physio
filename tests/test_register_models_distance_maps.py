@@ -17,7 +17,7 @@ import itk
 import numpy as np
 import pytest
 
-from physiotwin4d.register_models_distance_maps import RegisterModelsDistanceMaps
+from monai_physio.register_models_distance_maps import RegisterModelsDistanceMaps
 
 
 def _image(values: np.ndarray) -> itk.Image:

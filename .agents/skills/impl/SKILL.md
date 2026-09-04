@@ -1,8 +1,8 @@
 ---
-description: Read relevant PhysioTwin4D source files, summarize current behavior, propose a brief plan, then implement the requested feature or refactor in small diffs. Calls out breaking changes and logs them in the migration guide.
+description: Read relevant MONAI Physio source files, summarize current behavior, propose a brief plan, then implement the requested feature or refactor in small diffs. Calls out breaking changes and logs them in the migration guide.
 ---
 
-Implement the following in the PhysioTwin4D repository:
+Implement the following in the MONAI Physio repository:
 
 $ARGUMENTS
 

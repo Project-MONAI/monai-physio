@@ -29,7 +29,7 @@ import numpy as np
 import pyvista as pv
 from pxr import Usd, UsdGeom, UsdShade
 
-from physiotwin4d import ContourTools, ConvertVTKToUSD
+from monai_physio import ContourTools, ConvertVTKToUSD
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")

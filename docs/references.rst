@@ -2,21 +2,21 @@
 References
 ===========
 
-Academic papers, datasets, and resources related to PhysioTwin4D.
+Academic papers, datasets, and resources related to MONAI Physio.
 
 Software Citations
 ==================
 
-If you use PhysioTwin4D in your research, please cite:
+If you use MONAI Physio in your research, please cite:
 
 .. code-block:: bibtex
 
-   @software{physiotwin4d,
+   @software{monai_physio,
      author = {Aylward, Stephen R.},
-     title = {PhysioTwin4D: Medical Imaging to Omniverse},
+     title = {MONAI Physio: Medical Imaging to Omniverse},
      year = {2025},
      publisher = {GitHub},
-     url = {https://github.com/Project-MONAI/physiotwin4d}
+     url = {https://github.com/Project-MONAI/monai-physio}
    }
 
 Related Publications

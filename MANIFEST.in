@@ -16,9 +16,9 @@ recursive-include src *.py
 # rules are kept so that any future bundled config ships automatically. Network
 # weights are deliberately excluded - they are produced by running Tutorials 2
 # and 9, not distributed with the package.
-recursive-include src/physiotwin4d *.json
-recursive-include src/physiotwin4d *.yaml
-recursive-include src/physiotwin4d *.yml
+recursive-include src/monai_physio *.json
+recursive-include src/monai_physio *.yaml
+recursive-include src/monai_physio *.yml
 
 # Exclude unnecessary files
 global-exclude __pycache__

@@ -24,14 +24,14 @@ import itk
 import numpy as np
 import pyvista as pv
 
-# Import from PhysioTwin4D package
-from physiotwin4d import (
+# Import from MONAI Physio package
+from monai_physio import (
     ContourTools,
     RegisterModelsICP,
     RegisterModelsPCA,
     TransformTools,
 )
-from physiotwin4d.image_tools import ImageTools
+from monai_physio.image_tools import ImageTools
 
 # %% [markdown]
 # ## Define File Paths

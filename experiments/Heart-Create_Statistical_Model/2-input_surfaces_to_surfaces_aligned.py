@@ -21,8 +21,8 @@ import numpy as np
 import pandas as pd
 import pyvista as pv
 
-from physiotwin4d.contour_tools import ContourTools
-from physiotwin4d.register_models_icp import RegisterModelsICP
+from monai_physio.contour_tools import ContourTools
+from monai_physio.register_models_icp import RegisterModelsICP
 
 _HERE = Path(__file__).parent
 

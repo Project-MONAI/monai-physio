@@ -1,12 +1,12 @@
-# PhysioTwin4D
+# MONAI Physio
 
-[![CI](https://github.com/Project-MONAI/physiotwin4d/actions/workflows/ci.yml/badge.svg)](https://github.com/Project-MONAI/physiotwin4d/actions/workflows/ci.yml)
-[![Documentation](https://github.com/Project-MONAI/physiotwin4d/actions/workflows/docs.yml/badge.svg)](https://github.com/Project-MONAI/physiotwin4d/actions/workflows/docs.yml)
-[![Nightly Health](https://img.shields.io/endpoint?url=https://project-monai.github.io/physiotwin4d/status.json)](https://github.com/Project-MONAI/physiotwin4d/actions/workflows/nightly-health.yml)
-[![codecov](https://codecov.io/gh/Project-MONAI/physiotwin4d/branch/main/graph/badge.svg)](https://codecov.io/gh/Project-MONAI/physiotwin4d)
+[![CI](https://github.com/Project-MONAI/monai-physio/actions/workflows/ci.yml/badge.svg)](https://github.com/Project-MONAI/monai-physio/actions/workflows/ci.yml)
+[![Documentation](https://github.com/Project-MONAI/monai-physio/actions/workflows/docs.yml/badge.svg)](https://github.com/Project-MONAI/monai-physio/actions/workflows/docs.yml)
+[![Nightly Health](https://img.shields.io/endpoint?url=https://project-monai.github.io/monai-physio/status.json)](https://github.com/Project-MONAI/monai-physio/actions/workflows/nightly-health.yml)
+[![codecov](https://codecov.io/gh/Project-MONAI/monai-physio/branch/main/graph/badge.svg)](https://codecov.io/gh/Project-MONAI/monai-physio)
 
-[![PyPI version](https://img.shields.io/pypi/v/physiotwin4d.svg)](https://pypi.org/project/physiotwin4d/)
-[![Python versions](https://img.shields.io/pypi/pyversions/physiotwin4d.svg)](https://pypi.org/project/physiotwin4d/)
+[![PyPI version](https://img.shields.io/pypi/v/monai-physio.svg)](https://pypi.org/project/monai-physio/)
+[![Python versions](https://img.shields.io/pypi/pyversions/monai-physio.svg)](https://pypi.org/project/monai-physio/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
@@ -14,25 +14,25 @@
 
 **A collection of methods, workflows, tutorials, and CLI tools for creating personalized physiological digital twins.**
 
-PhysioTwin4D typically begins with a 3D medical image of a subject, extracts anatomic models from that image, and then uses AI surrogates to estimate the subject's physiological processes — initially focusing on cardiac and respiratory motion, and expanding to electrophysiology, blood flow, and organ perfusion. The package provides methods for forming these physiological AI surrogates and for finetuning the segmentation and registration AI methods that power them, with special emphasis on statistical shape models: they capture subject-specific characteristics that help determine subject-specific physiological function, and establish correspondence across subjects to aid AI surrogate generalization and simplify the application of traditional solvers.
+MONAI Physio typically begins with a 3D medical image of a subject, extracts anatomic models from that image, and then uses AI surrogates to estimate the subject's physiological processes — initially focusing on cardiac and respiratory motion, and expanding to electrophysiology, blood flow, and organ perfusion. The package provides methods for forming these physiological AI surrogates and for finetuning the segmentation and registration AI methods that power them, with special emphasis on statistical shape models: they capture subject-specific characteristics that help determine subject-specific physiological function, and establish correspondence across subjects to aid AI surrogate generalization and simplify the application of traditional solvers.
 
-PhysioTwin4D is not validated for clinical use. It is a research and
+MONAI Physio is not validated for clinical use. It is a research and
 visualization toolkit, not a medical device, and must not be used for
 diagnosis, treatment planning, or clinical decision-making.
 
 ## Documentation
 
-**https://project-monai.github.io/physiotwin4d/** is the primary entry point
+**https://project-monai.github.io/monai-physio/** is the primary entry point
 for users and contributors. Key sections:
 
-- [Installation](https://project-monai.github.io/physiotwin4d/installation.html) and [Quickstart](https://project-monai.github.io/physiotwin4d/quickstart.html)
-- [Tutorials](https://project-monai.github.io/physiotwin4d/tutorials.html) — runnable end-to-end workflows and their datasets
-- [CLI & Scripts Guide](https://project-monai.github.io/physiotwin4d/cli_scripts/overview.html) — command-line tools for conversion, segmentation, registration, and USD workflows
-- [API Reference](https://project-monai.github.io/physiotwin4d/api/index.html) — workflow, registration, segmentation, and USD classes
-- [Developer Guides](https://project-monai.github.io/physiotwin4d/developer/architecture.html) — architecture, extension points, and implementation conventions
-- [Contributing](CONTRIBUTING.md) and [Testing](https://project-monai.github.io/physiotwin4d/testing.html)
-- [FAQ](https://project-monai.github.io/physiotwin4d/faq.html) and [Troubleshooting](https://project-monai.github.io/physiotwin4d/troubleshooting.html)
-- [Issues](https://github.com/Project-MONAI/physiotwin4d/issues) and [Discussions](https://github.com/Project-MONAI/physiotwin4d/discussions)
+- [Installation](https://project-monai.github.io/monai-physio/installation.html) and [Quickstart](https://project-monai.github.io/monai-physio/quickstart.html)
+- [Tutorials](https://project-monai.github.io/monai-physio/tutorials.html) — runnable end-to-end workflows and their datasets
+- [CLI & Scripts Guide](https://project-monai.github.io/monai-physio/cli_scripts/overview.html) — command-line tools for conversion, segmentation, registration, and USD workflows
+- [API Reference](https://project-monai.github.io/monai-physio/api/index.html) — workflow, registration, segmentation, and USD classes
+- [Developer Guides](https://project-monai.github.io/monai-physio/developer/architecture.html) — architecture, extension points, and implementation conventions
+- [Contributing](CONTRIBUTING.md) and [Testing](https://project-monai.github.io/monai-physio/testing.html)
+- [FAQ](https://project-monai.github.io/monai-physio/faq.html) and [Troubleshooting](https://project-monai.github.io/monai-physio/troubleshooting.html)
+- [Issues](https://github.com/Project-MONAI/monai-physio/issues) and [Discussions](https://github.com/Project-MONAI/monai-physio/discussions)
 
 ## Highlights
 
@@ -49,10 +49,10 @@ for users and contributors. Key sections:
 ### Install
 
 ```
-uv pip install "physiotwin4d[all]"
+uv pip install "monai-physio[all]"
 ```
 
-See the [installation guide](https://project-monai.github.io/physiotwin4d/installation.html) for GPU setup, source installs, and optional extras (PhysicsNeMo). 
+See the [installation guide](https://project-monai.github.io/monai-physio/installation.html) for GPU setup, source installs, and optional extras (PhysicsNeMo). 
 
 ### Download Tutorials
 
@@ -60,7 +60,7 @@ The tutorials are not installed by pip. They live in this repository.
 Clone it to run them:
 
 ```
-git clone https://github.com/Project-MONAI/physiotwin4d.git
+git clone https://github.com/Project-MONAI/monai-physio.git
 ```
 
 ### Download Tutorial Data
@@ -74,8 +74,8 @@ resolve their inputs against the repository root, so downloading
 elsewhere puts the data where they will not find it.
 
 ```
-cd physiotwin4d
-physiotwin4d-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
+cd monai_physio
+monai-physio-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
 ```
 
 ### Run Tutorial 01: Gated CT to USD
@@ -92,7 +92,7 @@ That tutorial builds the same workflow the Python API exposes:
 import itk
 from pathlib import Path
 
-from physiotwin4d import (
+from monai_physio import (
     RegisterImagesICON,
     SegmentChestTotalSegmentatorWithContrast,
     WorkflowConvertImageToUSD,
@@ -119,16 +119,16 @@ available as command-line tools but CLIs provide fewer options for
 customization:
 
 ```bash
-physiotwin4d-convert-image-to-usd cardiac_4d.nrrd --contrast --output-dir ./results
+monai-physio-convert-image-to-usd cardiac_4d.nrrd --contrast --output-dir ./results
 ```
 
 # Next Steps
 
-See the [quickstart](https://project-monai.github.io/physiotwin4d/quickstart.html) and [tutorials](https://project-monai.github.io/physiotwin4d/tutorials.html) for full walkthroughs covering segmentation, registration, statistical shape modeling, and USD export.
+See the [quickstart](https://project-monai.github.io/monai-physio/quickstart.html) and [tutorials](https://project-monai.github.io/monai-physio/tutorials.html) for full walkthroughs covering segmentation, registration, statistical shape modeling, and USD export.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) (also published at [project-monai.github.io/physiotwin4d/contributing.html](https://project-monai.github.io/physiotwin4d/contributing.html)) for code style, testing, IDE setup, and pull request conventions.
+See [CONTRIBUTING.md](CONTRIBUTING.md) (also published at [project-monai.github.io/monai-physio/contributing.html](https://project-monai.github.io/monai-physio/contributing.html)) for code style, testing, IDE setup, and pull request conventions.
 
 ## License
 

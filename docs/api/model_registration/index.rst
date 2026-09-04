@@ -2,7 +2,7 @@
 Model Registration Modules
 ==========================
 
-.. currentmodule:: physiotwin4d
+.. currentmodule:: monai_physio
 
 Model registration classes align PyVista meshes and derived image masks. They
 are used by :class:`WorkflowFitStatisticalModelToPatient`.
@@ -34,7 +34,7 @@ Most users should access model registration through the workflow:
    import itk
    import pyvista as pv
 
-   from physiotwin4d import WorkflowFitStatisticalModelToPatient
+   from monai_physio import WorkflowFitStatisticalModelToPatient
 
    workflow = WorkflowFitStatisticalModelToPatient(
        template_model=pv.read("template_heart.vtu"),

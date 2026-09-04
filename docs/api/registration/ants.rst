@@ -2,8 +2,8 @@
 ANTs Registration
 =================
 
-.. module:: physiotwin4d.register_images_ants
-.. currentmodule:: physiotwin4d
+.. module:: monai_physio.register_images_ants
+.. currentmodule:: monai_physio
 
 ``RegisterImagesANTS`` provides optimization-based deformable image
 registration through ANTs.
@@ -23,7 +23,7 @@ Basic Registration
 
    import itk
 
-   from physiotwin4d import RegisterImagesANTS
+   from monai_physio import RegisterImagesANTS
 
    fixed = itk.imread("reference.mha")
    moving = itk.imread("moving.mha")

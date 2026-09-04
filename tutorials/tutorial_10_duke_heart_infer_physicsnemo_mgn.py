@@ -5,8 +5,8 @@ Purpose
 -------
 Final inference stage of the Duke heart 4D deep-learning pipeline (Tutorials 8
 -> 9 -> 10), the counterpart of ``tutorial_10_lung_infer_physicsnemo_mgn.py``.
-A thin driver over :class:`physiotwin4d.WorkflowInferPhysicsNeMo` and its
-displacement decoder :class:`physiotwin4d.WorkflowInferMovement`:
+A thin driver over :class:`monai_physio.WorkflowInferPhysicsNeMo` and its
+displacement decoder :class:`monai_physio.WorkflowInferMovement`:
 
 1. Discover the per-frame SSM surfaces that Tutorial 8 (Duke Heart)
    (``tutorial_08_duke_heart_fit_model_to_4d_patients.py``) wrote for the
@@ -30,13 +30,13 @@ Steps 2 and 3 are :meth:`WorkflowInferMovement.process_time_series`; this script
 only chooses the case, the stages and the image to warp.
 
 For command-line use with path arguments, use the installed
-``physiotwin4d-infer-physicsnemo`` CLI instead of editing this script.
+``monai-physio-infer-physicsnemo`` CLI instead of editing this script.
 
 Extra Install Required
 ----------------------
 PhysicsNeMo and PyTorch Geometric must be installed::
 
-    pip install "physiotwin4d[physicsnemo]"
+    pip install "monai-physio[physicsnemo]"
 
 Data Required
 -------------
@@ -65,7 +65,7 @@ import itk
 import pyvista as pv
 from parameters_duke_heart_labelmaps import DUKE_HEART
 
-from physiotwin4d import (
+from monai_physio import (
     TestTools,
     WorkflowInferMovement,
     WorkflowInferPhysicsNeMo,

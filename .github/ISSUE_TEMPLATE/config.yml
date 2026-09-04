@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Questions and ideas
-    url: https://github.com/Project-MONAI/physiotwin4d/discussions
+    url: https://github.com/Project-MONAI/monai-physio/discussions
     about: For "how do I..." questions, open-ended ideas, and show-and-tell — not for bugs or confirmed feature work.

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import monai
 import numpy as np
 import torch
-from physiotwin4d.notebook_utils import running_as_test
+from monai_physio.notebook_utils import running_as_test
 from scipy.interpolate import UnivariateSpline
 from torch.utils.data import DataLoader, Dataset
 

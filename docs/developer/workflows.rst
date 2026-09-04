@@ -14,32 +14,32 @@ Current Workflow Mapping
 
    * - CLI command
      - Workflow class
-   * - ``physiotwin4d-convert-image-to-usd``
-     - :class:`physiotwin4d.WorkflowConvertImageToUSD`
-   * - ``physiotwin4d-convert-image-to-vtk``
-     - :class:`physiotwin4d.WorkflowConvertImageToVTK`
-   * - ``physiotwin4d-convert-vtk-to-usd``
-     - :class:`physiotwin4d.WorkflowConvertVTKToUSD`
-   * - ``physiotwin4d-create-statistical-model``
-     - :class:`physiotwin4d.WorkflowCreateStatisticalModel`
-   * - ``physiotwin4d-fit-statistical-model-to-patient``
-     - :class:`physiotwin4d.WorkflowFitStatisticalModelToPatient`
-   * - ``physiotwin4d-reconstruct-highres-4d-ct``
-     - :class:`physiotwin4d.WorkflowReconstructHighres4DCT`
-   * - ``physiotwin4d-train-physicsnemo``
-     - :class:`physiotwin4d.WorkflowTrainPhysicsNeMo`
-   * - ``physiotwin4d-infer-physicsnemo``
-     - :class:`physiotwin4d.WorkflowInferPhysicsNeMo`
-   * - ``physiotwin4d-convert-image-4d-to-3d``
-     - :class:`physiotwin4d.ConvertImage4DTo3D` (a converter, not a workflow)
-   * - ``physiotwin4d-download-data``
-     - :class:`physiotwin4d.DataDownloadTools` (a utility, not a workflow)
-   * - ``physiotwin4d-visualize-pca-modes``
+   * - ``monai-physio-convert-image-to-usd``
+     - :class:`monai_physio.WorkflowConvertImageToUSD`
+   * - ``monai-physio-convert-image-to-vtk``
+     - :class:`monai_physio.WorkflowConvertImageToVTK`
+   * - ``monai-physio-convert-vtk-to-usd``
+     - :class:`monai_physio.WorkflowConvertVTKToUSD`
+   * - ``monai-physio-create-statistical-model``
+     - :class:`monai_physio.WorkflowCreateStatisticalModel`
+   * - ``monai-physio-fit-statistical-model-to-patient``
+     - :class:`monai_physio.WorkflowFitStatisticalModelToPatient`
+   * - ``monai-physio-reconstruct-highres-4d-ct``
+     - :class:`monai_physio.WorkflowReconstructHighres4DCT`
+   * - ``monai-physio-train-physicsnemo``
+     - :class:`monai_physio.WorkflowTrainPhysicsNeMo`
+   * - ``monai-physio-infer-physicsnemo``
+     - :class:`monai_physio.WorkflowInferPhysicsNeMo`
+   * - ``monai-physio-convert-image-4d-to-3d``
+     - :class:`monai_physio.ConvertImage4DTo3D` (a converter, not a workflow)
+   * - ``monai-physio-download-data``
+     - :class:`monai_physio.DataDownloadTools` (a utility, not a workflow)
+   * - ``monai-physio-visualize-pca-modes``
      - Reads a ``pca_model.json`` directly; no workflow class
 
 That is all eleven installed commands. Two workflow classes have no CLI
-wrapper: :class:`physiotwin4d.WorkflowFinetuneICONRegistration` and
-:class:`physiotwin4d.WorkflowEvaluateMovement`.
+wrapper: :class:`monai_physio.WorkflowFinetuneICONRegistration` and
+:class:`monai_physio.WorkflowEvaluateMovement`.
 
 Workflow Example
 ================
@@ -50,7 +50,7 @@ Workflow Example
 
    import itk
 
-   from physiotwin4d import RegisterImagesICON, WorkflowConvertImageToUSD
+   from monai_physio import RegisterImagesICON, WorkflowConvertImageToUSD
 
    frame_files = sorted(Path("data/Slicer-Heart-CT").glob("slice_???.mha"))
    time_series_images = [itk.imread(str(path)) for path in frame_files]
@@ -68,7 +68,7 @@ Workflow Example
 Adding a Workflow
 =================
 
-1. Inherit from :class:`physiotwin4d.PhysioTwin4DBase`.
+1. Inherit from :class:`monai_physio.MONAIPhysioBase`.
 2. Keep the constructor explicit and typed.
 3. Use ``self.log_info()`` and ``self.log_debug()`` for runtime status.
 4. Keep file I/O behavior predictable and documented.

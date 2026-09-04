@@ -8,9 +8,9 @@ import itk
 import numpy as np
 import pytest
 
-from physiotwin4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
-from physiotwin4d.segment_heart_simpleware import SegmentHeartSimpleware
-from physiotwin4d.workflow_convert_image_to_vtk import WorkflowConvertImageToVTK
+from monai_physio.segment_chest_total_segmentator import SegmentChestTotalSegmentator
+from monai_physio.segment_heart_simpleware import SegmentHeartSimpleware
+from monai_physio.workflow_convert_image_to_vtk import WorkflowConvertImageToVTK
 
 
 def test_default_segmentation_method_is_chest_total_segmentator() -> None:

@@ -1,10 +1,10 @@
 # Heart Segmentation using Simpleware Medical
 
-This experiment demonstrates cardiac segmentation using Synopsys Simpleware Medical's ASCardio module integrated with PhysioTwin4D.
+This experiment demonstrates cardiac segmentation using Synopsys Simpleware Medical's ASCardio module integrated with MONAI Physio.
 
 ## Overview
 
-The `SegmentHeartSimpleware` class provides integration between PhysioTwin4D and Synopsys Simpleware Medical for automated heart segmentation. This experiment shows how to:
+The `SegmentHeartSimpleware` class provides integration between MONAI Physio and Synopsys Simpleware Medical for automated heart segmentation. This experiment shows how to:
 
 1. Load cardiac CT images
 2. Segment heart structures using ASCardio
@@ -20,7 +20,7 @@ The `SegmentHeartSimpleware` class provides integration between PhysioTwin4D and
   - Console mode: `ConsoleSimplewareMedical.exe` (command-line version)
   - ASCardio module license required
 
-- **Python packages** (included in PhysioTwin4D environment):
+- **Python packages** (included in MONAI Physio environment):
   - `itk`
   - `numpy`
   - `matplotlib`
@@ -107,7 +107,7 @@ The script generates:
    - Input image saved to a temporary NIfTI file
    - ConsoleSimplewareMedical.exe is launched with `--input-file` (NIfTI) and `--input-value` (output directory)
    - The Simpleware script runs ASCardio on the loaded image and exports per-structure masks as MHD
-   - PhysioTwin4D assembles the labelmap from the mask files and returns results
+   - MONAI Physio assembles the labelmap from the mask files and returns results
 
 3. **Postprocessing** (automatic):
    - Labelmap resampled to original image space
@@ -212,13 +212,13 @@ This provides:
 
 ## Integration with Other Workflows
 
-This experiment can be combined with other PhysioTwin4D workflows:
+This experiment can be combined with other MONAI Physio workflows:
 
 ### 4D Heart Animation
 Use segmentation results with `Heart-GatedCT_To_USD` workflow:
 ```python
 # After segmentation
-from physiotwin4d.workflow_convert_image_to_usd import WorkflowConvertImageToUSD
+from monai_physio.workflow_convert_image_to_usd import WorkflowConvertImageToUSD
 
 workflow = WorkflowConvertImageToUSD()
 workflow.set_static_labelmap(result["labelmap"])
@@ -228,7 +228,7 @@ workflow.set_static_labelmap(result["labelmap"])
 ### Statistical Model Registration
 Register segmentation with heart model using `Heart-Statistical_Model_To_Patient`:
 ```python
-from physiotwin4d.workflow_fit_statistical_model_to_patient import WorkflowFitStatisticalModelToPatient
+from monai_physio.workflow_fit_statistical_model_to_patient import WorkflowFitStatisticalModelToPatient
 
 workflow = WorkflowFitStatisticalModelToPatient()
 workflow.set_patient_segmentation(result["labelmap"])
@@ -245,7 +245,7 @@ lv_mask = np.where(labelmap_array == 1, 1, 0)
 lv_volume_ml = np.sum(lv_mask) * voxel_volume / 1000
 
 # Create mesh for computational modeling
-from physiotwin4d.convert_vtk_to_usd import create_mesh_from_mask
+from monai_physio.convert_vtk_to_usd import create_mesh_from_mask
 lv_mesh = create_mesh_from_mask(lv_mask)
 ```
 
@@ -262,7 +262,7 @@ segmenter.set_target_spacing(2.0)  # Use 2mm instead of 1mm
 2. **Use region of interest**:
 ```python
 # Crop image to heart region before segmentation
-from physiotwin4d.image_tools import crop_to_roi
+from monai_physio.image_tools import crop_to_roi
 cropped_image = crop_to_roi(input_image, roi_bounds)
 ```
 
@@ -270,23 +270,23 @@ cropped_image = crop_to_roi(input_image, roi_bounds)
 
 - **Simpleware Medical Documentation**: See Synopsys user manual
 - **ASCardio Module**: Refer to ASCardio technical documentation
-- **PhysioTwin4D**: Main repository documentation
+- **MONAI Physio**: Main repository documentation
 
 ## Citation
 
 If using this integration in research, please cite:
 - Synopsys Simpleware Medical
-- PhysioTwin4D framework
+- MONAI Physio framework
 - Any relevant papers using ASCardio segmentation
 
 ## License
 
-This integration code follows the PhysioTwin4D license. Simpleware Medical and ASCardio are commercial products requiring separate licenses from Synopsys.
+This integration code follows the MONAI Physio license. Simpleware Medical and ASCardio are commercial products requiring separate licenses from Synopsys.
 
 ## Support
 
 For issues with:
-- **PhysioTwin4D integration**: Submit issue to PhysioTwin4D repository
+- **MONAI Physio integration**: Submit issue to MONAI Physio repository
 - **Simpleware Medical/ASCardio**: Contact Synopsys support
 - **This experiment**: Check troubleshooting section above
 

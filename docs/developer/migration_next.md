@@ -3,7 +3,7 @@
 Breaking changes committed since the last release, and how to update code that
 depends on them.
 
-PhysioTwin4D prefers compatibility: public APIs are broken only when the change
+MONAI Physio prefers compatibility: public APIs are broken only when the change
 is generally beneficial to future users. When a break is unavoidable, the
 project does **not** ship deprecation shims or removed-symbol stubs. Instead,
 substantial changes ship with code that automates the conversion, and every

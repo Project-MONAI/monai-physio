@@ -22,11 +22,11 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # (accessor name, environment variable, default relative to the repo root)
 _ROOTS = [
-    ("data_directory", "PHYSIOTWIN_INPUT_DATA_DIR", Path("data")),
-    ("output_directory", "PHYSIOTWIN_OUTPUT_DATA_DIR", Path("tutorials/output")),
+    ("data_directory", "MONAI_PHYSIO_INPUT_DATA_DIR", Path("data")),
+    ("output_directory", "MONAI_PHYSIO_OUTPUT_DATA_DIR", Path("tutorials/output")),
     (
         "weights_directory",
-        "PHYSIOTWIN_WEIGHTS_DIR",
+        "MONAI_PHYSIO_WEIGHTS_DIR",
         Path("tutorials/network_weights"),
     ),
 ]
@@ -129,9 +129,9 @@ def test_dataset_paths_hang_off_the_roots(
     This is the property that lets a runner keep its data off the checkout: no
     dataset path may be pinned to the repository independently of its root.
     """
-    monkeypatch.setenv("PHYSIOTWIN_INPUT_DATA_DIR", str(tmp_path / "in"))
-    monkeypatch.setenv("PHYSIOTWIN_OUTPUT_DATA_DIR", str(tmp_path / "out"))
-    monkeypatch.setenv("PHYSIOTWIN_WEIGHTS_DIR", str(tmp_path / "weights"))
+    monkeypatch.setenv("MONAI_PHYSIO_INPUT_DATA_DIR", str(tmp_path / "in"))
+    monkeypatch.setenv("MONAI_PHYSIO_OUTPUT_DATA_DIR", str(tmp_path / "out"))
+    monkeypatch.setenv("MONAI_PHYSIO_WEIGHTS_DIR", str(tmp_path / "weights"))
 
     for name in (
         "input_directory",

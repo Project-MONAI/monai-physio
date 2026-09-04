@@ -1,7 +1,7 @@
 .. _cookbook:
 
 =====================
-PhysioTwin4D Cookbook
+MONAI Physio Cookbook
 =====================
 
 Short, self-contained recipes for the things people actually ask for. Each one

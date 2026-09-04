@@ -13,7 +13,7 @@ import numpy as np
 import pytest
 import pyvista as pv
 
-from physiotwin4d.contour_tools import ContourTools
+from monai_physio.contour_tools import ContourTools
 
 
 @pytest.mark.slow

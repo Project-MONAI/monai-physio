@@ -1,4 +1,4 @@
-# PhysioTwin4D - Software Development Statistics
+# MONAI Physio - Software Development Statistics
 
 **Report Generated:** August 14, 2026
 **Project Version:** 2026.08.0
@@ -11,7 +11,7 @@ comments, over Git-tracked files only (`git ls-files`).
 
 ## Executive Summary
 
-PhysioTwin4D is a collection of methods, workflows, tutorials, and CLI tools
+MONAI Physio is a collection of methods, workflows, tutorials, and CLI tools
 for creating personalized physiological digital twins from 3D/4D medical images.
 This report summarizes development effort, code quality, and project maturity.
 
@@ -94,7 +94,7 @@ tutorials are straightforward top-to-bottom scripts.
 
 ### Domain Complexity
 
-PhysioTwin4D operates across several technically demanding domains:
+MONAI Physio operates across several technically demanding domains:
 
 | Domain                   | Complexity Level | Key Technologies                       |
 | ------------------------- | ----------------- | ---------------------------------------- |
@@ -109,7 +109,7 @@ PhysioTwin4D operates across several technically demanding domains:
 ### Architectural Sophistication
 
 - Class hierarchy depth: 3-4 levels (well-structured inheritance from
-  `PhysioTwin4DBase`)
+  `MONAIPhysioBase`)
 - Module coupling: medium (clear separation between segmentation,
   registration, USD conversion, and workflow layers)
 - Public API surface documented via Sphinx API docs under `docs/api/`
@@ -186,7 +186,7 @@ PhysioTwin4D operates across several technically demanding domains:
   tutorials, CLI & scripts, API reference, developer guides, contributing,
   testing, FAQ, and troubleshooting
 - Per-subpackage READMEs and `CLAUDE.md` files (e.g.
-  `src/physiotwin4d/vtk_to_usd/CLAUDE.md`)
+  `src/monai_physio/vtk_to_usd/CLAUDE.md`)
 - Shared `.agents/` configuration: 4 role-specific subagents
   (`.agents/agents/`) and 8 slash-command skills (`.agents/skills/`) for
   Claude Code and other AI coding agents
@@ -195,7 +195,7 @@ PhysioTwin4D operates across several technically demanding domains:
 
 ## Summary
 
-PhysioTwin4D is a beta-quality scientific toolkit for creating personalized
+MONAI Physio is a beta-quality scientific toolkit for creating personalized
 physiological digital twins: it extracts anatomic models from 3D/4D medical
 images and uses AI surrogates - together with statistical shape models for
 subject-specific characterization and cross-subject correspondence - to

@@ -18,7 +18,7 @@ Ingredients
   :doc:`add_a_segmentation_method` if none does.
 * **The optional extra**, plus a CUDA GPU::
 
-     pip install "physiotwin4d[physicsnemo]"
+     pip install "monai-physio[physicsnemo]"
      pip install torch-geometric      # MeshGraphNet only
 
   PhysicsNeMo requires Python >= 3.11.
@@ -31,7 +31,7 @@ files.
 
 .. code-block:: bash
 
-   physiotwin4d-convert-image-4d-to-3d \
+   monai-physio-convert-image-4d-to-3d \
        --input-image subject_4d.seq.nrrd \
        --output-dir work/sub01/phases \
        --basename phase
@@ -40,7 +40,7 @@ files.
 
 .. code-block:: bash
 
-   physiotwin4d-convert-image-to-vtk \
+   monai-physio-convert-image-to-vtk \
        --input-image work/sub01/phases/phase_000.mha \
        --output-dir work/sub01/surfaces \
        --segmentation-method ChestTotalSegmentator \
@@ -52,7 +52,7 @@ comparable across subjects.
 
 .. code-block:: bash
 
-   physiotwin4d-create-statistical-model \
+   monai-physio-create-statistical-model \
        --sample-meshes-dir work/reference_surfaces \
        --reference-mesh work/reference_surfaces/sub01_heart.vtp \
        --output-dir work/ssm \
@@ -65,7 +65,7 @@ its PCA coefficient JSON.
 
 .. code-block:: bash
 
-   physiotwin4d-fit-statistical-model-to-patient \
+   monai-physio-fit-statistical-model-to-patient \
        --template-model work/ssm/pca_mean_surface.vtp \
        --pca-json work/ssm/pca_model.json \
        --patient-models work/sub01/surfaces/phase_000_heart.vtp \
@@ -100,7 +100,7 @@ See :doc:`/api/physicsnemo/manifest` for the full schema and its rules.
 
 .. code-block:: bash
 
-   physiotwin4d-train-physicsnemo \
+   monai-physio-train-physicsnemo \
        --network mgn \
        --train-manifest work/manifests/sub0{2,3,4}_manifest.json \
        --val-manifest work/manifests/sub05_manifest.json \
@@ -113,13 +113,13 @@ result --- for that, see :doc:`/tutorials` Tutorial 11.
 
 .. code-block:: bash
 
-   physiotwin4d-infer-physicsnemo \
+   monai-physio-infer-physicsnemo \
        --model-dir work/mgn_run \
        --manifest work/manifests/sub01_manifest.json \
        --displacement \
        --output work/mgn_run/eval
 
-   physiotwin4d-infer-physicsnemo \
+   monai-physio-infer-physicsnemo \
        --model-dir work/mgn_run \
        --shape-parameters work/sub01/fit/sub01_ssm_pca_coefficients.json \
        --stage 0.35 \
@@ -127,7 +127,7 @@ result --- for that, see :doc:`/tutorials` Tutorial 11.
        --output work/prediction
 
 **8. Score against the images.** Pass the inference workflow to
-:class:`~physiotwin4d.WorkflowEvaluateMovement` with the structures to score,
+:class:`~monai_physio.WorkflowEvaluateMovement` with the structures to score,
 which reports per-structure surface and volume error against the acquired
 frames.
 

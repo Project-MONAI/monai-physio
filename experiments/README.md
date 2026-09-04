@@ -1,7 +1,7 @@
-# PhysioTwin4D Experiments
+# MONAI Physio Experiments
 
 This directory contains research and design experiments that informed the development
-of the PhysioTwin4D library.
+of the MONAI Physio library.
 
 **These are not examples of how to use the library**.
 
@@ -14,9 +14,9 @@ of the PhysioTwin4D library.
 - Command-line tools and parameter specifications
 
 See:
-- **CLI Commands**: Run `physiotwin4d-convert-image-to-usd --help`, `physiotwin4d-create-statistical-model --help`, and `physiotwin4d-fit-statistical-model-to-patient --help`
-- **CLI Implementation**: `src/physiotwin4d/cli/` for Python API examples
-- **Library Classes**: `src/physiotwin4d/` for all workflow and utility classes
+- **CLI Commands**: Run `monai-physio-convert-image-to-usd --help`, `monai-physio-create-statistical-model --help`, and `monai-physio-fit-statistical-model-to-patient --help`
+- **CLI Implementation**: `src/monai_physio/cli/` for Python API examples
+- **Library Classes**: `src/monai_physio/` for all workflow and utility classes
 
 The experiments here serve as **conceptual references** showing the research process
 and design explorations that can inform adaptation to new digital twin models and tasks.
@@ -36,8 +36,8 @@ These experiments demonstrate key digital twin workflows that can be adapted to 
 anatomical regions, imaging modalities, and physiological motion tasks.
 
 > **Note:** For production implementations of these workflows, use the CLI commands
-> (`physiotwin4d-convert-image-to-usd`, `physiotwin4d-create-statistical-model`, `physiotwin4d-fit-statistical-model-to-patient`) or consult
-> the CLI implementation in `src/physiotwin4d/cli/` for proper class usage and parameter specifications.
+> (`monai-physio-convert-image-to-usd`, `monai-physio-create-statistical-model`, `monai-physio-fit-statistical-model-to-patient`) or consult
+> the CLI implementation in `src/monai_physio/cli/` for proper class usage and parameter specifications.
 
 ### `Reconstruct4DCT` - High-Resolution 4D Reconstruction
 
@@ -177,7 +177,7 @@ to new anatomical regions, physiological processes, and digital twin application
 ### General Adaptation Strategy
 
 1. **Study the experiment conceptually** - Understand the workflow stages and data transformations
-2. **Consult the CLI implementation** - See `src/physiotwin4d/cli/` to identify production classes and methods that implement similar functionality
+2. **Consult the CLI implementation** - See `src/monai_physio/cli/` to identify production classes and methods that implement similar functionality
 3. **Identify customization points:**
    - Registration parameters (metrics, transforms, optimization)
    - Segmentation models (custom training, finetuning, label mappings)
@@ -189,7 +189,7 @@ to new anatomical regions, physiological processes, and digital twin application
 ### Key Takeaway
 
 These experiments are **starting points for exploration**, not copy-paste solutions.
-The **CLI commands and implementations in `src/physiotwin4d/cli/`** are the production-quality
+The **CLI commands and implementations in `src/monai_physio/cli/`** are the production-quality
 code you should use and extend for real-world digital twin projects.
 
 ## Testing
@@ -255,16 +255,16 @@ Each subdirectory represents a different experimental domain:
    - End-to-end runnable scripts on downloadable data
    - Show the workflow classes in context, with the constants to change for
      your own scans
-   - Documented at https://project-monai.github.io/physiotwin4d/tutorials.html
+   - Documented at https://project-monai.github.io/monai-physio/tutorials.html
 
 2. **CLI Commands** - the same workflows packaged for unattended runs
-   - `physiotwin4d-convert-image-to-usd` - Complete heart-gated CT workflow
-   - `physiotwin4d-create-statistical-model` - Create PCA statistical shape model from sample meshes
-   - `physiotwin4d-fit-statistical-model-to-patient` - Model-to-patient registration
+   - `monai-physio-convert-image-to-usd` - Complete heart-gated CT workflow
+   - `monai-physio-create-statistical-model` - Create PCA statistical shape model from sample meshes
+   - `monai-physio-fit-statistical-model-to-patient` - Model-to-patient registration
    - Run with `--help` for all options and parameter specifications
    - Tested on diverse datasets
 
-3. **CLI Implementation in `src/physiotwin4d/cli/`**
+3. **CLI Implementation in `src/monai_physio/cli/`**
    - Production-ready workflow code
    - Proper class usage patterns and parameter specifications
    - Complete error handling and validation
@@ -294,7 +294,7 @@ Each subdirectory represents a different experimental domain:
 - Paths and parameters are often hardcoded for specific datasets
 - Performance may not be optimized
 
-**INSTEAD:** Use the CLI commands or the production implementations in `src/physiotwin4d/cli/` and extend them for your needs.
+**INSTEAD:** Use the CLI commands or the production implementations in `src/monai_physio/cli/` and extend them for your needs.
 
 ## Development History
 
@@ -320,10 +320,10 @@ The typical evolution path was:
 
 When exploring new digital twin applications, you can follow a similar path:
 - Start by understanding relevant experiments here as conceptual references
-- Examine CLI implementations in `src/physiotwin4d/cli/` for proper library usage
-- Use CLI commands (`physiotwin4d-convert-image-to-usd`, `physiotwin4d-create-statistical-model`, `physiotwin4d-fit-statistical-model-to-patient`) as starting points
+- Examine CLI implementations in `src/monai_physio/cli/` for proper library usage
+- Use CLI commands (`monai-physio-convert-image-to-usd`, `monai-physio-create-statistical-model`, `monai-physio-fit-statistical-model-to-patient`) as starting points
 - Extend and adapt production code with your domain-specific requirements
 - Contribute back improvements and new capabilities to the community
 
-**Remember:** The CLI commands and their implementations in `src/physiotwin4d/cli/` are your
-source of truth for how to properly use PhysioTwin4D classes, workflows, and capabilities in production environments.
+**Remember:** The CLI commands and their implementations in `src/monai_physio/cli/` are your
+source of truth for how to properly use MONAI Physio classes, workflows, and capabilities in production environments.

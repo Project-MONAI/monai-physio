@@ -1,5 +1,5 @@
 """
-Shared pytest fixtures for PhysioTwin4D tests.
+Shared pytest fixtures for MONAI Physio tests.
 
 This file defines fixtures that are available to all test modules
 in the tests directory via pytest's automatic fixture discovery.
@@ -17,18 +17,18 @@ import numpy as np
 import pytest
 
 from parameters_base import ParametersBase
-from physiotwin4d.contour_tools import ContourTools
-from physiotwin4d.data_download_tools import DataDownloadTools
-from physiotwin4d.register_images_ants import RegisterImagesANTS
-from physiotwin4d.register_images_greedy import RegisterImagesGreedy
-from physiotwin4d.register_images_icon import RegisterImagesICON
-from physiotwin4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
-from physiotwin4d.segment_chest_total_segmentator_with_contrast import (
+from monai_physio.contour_tools import ContourTools
+from monai_physio.data_download_tools import DataDownloadTools
+from monai_physio.register_images_ants import RegisterImagesANTS
+from monai_physio.register_images_greedy import RegisterImagesGreedy
+from monai_physio.register_images_icon import RegisterImagesICON
+from monai_physio.segment_chest_total_segmentator import SegmentChestTotalSegmentator
+from monai_physio.segment_chest_total_segmentator_with_contrast import (
     SegmentChestTotalSegmentatorWithContrast,
 )
-from physiotwin4d.segment_heart_simpleware import SegmentHeartSimpleware
-from physiotwin4d.segment_nv_segment_ct_mri import SegmentNVSegmentCTMRI
-from physiotwin4d.transform_tools import TransformTools
+from monai_physio.segment_heart_simpleware import SegmentHeartSimpleware
+from monai_physio.segment_nv_segment_ct_mri import SegmentNVSegmentCTMRI
+from monai_physio.transform_tools import TransformTools
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +149,7 @@ def pytest_configure(config: pytest.Config) -> None:
     global _pytest_config
     _pytest_config = config
 
-    from physiotwin4d import test_tools as _test_tools
+    from monai_physio import test_tools as _test_tools
 
     _test_tools.set_create_baseline_if_missing(
         config.getoption("--create-baselines", default=False)
@@ -527,8 +527,8 @@ def test_images(
 # ============================================================================
 #
 # The tutorials read <input root>/<dataset> in a full run and
-# <input root>/test/<dataset> under PHYSIOTWIN_RUNNING_AS_TEST, where the root is
-# ParametersBase().data_directory() -- PHYSIOTWIN_INPUT_DATA_DIR, or the clone's
+# <input root>/test/<dataset> under MONAI_PHYSIO_RUNNING_AS_TEST, where the root is
+# ParametersBase().data_directory() -- MONAI_PHYSIO_INPUT_DATA_DIR, or the clone's
 # data/ when that is unset.  These fixtures build the latter from the former,
 # small enough that a tutorial test finishes in minutes rather than hours.  Each
 # skips when its source dataset is absent, so a clone that has not downloaded
@@ -589,7 +589,7 @@ def dirlab_test_data(test_directories: dict[str, Path]) -> Path:
     """Build the DIR-Lab test subset: a few cases, downsampled to 3 mm.
 
     Reads ``<input root>/DirLab-4DCT`` and writes ``<input root>/test/
-    DirLab-4DCT``, where the root is whatever ``PHYSIOTWIN_INPUT_DATA_DIR``
+    DirLab-4DCT``, where the root is whatever ``MONAI_PHYSIO_INPUT_DATA_DIR``
     names and defaults to the clone's ``data/``.
     """
     source_dir = ParametersBase().data_directory(test_mode=False) / "DirLab-4DCT"
@@ -618,7 +618,7 @@ def duke_heart_test_data(test_directories: dict[str, Path]) -> Path:
 
     Reads ``<input root>/Duke-Heart-4DLabelmaps`` and writes ``<input root>/
     test/Duke-Heart-4DLabelmaps``, where the root is whatever
-    ``PHYSIOTWIN_INPUT_DATA_DIR`` names and defaults to the clone's ``data/``.
+    ``MONAI_PHYSIO_INPUT_DATA_DIR`` names and defaults to the clone's ``data/``.
     """
     source_dir = (
         ParametersBase().data_directory(test_mode=False) / "Duke-Heart-4DLabelmaps"
@@ -657,7 +657,7 @@ def chest_ct_test_data(test_directories: dict[str, Path]) -> Path:
     """Build the Chest-CT test subset: the single study, downsampled to 3 mm.
 
     Reads ``<input root>/Chest-CT`` and writes ``<input root>/test/Chest-CT``,
-    where the root is whatever ``PHYSIOTWIN_INPUT_DATA_DIR`` names and
+    where the root is whatever ``MONAI_PHYSIO_INPUT_DATA_DIR`` names and
     defaults to the clone's ``data/``.
     """
     source_file = (

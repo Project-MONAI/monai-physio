@@ -2,7 +2,7 @@
 Best Practices
 ====================================
 
-This guide provides recommendations for optimal use of PhysioTwin4D CLI scripts, focusing on data preparation, processing strategies, and troubleshooting approaches.
+This guide provides recommendations for optimal use of MONAI Physio CLI scripts, focusing on data preparation, processing strategies, and troubleshooting approaches.
 
 Data Preparation
 ================
@@ -103,7 +103,7 @@ Workflow Optimization
        patient_id=$(basename "$patient_dir")
        echo "Processing $patient_id"
        
-       physiotwin4d-convert-image-to-usd \
+       monai-physio-convert-image-to-usd \
            ${patient_dir}/*.nrrd \
            --contrast \
            --output-dir processing/${patient_id} \
@@ -143,7 +143,7 @@ After processing, verify:
 Automated Quality Metrics
 --------------------------
 
-PhysioTwin4D logs quality metrics during processing:
+MONAI Physio logs quality metrics during processing:
 
 * **Segmentation confidence**: Check for low-confidence regions
 * **Registration error**: Monitor convergence
@@ -227,7 +227,7 @@ Ensuring Reproducible Results
 ------------------------------
 
 **Version Control**
-   * Record PhysioTwin4D version: ``pip show physiotwin4d``
+   * Record MONAI Physio version: ``pip show monai_physio``
    * Document dependency versions
    * Use virtual environments
 
@@ -242,7 +242,7 @@ Ensuring Reproducible Results
 
    # processing_metadata.yaml
    patient_id: patient_001
-   physiotwin4d_version: {{ pt4d_project_version }}
+   monai_physio_version: {{ mphysio_project_version }}
    script: heart-gated-ct
    date: 2026-01-08
    
@@ -279,7 +279,7 @@ For non-gated multi-phase acquisitions (e.g., arterial/venous/delayed):
 
 .. code-block:: bash
 
-   physiotwin4d-convert-image-to-usd \
+   monai-physio-convert-image-to-usd \
        arterial.nrrd \
        venous.nrrd \
        delayed.nrrd \
@@ -293,7 +293,7 @@ Process multiple patients in parallel:
 .. code-block:: bash
 
    # Using GNU parallel
-   parallel -j 4 'physiotwin4d-convert-image-to-usd {}/*.nrrd \
+   parallel -j 4 'monai-physio-convert-image-to-usd {}/*.nrrd \
        --output-dir results/{/} \
        --project-name {/}' ::: raw_data/patient_*
 
@@ -310,7 +310,7 @@ If you encounter issues not covered here:
 4. Check GitHub issues for similar problems
 5. Open new GitHub issue with:
    
-   * PhysioTwin4D version
+   * MONAI Physio version
    * Complete command used
    * Error messages
    * System information

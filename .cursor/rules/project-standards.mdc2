@@ -1,9 +1,9 @@
 ---
-description: PhysioTwin4D project standards and workflow preferences
+description: MONAI Physio project standards and workflow preferences
 alwaysApply: true
 ---
 
-# PhysioTwin4D Project Standards
+# MONAI Physio Project Standards
 
 ## File Operations
 

@@ -90,8 +90,8 @@ import itk
 import numpy as np
 
 from parameters_base import ParametersBase
-from physiotwin4d import (
-    PhysioTwin4DBase,
+from monai_physio import (
+    MONAIPhysioBase,
     RegisterImagesBase,
     RegisterImagesGreedy,
     RegisterImagesGreedyICON,
@@ -145,7 +145,7 @@ if __name__ == "__main__":
         epochs = 100
 
     log_level = logging.INFO
-    reporter = PhysioTwin4DBase(class_name=class_name, log_level=log_level)
+    reporter = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
     labelmaps_dir.mkdir(parents=True, exist_ok=True)
 

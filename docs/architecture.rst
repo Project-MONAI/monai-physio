@@ -2,10 +2,10 @@
 Architecture
 ============
 
-PhysioTwin4D is organized around explicit workflow classes and smaller
+MONAI Physio is organized around explicit workflow classes and smaller
 registration, segmentation, geometry, and USD utilities that together create
 personalized physiological digital twins from 3D medical images. Runtime
-workflow classes inherit from :class:`PhysioTwin4DBase` for logging and common
+workflow classes inherit from :class:`MONAIPhysioBase` for logging and common
 runtime configuration.
 
 Data Flow
@@ -84,7 +84,7 @@ Primary Workflows
 ``WorkflowConvertVTKToUSD``
    Converts in-memory PyVista/VTK meshes to static or animated USD scenes
    through the supported workflow wrapper. The lower-level
-   :mod:`physiotwin4d.vtk_to_usd` package exposes advanced file conversion
+   :mod:`monai_physio.vtk_to_usd` package exposes advanced file conversion
    primitives.
 
 ``WorkflowEvaluateMovement``
@@ -210,19 +210,19 @@ CLI Boundary
 The installed CLI commands in ``pyproject.toml`` are thin wrappers around the
 workflow classes. They are the preferred examples for executable API usage:
 
-* ``physiotwin4d-convert-image-4d-to-3d``
-* ``physiotwin4d-convert-image-to-usd``
-* ``physiotwin4d-convert-image-to-vtk``
-* ``physiotwin4d-convert-vtk-to-usd``
-* ``physiotwin4d-create-statistical-model``
-* ``physiotwin4d-download-data``
-* ``physiotwin4d-fit-statistical-model-to-patient``
-* ``physiotwin4d-infer-physicsnemo``
-* ``physiotwin4d-reconstruct-highres-4d-ct``
-* ``physiotwin4d-train-physicsnemo``
-* ``physiotwin4d-visualize-pca-modes``
+* ``monai-physio-convert-image-4d-to-3d``
+* ``monai-physio-convert-image-to-usd``
+* ``monai-physio-convert-image-to-vtk``
+* ``monai-physio-convert-vtk-to-usd``
+* ``monai-physio-create-statistical-model``
+* ``monai-physio-download-data``
+* ``monai-physio-fit-statistical-model-to-patient``
+* ``monai-physio-infer-physicsnemo``
+* ``monai-physio-reconstruct-highres-4d-ct``
+* ``monai-physio-train-physicsnemo``
+* ``monai-physio-visualize-pca-modes``
 
-``physiotwin4d-train-physicsnemo`` and ``physiotwin4d-infer-physicsnemo`` wrap
+``monai-physio-train-physicsnemo`` and ``monai-physio-infer-physicsnemo`` wrap
 ``WorkflowTrainPhysicsNeMo`` and ``WorkflowInferPhysicsNeMo`` and need the
 optional ``[physicsnemo]`` extra. There is no CLI wrapper for
 ``WorkflowFinetuneICONRegistration``; it is used through the Python API and

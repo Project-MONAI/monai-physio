@@ -23,7 +23,7 @@ from pathlib import Path
 import itk
 
 from parameters_base import ParametersBase
-from physiotwin4d import (
+from monai_physio import (
     RegisterImagesGreedy,
     TestTools,
     WorkflowReconstructHighres4DCT,

@@ -74,7 +74,7 @@ import itk
 import numpy as np
 import pyvista as pv
 
-from physiotwin4d import ImageTools, TransformTools, WorkflowConvertVTKToUSD
+from monai_physio import ImageTools, TransformTools, WorkflowConvertVTKToUSD
 
 # Gaussian sigma (mm) used to smooth the sparse cardiac deformation fields.
 SMOOTHING_SIGMA_MM = 10.0

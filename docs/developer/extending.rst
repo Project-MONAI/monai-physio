@@ -1,8 +1,8 @@
 ========================
-Extending PhysioTwin4D
+Extending MONAI Physio
 ========================
 
-PhysioTwin4D is an early-alpha toolkit for creating personalized physiological
+MONAI Physio is an early-alpha toolkit for creating personalized physiological
 digital twins. Prefer small, explicit extensions that match the current class
 boundaries over large compatibility layers.
 
@@ -23,9 +23,9 @@ Runtime Class Pattern
 
    import logging
 
-   from physiotwin4d import PhysioTwin4DBase
+   from monai_physio import MONAIPhysioBase
 
-   class MyWorkflow(PhysioTwin4DBase):
+   class MyWorkflow(MONAIPhysioBase):
        def __init__(self, input_file: str, log_level: int | str = logging.INFO):
            super().__init__(class_name="MyWorkflow", log_level=log_level)
            self.input_file = input_file

@@ -2,8 +2,8 @@
 Simpleware Heart Segmenter
 ==========================
 
-.. module:: physiotwin4d.segment_heart_simpleware
-.. currentmodule:: physiotwin4d
+.. module:: monai_physio.segment_heart_simpleware
+.. currentmodule:: monai_physio
 
 ``SegmentHeartSimpleware`` runs Synopsys Simpleware Medical's ASCardio module
 as an external process and returns the resulting heart and major-vessel masks
@@ -33,7 +33,7 @@ Basic Usage
 
    import itk
 
-   from physiotwin4d import SegmentHeartSimpleware
+   from monai_physio import SegmentHeartSimpleware
 
    image = itk.imread("chest_ct.nrrd")
    segmenter = SegmentHeartSimpleware()

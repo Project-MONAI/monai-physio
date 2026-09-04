@@ -20,7 +20,7 @@ recall.
    segmenter the lung shape model was built with, and extract its lung surface.
 
 3. Fit the lung PCA model to that phase with
-   :class:`physiotwin4d.WorkflowFitStatisticalModelToPatient` and PCA-based
+   :class:`monai_physio.WorkflowFitStatisticalModelToPatient` and PCA-based
    registration.  This is what puts the model in this patient: it yields the
    case's PCA coefficients, which the network is conditioned on, and the fitted
    SSM surface, whose points the predicted displacements are added to.
@@ -37,7 +37,7 @@ Extra Install Required
 ----------------------
 PhysicsNeMo and PyTorch Geometric must be installed::
 
-    pip install "physiotwin4d[physicsnemo]"
+    pip install "monai-physio[physicsnemo]"
 
 Data Required
 -------------
@@ -76,7 +76,7 @@ import itk
 import pyvista as pv
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
-from physiotwin4d import (
+from monai_physio import (
     ContourTools,
     SegmentNVSegmentCTMRI,
     TestTools,

@@ -5,8 +5,8 @@ import itk
 import numpy as np
 import pyvista as pv
 
-from physiotwin4d.contour_tools import ContourTools
-from physiotwin4d.segment_chest_total_segmentator_with_contrast import (
+from monai_physio.contour_tools import ContourTools
+from monai_physio.segment_chest_total_segmentator_with_contrast import (
     SegmentChestTotalSegmentatorWithContrast,
 )
 

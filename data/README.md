@@ -1,7 +1,7 @@
-# PhysioTwin4D Data Directory
+# MONAI Physio Data Directory
 
 This directory holds the sample datasets used for experiments, testing, and
-development of the PhysioTwin4D library. Each subdirectory contains one
+development of the MONAI Physio library. Each subdirectory contains one
 dataset and its own `README.md` with download instructions, specifications,
 and citation — this file is just an index; treat the per-dataset READMEs as
 the source of truth.
@@ -20,7 +20,7 @@ the source of truth.
 ## Automatic Download
 
 `Slicer-Heart-CT`, `KCL-Heart-Model`, `CHOP-Valve4D`, and `Chest-CT` can be
-fetched with the `physiotwin4d-download-data` CLI or `DataDownloadTools`; see each
+fetched with the `monai-physio-download-data` CLI or `DataDownloadTools`; see each
 dataset's README for the exact command. `DirLab-4DCT` has no automatic
 downloader — DIR-Lab distributes each case individually and may require
 registration, so it must be obtained manually; see
@@ -36,12 +36,12 @@ CI runner, for instance, where every run starts from a fresh working tree:
 
 | Variable | Default | Holds |
 | --- | --- | --- |
-| `PHYSIOTWIN_INPUT_DATA_DIR` | `<repo>/data` | The datasets in this directory |
-| `PHYSIOTWIN_OUTPUT_DATA_DIR` | `<repo>/tutorials/output` | What the tutorials write |
-| `PHYSIOTWIN_WEIGHTS_DIR` | `<repo>/tutorials/network_weights` | Networks the tutorials train |
+| `MONAI_PHYSIO_INPUT_DATA_DIR` | `<repo>/data` | The datasets in this directory |
+| `MONAI_PHYSIO_OUTPUT_DATA_DIR` | `<repo>/tutorials/output` | What the tutorials write |
+| `MONAI_PHYSIO_WEIGHTS_DIR` | `<repo>/tutorials/network_weights` | Networks the tutorials train |
 
 Each root has a `test` subdirectory used when a tutorial runs under
-`PHYSIOTWIN_RUNNING_AS_TEST`, so a test run reads the small downsampled subsets
+`MONAI_PHYSIO_RUNNING_AS_TEST`, so a test run reads the small downsampled subsets
 and writes beside them rather than touching a full run's datasets, results, or
 checkpoints. The subsets under `<input root>/test` are built on demand by the
 fixtures in `tests/conftest.py`; putting that root outside the clone means they
@@ -50,7 +50,7 @@ survive a checkout and are built once rather than every run.
 The layout under an overridden input root is the same as here:
 
 ```text
-<PHYSIOTWIN_INPUT_DATA_DIR>/
+<MONAI_PHYSIO_INPUT_DATA_DIR>/
   DirLab-4DCT/             Case1Pack_T00.mha, ...
   Duke-Heart-4DLabelmaps/  pm0027/*_labelmap.nii.gz, *_landmark.mrk.json
   Chest-CT/                Chest-CT.mha

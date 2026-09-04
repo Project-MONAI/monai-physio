@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for your interest in contributing to PhysioTwin4D! This guide will help you get started.
+Thank you for your interest in contributing to MONAI Physio! This guide will help you get started.
 
 ## Ways to Contribute
 
@@ -16,8 +16,8 @@ Thank you for your interest in contributing to PhysioTwin4D! This guide will hel
 2. **Clone your fork**:
 
    ```bash
-   git clone https://github.com/YOUR_USERNAME/PhysioTwin4D.git
-   cd PhysioTwin4D
+   git clone https://github.com/YOUR_USERNAME/monai-physio.git
+   cd MONAI Physio
    ```
 
 3. **Create a virtual environment**:
@@ -55,7 +55,7 @@ Thank you for your interest in contributing to PhysioTwin4D! This guide will hel
 If you work with an AI coding assistant, use the graphify knowledge graph to
 navigate the codebase — `graphify query "<question>"` returns a scoped
 subgraph rather than raw search output. See the
-[AI Assistants guide](https://project-monai.github.io/physiotwin4d/developer/ai_assistants.html).
+[AI Assistants guide](https://project-monai.github.io/monai-physio/developer/ai_assistants.html).
 
 ## IDE Setup (VS Code / Cursor)
 
@@ -136,7 +136,7 @@ After cloning the repository:
 
 ## Code Style
 
-PhysioTwin4D follows strict code quality standards using modern, fast tooling.
+MONAI Physio follows strict code quality standards using modern, fast tooling.
 
 ### Formatting and Linting with Ruff
 
@@ -218,7 +218,7 @@ The pre-commit hooks will automatically:
 ## Pull Request Guidelines
 
 - **Clear description**: Explain what and why
-- **Reference issues**: Link related [issues](https://github.com/Project-MONAI/physiotwin4d/issues) with #123
+- **Reference issues**: Link related [issues](https://github.com/Project-MONAI/monai-physio/issues) with #123
 - **Pass all tests**: CI must pass
 - **Update documentation**: Document new features
 - **Add release note**: Document user-facing changes in the pull request
@@ -236,7 +236,7 @@ Add tests in the `tests/` directory:
 ```python
 # tests/test_my_feature.py
 import pytest
-from physiotwin4d import MyNewFeature
+from monai_physio import MyNewFeature
 
 def test_my_feature():
     feature = MyNewFeature()
@@ -254,7 +254,7 @@ pytest tests/
 pytest tests/test_my_feature.py -v
 
 # Run with coverage
-pytest tests/ --cov=src/physiotwin4d --cov-report=html
+pytest tests/ --cov=src/monai_physio --cov-report=html
 
 # Default invocation auto-skips slow/GPU/Simpleware/tutorial
 pytest tests/
@@ -298,7 +298,7 @@ start _build/html/index.html  # Windows
 
 When contributing new workflows or examples:
 
-**Production Code (src/physiotwin4d/cli/):**
+**Production Code (src/monai_physio/cli/):**
 
 - **DO contribute here** for production-ready CLI implementations
 - Must include proper error handling and validation
@@ -312,7 +312,7 @@ When contributing new workflows or examples:
 - Can have hardcoded paths and minimal error handling
 - Should document what was learned and how it informed production code
 - Helps others understand adaptation possibilities for new domains
-- Should reference corresponding production implementation in CLI commands or `src/physiotwin4d/cli/`
+- Should reference corresponding production implementation in CLI commands or `src/monai_physio/cli/`
 
 ### Docstring Format
 
@@ -367,14 +367,14 @@ All contributions go through code review:
 ## Reporting Issues
 
 Report bugs and request features via
-[GitHub Issues](https://github.com/Project-MONAI/physiotwin4d/issues).
+[GitHub Issues](https://github.com/Project-MONAI/monai-physio/issues).
 
 ### Bug Reports
 
 When reporting bugs, include:
 
 - **Python version**
-- **PhysioTwin4D version**
+- **MONAI Physio version**
 - **Operating system**
 - **GPU/CUDA version** (if applicable)
 - **Minimal code** to reproduce
@@ -394,7 +394,7 @@ When suggesting features:
 
 ### Versioning
 
-PhysioTwin4D uses calendar versioning: `YYYY.0M.PATCH`
+MONAI Physio uses calendar versioning: `YYYY.0M.PATCH`
 
 - **YYYY**: Year
 - **0M**: Zero-padded month
@@ -437,9 +437,9 @@ further edits.
 
 ## Getting Help
 
-- **[GitHub Issues](https://github.com/Project-MONAI/physiotwin4d/issues)**: Report bugs and request features
-- **[GitHub Discussions](https://github.com/Project-MONAI/physiotwin4d/discussions)**: Ask questions and share ideas
-- **Documentation**: Check the [docs](https://project-monai.github.io/physiotwin4d/) first
+- **[GitHub Issues](https://github.com/Project-MONAI/monai-physio/issues)**: Report bugs and request features
+- **[GitHub Discussions](https://github.com/Project-MONAI/monai-physio/discussions)**: Ask questions and share ideas
+- **Documentation**: Check the [docs](https://project-monai.github.io/monai-physio/) first
 - **Code of Conduct**: Follow community guidelines
 
 ## License
@@ -449,10 +449,10 @@ Apache 2.0 License.
 
 ## Acknowledgments
 
-Thank you to all contributors who help make PhysioTwin4D better!
+Thank you to all contributors who help make MONAI Physio better!
 
 ## See Also
 
-- [Architecture](https://project-monai.github.io/physiotwin4d/architecture.html) - System architecture
-- [Testing](https://project-monai.github.io/physiotwin4d/testing.html) - Testing guide
-- [GitHub Repository](https://github.com/Project-MONAI/physiotwin4d)
+- [Architecture](https://project-monai.github.io/monai-physio/architecture.html) - System architecture
+- [Testing](https://project-monai.github.io/monai-physio/testing.html) - Testing guide
+- [GitHub Repository](https://github.com/Project-MONAI/monai-physio)

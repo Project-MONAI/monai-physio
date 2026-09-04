@@ -2,7 +2,7 @@
 import shutil
 from pathlib import Path
 
-from physiotwin4d.data_download_tools import DataDownloadTools
+from monai_physio.data_download_tools import DataDownloadTools
 
 _HERE = Path(__file__).resolve().parent
 

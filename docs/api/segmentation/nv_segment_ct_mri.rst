@@ -2,12 +2,12 @@
 NV-Segment-CTMR
 ===============
 
-.. module:: physiotwin4d.segment_nv_segment_ct_mri
-.. currentmodule:: physiotwin4d
+.. module:: monai_physio.segment_nv_segment_ct_mri
+.. currentmodule:: monai_physio
 
 ``SegmentNVSegmentCTMRI`` runs NVIDIA's NV-Segment-CTMR model (a VISTA3D
 derivative finetuned on 30K+ CT and MRI scans) and groups its 345-class
-labelmap into the anatomy masks used by PhysioTwin4D workflows.
+labelmap into the anatomy masks used by MONAI Physio workflows.
 
 .. warning::
 
@@ -31,7 +31,7 @@ Basic Usage
 
    import itk
 
-   from physiotwin4d import SegmentNVSegmentCTMRI
+   from monai_physio import SegmentNVSegmentCTMRI
 
    image = itk.imread("chest_ct.nrrd")
    segmenter = SegmentNVSegmentCTMRI()
@@ -86,7 +86,7 @@ Rendering
 
 ``brain_parcellation`` is a group name this segmenter introduces. Its
 group-level entry in
-:data:`physiotwin4d.usd_anatomy_tools.DEFAULT_RENDER_PARAMS` is a grey-matter
+:data:`monai_physio.usd_anatomy_tools.DEFAULT_RENDER_PARAMS` is a grey-matter
 look, which is the right default because most of its labels are cortical gyri
 or deep grey nuclei (caudate, putamen, thalamus, amygdala, hippocampus).
 

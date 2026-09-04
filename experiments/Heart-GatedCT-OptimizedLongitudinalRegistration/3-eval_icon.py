@@ -22,7 +22,7 @@ from pathlib import Path
 import itk
 import numpy as np
 
-from physiotwin4d import (
+from monai_physio import (
     RegisterImagesBase,
     RegisterImagesGreedy,
     RegisterImagesGreedyICON,
@@ -30,9 +30,9 @@ from physiotwin4d import (
     RegisterTimeSeriesImages,
     SegmentHeartSimpleware,
 )
-from physiotwin4d.labelmap_tools import LabelmapTools
-from physiotwin4d.landmark_tools import LandmarkTools
-from physiotwin4d.transform_tools import TransformTools
+from monai_physio.labelmap_tools import LabelmapTools
+from monai_physio.landmark_tools import LandmarkTools
+from monai_physio.transform_tools import TransformTools
 
 
 def _build_registrar(
@@ -69,8 +69,8 @@ def _build_registrar(
 # ## 1. Hard-coded paths and configuration
 
 # %%
-timepoint_base_dir = Path("d:/PhysioTwin4D/duke_data/gated_nii")
-segmentation_base_dir = Path("d:/PhysioTwin4D/duke_data/simple_ascardio")
+timepoint_base_dir = Path("d:/MONAI-Physio/duke_data/gated_nii")
+segmentation_base_dir = Path("d:/MONAI-Physio/duke_data/simple_ascardio")
 
 _HERE = Path(__file__).parent
 output_dir = _HERE / "results_icon_eval"

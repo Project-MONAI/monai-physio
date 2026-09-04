@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from physiotwin4d.data_download_tools import DataDownloadTools
+from monai_physio.data_download_tools import DataDownloadTools
 
 
 class TestDataDownloadTools:
@@ -170,7 +170,7 @@ class TestDownloadHeartData:
             return open(urls_to_archives[url], "rb")
 
         monkeypatch.setattr(
-            "physiotwin4d.data_download_tools.urllib.request.urlopen", fake_urlopen
+            "monai_physio.data_download_tools.urllib.request.urlopen", fake_urlopen
         )
 
         output_dir = tmp_path / "KCL-Heart-Model"
@@ -209,7 +209,7 @@ class TestDownloadHeartData:
             return open(urls_to_archives[url], "rb")
 
         monkeypatch.setattr(
-            "physiotwin4d.data_download_tools.urllib.request.urlopen", fake_urlopen
+            "monai_physio.data_download_tools.urllib.request.urlopen", fake_urlopen
         )
 
         output_dir = tmp_path / "CHOP-Valve4D"
@@ -243,7 +243,7 @@ class TestDownloadHeartData:
             raise AssertionError(f"Should not download populated subdir: {url}")
 
         monkeypatch.setattr(
-            "physiotwin4d.data_download_tools.urllib.request.urlopen", fake_urlopen
+            "monai_physio.data_download_tools.urllib.request.urlopen", fake_urlopen
         )
 
         result_dir = DataDownloadTools.DownloadCHOPValve4DData(output_dir)
@@ -285,7 +285,7 @@ class TestDownloadHeartData:
             return open(urls_to_archives[url], "rb")
 
         monkeypatch.setattr(
-            "physiotwin4d.data_download_tools.urllib.request.urlopen", fake_urlopen
+            "monai_physio.data_download_tools.urllib.request.urlopen", fake_urlopen
         )
 
         DataDownloadTools.DownloadCHOPValve4DData(output_dir)

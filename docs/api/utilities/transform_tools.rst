@@ -2,14 +2,14 @@
 Transform Tools
 ====================================
 
-.. currentmodule:: physiotwin4d
+.. currentmodule:: monai_physio
 
 Coordinate transformation and image warping utilities.
 
 Module Reference
 ================
 
-.. automodule:: physiotwin4d.transform_tools
+.. automodule:: monai_physio.transform_tools
    :members:
    :undoc-members:
 

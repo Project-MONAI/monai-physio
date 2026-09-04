@@ -4,8 +4,8 @@ from pathlib import Path
 from data_dirlab_4d_ct import DataDirLab4DCT
 from pxr import Usd
 
-from physiotwin4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
-from physiotwin4d.usd_anatomy_tools import USDAnatomyTools
+from monai_physio.segment_chest_total_segmentator import SegmentChestTotalSegmentator
+from monai_physio.usd_anatomy_tools import USDAnatomyTools
 
 # Defensive: today this script only instantiates SegmentChestTotalSegmentator
 # to read its anatomy labels for USDAnatomyTools, but if anyone adds a

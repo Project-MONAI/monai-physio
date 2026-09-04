@@ -11,13 +11,13 @@ import numpy as np
 import pytest
 from pxr import Usd, UsdGeom
 
-from physiotwin4d.register_images_base import RegisterImagesBase
-from physiotwin4d.register_images_greedy import RegisterImagesGreedy
-from physiotwin4d.register_images_icon import RegisterImagesICON
-from physiotwin4d.segment_chest_total_segmentator_with_contrast import (
+from monai_physio.register_images_base import RegisterImagesBase
+from monai_physio.register_images_greedy import RegisterImagesGreedy
+from monai_physio.register_images_icon import RegisterImagesICON
+from monai_physio.segment_chest_total_segmentator_with_contrast import (
     SegmentChestTotalSegmentatorWithContrast,
 )
-from physiotwin4d.workflow_convert_image_to_usd import WorkflowConvertImageToUSD
+from monai_physio.workflow_convert_image_to_usd import WorkflowConvertImageToUSD
 
 
 def _small_image() -> itk.Image:

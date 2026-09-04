@@ -15,8 +15,8 @@ import numpy as np
 import pytest
 import pyvista as pv
 
-from physiotwin4d import workflow_create_statistical_model as wcsm
-from physiotwin4d.workflow_create_statistical_model import (
+from monai_physio import workflow_create_statistical_model as wcsm
+from monai_physio.workflow_create_statistical_model import (
     WorkflowCreateStatisticalModel,
 )
 

@@ -2,21 +2,21 @@
 Core Developer Guide
 ======================
 
-This page summarizes the core conventions for extending PhysioTwin4D.
+This page summarizes the core conventions for extending MONAI Physio.
 
 Base Class
 ==========
 
-Runtime classes inherit from :class:`physiotwin4d.PhysioTwin4DBase` and use
+Runtime classes inherit from :class:`monai_physio.MONAIPhysioBase` and use
 the shared logging methods.
 
 .. code-block:: python
 
    import logging
 
-   from physiotwin4d import PhysioTwin4DBase
+   from monai_physio import MONAIPhysioBase
 
-   class MyWorkflow(PhysioTwin4DBase):
+   class MyWorkflow(MONAIPhysioBase):
        def __init__(self, input_file: str) -> None:
            super().__init__(class_name="MyWorkflow", log_level=logging.INFO)
            self.input_file = input_file

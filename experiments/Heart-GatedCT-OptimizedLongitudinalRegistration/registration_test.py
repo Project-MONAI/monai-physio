@@ -15,10 +15,10 @@ from pathlib import Path
 
 import itk
 
-from physiotwin4d.register_images_ants import RegisterImagesANTS
-from physiotwin4d.register_images_greedy import RegisterImagesGreedy
-from physiotwin4d.register_images_icon import RegisterImagesICON
-from physiotwin4d.transform_tools import TransformTools
+from monai_physio.register_images_ants import RegisterImagesANTS
+from monai_physio.register_images_greedy import RegisterImagesGreedy
+from monai_physio.register_images_icon import RegisterImagesICON
+from monai_physio.transform_tools import TransformTools
 
 # %% [markdown]
 # ## 1. Configuration and hard-coded paths
@@ -29,7 +29,7 @@ from physiotwin4d.transform_tools import TransformTools
 # %%
 method = "Greedy"  # one of: "ANTS", "ICON", "Greedy"
 
-data_dir = Path("d:/PhysioTwin4D/duke_data/gated_nii/pm0003")
+data_dir = Path("d:/MONAI-Physio/duke_data/gated_nii/pm0003")
 moving_path = data_dir / "pm0003_dupr_135-0094_135_4700_g020_s2.000_n0058_11.nii.gz"
 fixed_path = data_dir / "pm0003_dupr_135-0094_135_4700_g060_s2.000_n0058_15.nii.gz"
 

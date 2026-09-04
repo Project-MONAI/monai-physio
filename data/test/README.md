@@ -5,13 +5,13 @@ This directory is **automatically managed by the pytest infrastructure**
 maintain by hand. It holds data used to run the unit test suite.
 
 It is the `test` subdirectory of the input data root, so setting
-`PHYSIOTWIN_INPUT_DATA_DIR` moves it too; see
+`MONAI_PHYSIO_INPUT_DATA_DIR` moves it too; see
 [`data/README.md`](../README.md#keeping-the-data-outside-the-clone). The paths
 below are written relative to that root, which defaults to `data/`.
 
-The workflows, tutorials, and CLIs of the PhysioTwin4D library consume the
+The workflows, tutorials, and CLIs of the MONAI Physio library consume the
 full datasets documented in [`data/README.md`](../README.md). They read the
-subsets here only when run as tests, under `PHYSIOTWIN_RUNNING_AS_TEST`.
+subsets here only when run as tests, under `MONAI_PHYSIO_RUNNING_AS_TEST`.
 
 ## What Lives Here
 
@@ -30,7 +30,7 @@ subsets here only when run as tests, under `PHYSIOTWIN_RUNNING_AS_TEST`.
 - `Chest-CT/` — `<input root>/Chest-CT` downsampled to 3 mm by the
   `chest_ct_test_data` fixture.
 
-Here `<input root>` is whatever `PHYSIOTWIN_INPUT_DATA_DIR` names, defaulting to
+Here `<input root>` is whatever `MONAI_PHYSIO_INPUT_DATA_DIR` names, defaulting to
 the `data/` directory of the clone — so each subset is built from the full
 dataset alongside it, wherever that root has been pointed.
 
@@ -41,7 +41,7 @@ when that source dataset is present under the input root; otherwise the tests
 that need them skip, or fail if `--require-tutorial-data` was passed.
 
 The tutorials read these directories rather than the full datasets whenever
-`PHYSIOTWIN_RUNNING_AS_TEST` is set, and write to the matching `test` subtree of
+`MONAI_PHYSIO_RUNNING_AS_TEST` is set, and write to the matching `test` subtree of
 the output and weights roots — `tutorials/output/test/` and
 `tutorials/network_weights/test/` by default. A test run therefore never reads
 or overwrites the datasets, results, or trained checkpoints of a full run.

@@ -39,7 +39,7 @@ Extra Install Required
 ----------------------
 PhysicsNeMo and PyTorch Geometric::
 
-    pip install "physiotwin4d[physicsnemo]"
+    pip install "monai-physio[physicsnemo]"
     pip install torch-geometric
 
 A CUDA GPU is required; a CPU-only run is not a supported
@@ -87,8 +87,8 @@ import numpy as np
 import pyvista as pv
 from parameters_duke_heart_physics_informed import DUKE_HEART_PHYSICS_INFORMED
 
-from physiotwin4d import TestTools, WorkflowTrainPhysicsNeMo
-from physiotwin4d.train_physicsnemo_physics_informed_motion import (
+from monai_physio import TestTools, WorkflowTrainPhysicsNeMo
+from monai_physio.train_physicsnemo_physics_informed_motion import (
     PhysicsInformedMotion,
     TrainPhysicsNeMoPhysicsInformedMotion,
 )

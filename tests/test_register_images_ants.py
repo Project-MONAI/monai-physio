@@ -15,8 +15,8 @@ import itk
 import numpy as np
 import pytest
 
-from physiotwin4d.register_images_ants import RegisterImagesANTS
-from physiotwin4d.transform_tools import TransformTools
+from monai_physio.register_images_ants import RegisterImagesANTS
+from monai_physio.transform_tools import TransformTools
 
 from .conftest import KnownShiftCase
 
@@ -895,7 +895,7 @@ class TestRegisterImagesANTS:
 
         # Create a simple displacement field with double precision
         # Use ImageTools to create the correct type
-        from physiotwin4d.image_tools import ImageTools
+        from monai_physio.image_tools import ImageTools
 
         image_tools = ImageTools()
 

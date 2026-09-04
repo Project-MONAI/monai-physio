@@ -2,7 +2,7 @@
 Landmark Tools
 ====================================
 
-.. currentmodule:: physiotwin4d
+.. currentmodule:: monai_physio
 
 Landmark reading, writing and comparison utilities. Landmarks are the
 independent check on a registration: transform a fixed-image landmark set with
@@ -13,7 +13,7 @@ reports and the DIR-Lab benchmark is scored on.
 Module Reference
 ================
 
-.. automodule:: physiotwin4d.landmark_tools
+.. automodule:: monai_physio.landmark_tools
    :members:
    :undoc-members:
 

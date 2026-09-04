@@ -1,7 +1,7 @@
-# PhysioTwin4D Documentation
+# MONAI Physio Documentation
 
-Sphinx source for the PhysioTwin4D documentation, published to GitHub Pages at
-<https://project-monai.github.io/physiotwin4d/> by
+Sphinx source for the MONAI Physio documentation, published to GitHub Pages at
+<https://project-monai.github.io/monai-physio/> by
 `.github/workflows/docs.yml`. This file is excluded from the build; it is a
 note for contributors editing the docs.
 
@@ -23,7 +23,7 @@ Open `docs/_build/html/index.html`. A clean build ends with
 | `index.rst` | Landing page: hero, tutorial cards, topic grid, toctrees |
 | `tutorials.rst` | The primary entry point for new users — one section per tutorial |
 | `quickstart.rst`, `installation.rst` | Getting started |
-| `cli_scripts/` | Task-oriented guides for the installed `physiotwin4d-*` commands |
+| `cli_scripts/` | Task-oriented guides for the installed `monai-physio-*` commands |
 | `api/` | Class and module reference, grouped by functionality |
 | `developer/` | Architecture, extension points, conventions |
 | `assets/` | Screenshots and GIFs referenced by `tutorials.rst` |
@@ -34,9 +34,9 @@ Open `docs/_build/html/index.html`. A clean build ends with
 - New modules do **not** appear automatically. `conf.py` uses `autodoc` with
   hand-written `.rst` wrappers, so adding a class means adding or extending a
   page under `api/` and wiring it into the nearest `index.rst` toctree.
-- Class references use `autoclass` under `.. currentmodule:: physiotwin4d`;
+- Class references use `autoclass` under `.. currentmodule:: monai_physio`;
   module-level pages use `automodule`.
-- `{{ pt4d_project_version }}` is substituted with the release at build time by
+- `{{ mphysio_project_version }}` is substituted with the release at build time by
   the `source-read` hook in `conf.py`.
 - Tutorial numbers appear in `index.rst` card anchors, `tutorials.rst` section
   titles, `quickstart.rst`, and `tutorials/README.md`. When a tutorial is

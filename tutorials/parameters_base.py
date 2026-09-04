@@ -14,9 +14,9 @@ instance -- can point at them without editing any script:
 ===================================  =====================================
 Variable                             Default
 ===================================  =====================================
-``PHYSIOTWIN_INPUT_DATA_DIR``        ``<repo>/data``
-``PHYSIOTWIN_OUTPUT_DATA_DIR``       ``<repo>/tutorials/output``
-``PHYSIOTWIN_WEIGHTS_DIR``           ``<repo>/tutorials/network_weights``
+``MONAI_PHYSIO_INPUT_DATA_DIR``        ``<repo>/data``
+``MONAI_PHYSIO_OUTPUT_DATA_DIR``       ``<repo>/tutorials/output``
+``MONAI_PHYSIO_WEIGHTS_DIR``           ``<repo>/tutorials/network_weights``
 ===================================  =====================================
 
 Every root has a ``test`` subdirectory holding the small, fast counterpart used
@@ -70,7 +70,7 @@ class ParametersBase:
                 subsets the pytest fixtures build, rather than the full
                 datasets.
         """
-        return self._root("PHYSIOTWIN_INPUT_DATA_DIR", _REPO_ROOT / "data", test_mode)
+        return self._root("MONAI_PHYSIO_INPUT_DATA_DIR", _REPO_ROOT / "data", test_mode)
 
     def output_directory(self, test_mode: bool) -> Path:
         """Return the root every tutorial writes its results to.
@@ -80,7 +80,7 @@ class ParametersBase:
                 overwrite the results a full run left behind.
         """
         return self._root(
-            "PHYSIOTWIN_OUTPUT_DATA_DIR",
+            "MONAI_PHYSIO_OUTPUT_DATA_DIR",
             _REPO_ROOT / "tutorials" / "output",
             test_mode,
         )
@@ -93,7 +93,7 @@ class ParametersBase:
                 a test run trains cannot overwrite a real checkpoint.
         """
         return self._root(
-            "PHYSIOTWIN_WEIGHTS_DIR",
+            "MONAI_PHYSIO_WEIGHTS_DIR",
             _REPO_ROOT / "tutorials" / "network_weights",
             test_mode,
         )

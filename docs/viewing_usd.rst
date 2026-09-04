@@ -2,9 +2,9 @@
 Viewing USD Files
 ==================
 
-Every USD-producing workflow in PhysioTwin4D — Tutorials 1, 5, 10, 12 and 13,
+Every USD-producing workflow in MONAI Physio — Tutorials 1, 5, 10, 12 and 13,
 and the
-``physiotwin4d-convert-image-to-usd`` and ``physiotwin4d-convert-vtk-to-usd``
+``monai-physio-convert-image-to-usd`` and ``monai-physio-convert-vtk-to-usd``
 commands — writes an OpenUSD scene: anatomy split into per-organ prims, painted
 with OmniSurface materials, and time-sampled when the input was a series. To
 see the motion you need a USD viewer.
@@ -15,7 +15,7 @@ workflows intend them.
 
 .. important::
 
-   ``pip install physiotwin4d`` pulls in `usd-core
+   ``pip install monai-physio`` pulls in `usd-core
    <https://pypi.org/project/usd-core/>`_, which is the OpenUSD *libraries*
    only — enough to write and read stages, but it contains no viewer.
 
@@ -43,7 +43,7 @@ tool.
 
 Omniverse needs an RTX-capable NVIDIA GPU and a current driver.
 
-Opening a PhysioTwin4D scene:
+Opening a MONAI Physio scene:
 
 1. Launch your **USD Composer** app.
 2. ``File > Open`` and select the generated ``.usd`` file — for the tutorials,

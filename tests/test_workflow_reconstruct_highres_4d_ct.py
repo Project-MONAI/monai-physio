@@ -7,10 +7,10 @@ import numpy as np
 import itk
 import pytest
 
-from physiotwin4d.register_images_base import RegisterImagesBase
-from physiotwin4d.register_images_greedy import RegisterImagesGreedy
-from physiotwin4d.register_images_icon import RegisterImagesICON
-from physiotwin4d.workflow_reconstruct_highres_4d_ct import (
+from monai_physio.register_images_base import RegisterImagesBase
+from monai_physio.register_images_greedy import RegisterImagesGreedy
+from monai_physio.register_images_icon import RegisterImagesICON
+from monai_physio.workflow_reconstruct_highres_4d_ct import (
     WorkflowReconstructHighres4DCT,
 )
 

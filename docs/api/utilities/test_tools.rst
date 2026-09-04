@@ -2,15 +2,15 @@
 Test Tools
 ==========
 
-.. currentmodule:: physiotwin4d
+.. currentmodule:: monai_physio
 
-Baseline vs. result image comparison utilities used by the PhysioTwin4D
+Baseline vs. result image comparison utilities used by the MONAI Physio
 pytest suite.
 
 Module Reference
 ================
 
-.. automodule:: physiotwin4d.test_tools
+.. automodule:: monai_physio.test_tools
    :members:
    :undoc-members:
    :show-inheritance:

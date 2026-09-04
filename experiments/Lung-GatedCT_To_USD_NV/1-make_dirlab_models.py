@@ -6,9 +6,9 @@ import numpy as np
 import pyvista as pv
 from data_dirlab_4d_ct import DataDirLab4DCT
 
-from physiotwin4d import ConvertVTKToUSD
-from physiotwin4d.contour_tools import ContourTools
-from physiotwin4d.segment_nv_segment_ct_mri import SegmentNVSegmentCTMRI
+from monai_physio import ConvertVTKToUSD
+from monai_physio.contour_tools import ContourTools
+from monai_physio.segment_nv_segment_ct_mri import SegmentNVSegmentCTMRI
 
 # Defensive: today this script only reads `seg.taxonomy`, but if anyone adds a
 # `seg.segment(...)` call the model pipeline's MONAI DataLoader may spawn

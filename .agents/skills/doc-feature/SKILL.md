@@ -1,8 +1,8 @@
 ---
-description: Inspect changed PhysioTwin4D code and existing docstrings, update docstrings and inline comments to match current behavior, and refresh the graphify knowledge graph if public APIs changed.
+description: Inspect changed MONAI Physio code and existing docstrings, update docstrings and inline comments to match current behavior, and refresh the graphify knowledge graph if public APIs changed.
 ---
 
-Update documentation for the following in PhysioTwin4D:
+Update documentation for the following in MONAI Physio:
 
 $ARGUMENTS
 

@@ -2,15 +2,15 @@
 Train a PhysicsNeMo Surrogate
 ==============================
 
-``physiotwin4d-train-physicsnemo`` trains a mesh-stage model — given a
+``monai-physio-train-physicsnemo`` trains a mesh-stage model — given a
 subject's PCA shape parameters and a stage, predict a per-vertex target on the
 shared template mesh. It is the command-line form of
-:class:`~physiotwin4d.WorkflowTrainPhysicsNeMo`; Tutorial 9 in
+:class:`~monai_physio.WorkflowTrainPhysicsNeMo`; Tutorial 9 in
 :doc:`../tutorials` is the same thing as a script.
 
 Requires the optional extra::
 
-   pip install "physiotwin4d[physicsnemo]"
+   pip install "monai-physio[physicsnemo]"
    pip install torch-geometric          # MeshGraphNet only
 
 PhysicsNeMo needs Python >= 3.11.
@@ -20,7 +20,7 @@ Basic Usage
 
 .. code-block:: bash
 
-   physiotwin4d-train-physicsnemo \
+   monai-physio-train-physicsnemo \
        --network mgn \
        --train-manifest manifests/Case2Pack_manifest.json manifests/Case3Pack_manifest.json \
        --val-manifest manifests/Case4Pack_manifest.json \
@@ -84,7 +84,7 @@ Output
    └── shared_edge_{index,features}.pt    # MGN graph tensors
 
 The checkpoint records the target width, so
-``physiotwin4d-infer-physicsnemo`` rebuilds a matching network without being
+``monai-physio-infer-physicsnemo`` rebuilds a matching network without being
 told.
 
 See Also

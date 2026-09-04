@@ -98,7 +98,7 @@ both anatomies. Requires the ``[physicsnemo]`` extra and Simpleware Medical.
 
 Data Required
 -------------
-  * ``data/Chest-CT/Chest-CT.mha`` -- ``physiotwin4d-download-data Chest-CT``
+  * ``data/Chest-CT/Chest-CT.mha`` -- ``monai-physio-download-data Chest-CT``
     (see ``data/Chest-CT/README.md`` for the data source and required citation)
   * ``output/tutorial_07_lung/`` -- lung fit of that scan
   * ``output/tutorial_06_duke_heart/`` -- Duke heart shape model
@@ -139,7 +139,7 @@ import pyvista as pv
 from parameters_duke_heart_labelmaps import DUKE_HEART
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
-from physiotwin4d import (
+from monai_physio import (
     ContourTools,
     ConvertVTKToUSD,
     ImageTools,
@@ -267,7 +267,7 @@ if __name__ == "__main__":
     if not patient_image_file.exists():
         raise FileNotFoundError(
             f"Patient chest CT not found: {patient_image_file}\n"
-            "Run: physiotwin4d-download-data Chest-CT --directory data/Chest-CT"
+            "Run: monai-physio-download-data Chest-CT --directory data/Chest-CT"
         )
     for required, hint in (
         (

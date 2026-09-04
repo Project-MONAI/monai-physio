@@ -1,8 +1,8 @@
 ---
-description: Audit changed files (or a given path) against PhysioTwin4D's hard project rules — base-class inheritance, logging, coordinate conventions, USD entry point, Windows multiprocessing guard, quoting, type-hint style, line length, and emoji ban. Reports violations without auto-fixing.
+description: Audit changed files (or a given path) against MONAI Physio's hard project rules — base-class inheritance, logging, coordinate conventions, USD entry point, Windows multiprocessing guard, quoting, type-hint style, line length, and emoji ban. Reports violations without auto-fixing.
 ---
 
-Audit PhysioTwin4D source for hard-rule violations.
+Audit MONAI Physio source for hard-rule violations.
 
 $ARGUMENTS
 
@@ -26,15 +26,15 @@ context such as class inheritance), then flag every occurrence of:
 
 ### Base class and logging
 - [ ] A class that orchestrates workflow / segmentation / registration / USD
-      conversion but does **not** inherit from `PhysioTwin4DBase`.
+      conversion but does **not** inherit from `MONAIPhysioBase`.
 - [ ] A `print(` call inside the body of a class that inherits from
-      `PhysioTwin4DBase` (it must use `self.log_info()` / `self.log_debug()`).
+      `MONAIPhysioBase` (it must use `self.log_info()` / `self.log_debug()`).
       Standalone scripts and helper / data-container classes may use `print()`.
 
 ### USD / coordinate conventions
-- [ ] An `import` of `physiotwin4d.vtk_to_usd` (or `from ... vtk_to_usd ...`)
-      from a file that is **not** `src/physiotwin4d/convert_vtk_to_usd.py`
-      and is **not** itself inside `src/physiotwin4d/vtk_to_usd/`.
+- [ ] An `import` of `monai_physio.vtk_to_usd` (or `from ... vtk_to_usd ...`)
+      from a file that is **not** `src/monai_physio/convert_vtk_to_usd.py`
+      and is **not** itself inside `src/monai_physio/vtk_to_usd/`.
       Experiments, CLIs, tests, and tutorials must use `ConvertVTKToUSD`.
 - [ ] A docstring or comment claiming PyVista surfaces are in **RAS** — they
       are in **LPS** internally; convert to USD Y-up only at export.

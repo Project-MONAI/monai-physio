@@ -6,18 +6,18 @@ body:
     attributes:
       value: |
         See the
-        [Feature Requests](https://project-monai.github.io/physiotwin4d/contributing.html#feature-requests)
+        [Feature Requests](https://project-monai.github.io/monai-physio/contributing.html#feature-requests)
         section of the contributing guide for what makes a good request.
         For open-ended ideas you're not sure are worth a formal request yet,
         consider starting a
-        [Discussion](https://github.com/Project-MONAI/physiotwin4d/discussions)
+        [Discussion](https://github.com/Project-MONAI/monai-physio/discussions)
         instead.
 
   - type: textarea
     id: description
     attributes:
       label: Clear description
-      description: What should PhysioTwin4D do that it doesn't today?
+      description: What should MONAI Physio do that it doesn't today?
     validations:
       required: true
 

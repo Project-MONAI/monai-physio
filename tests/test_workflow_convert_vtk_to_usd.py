@@ -11,7 +11,7 @@ import pytest
 import pyvista as pv
 from pxr import Usd, UsdGeom, UsdShade
 
-from physiotwin4d import SegmentHeartSimpleware, WorkflowConvertVTKToUSD
+from monai_physio import SegmentHeartSimpleware, WorkflowConvertVTKToUSD
 
 
 def _labeled_sphere(

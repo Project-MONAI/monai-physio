@@ -28,15 +28,15 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from physiotwin4d import WorkflowFinetuneICONRegistration
+from monai_physio import WorkflowFinetuneICONRegistration
 
 # %% [markdown]
 # ## 1. Configure data, output locations, and the train/test split
 
 # %%
-ref_data_dir = Path("d:/PhysioTwin4D/duke_data/ref_images")
-src_data_dir_base = Path("d:/PhysioTwin4D/duke_data/gated_nii")
-labelmap_dir_base = Path("d:/PhysioTwin4D/duke_data/simple_ascardio")
+ref_data_dir = Path("d:/MONAI-Physio/duke_data/ref_images")
+src_data_dir_base = Path("d:/MONAI-Physio/duke_data/gated_nii")
+labelmap_dir_base = Path("d:/MONAI-Physio/duke_data/simple_ascardio")
 
 # Where the workflow writes the dataset JSON, YAML config, derived masks, and
 # the uniGradICON ``checkpoints/`` tree.  experiment_dir resolves to
@@ -51,8 +51,8 @@ finetune_name = "icon_finetuning"
 # <patient_id>``.  Those init frames are merged into each patient's training
 # group below (section 4b).
 initial_registration_dirs = [
-    Path("d:/PhysioTwin4D/duke_data/greedy_registrations/results_l/greedy_40.40.10"),
-    Path("d:/PhysioTwin4D/duke_data/greedy_registrations/results_raw/greedy_80.40.5"),
+    Path("d:/MONAI-Physio/duke_data/greedy_registrations/results_l/greedy_40.40.10"),
+    Path("d:/MONAI-Physio/duke_data/greedy_registrations/results_raw/greedy_80.40.5"),
 ]
 
 # Fixed train/test split: sort patients in ``ref_data_dir`` by filename;

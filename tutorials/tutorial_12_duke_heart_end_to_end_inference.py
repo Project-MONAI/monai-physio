@@ -22,7 +22,7 @@ in this chain, so the prediction measures generalization rather than recall.
    great vessels are left out by ``ParametersDukeHeartLabelmaps``.
 
 3. Fit the heart PCA model to that frame with
-   :class:`physiotwin4d.WorkflowFitStatisticalModelToPatient` and PCA-based
+   :class:`monai_physio.WorkflowFitStatisticalModelToPatient` and PCA-based
    registration.  This is what puts the model in this patient: it yields the
    case's PCA coefficients, which the network is conditioned on, and the fitted
    SSM surface, whose points the predicted displacements are added to.
@@ -40,7 +40,7 @@ Extra Install Required
 ----------------------
 PhysicsNeMo and PyTorch Geometric must be installed::
 
-    pip install "physiotwin4d[physicsnemo]"
+    pip install "monai-physio[physicsnemo]"
 
 Data Required
 -------------
@@ -80,7 +80,7 @@ import numpy as np
 import pyvista as pv
 from parameters_duke_heart_labelmaps import DUKE_HEART
 
-from physiotwin4d import (
+from monai_physio import (
     ContourTools,
     TestTools,
     WorkflowFitStatisticalModelToPatient,

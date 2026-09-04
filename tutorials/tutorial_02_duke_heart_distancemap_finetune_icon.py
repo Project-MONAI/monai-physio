@@ -56,9 +56,9 @@ import itk
 import numpy as np
 from parameters_duke_heart_labelmaps import DUKE_HEART
 
-from physiotwin4d import (
+from monai_physio import (
     ContourTools,
-    PhysioTwin4DBase,
+    MONAIPhysioBase,
     RegisterImagesBase,
     RegisterImagesGreedy,
     RegisterImagesICON,
@@ -112,7 +112,7 @@ if __name__ == "__main__":
     number_of_iterations_greedy = DUKE_HEART.greedy_iterations(test_mode)
 
     log_level = logging.INFO
-    reporter = PhysioTwin4DBase(class_name=class_name, log_level=log_level)
+    reporter = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
     derived_dir.mkdir(parents=True, exist_ok=True)
 

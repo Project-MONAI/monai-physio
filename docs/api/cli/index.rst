@@ -2,11 +2,11 @@
 CLI Entry-Point API
 ====================
 
-.. module:: physiotwin4d.cli
-.. currentmodule:: physiotwin4d.cli
+.. module:: monai_physio.cli
+.. currentmodule:: monai_physio.cli
 
-The ``physiotwin4d.cli`` subpackage contains the entry-point scripts that
-back the installed ``physiotwin4d-*`` console commands. Each module exposes
+The ``monai_physio.cli`` subpackage contains the entry-point scripts that
+back the installed ``monai-physio-*`` console commands. Each module exposes
 a ``main()`` function that parses ``argparse`` arguments and dispatches into
 the corresponding workflow class.
 

@@ -81,9 +81,9 @@ import pyvista as pv
 
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
-from physiotwin4d import (
+from monai_physio import (
     ContourTools,
-    PhysioTwin4DBase,
+    MONAIPhysioBase,
     RegisterImagesBase,
     RegisterImagesGreedy,
     RegisterImagesGreedyICON,
@@ -145,7 +145,7 @@ if __name__ == "__main__":
     number_of_iterations_greedy = LUNG_CT_DIRLAB.greedy_iterations(test_mode)
 
     log_level = logging.INFO
-    reporter = PhysioTwin4DBase(class_name=class_name, log_level=log_level)
+    reporter = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
     derived_dir.mkdir(parents=True, exist_ok=True)
 

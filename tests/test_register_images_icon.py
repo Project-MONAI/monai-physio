@@ -13,8 +13,8 @@ import itk
 import numpy as np
 import pytest
 
-from physiotwin4d.register_images_icon import RegisterImagesICON
-from physiotwin4d.transform_tools import TransformTools
+from monai_physio.register_images_icon import RegisterImagesICON
+from monai_physio.transform_tools import TransformTools
 
 from .conftest import KnownShiftCase
 

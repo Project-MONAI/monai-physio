@@ -26,8 +26,8 @@ import pyvista as pv
 
 from pathlib import Path
 
-from physiotwin4d.contour_tools import ContourTools
-from physiotwin4d.register_models_distance_maps import RegisterModelsDistanceMaps
+from monai_physio.contour_tools import ContourTools
+from monai_physio.register_models_distance_maps import RegisterModelsDistanceMaps
 
 _HERE = Path(__file__).parent
 

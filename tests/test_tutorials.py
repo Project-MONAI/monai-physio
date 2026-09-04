@@ -5,7 +5,7 @@ Each test class maps to one tutorial script.  Tests are gated behind
 to be present; the ``*_test_data`` fixtures in conftest.py build the small
 subsets a tutorial reads when run as a test.
 
-Every tutorial runs with ``PHYSIOTWIN_RUNNING_AS_TEST`` set, which sends its
+Every tutorial runs with ``MONAI_PHYSIO_RUNNING_AS_TEST`` set, which sends its
 reads and writes to the ``test`` subtree of each root in
 ``parameters_base.ParametersBase``: it reads the downsampled datasets under
 ``<input root>/test``, writes its results under ``<output root>/test`` and
@@ -48,7 +48,7 @@ import pyvista as pv
 import pytest
 
 from parameters_base import ParametersBase
-from physiotwin4d.test_tools import TestTools
+from monai_physio.test_tools import TestTools
 
 from .conftest import skip_or_fail_missing_data
 
@@ -64,7 +64,7 @@ _TOT_TOL = float("inf")  # use the pixel-count criterion only
 _METRIC_REL_TOL = 0.05
 _METRIC_ABS_TOL = 1.0e-3
 _REPO_ROOT = Path(__file__).parent.parent
-# Where every tutorial writes under ``PHYSIOTWIN_RUNNING_AS_TEST``, and where
+# Where every tutorial writes under ``MONAI_PHYSIO_RUNNING_AS_TEST``, and where
 # Tutorial 9 trains its networks to.  Kept apart from the ``output`` and
 # ``network_weights`` directories a full run uses, so that running the suite
 # cannot overwrite a full run's results or its trained checkpoints.
@@ -76,7 +76,7 @@ _TUTORIAL_WEIGHTS = _TUTORIAL_PATHS.weights_directory(test_mode=True)
 @pytest.fixture(autouse=True)
 def _enable_tutorial_test_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     """Run tutorials against repo data/test through TestTools mode switching."""
-    monkeypatch.setenv("PHYSIOTWIN_RUNNING_AS_TEST", "1")
+    monkeypatch.setenv("MONAI_PHYSIO_RUNNING_AS_TEST", "1")
 
 
 def _compare_screenshots(
@@ -729,7 +729,7 @@ class TestTutorial07LungFitStatisticalModelToPatient:
         _require_files(
             test_directories["data"] / "Chest-CT",
             "Chest-CT.mha",
-            "Fetch it with: physiotwin4d-download-data Chest-CT.",
+            "Fetch it with: monai-physio-download-data Chest-CT.",
         )
         _require_files(
             _TUTORIAL_OUTPUT / "tutorial_06_lung",
@@ -853,7 +853,7 @@ def _require_physicsnemo() -> None:
     if importlib.util.find_spec("torch_geometric") is None:
         skip_or_fail_missing_data(
             "PyTorch Geometric not installed; the MGN trainer needs it in addition "
-            'to PhysicsNeMo. Install with: pip install "physiotwin4d[physicsnemo]" '
+            'to PhysicsNeMo. Install with: pip install "monai-physio[physicsnemo]" '
             "&& pip install torch-geometric"
         )
 
@@ -1241,7 +1241,7 @@ class TestTutorial13HeartAndLungMotion:
         _require_files(
             test_directories["data"] / "Chest-CT",
             "Chest-CT.mha",
-            "Fetch it with: physiotwin4d-download-data Chest-CT.",
+            "Fetch it with: monai-physio-download-data Chest-CT.",
         )
         # Tutorial 7 (lung) fits that same scan; its output is the reference
         # geometry the respiratory network is conditioned on.

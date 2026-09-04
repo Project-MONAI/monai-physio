@@ -5,7 +5,7 @@ Purpose
 -------
 Duke counterpart of ``tutorial_09_lung_train_physicsnemo_mgn.py``, run on the
 Duke-Heart-4DLabelmaps cohort.  A thin driver over the reusable
-:class:`physiotwin4d.WorkflowTrainPhysicsNeMo` workflow:
+:class:`monai_physio.WorkflowTrainPhysicsNeMo` workflow:
 
 1. Discover the per-frame SSM surfaces produced by Tutorial 8 (Duke Heart)
    (``tutorial_08_duke_heart_fit_model_to_4d_patients.py``), write the training
@@ -22,8 +22,8 @@ Duke-Heart-4DLabelmaps cohort.  A thin driver over the reusable
    driving ``TrainPhysicsNeMoMGN``).
 
 3. Evaluate the held-out test cases against their ground-truth frames with
-   :class:`physiotwin4d.WorkflowInferPhysicsNeMo` wrapped in
-   :class:`physiotwin4d.WorkflowInferMovement`.
+   :class:`monai_physio.WorkflowInferPhysicsNeMo` wrapped in
+   :class:`monai_physio.WorkflowInferMovement`.
 
 Why a GNN?
 ----------
@@ -40,7 +40,7 @@ Extra Install Required
 ----------------------
 PhysicsNeMo and PyTorch Geometric must be installed::
 
-    pip install "physiotwin4d[physicsnemo]"
+    pip install "monai-physio[physicsnemo]"
 
 Data Required
 -------------
@@ -90,7 +90,7 @@ import numpy as np
 import pyvista as pv
 from parameters_duke_heart_labelmaps import DUKE_HEART
 
-from physiotwin4d import (
+from monai_physio import (
     TestTools,
     TrainPhysicsNeMoMGN,
     WorkflowInferMovement,

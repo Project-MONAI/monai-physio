@@ -2,8 +2,8 @@
 Greedy Registration
 ===================
 
-.. module:: physiotwin4d.register_images_greedy
-.. currentmodule:: physiotwin4d
+.. module:: monai_physio.register_images_greedy
+.. currentmodule:: monai_physio
 
 ``RegisterImagesGreedy`` provides fast CPU-based deformable image registration
 using the PICSL Greedy backend.
@@ -23,7 +23,7 @@ Basic Registration
 
    import itk
 
-   from physiotwin4d import RegisterImagesGreedy
+   from monai_physio import RegisterImagesGreedy
 
    fixed = itk.imread("reference.mha")
    moving = itk.imread("moving.mha")

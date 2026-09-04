@@ -2,7 +2,7 @@
 visualize_pca_modes (CLI)
 =========================
 
-.. automodule:: physiotwin4d.cli.visualize_pca_modes
+.. automodule:: monai_physio.cli.visualize_pca_modes
    :members:
    :undoc-members:
    :show-inheritance:

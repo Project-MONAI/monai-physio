@@ -4,7 +4,7 @@
 Adding a Registration Method
 ============================
 
-Wire a new deformable image-registration backend into PhysioTwin4D so every
+Wire a new deformable image-registration backend into MONAI Physio so every
 workflow and CLI that takes a ``registration_method`` can use it.
 
 Ingredients
@@ -14,12 +14,12 @@ Ingredients
   express the result as ITK transforms.
 * **Both directions.** The backend must produce the forward *and* inverse
   transform. If it natively gives only one, invert it before returning.
-* **A module** at ``src/physiotwin4d/register_images_<name>.py``.
+* **A module** at ``src/monai_physio/register_images_<name>.py``.
 
 Steps
 =====
 
-**1. Subclass** :class:`~physiotwin4d.RegisterImagesBase`. The base owns
+**1. Subclass** :class:`~monai_physio.RegisterImagesBase`. The base owns
 preprocessing, mask handling and dilation, modality settings, transform
 composition, and the public ``register()`` / ``register_from()`` API. You
 supply only the solve.
@@ -31,7 +31,7 @@ supply only the solve.
 
    import itk
 
-   from physiotwin4d import RegisterImagesBase
+   from monai_physio import RegisterImagesBase
 
 
    class RegisterImagesMyMethod(RegisterImagesBase):
@@ -77,11 +77,11 @@ by dropping to cheaper settings — automated tests rely on it.
 ``register_from()`` pre-warps the moving image, calls your method on the
 residual, and composes. One implementation, identical for every backend.
 
-**5. Export it** from ``src/physiotwin4d/__init__.py``, next to the other
+**5. Export it** from ``src/monai_physio/__init__.py``, next to the other
 ``register_images_*`` imports, and add it to ``__all__``.
 
 **6. Add it to the CLI dispatch** in
-``src/physiotwin4d/cli/_method_factories.py`` — the single place strings become
+``src/monai_physio/cli/_method_factories.py`` — the single place strings become
 instances. Append the name to ``REGISTRATION_METHODS`` and a branch to
 ``build_registration_method()``. Every ``--registration-method`` flag picks it
 up from there.
@@ -102,9 +102,9 @@ Notes
 =====
 
 * Your backend composes for free:
-  :class:`~physiotwin4d.RegisterImagesChain` will run it as one stage of a
+  :class:`~monai_physio.RegisterImagesChain` will run it as one stage of a
   multi-stage pipeline, and
-  :class:`~physiotwin4d.RegisterTimeSeriesImages` will apply it across a whole
+  :class:`~monai_physio.RegisterTimeSeriesImages` will apply it across a whole
   4D series, without either class knowing about it.
 * Use ``TransformTools.transform_image()`` and
   ``TransformTools.transform_pvcontour()`` to apply results — they encode the

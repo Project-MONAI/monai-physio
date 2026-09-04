@@ -2,12 +2,12 @@
 Predicting With a Mesh-Stage Model
 ====================================
 
-.. module:: physiotwin4d.workflow_infer_physicsnemo
-.. module:: physiotwin4d.workflow_infer_movement
-.. module:: physiotwin4d.infer_physicsnemo_base
-.. module:: physiotwin4d.infer_physicsnemo_mgn
-.. module:: physiotwin4d.infer_physicsnemo_mlp
-.. currentmodule:: physiotwin4d
+.. module:: monai_physio.workflow_infer_physicsnemo
+.. module:: monai_physio.workflow_infer_movement
+.. module:: monai_physio.infer_physicsnemo_base
+.. module:: monai_physio.infer_physicsnemo_mgn
+.. module:: monai_physio.infer_physicsnemo_mlp
+.. currentmodule:: monai_physio
 
 Inference is split in two so that the generic half stays target-agnostic:
 
@@ -56,7 +56,7 @@ Example
 
 .. code-block:: python
 
-   from physiotwin4d import (
+   from monai_physio import (
        InferPhysicsNeMoMGN,
        WorkflowInferMovement,
        WorkflowInferPhysicsNeMo,
@@ -81,7 +81,7 @@ Notes
 :meth:`WorkflowInferMovement.predict_single` and
 :meth:`~WorkflowInferMovement.create_deformation_field` both require a
 ``fitted_reference_mesh`` — the patient's shape-model surface as fitted by
-:class:`~physiotwin4d.WorkflowFitStatisticalModelToPatient`, which is shape
+:class:`~monai_physio.WorkflowFitStatisticalModelToPatient`, which is shape
 parameters *and* a deformable registration. The prediction stays in that mesh's
 world frame, so a fit that carried a pose transform lands where the patient
 actually is. A surface reconstructed from the shape parameters alone is not a
@@ -94,7 +94,7 @@ surrogate at all.
 **Deformation fields.** :meth:`~WorkflowInferMovement.create_deformation_field`
 bins the per-vertex displacements and reference-surface normals onto a
 caller-supplied image grid, giving an ITK vector image you can apply to
-volumes and labelmaps with :class:`~physiotwin4d.TransformTools`.
+volumes and labelmaps with :class:`~monai_physio.TransformTools`.
 
 See Also
 ========

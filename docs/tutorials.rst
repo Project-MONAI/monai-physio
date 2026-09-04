@@ -4,11 +4,11 @@ Tutorials
 
 .. raw:: html
 
-   <section class="pt4d-hero">
-     <div class="pt4d-hero__brand">
+   <section class="mphysio-hero">
+     <div class="mphysio-hero__brand">
        <img src="_static/nvidia-logo.svg" alt="NVIDIA logo">
      </div>
-     <p class="pt4d-kicker">PhysioTwin4D tutorials</p>
+     <p class="mphysio-kicker">MONAI Physio tutorials</p>
      <h1>From a CT scan to an animated digital twin</h1>
      <p>
        Eighteen numbered stages across 36 Python scripts, 21 of them runnable
@@ -24,13 +24,13 @@ Before You Start
 ================
 
 **1. Get the scripts.** They ship with the source repository, not with the pip
-package — ``pip install physiotwin4d`` gives you the library and the
-``physiotwin4d-*`` commands but no ``tutorials/`` directory:
+package — ``pip install monai-physio`` gives you the library and the
+``monai-physio-*`` commands but no ``tutorials/`` directory:
 
 .. code-block:: bash
 
-   git clone https://github.com/Project-MONAI/physiotwin4d.git
-   cd physiotwin4d
+   git clone https://github.com/Project-MONAI/monai-physio.git
+   cd monai_physio
 
 See :doc:`quickstart` for version-matched clones and the release tarball link.
 
@@ -41,9 +41,9 @@ relative to the current working directory:
 
 .. code-block:: bash
 
-   physiotwin4d-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
-   physiotwin4d-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
-   physiotwin4d-download-data Chest-CT --directory data/Chest-CT
+   monai-physio-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
+   monai-physio-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
+   monai-physio-download-data Chest-CT --directory data/Chest-CT
 
 That covers Heart Tutorials 1, 3, 4 and 6 (``Slicer-Heart-CT`` and
 ``KCL-Heart-Model``) and Lung Tutorial 7 (``Chest-CT``), which Tutorial 13 also
@@ -66,114 +66,114 @@ second run is cheap and later tutorials pick up earlier results automatically.
 
 .. raw:: html
 
-   <section class="pt4d-card-grid" aria-label="Tutorial cards">
-     <a class="pt4d-card" href="#tutorial-1-gated-4d-ct-to-animated-usd">
-       <span class="pt4d-card__number">01</span>
+   <section class="mphysio-card-grid" aria-label="Tutorial cards">
+     <a class="mphysio-card" href="#tutorial-1-gated-4d-ct-to-animated-usd">
+       <span class="mphysio-card__number">01</span>
        <h2>Gated 4D CT to Animated USD</h2>
        <p>Segment, register and assemble a 4D CT series into an animated OpenUSD scene.</p>
-       <span class="pt4d-card__meta">Slicer-Heart-CT &middot; DIR-Lab</span>
+       <span class="mphysio-card__meta">Slicer-Heart-CT &middot; DIR-Lab</span>
      </a>
-     <a class="pt4d-card" href="#tutorial-2-finetune-icon-registration">
-       <span class="pt4d-card__number">02</span>
+     <a class="mphysio-card" href="#tutorial-2-finetune-icon-registration">
+       <span class="mphysio-card__number">02</span>
        <h2>Finetune ICON Registration</h2>
        <p>Adapt uniGradICON to your own cohort and measure what the finetuning bought you.</p>
-       <span class="pt4d-card__meta">DIR-Lab</span>
+       <span class="mphysio-card__meta">DIR-Lab</span>
      </a>
-     <a class="pt4d-card" href="#tutorial-3-reconstruct-high-resolution-4d-ct">
-       <span class="pt4d-card__number">03</span>
+     <a class="mphysio-card" href="#tutorial-3-reconstruct-high-resolution-4d-ct">
+       <span class="mphysio-card__number">03</span>
        <h2>Reconstruct High-Resolution 4D CT</h2>
        <p>Register every phase to one reference and reconstruct the series at its resolution.</p>
-       <span class="pt4d-card__meta">Slicer-Heart-CT &middot; DIR-Lab</span>
+       <span class="mphysio-card__meta">Slicer-Heart-CT &middot; DIR-Lab</span>
      </a>
-     <a class="pt4d-card" href="#tutorial-4-ct-segmentation-to-vtk-surfaces">
-       <span class="pt4d-card__number">04</span>
+     <a class="mphysio-card" href="#tutorial-4-ct-segmentation-to-vtk-surfaces">
+       <span class="mphysio-card__number">04</span>
        <h2>CT Segmentation to VTK Surfaces</h2>
        <p>Segment one CT phase and export patient anatomy as VTK PolyData surfaces.</p>
-       <span class="pt4d-card__meta">Slicer-Heart-CT &middot; DIR-Lab</span>
+       <span class="mphysio-card__meta">Slicer-Heart-CT &middot; DIR-Lab</span>
      </a>
-     <a class="pt4d-card" href="#tutorial-5-vtk-surfaces-to-animated-usd">
-       <span class="pt4d-card__number">05</span>
+     <a class="mphysio-card" href="#tutorial-5-vtk-surfaces-to-animated-usd">
+       <span class="mphysio-card__number">05</span>
        <h2>VTK Surfaces to Animated USD</h2>
        <p>Convert meshes into a time-sampled USD scene for Omniverse playback.</p>
-       <span class="pt4d-card__meta">Tutorial 4 output</span>
+       <span class="mphysio-card__meta">Tutorial 4 output</span>
      </a>
-     <a class="pt4d-card" href="#tutorial-6-create-a-pca-shape-model">
-       <span class="pt4d-card__number">06</span>
+     <a class="mphysio-card" href="#tutorial-6-create-a-pca-shape-model">
+       <span class="mphysio-card__number">06</span>
        <h2>Create a PCA Shape Model</h2>
        <p>Turn a population of meshes into a statistical shape model and its modes.</p>
-       <span class="pt4d-card__meta">KCL-Heart-Model &middot; DIR-Lab</span>
+       <span class="mphysio-card__meta">KCL-Heart-Model &middot; DIR-Lab</span>
      </a>
-     <a class="pt4d-card" href="#tutorial-7-fit-the-shape-model-to-a-patient">
-       <span class="pt4d-card__number">07</span>
+     <a class="mphysio-card" href="#tutorial-7-fit-the-shape-model-to-a-patient">
+       <span class="mphysio-card__number">07</span>
        <h2>Fit the Shape Model to a Patient</h2>
        <p>Fit the shape model to one ungated clinical scan, PCA coefficients and all.</p>
-       <span class="pt4d-card__meta">Chest-CT &middot; Tutorial 6 output</span>
+       <span class="mphysio-card__meta">Chest-CT &middot; Tutorial 6 output</span>
      </a>
-     <a class="pt4d-card" href="#tutorial-8-propagate-the-shape-model-through-4d">
-       <span class="pt4d-card__number">08</span>
+     <a class="mphysio-card" href="#tutorial-8-propagate-the-shape-model-through-4d">
+       <span class="mphysio-card__number">08</span>
        <h2>Propagate the Model Through 4D</h2>
        <p>Fit each case at its reference phase and carry the mesh through every phase.</p>
-       <span class="pt4d-card__meta">DIR-Lab &middot; Tutorials 2 and 6</span>
+       <span class="mphysio-card__meta">DIR-Lab &middot; Tutorials 2 and 6</span>
      </a>
-     <a class="pt4d-card" href="#tutorial-9-train-a-physicsnemo-surrogate">
-       <span class="pt4d-card__number">09</span>
+     <a class="mphysio-card" href="#tutorial-9-train-a-physicsnemo-surrogate">
+       <span class="mphysio-card__number">09</span>
        <h2>Train a PhysicsNeMo Surrogate</h2>
        <p>Train a MeshGraphNet to predict per-vertex motion from shape and phase.</p>
-       <span class="pt4d-card__meta">Tutorial 8 output</span>
+       <span class="mphysio-card__meta">Tutorial 8 output</span>
      </a>
-     <a class="pt4d-card" href="#tutorial-10-predict-motion-with-the-surrogate">
-       <span class="pt4d-card__number">10</span>
+     <a class="mphysio-card" href="#tutorial-10-predict-motion-with-the-surrogate">
+       <span class="mphysio-card__number">10</span>
        <h2>Predict Motion With the Surrogate</h2>
        <p>Replace the registration solve with one forward pass, then export to USD.</p>
-       <span class="pt4d-card__meta">Tutorials 8 and 9 output</span>
+       <span class="mphysio-card__meta">Tutorials 8 and 9 output</span>
      </a>
-     <a class="pt4d-card" href="#tutorial-11-score-the-surrogate-against-the-images">
-       <span class="pt4d-card__number">11</span>
+     <a class="mphysio-card" href="#tutorial-11-score-the-surrogate-against-the-images">
+       <span class="mphysio-card__number">11</span>
        <h2>Score the Surrogate Against the Images</h2>
        <p>Volume and surface RMSE per lobe, plus Dice per chamber, on the held-out case.</p>
-       <span class="pt4d-card__meta">Tutorials 8, 9 and 10 output</span>
+       <span class="mphysio-card__meta">Tutorials 8, 9 and 10 output</span>
      </a>
-     <a class="pt4d-card" href="#tutorial-12-the-whole-inference-pipeline-in-one-script">
-       <span class="pt4d-card__number">12</span>
+     <a class="mphysio-card" href="#tutorial-12-the-whole-inference-pipeline-in-one-script">
+       <span class="mphysio-card__number">12</span>
        <h2>The Whole Inference Pipeline in One Script</h2>
        <p>Go from a gated series to an animated prediction without registering a single phase.</p>
-       <span class="pt4d-card__meta">Tutorials 6 and 9 output</span>
+       <span class="mphysio-card__meta">Tutorials 6 and 9 output</span>
      </a>
-     <a class="pt4d-card" href="#tutorial-13-breathe-and-beat-a-static-clinical-ct">
-       <span class="pt4d-card__number">13</span>
+     <a class="mphysio-card" href="#tutorial-13-breathe-and-beat-a-static-clinical-ct">
+       <span class="mphysio-card__number">13</span>
        <h2>Breathe and Beat a Static Clinical CT</h2>
        <p>Animate one ungated breath-hold scan with both rhythms, from two networks at once.</p>
-       <span class="pt4d-card__meta">Chest-CT &middot; Tutorials 7 and 9 output</span>
+       <span class="mphysio-card__meta">Chest-CT &middot; Tutorials 7 and 9 output</span>
      </a>
-     <a class="pt4d-card" href="#tutorial-14-sweep-the-shape-parameters">
-       <span class="pt4d-card__number">14</span>
+     <a class="mphysio-card" href="#tutorial-14-sweep-the-shape-parameters">
+       <span class="mphysio-card__number">14</span>
        <h2>Sweep the Shape Parameters</h2>
        <p>Re-infer and rescore over a grid of PCA coefficients, to see how far the motion moves with them.</p>
-       <span class="pt4d-card__meta">Tutorials 8 and 9 output</span>
+       <span class="mphysio-card__meta">Tutorials 8 and 9 output</span>
      </a>
-     <a class="pt4d-card" href="#tutorial-15-leave-one-out-cross-validation">
-       <span class="pt4d-card__number">15</span>
+     <a class="mphysio-card" href="#tutorial-15-leave-one-out-cross-validation">
+       <span class="mphysio-card__number">15</span>
        <h2>Leave-One-Out Cross-Validation</h2>
        <p>Rebuild the model, refit, retrain and rescore once per fold, for a spread rather than a number.</p>
-       <span class="pt4d-card__meta">DIR-Lab &middot; Duke-Heart-4DLabelmaps</span>
+       <span class="mphysio-card__meta">DIR-Lab &middot; Duke-Heart-4DLabelmaps</span>
      </a>
-     <a class="pt4d-card" href="#tutorial-16-build-a-volumetric-shape-model-of-the-myocardium">
-       <span class="pt4d-card__number">16</span>
+     <a class="mphysio-card" href="#tutorial-16-build-a-volumetric-shape-model-of-the-myocardium">
+       <span class="mphysio-card__number">16</span>
        <h2>Build a Volumetric Shape Model of the Myocardium</h2>
        <p>Fill the mean surface with tetrahedra so a strain energy has a deformation gradient to act on.</p>
-       <span class="pt4d-card__meta">Duke-Heart-4DLabelmaps &middot; Tutorial 4 output</span>
+       <span class="mphysio-card__meta">Duke-Heart-4DLabelmaps &middot; Tutorial 4 output</span>
      </a>
-     <a class="pt4d-card" href="#tutorial-17-train-a-mechanics-aware-cardiac-motion-surrogate">
-       <span class="pt4d-card__number">17</span>
+     <a class="mphysio-card" href="#tutorial-17-train-a-mechanics-aware-cardiac-motion-surrogate">
+       <span class="mphysio-card__number">17</span>
        <h2>Train a Mechanics-Aware Cardiac Motion Surrogate</h2>
        <p>Add a neo-Hookean strain energy to the displacement loss, and train an unweighted ablation to isolate it.</p>
-       <span class="pt4d-card__meta">Tutorial 16 output</span>
+       <span class="mphysio-card__meta">Tutorial 16 output</span>
      </a>
-     <a class="pt4d-card" href="#tutorial-18-predict-myocardial-motion-and-the-stress-it-implies">
-       <span class="pt4d-card__number">18</span>
+     <a class="mphysio-card" href="#tutorial-18-predict-myocardial-motion-and-the-stress-it-implies">
+       <span class="mphysio-card__number">18</span>
        <h2>Predict Myocardial Motion and the Stress It Implies</h2>
        <p>Score the physics-informed surrogate against its ablation and export the motion colored by von Mises stress.</p>
-       <span class="pt4d-card__meta">Tutorials 16 and 17 output</span>
+       <span class="mphysio-card__meta">Tutorials 16 and 17 output</span>
      </a>
    </section>
 
@@ -227,9 +227,9 @@ Script
    ``tutorials/tutorial_01_lung_gated_ct_to_usd.py`` (DIR-Lab)
 
 Workflow
-   :class:`~physiotwin4d.WorkflowConvertImageToUSD`, driving
-   :class:`~physiotwin4d.RegisterImagesGreedy` and a
-   :class:`~physiotwin4d.SegmentAnatomyBase` subclass.
+   :class:`~monai_physio.WorkflowConvertImageToUSD`, driving
+   :class:`~monai_physio.RegisterImagesGreedy` and a
+   :class:`~monai_physio.SegmentAnatomyBase` subclass.
 
 Dataset
    Slicer-Heart-CT (auto-download) for the heart, DIR-Lab (manual) for the
@@ -282,11 +282,11 @@ Adapt to your data
    Point ``data_dir`` and the file glob near the top of the script at your own
    series: any set of 3D volumes ITK can read (``.mha``, ``.nrrd``,
    ``.nii.gz``) in acquisition order, or a 4D ``.seq.nrrd`` split first with
-   ``physiotwin4d-convert-image-4d-to-3d``. Choose the reference phase by
+   ``monai-physio-convert-image-4d-to-3d``. Choose the reference phase by
    changing the index expression, and swap ``segmentation_method`` for the one
    matching your anatomy and contrast — see :doc:`api/segmentation/index`. For
    command-line use without editing code, run
-   ``physiotwin4d-convert-image-to-usd`` (:doc:`cli_scripts/heart_gated_ct`).
+   ``monai-physio-convert-image-to-usd`` (:doc:`cli_scripts/heart_gated_ct`).
 
 Tutorial 2: Finetune ICON Registration
 ======================================
@@ -312,10 +312,10 @@ Script
    ``data/Duke-Heart-4DLabelmaps/README.md``.
 
 Workflow
-   :class:`~physiotwin4d.WorkflowFinetuneICONRegistration`, then
-   :class:`~physiotwin4d.RegisterImagesGreedy` and
-   :class:`~physiotwin4d.RegisterImagesGreedyICON` to score the result, with
-   :class:`~physiotwin4d.SegmentNVSegmentCTMRI` supplying the labelmaps.
+   :class:`~monai_physio.WorkflowFinetuneICONRegistration`, then
+   :class:`~monai_physio.RegisterImagesGreedy` and
+   :class:`~monai_physio.RegisterImagesGreedyICON` to score the result, with
+   :class:`~monai_physio.SegmentNVSegmentCTMRI` supplying the labelmaps.
 
 Dataset
    DIR-Lab (manual). Every case except ``Case1Pack`` trains; ``Case1Pack`` is
@@ -376,7 +376,7 @@ Adapt to your data
    to fit your budget — the workflow needs only a list of image files and
    matching subject ids. Raise ``dice_loss_weight`` above ``0.0`` when you also
    have labelmaps to supervise with. Load the resulting weights anywhere by
-   passing them to :class:`~physiotwin4d.RegisterImagesICON`.
+   passing them to :class:`~monai_physio.RegisterImagesICON`.
 
 Tutorial 3: Reconstruct High-Resolution 4D CT
 =============================================
@@ -387,8 +387,8 @@ Script
    ``tutorials/tutorial_03_lung_reconstruct_highres_4d_ct.py``
 
 Workflow
-   :class:`~physiotwin4d.WorkflowReconstructHighres4DCT` with
-   :class:`~physiotwin4d.RegisterImagesGreedy`.
+   :class:`~monai_physio.WorkflowReconstructHighres4DCT` with
+   :class:`~monai_physio.RegisterImagesGreedy`.
 
 Dataset
    Slicer-Heart-CT for the heart; DIR-Lab for the lung, which reconstructs
@@ -450,7 +450,7 @@ Adapt to your data
    the phases — that is what the workflow is really designed for. Tune
    ``number_of_iterations_greedy`` down for a fast smoke test. The saved
    ``.hdf`` transforms are reusable:
-   :class:`~physiotwin4d.TransformTools` applies them to meshes and labelmaps.
+   :class:`~monai_physio.TransformTools` applies them to meshes and labelmaps.
 
 Tutorial 4: CT Segmentation to VTK Surfaces
 ===========================================
@@ -465,9 +465,9 @@ Script
    Duke-Heart-4DLabelmaps (see `Before You Start`_).
 
 Workflow
-   :class:`~physiotwin4d.WorkflowConvertImageToVTK` with
-   :class:`~physiotwin4d.SegmentChestTotalSegmentatorWithContrast` (heart) or
-   :class:`~physiotwin4d.SegmentChestTotalSegmentator` (lung).
+   :class:`~monai_physio.WorkflowConvertImageToVTK` with
+   :class:`~monai_physio.SegmentChestTotalSegmentatorWithContrast` (heart) or
+   :class:`~monai_physio.SegmentChestTotalSegmentator` (lung).
 
 Dataset
    One frame of Slicer-Heart-CT or DIR-Lab — a single static volume is enough.
@@ -523,11 +523,11 @@ Outputs
 Adapt to your data
    Change the input volume path, then choose the segmenter matching your scan:
    contrast versus non-contrast CT, or
-   :class:`~physiotwin4d.SegmentNVSegmentCTMRI` for CT **and** MRI. Raise
+   :class:`~monai_physio.SegmentNVSegmentCTMRI` for CT **and** MRI. Raise
    ``surface_reduction_rate`` in the tutorial's parameter module toward ``1.0``
    for lighter meshes. Every
    segmenter declares its own labels through
-   :class:`~physiotwin4d.AnatomyTaxonomy`, so downstream grouping and USD
+   :class:`~monai_physio.AnatomyTaxonomy`, so downstream grouping and USD
    materials follow automatically — see :doc:`api/segmentation/index`.
 
 Tutorial 5: VTK Surfaces to Animated USD
@@ -541,7 +541,7 @@ Script
    Duke-Heart-4DLabelmaps (see `Before You Start`_).
 
 Workflow
-   :class:`~physiotwin4d.WorkflowConvertVTKToUSD`.
+   :class:`~monai_physio.WorkflowConvertVTKToUSD`.
 
 Dataset
    Tutorial 4's per-structure ``patient_*.vtp`` surfaces — no image data, no
@@ -572,7 +572,7 @@ Inner API usage
       results = workflow.process()
 
    Each input surface keeps the structure name that
-   :class:`~physiotwin4d.WorkflowConvertImageToVTK` wrote into its
+   :class:`~monai_physio.WorkflowConvertImageToVTK` wrote into its
    ``field_data['SegmentationLabelNames']``. That name becomes the USD prim
    name and, with ``anatomy_type`` left unset, selects the prim's material —
    so the left chambers, right chambers, myocardium and great vessels each get
@@ -592,7 +592,7 @@ Adapt to your data
    in order, for an animated scene instead of a static one (drop
    ``static_merge``), and set ``frames_per_second`` to control playback.
    ``appearance="anatomy"`` binds per-organ materials through
-   :class:`~physiotwin4d.USDAnatomyTools`; set ``anatomy_type`` to force one
+   :class:`~monai_physio.USDAnatomyTools`; set ``anatomy_type`` to force one
    palette onto every object, or ``object_names`` to name the prims yourself.
    For file-in, file-out conversion without Python, see
    :doc:`cli_scripts/vtk_to_usd`.
@@ -610,9 +610,9 @@ Script
    Duke-Heart-4DLabelmaps (see `Before You Start`_).
 
 Workflow
-   :class:`~physiotwin4d.WorkflowCreateStatisticalModel`; the lung variant
+   :class:`~monai_physio.WorkflowCreateStatisticalModel`; the lung variant
    first builds an unbiased atlas with
-   :class:`~physiotwin4d.WorkflowCreateMeanSurface`.
+   :class:`~monai_physio.WorkflowCreateMeanSurface`.
 
 Dataset
    KCL-Heart-Model (auto-download) for the heart. The lung variant starts from
@@ -666,7 +666,7 @@ Outputs
 Adapt to your data
    The workflow wants a population of meshes plus one reference; point
    ``sample_meshes`` at your own cohort and let
-   :class:`~physiotwin4d.WorkflowCreateMeanSurface` build the reference when no
+   :class:`~monai_physio.WorkflowCreateMeanSurface` build the reference when no
    natural template exists. ``number_of_pca_components`` trades fidelity
    against cohort size — you need more subjects than modes. The saved
    ``pca_model.json`` is the portable artifact: Tutorials 7 and 8 and
@@ -685,7 +685,7 @@ Script
    `Before You Start`_).
 
 Workflow
-   :class:`~physiotwin4d.WorkflowFitStatisticalModelToPatient`.
+   :class:`~monai_physio.WorkflowFitStatisticalModelToPatient`.
 
 Dataset
    Tutorial 6's model plus one patient scan. The lung variant fits to
@@ -754,12 +754,12 @@ Script
 
    ``tutorials/tutorial_08_duke_heart_fit_model_to_4d_patients.py`` — the same
    fit-then-propagate pass over cardiac phases, using
-   :class:`~physiotwin4d.RegisterModelsDistanceMaps` in place of the image
+   :class:`~monai_physio.RegisterModelsDistanceMaps` in place of the image
    registration. Needs Duke-Heart-4DLabelmaps (see `Before You Start`_).
 
 Workflow
-   :class:`~physiotwin4d.WorkflowFitStatisticalModelToPatient` at the reference
-   phase, then :class:`~physiotwin4d.WorkflowReconstructHighres4DCT` to carry
+   :class:`~monai_physio.WorkflowFitStatisticalModelToPatient` at the reference
+   phase, then :class:`~monai_physio.WorkflowReconstructHighres4DCT` to carry
    the fitted surface through every other phase.
 
 Dataset
@@ -833,11 +833,11 @@ Script
    Duke-Heart-4DLabelmaps (see `Before You Start`_).
 
 Workflow
-   :class:`~physiotwin4d.WorkflowTrainPhysicsNeMo` driving
-   :class:`~physiotwin4d.TrainPhysicsNeMoMGN`, then
-   :class:`~physiotwin4d.WorkflowInferPhysicsNeMo` and
-   :class:`~physiotwin4d.WorkflowInferMovement` to score the held-out case. A
-   fully connected :class:`~physiotwin4d.TrainPhysicsNeMoMLP` method is a
+   :class:`~monai_physio.WorkflowTrainPhysicsNeMo` driving
+   :class:`~monai_physio.TrainPhysicsNeMoMGN`, then
+   :class:`~monai_physio.WorkflowInferPhysicsNeMo` and
+   :class:`~monai_physio.WorkflowInferMovement` to score the held-out case. A
+   fully connected :class:`~monai_physio.TrainPhysicsNeMoMLP` method is a
    drop-in replacement; no separate tutorial ships for it.
 
 Dataset
@@ -848,7 +848,7 @@ Dataset
 Requirements
    GPU, plus the optional extra::
 
-      pip install "physiotwin4d[physicsnemo]"
+      pip install "monai-physio[physicsnemo]"
       pip install torch-geometric
 
    Python >= 3.11. 1500 epochs by default.
@@ -931,9 +931,9 @@ Script
    `Before You Start`_).
 
 Workflow
-   :class:`~physiotwin4d.WorkflowInferPhysicsNeMo` for the raw prediction,
-   :class:`~physiotwin4d.WorkflowInferMovement` to turn it back into geometry,
-   and :class:`~physiotwin4d.WorkflowConvertVTKToUSD` to export it.
+   :class:`~monai_physio.WorkflowInferPhysicsNeMo` for the raw prediction,
+   :class:`~monai_physio.WorkflowInferMovement` to turn it back into geometry,
+   and :class:`~monai_physio.WorkflowConvertVTKToUSD` to export it.
 
 Dataset
    Tutorial 8's fitted surfaces for one case, and Tutorial 9's checkpoint.
@@ -991,7 +991,7 @@ Adapt to your data
    Change ``case_id`` to predict a different subject, or pass ``stages`` that
    were never acquired — which is the point of the surrogate. Omit
    ``reference_image`` to write meshes without warping anything. Use
-   :class:`~physiotwin4d.WorkflowInferPhysicsNeMo` on its own to get the raw
+   :class:`~monai_physio.WorkflowInferPhysicsNeMo` on its own to get the raw
    target array when your model predicts something other than displacement.
 
 Tutorial 11: Score the Surrogate Against the Images
@@ -1003,9 +1003,9 @@ Script
    ``tutorials/tutorial_11_duke_heart_evaluate_physicsnemo.py``
 
 Workflow
-   :class:`~physiotwin4d.WorkflowEvaluateMovement`, driving
-   :class:`~physiotwin4d.WorkflowInferMovement` and, for the lung variant,
-   :class:`~physiotwin4d.SegmentNVSegmentCTMRI`.
+   :class:`~monai_physio.WorkflowEvaluateMovement`, driving
+   :class:`~monai_physio.WorkflowInferMovement` and, for the lung variant,
+   :class:`~monai_physio.SegmentNVSegmentCTMRI`.
 
 Dataset
    The gated sequence itself — DIR-Lab for the lung, Duke-Heart-4DLabelmaps for
@@ -1091,10 +1091,10 @@ Script
    ``tutorials/tutorial_12_duke_heart_end_to_end_inference.py``
 
 Workflow
-   :class:`~physiotwin4d.WorkflowConvertImageToVTK` (lung) or
-   :class:`~physiotwin4d.ContourTools` (heart),
-   :class:`~physiotwin4d.WorkflowFitStatisticalModelToPatient`, then
-   :meth:`~physiotwin4d.WorkflowInferMovement.process_time_series`.
+   :class:`~monai_physio.WorkflowConvertImageToVTK` (lung) or
+   :class:`~monai_physio.ContourTools` (heart),
+   :class:`~monai_physio.WorkflowFitStatisticalModelToPatient`, then
+   :meth:`~monai_physio.WorkflowInferMovement.process_time_series`.
 
 Dataset
    The gated sequence alone — DIR-Lab for the lung, Duke-Heart-4DLabelmaps for
@@ -1179,10 +1179,10 @@ Script
    ``tutorials/tutorial_13_heart_and_lung_motion.py``
 
 Workflow
-   :class:`~physiotwin4d.WorkflowInferMovement` over both Tutorial 9 networks,
-   :class:`~physiotwin4d.WorkflowFitStatisticalModelToPatient` for the heart fit,
-   and :class:`~physiotwin4d.ConvertVTKToUSD` with
-   :class:`~physiotwin4d.USDAnatomyTools` for the animation.
+   :class:`~monai_physio.WorkflowInferMovement` over both Tutorial 9 networks,
+   :class:`~monai_physio.WorkflowFitStatisticalModelToPatient` for the heart fit,
+   and :class:`~monai_physio.ConvertVTKToUSD` with
+   :class:`~monai_physio.USDAnatomyTools` for the animation.
 
 Dataset
    ``data/Chest-CT/Chest-CT.mha``, one ungated breath-hold scan, plus Tutorial 7
@@ -1259,9 +1259,9 @@ Script
    (Duke-Heart-4DLabelmaps)
 
 Workflow
-   :class:`~physiotwin4d.WorkflowInferPhysicsNeMo` driving
-   :class:`~physiotwin4d.InferPhysicsNeMoMGN`, scored by
-   :class:`~physiotwin4d.WorkflowEvaluateMovement` once per grid point.
+   :class:`~monai_physio.WorkflowInferPhysicsNeMo` driving
+   :class:`~monai_physio.InferPhysicsNeMoMGN`, scored by
+   :class:`~monai_physio.WorkflowEvaluateMovement` once per grid point.
 
 Dataset
    The held-out case of Tutorial 9, plus its Tutorial 8 fit and the Tutorial 9
@@ -1338,12 +1338,12 @@ Script
    (Duke-Heart-4DLabelmaps)
 
 Workflow
-   :class:`~physiotwin4d.WorkflowCreateMeanSurface` and
-   :class:`~physiotwin4d.WorkflowCreateStatisticalModel` per fold,
-   :class:`~physiotwin4d.WorkflowFitStatisticalModelToPatient` per case,
-   :class:`~physiotwin4d.WorkflowTrainPhysicsNeMo` driving
-   :class:`~physiotwin4d.TrainPhysicsNeMoMGN`, and
-   :class:`~physiotwin4d.WorkflowEvaluateMovement` on the held-out case.
+   :class:`~monai_physio.WorkflowCreateMeanSurface` and
+   :class:`~monai_physio.WorkflowCreateStatisticalModel` per fold,
+   :class:`~monai_physio.WorkflowFitStatisticalModelToPatient` per case,
+   :class:`~monai_physio.WorkflowTrainPhysicsNeMo` driving
+   :class:`~monai_physio.TrainPhysicsNeMoMGN`, and
+   :class:`~monai_physio.WorkflowEvaluateMovement` on the held-out case.
 
 Dataset
    The whole cohort, and nothing else. Tutorials 6, 8 and 9 outputs are reused
@@ -1413,11 +1413,11 @@ Script
    ``tutorials/tutorial_16_duke_heart_physics_informed_motion_prep.py``
 
 Workflow
-   :class:`~physiotwin4d.WorkflowCreateStatisticalModel` with
+   :class:`~monai_physio.WorkflowCreateStatisticalModel` with
    ``solve_for_surface_pca=False`` on a tetrahedral template built by
-   :meth:`~physiotwin4d.ContourTools.extract_tetrahedra` and
-   :meth:`~physiotwin4d.ContourTools.trim_tetrahedra_to_surface`, then
-   :class:`~physiotwin4d.WorkflowFitStatisticalModelToPatient` per case and
+   :meth:`~monai_physio.ContourTools.extract_tetrahedra` and
+   :meth:`~monai_physio.ContourTools.trim_tetrahedra_to_surface`, then
+   :class:`~monai_physio.WorkflowFitStatisticalModelToPatient` per case and
    gated frame.
 
 Dataset
@@ -1490,8 +1490,8 @@ Script
    ``tutorials/tutorial_17_duke_heart_physics_informed_motion_train.py``
 
 Workflow
-   :class:`~physiotwin4d.WorkflowTrainPhysicsNeMo` driving
-   :class:`~physiotwin4d.TrainPhysicsNeMoPhysicsInformedMotion`.
+   :class:`~monai_physio.WorkflowTrainPhysicsNeMo` driving
+   :class:`~monai_physio.TrainPhysicsNeMoPhysicsInformedMotion`.
 
 Dataset
    Tutorial 16 output: ``manifests/*_manifest.json``, ``pca_mean.vtu`` and
@@ -1502,7 +1502,7 @@ Requirements
 
    .. code-block:: bash
 
-      pip install "physiotwin4d[physicsnemo]"
+      pip install "monai-physio[physicsnemo]"
       pip install torch-geometric
 
    ``physicsnemo.sym``, which supplies ``PhysicsInformer``, ships inside
@@ -1575,11 +1575,11 @@ Script
    ``tutorials/tutorial_18_duke_heart_physics_informed_motion_infer.py``
 
 Workflow
-   :class:`~physiotwin4d.WorkflowInferMovement` driving
-   :class:`~physiotwin4d.WorkflowInferPhysicsNeMo` for both models,
-   :class:`~physiotwin4d.WorkflowEvaluateMovement` to score them, and
-   :class:`~physiotwin4d.ConvertVTKToUSD` (with
-   :meth:`~physiotwin4d.ConvertVTKToUSD.compute_von_mises_stress`) for the
+   :class:`~monai_physio.WorkflowInferMovement` driving
+   :class:`~monai_physio.WorkflowInferPhysicsNeMo` for both models,
+   :class:`~monai_physio.WorkflowEvaluateMovement` to score them, and
+   :class:`~monai_physio.ConvertVTKToUSD` (with
+   :meth:`~monai_physio.ConvertVTKToUSD.compute_von_mises_stress`) for the
    export.
 
 Dataset

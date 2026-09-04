@@ -2,7 +2,7 @@
 Labelmap Tools
 ====================================
 
-.. currentmodule:: physiotwin4d
+.. currentmodule:: monai_physio
 
 Convert segmentation labelmaps into binary registration masks, with optional
 label exclusion and physically isotropic dilation.
@@ -10,7 +10,7 @@ label exclusion and physically isotropic dilation.
 Module Reference
 ================
 
-.. automodule:: physiotwin4d.labelmap_tools
+.. automodule:: monai_physio.labelmap_tools
    :members:
    :undoc-members:
 

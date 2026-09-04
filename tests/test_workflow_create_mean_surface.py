@@ -9,8 +9,8 @@ import numpy as np
 import pytest
 import pyvista as pv
 
-from physiotwin4d import WorkflowCreateMeanSurface
-from physiotwin4d import workflow_create_mean_surface as wcms
+from monai_physio import WorkflowCreateMeanSurface
+from monai_physio import workflow_create_mean_surface as wcms
 
 # Spheres of differing radii AND differing point counts: the population this
 # workflow exists for. Radii mean is 12.0 mm.

@@ -2,17 +2,17 @@
 Workflow Classes
 ================
 
-.. module:: physiotwin4d.workflow_convert_image_to_usd
-.. module:: physiotwin4d.workflow_convert_image_to_vtk
-.. module:: physiotwin4d.workflow_convert_vtk_to_usd
-.. module:: physiotwin4d.workflow_create_mean_surface
-.. module:: physiotwin4d.workflow_create_statistical_model
-.. module:: physiotwin4d.workflow_finetune_icon_registration
-.. module:: physiotwin4d.workflow_fit_statistical_model_to_patient
-.. module:: physiotwin4d.workflow_reconstruct_highres_4d_ct
-.. currentmodule:: physiotwin4d
+.. module:: monai_physio.workflow_convert_image_to_usd
+.. module:: monai_physio.workflow_convert_image_to_vtk
+.. module:: monai_physio.workflow_convert_vtk_to_usd
+.. module:: monai_physio.workflow_create_mean_surface
+.. module:: monai_physio.workflow_create_statistical_model
+.. module:: monai_physio.workflow_finetune_icon_registration
+.. module:: monai_physio.workflow_fit_statistical_model_to_patient
+.. module:: monai_physio.workflow_reconstruct_highres_4d_ct
+.. currentmodule:: monai_physio
 
-Workflow classes are the highest-level Python API in PhysioTwin4D. They
+Workflow classes are the highest-level Python API in MONAI Physio. They
 combine segmentation, registration, contour generation, and USD conversion into
 repeatable pipelines. The installed CLI commands are thin wrappers around these
 classes.
@@ -63,7 +63,7 @@ Convert Image to USD
 
    import itk
 
-   from physiotwin4d import (
+   from monai_physio import (
        RegisterImagesICON,
        SegmentChestTotalSegmentatorWithContrast,
        WorkflowConvertImageToUSD,
@@ -94,7 +94,7 @@ Image to VTK
 
    import itk
 
-   from physiotwin4d import (
+   from monai_physio import (
        ContourTools,
        SegmentChestTotalSegmentatorWithContrast,
        WorkflowConvertImageToVTK,
@@ -125,7 +125,7 @@ VTK to USD
 .. code-block:: python
 
    import pyvista as pv
-   from physiotwin4d import WorkflowConvertVTKToUSD
+   from monai_physio import WorkflowConvertVTKToUSD
 
    input_meshes = [pv.read("heart_000.vtp"), pv.read("heart_001.vtp")]
    workflow = WorkflowConvertVTKToUSD(
@@ -162,7 +162,7 @@ Statistical Shape Modeling
    import itk
    import pyvista as pv
 
-   from physiotwin4d import WorkflowFitStatisticalModelToPatient
+   from monai_physio import WorkflowFitStatisticalModelToPatient
 
    workflow = WorkflowFitStatisticalModelToPatient(
        template_model=pv.read("template_heart.vtu"),
@@ -184,7 +184,7 @@ High-Resolution 4D CT Reconstruction
 
    import itk
 
-   from physiotwin4d import RegisterImagesGreedyICON, WorkflowReconstructHighres4DCT
+   from monai_physio import RegisterImagesGreedyICON, WorkflowReconstructHighres4DCT
 
    time_series_images = [itk.imread(f"phase_{idx:02d}.mha") for idx in range(10)]
    workflow = WorkflowReconstructHighres4DCT(
@@ -207,7 +207,7 @@ Finetune ICON Registration
 
 .. code-block:: python
 
-   from physiotwin4d import RegisterImagesICON, WorkflowFinetuneICONRegistration
+   from monai_physio import RegisterImagesICON, WorkflowFinetuneICONRegistration
 
    workflow = WorkflowFinetuneICONRegistration(
        subject_image_files=subject_image_files,

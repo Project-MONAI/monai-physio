@@ -2,14 +2,14 @@
 Image Tools
 ====================================
 
-.. currentmodule:: physiotwin4d
+.. currentmodule:: monai_physio
 
 Image I/O, preprocessing, and manipulation utilities.
 
 Module Reference
 ================
 
-.. automodule:: physiotwin4d.image_tools
+.. automodule:: monai_physio.image_tools
    :members:
    :undoc-members:
 

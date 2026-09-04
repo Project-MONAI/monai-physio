@@ -5,20 +5,20 @@
 Download this dataset automatically with:
 
 ```bash
-physiotwin4d-download-data Chest-CT --directory data/Chest-CT
+monai-physio-download-data Chest-CT --directory data/Chest-CT
 ```
 
 or from Python:
 
 ```python
-from physiotwin4d import DataDownloadTools
+from monai_physio import DataDownloadTools
 
 data_file = DataDownloadTools.DownloadChestCTData("data/Chest-CT")
 assert DataDownloadTools.VerifyChestCTData("data/Chest-CT")
 ```
 
-This fetches a single ~200 MB file from the PhysioTwin4D GitHub release
-[2026.07.1](https://github.com/Project-MONAI/physiotwin4d/releases/download/2026.07.1/Chest-CT.mha).
+This fetches a single ~200 MB file from the MONAI Physio GitHub release
+[2026.07.1](https://github.com/Project-MONAI/monai-physio/releases/download/2026.07.1/Chest-CT.mha).
 An existing non-empty `Chest-CT.mha` is reused, so re-running the command
 resumes an interrupted download.
 

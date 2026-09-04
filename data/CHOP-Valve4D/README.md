@@ -5,20 +5,20 @@
 Download this dataset automatically with:
 
 ```bash
-physiotwin4d-download-data CHOP-Valve4D --directory data/CHOP-Valve4D
+monai-physio-download-data CHOP-Valve4D --directory data/CHOP-Valve4D
 ```
 
 or from Python:
 
 ```python
-from physiotwin4d import DataDownloadTools
+from monai_physio import DataDownloadTools
 
 DataDownloadTools.DownloadCHOPValve4DData("data/CHOP-Valve4D")
 assert DataDownloadTools.VerifyCHOPValve4DData("data/CHOP-Valve4D")
 ```
 
 This downloads and extracts three zip archives attached to the
-[PhysioTwin4D 2026.07.1 GitHub release](https://github.com/Project-MONAI/physiotwin4d/releases/tag/2026.07.1)
+[MONAI Physio 2026.07.1 GitHub release](https://github.com/Project-MONAI/monai-physio/releases/tag/2026.07.1)
 into matching subdirectories:
 
 | Release asset                | Extracted into | Contents                                   | Size    |
@@ -65,12 +65,12 @@ FEBio website:
 - Project page: https://repo.febio.org/permalink/project/136
 - Direct download: https://repo.febio.org/modelRepo/api/v1.05/files/0/136
 
-### Converted Data (PhysioTwin4D Convenience Release)
+### Converted Data (MONAI Physio Convenience Release)
 
-As a convenience, PhysioTwin4D converts the original FEBio geometry to VTK
+As a convenience, MONAI Physio converts the original FEBio geometry to VTK
 (surface and volumetric meshes) and ITK (image) formats, and also provides
 a Simpleware segmentation derived from the model. These converted files are
-what the `physiotwin4d-download-data CHOP-Valve4D` command above fetches;
+what the `monai-physio-download-data CHOP-Valve4D` command above fetches;
 they are not tracked in this git repository. The original citation and
 license terms below still apply to this converted data.
 

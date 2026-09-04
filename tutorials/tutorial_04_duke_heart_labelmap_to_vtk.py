@@ -66,9 +66,9 @@ import numpy as np
 import pyvista as pv
 from parameters_duke_heart_labelmaps import DUKE_HEART
 
-from physiotwin4d import (
+from monai_physio import (
     ContourTools,
-    PhysioTwin4DBase,
+    MONAIPhysioBase,
     SegmentHeartSimplewareTrimmedBranches,
     TestTools,
 )
@@ -122,7 +122,7 @@ if __name__ == "__main__":
         data_dir = DUKE_HEART.data_directory(test_mode) / "Duke-Heart-4DLabelmaps"
 
     log_level = logging.INFO
-    reporter = PhysioTwin4DBase(class_name=class_name, log_level=log_level)
+    reporter = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
     contour_tools = ContourTools(log_level=log_level)
     taxonomy = SegmentHeartSimplewareTrimmedBranches(log_level=logging.WARNING).taxonomy

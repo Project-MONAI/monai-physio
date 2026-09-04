@@ -1,7 +1,7 @@
 """
 Tests for VTK-to-USD conversion through ConvertVTKToUSD.
 
-The low-level physiotwin4d.vtk_to_usd package is exercised only through
+The low-level monai_physio.vtk_to_usd package is exercised only through
 ConvertVTKToUSD here. It remains a public advanced API, but repository tests
 should validate the supported application entry point.
 
@@ -18,9 +18,9 @@ import pytest
 import pyvista as pv
 from pxr import Gf, Usd, UsdGeom, UsdShade
 
-from physiotwin4d import ConvertVTKToUSD
-from physiotwin4d.test_tools import TestTools
-from physiotwin4d.usd_tools import USDTools
+from monai_physio import ConvertVTKToUSD
+from monai_physio.test_tools import TestTools
+from monai_physio.usd_tools import USDTools
 
 
 def get_data_dir() -> Path:

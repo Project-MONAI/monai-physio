@@ -1,4 +1,4 @@
-"""Unit tests for :class:`physiotwin4d.AnatomyTaxonomy`.
+"""Unit tests for :class:`monai_physio.AnatomyTaxonomy`.
 
 These tests exercise the pure-data taxonomy in isolation — no ITK, no pxr,
 no GPU. They are fast and run unconditionally in the default test suite.
@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from physiotwin4d import AnatomyGroup, AnatomyTaxonomy
+from monai_physio import AnatomyGroup, AnatomyTaxonomy
 
 
 def test_add_organ_creates_group_lazily() -> None:
@@ -116,7 +116,7 @@ def test_anatomy_group_dataclass_default_organs() -> None:
 def test_segment_anatomy_base_default_taxonomy_seeded() -> None:
     # Import lazily to avoid pulling itk in test collection if it's unused
     # by sibling tests in this module.
-    from physiotwin4d import SegmentAnatomyBase
+    from monai_physio import SegmentAnatomyBase
 
     seg = SegmentAnatomyBase()
     assert len(seg.taxonomy.all_labels()) == 0

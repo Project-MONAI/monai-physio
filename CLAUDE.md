@@ -118,7 +118,7 @@ pre-commit run --all-files
 
 ## Architecture
 
-All classes inherit from `PhysioTwin4DBase` (`physiotwin4d_base.py`),
+All classes inherit from `MONAIPhysioBase` (`monai_physio_base.py`),
 which provides a shared logger. Use `self.log_info()`, `self.log_debug()`
 — never `print()`.
 
@@ -151,7 +151,7 @@ came from.
 - Baselines in `tests/baselines/` via Git LFS — run `git lfs pull` after cloning
 - `tests/conftest.py`: session-scoped fixtures chaining
   download → convert → segment → register
-- `src/physiotwin4d/test_tools.py`: baseline comparison utilities (`TestTools`, etc.)
+- `src/monai_physio/test_tools.py`: baseline comparison utilities (`TestTools`, etc.)
 - Markers (all opt-in via `--run-<bucket>`): `slow`, `requires_gpu`,
   `requires_simpleware`, `tutorial`. Data-dependent tests no
   longer use a marker — they pull data through fixtures and run by default.

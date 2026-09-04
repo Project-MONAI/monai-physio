@@ -3,7 +3,7 @@
 ## Download
 
 **Manual download required** — this dataset is not fetched by
-`physiotwin4d-download-data`; there is no automatic downloader because
+`monai-physio-download-data`; there is no automatic downloader because
 DIR-Lab distributes each case individually and may require registration.
 
 1. Visit the DIR-Lab 4D-CT page and request/download the case archives:
@@ -22,7 +22,7 @@ DIR-Lab distributes each case individually and may require registration.
 Once populated, check the layout with:
 
 ```python
-from physiotwin4d import DataDownloadTools
+from monai_physio import DataDownloadTools
 
 assert DataDownloadTools.VerifyDirLab4DCTData("data/DirLab-4DCT")
 ```

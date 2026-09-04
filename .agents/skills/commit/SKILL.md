@@ -2,7 +2,7 @@
 description: Stage all tracked modifications and deletions, draft a commit message from the diff, fix any pre-commit hook failures, and repeat until the commit succeeds.
 ---
 
-Commit all tracked pending changes in the PhysioTwin4D repository
+Commit all tracked pending changes in the MONAI Physio repository
 (equivalent to `git commit -a`, excluding new untracked files).
 
 $ARGUMENTS

@@ -2,11 +2,11 @@
 Training a Mesh-Stage Model
 =============================
 
-.. module:: physiotwin4d.workflow_train_physicsnemo
-.. module:: physiotwin4d.train_physicsnemo_base
-.. module:: physiotwin4d.train_physicsnemo_mgn
-.. module:: physiotwin4d.train_physicsnemo_mlp
-.. currentmodule:: physiotwin4d
+.. module:: monai_physio.workflow_train_physicsnemo
+.. module:: monai_physio.train_physicsnemo_base
+.. module:: monai_physio.train_physicsnemo_mgn
+.. module:: monai_physio.train_physicsnemo_mlp
+.. currentmodule:: monai_physio
 
 :class:`WorkflowTrainPhysicsNeMo` owns the data side of training — manifests,
 normalization statistics, lazy datasets, output directories, checkpoints,
@@ -44,7 +44,7 @@ Example
 
 .. code-block:: python
 
-   from physiotwin4d import TrainPhysicsNeMoMGN, WorkflowTrainPhysicsNeMo
+   from monai_physio import TrainPhysicsNeMoMGN, WorkflowTrainPhysicsNeMo
 
    method = TrainPhysicsNeMoMGN()
    method.set_epochs(1500)

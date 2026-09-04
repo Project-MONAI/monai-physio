@@ -33,6 +33,6 @@ if [ -z "$PYTHON" ]; then
     exit 1
 fi
 
-# Install all dependencies (including editable physiotwin4d and uniGradICON)
+# Install all dependencies (including editable monai_physio and uniGradICON)
 "$PYTHON" -m pip install uv
 "$PYTHON" -m uv pip install -e ".[dev,docs,test,cuda13]"

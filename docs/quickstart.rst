@@ -2,14 +2,14 @@
 Quick Start
 ===========
 
-This guide will help you get started with PhysioTwin4D quickly.
+This guide will help you get started with MONAI Physio quickly.
 
 Prerequisites
 =============
 
 Before starting, ensure you have:
 
-* PhysioTwin4D installed (see :doc:`installation`)
+* MONAI Physio installed (see :doc:`installation`)
 * NVIDIA GPU with CUDA 13 - recommended for production performance; see
   :doc:`installation` for the ``[cuda13]`` extra. A CPU-only PyPI install works
   for evaluation but is slow.
@@ -22,35 +22,35 @@ Get the Tutorial Scripts
 ========================
 
 The tutorials ship with the source repository, not with the pip package.
-``pip install physiotwin4d`` installs the library and the ``physiotwin4d-*``
+``pip install monai-physio`` installs the library and the ``monai-physio-*``
 commands, but it does not create a ``tutorials/`` directory. Clone the
 repository to get the scripts:
 
 .. code-block:: bash
 
-   git clone https://github.com/Project-MONAI/physiotwin4d.git
-   cd physiotwin4d
+   git clone https://github.com/Project-MONAI/monai-physio.git
+   cd monai_physio
 
 To match the scripts to an already-installed release, check out its tag. Tags
 are bare version strings, so use the installed version directly:
 
 .. code-block:: bash
 
-   python -c "import physiotwin4d; print(physiotwin4d.__version__)"
+   python -c "import monai_physio; print(monai_physio.__version__)"
 
-   git clone --depth 1 --branch {{ pt4d_project_version }} \
-       https://github.com/Project-MONAI/physiotwin4d.git
-   cd physiotwin4d
+   git clone --depth 1 --branch {{ mphysio_project_version }} \
+       https://github.com/Project-MONAI/monai-physio.git
+   cd monai_physio
 
 A release tarball works just as well if you would rather not use git:
-``https://github.com/Project-MONAI/physiotwin4d/archive/refs/tags/{{ pt4d_project_version }}.tar.gz``.
+``https://github.com/Project-MONAI/monai-physio/archive/refs/tags/{{ mphysio_project_version }}.tar.gz``.
 
 No further installation step is needed after cloning — the scripts import
-``physiotwin4d`` from your environment.
+``monai_physio`` from your environment.
 
 Run every dataset download from the top level of the clone. The tutorials
 resolve their inputs against the repository root (``<repo>/data/<dataset>``),
-while ``physiotwin4d-download-data`` writes to ``data/<dataset>`` relative to
+while ``monai-physio-download-data`` writes to ``data/<dataset>`` relative to
 the current working directory, so downloading from anywhere else puts the data
 where the tutorials will not find it.
 
@@ -59,16 +59,16 @@ Then fetch the sample datasets, again from the top level of the clone:
 .. code-block:: bash
 
    # Heart Tutorials 1, 3 and 4
-   physiotwin4d-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
+   monai-physio-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
 
    # Heart Tutorial 6
-   physiotwin4d-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
+   monai-physio-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
 
    # Lung Tutorial 7
-   physiotwin4d-download-data Chest-CT --directory data/Chest-CT
+   monai-physio-download-data Chest-CT --directory data/Chest-CT
 
    # No tutorial - transcatheter pulmonary valve experiments only, >2 GB
-   physiotwin4d-download-data CHOP-Valve4D --directory data/CHOP-Valve4D
+   monai-physio-download-data CHOP-Valve4D --directory data/CHOP-Valve4D
 
 Which dataset each tutorial needs:
 
@@ -135,9 +135,9 @@ CUDA-capable GPU are required for practical runtime.
 
 .. code-block:: bash
 
-   physiotwin4d-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
+   monai-physio-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
 
-   physiotwin4d-convert-image-to-usd data/Slicer-Heart-CT/TruncalValve_4DCT.seq.nrrd \
+   monai-physio-convert-image-to-usd data/Slicer-Heart-CT/TruncalValve_4DCT.seq.nrrd \
        --registration-method ICON \
        --output-dir output/quickstart \
        --project-name slicer_heart_quickstart
@@ -150,13 +150,13 @@ The same cardiac processing, packaged as a command for unattended runs:
 .. code-block:: bash
 
    # Process a single 4D cardiac CT file
-   physiotwin4d-convert-image-to-usd cardiac_4d.nrrd --contrast --output-dir ./results
+   monai-physio-convert-image-to-usd cardiac_4d.nrrd --contrast --output-dir ./results
 
    # Process multiple time frames
-   physiotwin4d-convert-image-to-usd frame_*.nrrd --contrast --project-name patient_001
+   monai-physio-convert-image-to-usd frame_*.nrrd --contrast --project-name patient_001
 
    # With custom settings
-   physiotwin4d-convert-image-to-usd cardiac.nrrd \
+   monai-physio-convert-image-to-usd cardiac.nrrd \
        --contrast \
        --reference-image ref.mha \
        --registration-iterations 50 \
@@ -174,7 +174,7 @@ segmentation and registration reference.
    import itk
    from pathlib import Path
 
-   from physiotwin4d import (
+   from monai_physio import (
        RegisterImagesICON,
        SegmentChestTotalSegmentatorWithContrast,
        WorkflowConvertImageToUSD,
@@ -200,8 +200,8 @@ segmentation and registration reference.
 That is the whole pipeline: 4D input to 3D frames, registration between
 phases, AI segmentation of the reference, contour transformation across time,
 and an animated USD scene. A 4D ``.seq.nrrd`` needs splitting into frames
-first — use ``physiotwin4d-convert-image-4d-to-3d`` or
-:class:`~physiotwin4d.ConvertImage4DTo3D`.
+first — use ``monai-physio-convert-image-4d-to-3d`` or
+:class:`~monai_physio.ConvertImage4DTo3D`.
 
 :doc:`tutorials` walks the same call through real data with screenshots, and
 each tutorial section ends with the constants to change for your own scans.
@@ -216,7 +216,7 @@ If you only need segmentation:
 
 .. code-block:: python
 
-   from physiotwin4d import SegmentChestTotalSegmentatorWithContrast
+   from monai_physio import SegmentChestTotalSegmentatorWithContrast
    import itk
 
    # Initialize segmenter (use SegmentChestTotalSegmentator for non-contrast studies)
@@ -243,7 +243,7 @@ For standalone registration:
 
 .. code-block:: python
 
-   from physiotwin4d.register_images_icon import RegisterImagesICON
+   from monai_physio.register_images_icon import RegisterImagesICON
    import itk
 
    # Initialize registration
@@ -271,7 +271,7 @@ Convert VTK time series to USD:
 
 .. code-block:: python
 
-   from physiotwin4d import ConvertVTKToUSD
+   from monai_physio import ConvertVTKToUSD
 
    vtk_files = [f"heart_frame_{i:03d}.vtp" for i in range(10)]
    time_codes = [float(i) for i in range(len(vtk_files))]
@@ -293,13 +293,13 @@ are all auto-downloadable, via the CLI:
 
 .. code-block:: bash
 
-   physiotwin4d-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
+   monai-physio-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
 
 or from Python:
 
 .. code-block:: python
 
-   from physiotwin4d import DataDownloadTools
+   from monai_physio import DataDownloadTools
 
    data_file = DataDownloadTools.DownloadSlicerHeartCTData("data/Slicer-Heart-CT")
    assert DataDownloadTools.VerifySlicerHeartCTData("data/Slicer-Heart-CT")
@@ -311,7 +311,7 @@ DirLab-4DCT data is manual-only; see ``data/DirLab-4DCT/README.md``. It drives
 the whole lung pipeline — Lung Tutorials 1, 2, 3, 4, 6 and 8, plus Heart
 Tutorial 7 — which then feeds the AI-surrogate Tutorials 9 through 12. Those
 additionally require the optional
-``physicsnemo`` extra (``pip install "physiotwin4d[physicsnemo]"``, plus
+``physicsnemo`` extra (``pip install "monai-physio[physicsnemo]"``, plus
 ``torch-geometric`` for the MeshGraphNet); PhysicsNeMo itself requires
 Python >= 3.11.
 
@@ -321,11 +321,11 @@ Visualizing Results
 The workflows write OpenUSD scenes, and viewing them needs a USD viewer — use
 an Omniverse Kit application with RTX rendering, which is what evaluates the
 material properties assigned to each tissue. Note that the ``usd-core``
-package installed with PhysioTwin4D provides the OpenUSD *libraries* only and
+package installed with MONAI Physio provides the OpenUSD *libraries* only and
 contains no viewer.
 
 :doc:`viewing_usd` covers where to get it, how to set it up, and how to open a
-PhysioTwin4D scene — including switching to the camera defined in the scene,
+MONAI Physio scene — including switching to the camera defined in the scene,
 whose clipping planes are fitted to the anatomy's scale.
 
 The intermediate meshes need no USD tooling:
@@ -359,10 +359,10 @@ Now that you've completed your first workflow:
      the constants to change for your own scans. See :doc:`tutorials`.
 
    * **CLI Commands** - the same workflows packaged as commands for unattended
-     and production runs (``physiotwin4d-convert-image-to-usd``,
-     ``physiotwin4d-create-statistical-model``,
-     ``physiotwin4d-fit-statistical-model-to-patient``). See
-     ``src/physiotwin4d/cli/`` for implementation details.
+     and production runs (``monai-physio-convert-image-to-usd``,
+     ``monai-physio-create-statistical-model``,
+     ``monai-physio-fit-statistical-model-to-patient``). See
+     ``src/monai_physio/cli/`` for implementation details.
 
    * **experiments/** - Research prototypes and design explorations. These demonstrate conceptual
      approaches for adapting workflows to new anatomical regions and digital twin applications,

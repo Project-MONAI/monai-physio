@@ -27,7 +27,7 @@ from pathlib import Path
 import pyvista as pv
 
 from parameters_base import ParametersBase
-from physiotwin4d import (
+from monai_physio import (
     TestTools,
     WorkflowConvertVTKToUSD,
 )

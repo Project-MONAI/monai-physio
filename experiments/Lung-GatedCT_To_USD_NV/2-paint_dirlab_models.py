@@ -4,8 +4,8 @@ from pathlib import Path
 from data_dirlab_4d_ct import DataDirLab4DCT
 from pxr import Usd
 
-from physiotwin4d.segment_nv_segment_ct_mri import SegmentNVSegmentCTMRI
-from physiotwin4d.usd_anatomy_tools import USDAnatomyTools
+from monai_physio.segment_nv_segment_ct_mri import SegmentNVSegmentCTMRI
+from monai_physio.usd_anatomy_tools import USDAnatomyTools
 
 # Defensive: today this script only instantiates SegmentNVSegmentCTMRI to read
 # its anatomy labels for USDAnatomyTools, but if anyone adds a

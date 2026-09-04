@@ -2,16 +2,16 @@
 Base Class
 ====================================
 
-.. module:: physiotwin4d.physiotwin4d_base
-.. currentmodule:: physiotwin4d
+.. module:: monai_physio.monai_physio_base
+.. currentmodule:: monai_physio
 
-``PhysioTwin4DBase`` provides the shared logging behavior used by workflow,
+``MONAIPhysioBase`` provides the shared logging behavior used by workflow,
 segmentation, registration, transform, contour, and USD helper classes.
 
 Class Reference
 ===============
 
-.. autoclass:: PhysioTwin4DBase
+.. autoclass:: MONAIPhysioBase
    :members:
    :undoc-members:
    :show-inheritance:
@@ -27,9 +27,9 @@ global log filtering by class name.
 
    import logging
 
-   from physiotwin4d import PhysioTwin4DBase
+   from monai_physio import MONAIPhysioBase
 
-   class MyProcessor(PhysioTwin4DBase):
+   class MyProcessor(MONAIPhysioBase):
        def __init__(self) -> None:
            super().__init__(class_name="MyProcessor", log_level=logging.INFO)
 
@@ -41,13 +41,13 @@ global log filtering by class name.
    processor = MyProcessor()
    processor.process()
 
-   PhysioTwin4DBase.set_log_classes(["MyProcessor"])
-   PhysioTwin4DBase.set_log_all_classes()
+   MONAIPhysioBase.set_log_classes(["MyProcessor"])
+   MONAIPhysioBase.set_log_all_classes()
 
 Extension Notes
 ===============
 
-New runtime classes should inherit from ``PhysioTwin4DBase`` and pass a
+New runtime classes should inherit from ``MONAIPhysioBase`` and pass a
 ``class_name`` plus ``log_level`` to ``super().__init__``. Standalone scripts,
 data containers, and small pure utility functions do not need to inherit from
 the base class.

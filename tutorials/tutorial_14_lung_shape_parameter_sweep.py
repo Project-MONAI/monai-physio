@@ -42,7 +42,7 @@ the grid.
    combination is in the grid, so the unperturbed score comes out of the same
    code path as every perturbed one.
 
-4. Score every combination with :class:`physiotwin4d.WorkflowEvaluateMovement`
+4. Score every combination with :class:`monai_physio.WorkflowEvaluateMovement`
    and write ``shape_sweep_metrics.csv`` (one row per combination, phase and
    lobe) and ``shape_sweep_summary.csv`` (one row per combination, averaged over
    phases and lobes).
@@ -80,7 +80,7 @@ Extra Install Required
 ----------------------
 PhysicsNeMo and PyTorch Geometric must be installed::
 
-    pip install "physiotwin4d[physicsnemo]"
+    pip install "monai-physio[physicsnemo]"
 
 Data Required
 -------------
@@ -117,7 +117,7 @@ import numpy as np
 import pyvista as pv
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
-from physiotwin4d import (
+from monai_physio import (
     EvaluateMovementLung,
     TestTools,
     WorkflowEvaluateMovement,

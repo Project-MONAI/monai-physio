@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pyvista as pv
 
-from physiotwin4d.workflow_convert_vtk_to_usd import WorkflowConvertVTKToUSD
+from monai_physio.workflow_convert_vtk_to_usd import WorkflowConvertVTKToUSD
 
 _HERE = Path(__file__).parent
 

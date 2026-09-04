@@ -12,7 +12,7 @@ import itk
 import numpy as np
 import pytest
 
-from physiotwin4d import (
+from monai_physio import (
     RegisterImagesGreedy,
     RegisterImagesGreedyICON,
     RegisterImagesICON,

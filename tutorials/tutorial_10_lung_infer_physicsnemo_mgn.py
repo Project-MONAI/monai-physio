@@ -4,8 +4,8 @@ Tutorial 10 (Lung, MGN): Predict Lung Motion Across the Respiratory Cycle
 Purpose
 -------
 Final inference stage of the lung 4D deep-learning pipeline (Tutorials 8 -> 9 ->
-10). A thin driver over :class:`physiotwin4d.WorkflowInferPhysicsNeMo` and its
-displacement decoder :class:`physiotwin4d.WorkflowInferMovement`:
+10). A thin driver over :class:`monai_physio.WorkflowInferPhysicsNeMo` and its
+displacement decoder :class:`monai_physio.WorkflowInferMovement`:
 
 1. Discover the per-phase SSM surfaces that Tutorial 8
    (``tutorial_08_lung_fit_model_to_4d_patients.py``) wrote for
@@ -29,13 +29,13 @@ Steps 2 and 3 are :meth:`WorkflowInferMovement.process_time_series`; this script
 only chooses the case, the stages and the image to warp.
 
 For command-line use with path arguments, use the installed
-``physiotwin4d-infer-physicsnemo`` CLI instead of editing this script.
+``monai-physio-infer-physicsnemo`` CLI instead of editing this script.
 
 Extra Install Required
 ----------------------
 PhysicsNeMo and PyTorch Geometric must be installed::
 
-    pip install "physiotwin4d[physicsnemo]"
+    pip install "monai-physio[physicsnemo]"
 
 Data Required
 -------------
@@ -62,7 +62,7 @@ import itk
 import pyvista as pv
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
-from physiotwin4d import (
+from monai_physio import (
     TestTools,
     WorkflowInferMovement,
     WorkflowInferPhysicsNeMo,

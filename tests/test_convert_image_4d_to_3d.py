@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from physiotwin4d.convert_image_4d_to_3d import ConvertImage4DTo3D
+from monai_physio.convert_image_4d_to_3d import ConvertImage4DTo3D
 
 
 class TestConvertImage4DTo3D:

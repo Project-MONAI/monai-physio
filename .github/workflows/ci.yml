@@ -110,12 +110,12 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
         xvfb-run -a --server-args="-screen 0 1024x768x24" \
-          pytest tests/ -v --cov=physiotwin4d --cov-report=xml --cov-report=term --cov-report=html
+          pytest tests/ -v --cov=monai_physio --cov-report=xml --cov-report=term --cov-report=html
 
     - name: Run unit tests (fast, no GPU/slow/tutorial) - Windows
       if: matrix.os == 'windows-latest'
       run: |
-        pytest tests/ -v --cov=physiotwin4d --cov-report=xml --cov-report=term --cov-report=html
+        pytest tests/ -v --cov=monai_physio --cov-report=xml --cov-report=term --cov-report=html
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
@@ -219,29 +219,29 @@ jobs:
 
     - name: Run data download tests
       run: |
-        pytest tests/test_download_heart_data.py -v --cov=physiotwin4d --cov-report=xml
+        pytest tests/test_download_heart_data.py -v --cov=monai_physio --cov-report=xml
       continue-on-error: true
 
     - name: Run data conversion tests
       run: |
-        pytest tests/test_convert_image_4d_to_3d.py -v --cov=physiotwin4d --cov-append --cov-report=xml
+        pytest tests/test_convert_image_4d_to_3d.py -v --cov=monai_physio --cov-append --cov-report=xml
       continue-on-error: true
 
     - name: Run contour tools tests
       run: |
-        pytest tests/test_contour_tools.py -v --cov=physiotwin4d --cov-append --cov-report=xml
+        pytest tests/test_contour_tools.py -v --cov=monai_physio --cov-append --cov-report=xml
       continue-on-error: true
 
     - name: Run USD conversion tests
       run: |
         xvfb-run -a --server-args="-screen 0 1024x768x24" \
-          pytest tests/test_convert_vtk_to_usd.py -v --cov=physiotwin4d --cov-append --cov-report=xml
+          pytest tests/test_convert_vtk_to_usd.py -v --cov=monai_physio --cov-append --cov-report=xml
       continue-on-error: true
 
     - name: Run USD utility tests
       run: |
         xvfb-run -a --server-args="-screen 0 1024x768x24" \
-          pytest tests/test_usd_merge.py tests/test_usd_time_preservation.py -v --cov=physiotwin4d --cov-append --cov-report=xml
+          pytest tests/test_usd_merge.py tests/test_usd_time_preservation.py -v --cov=monai_physio --cov-append --cov-report=xml
       continue-on-error: true
 
     - name: Run all integration tests
@@ -284,8 +284,8 @@ jobs:
       # that catches a regression at the floor. nightly-health.yml runs the
       # newest (3.13) for the opposite reason. Both are on the runner.
       run: |
-        & "C:\Program Files\Python311\python.exe" -m venv "$env:RUNNER_TEMP\physiotwin4d-venv"
-        echo "$env:RUNNER_TEMP\physiotwin4d-venv\Scripts" >> $env:GITHUB_PATH
+        & "C:\Program Files\Python311\python.exe" -m venv "$env:RUNNER_TEMP\monai-physio-venv"
+        echo "$env:RUNNER_TEMP\monai-physio-venv\Scripts" >> $env:GITHUB_PATH
 
     - name: Check GPU availability
       run: nvidia-smi
@@ -359,7 +359,7 @@ jobs:
       # --require-tutorial-data turns missing data into a failure rather than a
       # skip, so this job cannot report green having run nothing.
       run: |
-        pytest tests/ -v --run-gpu --run-physicsnemo --require-tutorial-data --max-test-seconds=600 --timeout=1800 --cov=physiotwin4d --cov-report=xml --cov-report=term --cov-report=html
+        pytest tests/ -v --run-gpu --run-physicsnemo --require-tutorial-data --max-test-seconds=600 --timeout=1800 --cov=monai_physio --cov-report=xml --cov-report=term --cov-report=html
       env:
         CUDA_VISIBLE_DEVICES: 0
         # The datasets, the results and the trained networks live outside the
@@ -368,9 +368,9 @@ jobs:
         # touches a full run's files. Unset, each falls back to its in-repo
         # default; see data/README.md. These are the same paths
         # nightly-health.yml uses, because both jobs run on this same runner.
-        PHYSIOTWIN_INPUT_DATA_DIR: D:\PhysioTwin4D\nightly-runner\data
-        PHYSIOTWIN_OUTPUT_DATA_DIR: D:\PhysioTwin4D\nightly-runner\output
-        PHYSIOTWIN_WEIGHTS_DIR: D:\PhysioTwin4D\nightly-runner\network_weights
+        MONAI_PHYSIO_INPUT_DATA_DIR: D:\MONAI-Physio\nightly-runner\data
+        MONAI_PHYSIO_OUTPUT_DATA_DIR: D:\MONAI-Physio\nightly-runner\output
+        MONAI_PHYSIO_WEIGHTS_DIR: D:\MONAI-Physio\nightly-runner\network_weights
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4

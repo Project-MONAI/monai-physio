@@ -2,15 +2,15 @@
 CLI & Scripts Overview
 ====================================
 
-This section provides comprehensive guides for using PhysioTwin4D's command-line tools to process medical imaging data. These tools are designed for medical imaging experts and physiological simulation researchers who need efficient, reproducible pipelines for extracting anatomic models from 3D medical images and building the personalized physiological digital twins derived from them.
+This section provides comprehensive guides for using MONAI Physio's command-line tools to process medical imaging data. These tools are designed for medical imaging experts and physiological simulation researchers who need efficient, reproducible pipelines for extracting anatomic models from 3D medical images and building the personalized physiological digital twins derived from them.
 
 How to Use These Resources
 ==========================
 
-PhysioTwin4D exposes the same toolkit through three user-facing layers:
+MONAI Physio exposes the same toolkit through three user-facing layers:
 
 * **Workflows** are Python classes that orchestrate complete processing
-  pipelines. Use them when integrating PhysioTwin4D into Python applications
+  pipelines. Use them when integrating MONAI Physio into Python applications
   or when you need programmatic control over inputs, outputs, and parameters.
 * **CLIs** are installed command-line wrappers around workflow classes. Use them
   for repeatable processing runs, batch jobs, and environment validation without
@@ -35,7 +35,7 @@ These CLI tools are intended for users with:
 * Modest Python experience for running scripts
 * Familiarity with command-line interfaces
 
-If you are a Python developer looking to extend or integrate PhysioTwin4D into your applications, please refer to the :doc:`../developer/architecture` section.
+If you are a Python developer looking to extend or integrate MONAI Physio into your applications, please refer to the :doc:`../developer/architecture` section.
 
 Available Scripts
 =================
@@ -50,7 +50,7 @@ Current Scripts
    * - Script
      - Description
    * - :doc:`download_data`
-     - Download supported PhysioTwin4D example datasets
+     - Download supported MONAI Physio example datasets
    * - :doc:`heart_gated_ct`
      - Process cardiac gated CT to animated heart models with physiological motion
    * - :doc:`../api/cli/convert_image_to_vtk`
@@ -75,23 +75,23 @@ Current Scripts
 Installation
 ============
 
-All scripts are installed with the PhysioTwin4D package:
+All scripts are installed with the MONAI Physio package:
 
 .. code-block:: bash
 
-   pip install physiotwin4d
+   pip install monai-physio
 
-After installation, scripts are available as command-line tools with the prefix ``physiotwin4d-``:
+After installation, scripts are available as command-line tools with the prefix ``monai-physio-``:
 
 .. code-block:: bash
 
-   physiotwin4d-convert-image-to-usd --help
-   physiotwin4d-download-data --help
+   monai-physio-convert-image-to-usd --help
+   monai-physio-download-data --help
 
 General Workflow
 ================
 
-All PhysioTwin4D scripts follow a similar pattern:
+All MONAI Physio scripts follow a similar pattern:
 
 1. **Input Data**: Provide medical image files (NRRD, NII, MHA formats)
 2. **Configuration**: Set processing parameters via command-line flags
@@ -103,7 +103,7 @@ Typical Command Structure
 
 .. code-block:: bash
 
-   physiotwin4d-<command> --help
+   monai-physio-<command> --help
 
 Use each command's ``--help`` output as the source of truth for required
 arguments and script-specific options.
@@ -134,7 +134,7 @@ Each script provides detailed help:
 
 .. code-block:: bash
 
-   physiotwin4d-<script-name> --help
+   monai-physio-<script-name> --help
 
 For troubleshooting and common issues, see :doc:`../troubleshooting`.
 

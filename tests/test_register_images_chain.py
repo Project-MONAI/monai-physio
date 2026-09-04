@@ -16,8 +16,8 @@ import itk
 import numpy as np
 import pytest
 
-from physiotwin4d.register_images_base import RegisterImagesBase
-from physiotwin4d.register_images_chain import RegisterImagesChain
+from monai_physio.register_images_base import RegisterImagesBase
+from monai_physio.register_images_chain import RegisterImagesChain
 
 
 def _small_image(value: float = 0.0) -> itk.Image:

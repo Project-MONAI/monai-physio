@@ -71,7 +71,7 @@ Extra Install Required
 ----------------------
 PhysicsNeMo and PyTorch Geometric must be installed::
 
-    pip install "physiotwin4d[physicsnemo]"
+    pip install "monai-physio[physicsnemo]"
 
 Data Required
 -------------
@@ -112,7 +112,7 @@ import numpy as np
 import pyvista as pv
 from parameters_duke_heart_labelmaps import DUKE_HEART
 
-from physiotwin4d import (
+from monai_physio import (
     ContourTools,
     DistributedContext,
     RegisterModelsDistanceMaps,

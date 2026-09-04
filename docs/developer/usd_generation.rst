@@ -2,19 +2,19 @@
 USD Generation
 ========================
 
-PhysioTwin4D uses :class:`physiotwin4d.ConvertVTKToUSD` as the
+MONAI Physio uses :class:`monai_physio.ConvertVTKToUSD` as the
 application-level API for VTK-to-USD conversion. Workflows, command-line tools,
 and experiments should use this class instead of importing
-``physiotwin4d.vtk_to_usd`` directly.
+``monai_physio.vtk_to_usd`` directly.
 
-``physiotwin4d.vtk_to_usd`` remains a public advanced low-level package for
+``monai_physio.vtk_to_usd`` remains a public advanced low-level package for
 external users who need file readers, data containers, or direct USD writer
 primitives.
 
 ConvertVTKToUSD
 ================
 
-Use :class:`physiotwin4d.ConvertVTKToUSD` for application-level conversion.
+Use :class:`monai_physio.ConvertVTKToUSD` for application-level conversion.
 The full API reference is in :doc:`../api/usd/vtk_conversion`.
 
 Single File
@@ -22,7 +22,7 @@ Single File
 
 .. code-block:: python
 
-   from physiotwin4d import ConvertVTKToUSD
+   from monai_physio import ConvertVTKToUSD
 
    stage = ConvertVTKToUSD.from_files(
        data_basename='Heart',
@@ -35,7 +35,7 @@ Time Series
 
 .. code-block:: python
 
-   from physiotwin4d import ConvertVTKToUSD
+   from monai_physio import ConvertVTKToUSD
 
    stage = ConvertVTKToUSD.from_files(
        data_basename='Heart',
@@ -49,7 +49,7 @@ In-Memory Meshes
 
 .. code-block:: python
 
-   from physiotwin4d import ConvertVTKToUSD
+   from monai_physio import ConvertVTKToUSD
    import pyvista as pv
 
    meshes = [pv.read(path) for path in vtk_files]
@@ -64,7 +64,7 @@ Labeled Meshes with Anatomy Grouping
 ------------------------------------
 
 When the input has anatomical labels (``mask_ids`` and a ``boundary_labels``
-cell array), pass a :class:`physiotwin4d.SegmentAnatomyBase` instance
+cell array), pass a :class:`monai_physio.SegmentAnatomyBase` instance
 through the ``segmenter`` argument so labeled prims are grouped by anatomy
 type. The output layout becomes:
 
@@ -76,7 +76,7 @@ appears if at least one labeled organ from the input falls into that group.
 
 .. code-block:: python
 
-   from physiotwin4d import (
+   from monai_physio import (
        ConvertVTKToUSD,
        SegmentChestTotalSegmentator,
    )
@@ -160,15 +160,15 @@ that already has a Camera does not produce a duplicate transform op.
 Anatomy Materials with USDAnatomyTools
 =======================================
 
-:class:`physiotwin4d.USDAnatomyTools` applies OmniSurface materials to
+:class:`monai_physio.USDAnatomyTools` applies OmniSurface materials to
 labeled meshes after conversion. It reads :class:`AnatomyTaxonomy` from the
 segmenter to find which prim names map to which group, and looks up the
 material parameters in its ``render_params`` dict (initialized from the
-module-level :data:`physiotwin4d.usd_anatomy_tools.DEFAULT_RENDER_PARAMS`).
+module-level :data:`monai_physio.usd_anatomy_tools.DEFAULT_RENDER_PARAMS`).
 
 .. code-block:: python
 
-   from physiotwin4d import USDAnatomyTools
+   from monai_physio import USDAnatomyTools
 
    tools = USDAnatomyTools(stage)
    tools.enhance_meshes(seg)
@@ -179,7 +179,7 @@ module-level defaults (affects future instances) or a single instance:
 
 .. code-block:: python
 
-   from physiotwin4d.usd_anatomy_tools import DEFAULT_RENDER_PARAMS
+   from monai_physio.usd_anatomy_tools import DEFAULT_RENDER_PARAMS
 
    DEFAULT_RENDER_PARAMS["brain"] = {
        "name": "Brain",
@@ -201,6 +201,6 @@ Use the low-level facade only when the high-level class is not appropriate:
 
 .. code-block:: python
 
-   from physiotwin4d.vtk_to_usd import convert_vtk_file
+   from monai_physio.vtk_to_usd import convert_vtk_file
 
    stage = convert_vtk_file('mesh.vtp', 'mesh.usd')

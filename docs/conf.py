@@ -30,7 +30,7 @@ sys.modules["icon_registration.losses"] = Mock()
 sys.modules["icon_registration.network_wrappers"] = Mock()
 
 # -- Project information -----------------------------------------------------
-project = "PhysioTwin4D"
+project = "MONAI Physio"
 copyright = f"{datetime.now().year}, Stephen R. Aylward, NVIDIA Corporation"
 author = "Stephen R. Aylward"
 _repo_root = Path(__file__).resolve().parents[1]
@@ -113,7 +113,7 @@ html_show_sphinx = True
 html_context = {
     "display_github": True,
     "github_user": "Project-MONAI",
-    "github_repo": "physiotwin4d",
+    "github_repo": "monai_physio",
     "github_version": "main",
     "conf_py_path": "/docs/",
 }
@@ -230,7 +230,7 @@ def autodoc_skip_member(app, what, name, obj, skip, options):
 
 
 def _replace_project_version_token(_app, _docname, source):
-    source[0] = source[0].replace("{{ pt4d_project_version }}", release)
+    source[0] = source[0].replace("{{ mphysio_project_version }}", release)
 
 
 def setup(app):

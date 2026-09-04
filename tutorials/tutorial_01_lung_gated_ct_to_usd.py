@@ -71,7 +71,7 @@ from pathlib import Path
 import itk
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
-from physiotwin4d import (
+from monai_physio import (
     RegisterImagesGreedy,
     SegmentChestTotalSegmentator,
     TestTools,

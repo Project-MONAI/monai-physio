@@ -16,7 +16,7 @@ name: Nightly Health
 # documentation site published by docs.yml.  Use the workflow status badge
 # for a live pass/fail indicator in README:
 #
-#   [![Nightly Health](https://github.com/Project-MONAI/physiotwin4d/actions/workflows/nightly-health.yml/badge.svg)](https://github.com/Project-MONAI/physiotwin4d/actions/workflows/nightly-health.yml)
+#   [![Nightly Health](https://github.com/Project-MONAI/monai-physio/actions/workflows/nightly-health.yml/badge.svg)](https://github.com/Project-MONAI/monai-physio/actions/workflows/nightly-health.yml)
 
 on:
   schedule:
@@ -78,8 +78,8 @@ jobs:
         # that catches a dependency shipping no wheel for it. ci.yml runs the
         # floor (3.11) for the opposite reason. Both are on the runner.
         run: |
-          & "C:\actions-runner\python\WPy64-3.13.12.0\python\python.exe" -m venv "$env:RUNNER_TEMP\physiotwin4d-venv"
-          echo "$env:RUNNER_TEMP\physiotwin4d-venv\Scripts" >> $env:GITHUB_PATH
+          & "C:\actions-runner\python\WPy64-3.13.12.0\python\python.exe" -m venv "$env:RUNNER_TEMP\monai-physio-venv"
+          echo "$env:RUNNER_TEMP\monai-physio-venv\Scripts" >> $env:GITHUB_PATH
 
       - name: Cache uv packages
         uses: actions/cache@v4
@@ -178,7 +178,7 @@ jobs:
             --run-all --require-tutorial-data `
             --max-test-seconds=400 `
             --timeout=900 `
-            --cov=physiotwin4d `
+            --cov=monai_physio `
             --junitxml=test-results-core.xml
         env:
           CUDA_VISIBLE_DEVICES: 0
@@ -189,9 +189,9 @@ jobs:
           # full run's files, and the downsampled subsets the fixtures build
           # under <input>/test survive between runs instead of being rebuilt.
           # Unset, each falls back to its in-repo default; see data/README.md.
-          PHYSIOTWIN_INPUT_DATA_DIR: D:\PhysioTwin4D\nightly-runner\data
-          PHYSIOTWIN_OUTPUT_DATA_DIR: D:\PhysioTwin4D\nightly-runner\output
-          PHYSIOTWIN_WEIGHTS_DIR: D:\PhysioTwin4D\nightly-runner\network_weights
+          MONAI_PHYSIO_INPUT_DATA_DIR: D:\MONAI-Physio\nightly-runner\data
+          MONAI_PHYSIO_OUTPUT_DATA_DIR: D:\MONAI-Physio\nightly-runner\output
+          MONAI_PHYSIO_WEIGHTS_DIR: D:\MONAI-Physio\nightly-runner\network_weights
 
       - name: Run tutorial test suite
         id: run-tutorial-tests
@@ -218,7 +218,7 @@ jobs:
             -n 1 --max-worker-restart=40 `
             --max-test-seconds=600 `
             --timeout=2400 `
-            --cov=physiotwin4d `
+            --cov=monai_physio `
             --cov-append `
             --cov-report=xml `
             --cov-report=json `
@@ -232,9 +232,9 @@ jobs:
           # full run's files, and the downsampled subsets the fixtures build
           # under <input>/test survive between runs instead of being rebuilt.
           # Unset, each falls back to its in-repo default; see data/README.md.
-          PHYSIOTWIN_INPUT_DATA_DIR: D:\PhysioTwin4D\nightly-runner\data
-          PHYSIOTWIN_OUTPUT_DATA_DIR: D:\PhysioTwin4D\nightly-runner\output
-          PHYSIOTWIN_WEIGHTS_DIR: D:\PhysioTwin4D\nightly-runner\network_weights
+          MONAI_PHYSIO_INPUT_DATA_DIR: D:\MONAI-Physio\nightly-runner\data
+          MONAI_PHYSIO_OUTPUT_DATA_DIR: D:\MONAI-Physio\nightly-runner\output
+          MONAI_PHYSIO_WEIGHTS_DIR: D:\MONAI-Physio\nightly-runner\network_weights
 
       - name: Upload test results
         uses: actions/upload-artifact@v6

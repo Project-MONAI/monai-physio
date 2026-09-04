@@ -22,7 +22,7 @@ The experiment requires the **KCL-Heart-Model** dataset located in `data/KCL-Hea
 Download it automatically with:
 
 ```bash
-physiotwin4d-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
+monai-physio-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
 ```
 
 The data comes from
@@ -150,7 +150,7 @@ After completing this experiment, you will have generated files in `kcl-heart-mo
 The outputs from this experiment are used in the `Heart-Statistical_Model_To_Patient` experiment:
 
 ```python
-from physiotwin4d import WorkflowFitStatisticalModelToPatient
+from monai_physio import WorkflowFitStatisticalModelToPatient
 
 # Use PCA model from this experiment
 workflow = WorkflowFitStatisticalModelToPatient(
@@ -167,11 +167,11 @@ registered_mesh = workflow.process()["registered_template_model_surface"]
 ## Requirements
 
 ### Software
-- Python 3.11+ with PhysioTwin4D installed
+- Python 3.11+ with MONAI Physio installed
 - VS Code or Cursor with the Python extension for cell-by-cell execution
   (optional; scripts also run end-to-end as plain Python)
-- ITK, VTK, PyVista (included with PhysioTwin4D)
-- picsl-greedy and ICON (included with PhysioTwin4D)
+- ITK, VTK, PyVista (included with MONAI Physio)
+- picsl-greedy and ICON (included with MONAI Physio)
 - scikit-learn for PCA computation
 
 ### Data
@@ -204,8 +204,8 @@ For ICON registration:
 
 - **KCL Dataset**: [https://zenodo.org/records/4590294](https://zenodo.org/records/4590294)
 - **Greedy Documentation**: [https://greedy.readthedocs.io/](https://greedy.readthedocs.io/)
-- **PhysioTwin4D Documentation**: See main repository README and API documentation
-- **Issues**: Report bugs or request features on the PhysioTwin4D GitHub repository
+- **MONAI Physio Documentation**: See main repository README and API documentation
+- **Issues**: Report bugs or request features on the MONAI Physio GitHub repository
 
 ## Troubleshooting
 
@@ -232,7 +232,7 @@ For ICON registration:
   registrar's ICON instance: `registrar.registrar_ICON.set_number_of_iterations(...)`
 
 ### Import Errors
-- Ensure all PhysioTwin4D dependencies are installed
+- Ensure all MONAI Physio dependencies are installed
 - Check Greedy is available: `python -c "from picsl_greedy import Greedy3D; print('ok')"`
 - Reinstall environment if needed: `pip install -e .` in repository root
 

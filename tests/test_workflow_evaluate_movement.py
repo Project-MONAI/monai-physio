@@ -18,8 +18,8 @@ import numpy as np
 import pytest
 import pyvista as pv
 
-from physiotwin4d import MovementGroundTruth, WorkflowEvaluateMovement
-from physiotwin4d.physiotwin4d_base import PhysioTwin4DBase
+from monai_physio import MovementGroundTruth, WorkflowEvaluateMovement
+from monai_physio.monai_physio_base import MONAIPhysioBase
 
 _SPACING_MM = 1.0
 _GRID_SIZE = 40
@@ -77,7 +77,7 @@ def test_surface_rmse_of_two_concentric_spheres_is_their_radius_gap() -> None:
 def _evaluator(label_names: dict) -> WorkflowEvaluateMovement:
     """A workflow whose geometry helpers can be exercised without a network."""
     workflow = WorkflowEvaluateMovement.__new__(WorkflowEvaluateMovement)
-    PhysioTwin4DBase.__init__(
+    MONAIPhysioBase.__init__(
         workflow, class_name="WorkflowEvaluateMovement", log_level=logging.WARNING
     )
     workflow.label_names = label_names
@@ -258,7 +258,7 @@ def test_the_fitted_reference_mesh_cannot_be_omitted() -> None:
     """A PCA-only reconstruction must never stand in for the patient's fit."""
     import inspect
 
-    from physiotwin4d import WorkflowInferMovement
+    from monai_physio import WorkflowInferMovement
 
     for name in ("predict_single", "process_time_series", "create_deformation_field"):
         parameter = inspect.signature(getattr(WorkflowInferMovement, name)).parameters[
@@ -269,7 +269,7 @@ def test_the_fitted_reference_mesh_cannot_be_omitted() -> None:
 
 def _trained_model_directory(tmp_path: Path) -> Path:
     """Train a two-epoch MeshGraphNet on two synthetic subjects."""
-    from physiotwin4d import TrainPhysicsNeMoMGN, WorkflowTrainPhysicsNeMo
+    from monai_physio import TrainPhysicsNeMoMGN, WorkflowTrainPhysicsNeMo
 
     template = _sphere()
     template_dir = tmp_path / "template"
@@ -342,7 +342,7 @@ def test_every_stage_and_structure_reaches_the_report(tmp_path: Path) -> None:
     pytest.importorskip("physicsnemo")
     pytest.importorskip("torch_geometric")
 
-    from physiotwin4d import WorkflowInferMovement, WorkflowInferPhysicsNeMo
+    from monai_physio import WorkflowInferMovement, WorkflowInferPhysicsNeMo
 
     model_directory = _trained_model_directory(tmp_path)
 

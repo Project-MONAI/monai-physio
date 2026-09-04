@@ -2,7 +2,7 @@
 Data Downloads
 ==============
 
-.. currentmodule:: physiotwin4d
+.. currentmodule:: monai_physio
 
 Helpers for downloading and verifying optional example datasets used by the
 tutorials and experiments.
@@ -10,7 +10,7 @@ tutorials and experiments.
 Module Reference
 ================
 
-.. automodule:: physiotwin4d.data_download_tools
+.. automodule:: monai_physio.data_download_tools
    :members:
    :undoc-members:
    :show-inheritance:

@@ -2,7 +2,7 @@
 Utilities Developer Guide
 =========================
 
-PhysioTwin4D utility classes provide reusable operations for images,
+MONAI Physio utility classes provide reusable operations for images,
 transforms, contours, and USD files. They are class-based APIs, not module-level
 free functions.
 
@@ -13,7 +13,7 @@ Transform Tools
 
    import itk
 
-   from physiotwin4d import TransformTools
+   from monai_physio import TransformTools
 
    tools = TransformTools()
    transform = itk.transformread("forward_transform.hdf")
@@ -29,7 +29,7 @@ For PyVista contours:
    import itk
    import pyvista as pv
 
-   from physiotwin4d import TransformTools
+   from monai_physio import TransformTools
 
    mesh = pv.read("heart_t0.vtp")
    transform = itk.transformread("forward_transform.hdf")
@@ -43,7 +43,7 @@ Contour Tools
 
    import itk
 
-   from physiotwin4d import ContourTools
+   from monai_physio import ContourTools
 
    mask = itk.imread("heart_mask.nrrd")
    contour = ContourTools().extract_contours(mask)
@@ -54,7 +54,7 @@ USD Tools
 
 .. code-block:: python
 
-   from physiotwin4d import USDTools
+   from monai_physio import USDTools
 
    tools = USDTools()
    tools.merge_usd_files(
@@ -69,7 +69,7 @@ USD Anatomy Tools
 
    from pxr import Usd
 
-   from physiotwin4d import USDAnatomyTools
+   from monai_physio import USDAnatomyTools
 
    stage = Usd.Stage.Open("anatomy.usd")
    painter = USDAnatomyTools(stage)

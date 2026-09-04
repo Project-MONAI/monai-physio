@@ -5,7 +5,7 @@ import itk
 import numpy as np
 import pyvista as pv
 
-from physiotwin4d.contour_tools import ContourTools
+from monai_physio.contour_tools import ContourTools
 
 _HERE = Path(__file__).parent
 

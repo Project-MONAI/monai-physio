@@ -24,8 +24,8 @@ jobs:
       # Python 3.11 is required because the [physicsnemo] extra pulls in
       # nvidia-physicsnemo, which requires Python >= 3.11.
       run: |
-        & "C:\Program Files\Python311\python.exe" -m venv "$env:RUNNER_TEMP\physiotwin4d-venv"
-        echo "$env:RUNNER_TEMP\physiotwin4d-venv\Scripts" >> $env:GITHUB_PATH
+        & "C:\Program Files\Python311\python.exe" -m venv "$env:RUNNER_TEMP\monai-physio-venv"
+        echo "$env:RUNNER_TEMP\monai-physio-venv\Scripts" >> $env:GITHUB_PATH
 
     - name: Check GPU availability
       run: nvidia-smi
@@ -81,7 +81,7 @@ jobs:
       # aren't met on the runner will runtime-skip cleanly via their
       # internal availability guards.
       run: |
-        pytest tests/ -v --run-all --cov=physiotwin4d --cov-report=xml --cov-report=term
+        pytest tests/ -v --run-all --cov=monai_physio --cov-report=xml --cov-report=term
       env:
         CUDA_VISIBLE_DEVICES: 0
 

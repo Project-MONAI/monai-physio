@@ -2,14 +2,14 @@
 Segmentation Modules
 ====================================
 
-.. currentmodule:: physiotwin4d
+.. currentmodule:: monai_physio
 
 AI-powered anatomical structure identification from medical images using state-of-the-art deep learning models.
 
 Overview
 ========
 
-PhysioTwin4D supports multiple segmentation approaches:
+MONAI Physio supports multiple segmentation approaches:
 
 * **TotalSegmentator**: Whole-body CT segmentation (100+ structures)
 * **Simpleware**: Cardiac-focused segmentation (requires Simpleware Medical)
@@ -48,7 +48,7 @@ Basic Segmentation
 
 .. code-block:: python
 
-   from physiotwin4d import SegmentChestTotalSegmentator
+   from monai_physio import SegmentChestTotalSegmentator
 
    segmenter = SegmentChestTotalSegmentator()
    result = segmenter.segment(ct_image)

@@ -2,8 +2,8 @@
 Distance Map Registration
 ====================================
 
-.. module:: physiotwin4d.register_models_distance_maps
-.. currentmodule:: physiotwin4d
+.. module:: monai_physio.register_models_distance_maps
+.. currentmodule:: monai_physio
 
 Register models using distance field optimization.
 

@@ -15,7 +15,7 @@ import numpy as np
 import pytest
 import pyvista as pv
 
-from physiotwin4d import physicsnemo_tools as pnt
+from monai_physio import physicsnemo_tools as pnt
 
 _TARGET_ARRAY = "displacement"
 _STAGES = (0.0, 0.5)

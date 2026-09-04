@@ -5,7 +5,7 @@
 Download this dataset automatically with:
 
 ```bash
-physiotwin4d-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
+monai-physio-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
 ```
 
 This downloads and extracts the 20 individual heart meshes from
@@ -54,7 +54,7 @@ If you use this dataset, please cite:
 
 ## Using This Dataset
 
-This dataset is used in the PhysioTwin4D experiments for creating statistical shape models and patient-specific heart registrations.
+This dataset is used in the MONAI Physio experiments for creating statistical shape models and patient-specific heart registrations.
 
 ### Heart-Create_Statistical_Model Experiment
 

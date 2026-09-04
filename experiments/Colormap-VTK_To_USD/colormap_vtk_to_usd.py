@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 import pyvista as pv
 
-from physiotwin4d import ConvertVTKToUSD
+from monai_physio import ConvertVTKToUSD
 
 _HERE = Path(__file__).parent
 
@@ -27,7 +27,7 @@ _HERE = Path(__file__).parent
 output_dir = _HERE / "output"
 output_dir.mkdir(exist_ok=True)
 
-print("PhysioTwin4D Colormap Examples")
+print("MONAI Physio Colormap Examples")
 print("=" * 50)
 
 

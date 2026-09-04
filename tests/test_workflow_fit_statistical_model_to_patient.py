@@ -10,12 +10,12 @@ import numpy as np
 import pytest
 import pyvista as pv
 
-from physiotwin4d.segment_heart_simpleware import SegmentHeartSimpleware
-from physiotwin4d.segment_heart_simpleware_trimmed_branches import (
+from monai_physio.segment_heart_simpleware import SegmentHeartSimpleware
+from monai_physio.segment_heart_simpleware_trimmed_branches import (
     SegmentHeartSimplewareTrimmedBranches,
 )
-from physiotwin4d.workflow_convert_image_to_vtk import WorkflowConvertImageToVTK
-from physiotwin4d.workflow_fit_statistical_model_to_patient import (
+from monai_physio.workflow_convert_image_to_vtk import WorkflowConvertImageToVTK
+from monai_physio.workflow_fit_statistical_model_to_patient import (
     WorkflowFitStatisticalModelToPatient,
 )
 
@@ -106,7 +106,7 @@ def test_fit_workflow_routes_default_to_image_to_vtk_with_trimmed_branches(
             return {"surfaces": {"heart": heart_surface}}
 
     monkeypatch.setattr(
-        "physiotwin4d.workflow_fit_statistical_model_to_patient."
+        "monai_physio.workflow_fit_statistical_model_to_patient."
         "WorkflowConvertImageToVTK",
         _FakeConvertImageToVTK,
     )
@@ -302,7 +302,7 @@ def test_clamped_component_count_reaches_the_pca_registrar() -> None:
         number_of_pca_components=5,
     )
 
-    from physiotwin4d import workflow_fit_statistical_model_to_patient as module
+    from monai_physio import workflow_fit_statistical_model_to_patient as module
 
     original = module.RegisterModelsPCA.from_pca_model
     module.RegisterModelsPCA.from_pca_model = staticmethod(_capture)

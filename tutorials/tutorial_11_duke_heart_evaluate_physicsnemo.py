@@ -13,7 +13,7 @@ chain, so this scores generalization rather than recall.
    this cohort ships one labelmap per gated frame, each already carrying the
    four chambers, the myocardium and the whole heart.
 
-2. Score the prediction: :class:`physiotwin4d.WorkflowEvaluateMovement` carries
+2. Score the prediction: :class:`monai_physio.WorkflowEvaluateMovement` carries
    the reference frame's labelmap into every other frame with the network's own
    deformation, and compares the result to that frame's labelmap --- volume
    difference, Dice and surface RMSE per chamber.
@@ -41,7 +41,7 @@ Extra Install Required
 ----------------------
 PhysicsNeMo and PyTorch Geometric must be installed::
 
-    pip install "physiotwin4d[physicsnemo]"
+    pip install "monai-physio[physicsnemo]"
 
 Data Required
 -------------
@@ -73,7 +73,7 @@ import itk
 import pyvista as pv
 from parameters_duke_heart_labelmaps import DUKE_HEART
 
-from physiotwin4d import (
+from monai_physio import (
     EvaluateMovementDukeHeart,
     TestTools,
     WorkflowEvaluateMovement,

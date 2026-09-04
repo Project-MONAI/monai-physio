@@ -2,8 +2,8 @@
 Time-Series Registration
 ========================
 
-.. module:: physiotwin4d.register_time_series_images
-.. currentmodule:: physiotwin4d
+.. module:: monai_physio.register_time_series_images
+.. currentmodule:: monai_physio
 
 ``RegisterTimeSeriesImages`` registers ordered 3D image phases to a reference
 frame using a caller-supplied :class:`RegisterImagesBase` backend (e.g.
@@ -26,7 +26,7 @@ Basic Usage
 
    import itk
 
-   from physiotwin4d import RegisterImagesGreedy, RegisterTimeSeriesImages
+   from monai_physio import RegisterImagesGreedy, RegisterTimeSeriesImages
 
    images = [itk.imread(f"phase_{idx:02d}.mha") for idx in range(10)]
 

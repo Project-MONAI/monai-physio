@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from parameters_base import ParametersBase
-from physiotwin4d import SegmentAnatomyBase, SegmentHeartSimplewareTrimmedBranches
+from monai_physio import SegmentAnatomyBase, SegmentHeartSimplewareTrimmedBranches
 
 
 @dataclass(frozen=True)

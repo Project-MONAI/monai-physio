@@ -2,7 +2,7 @@
 AI Assistants
 =============
 
-PhysioTwin4D is developed with AI coding assistants in the loop (Claude Code,
+MONAI Physio is developed with AI coding assistants in the loop (Claude Code,
 Codex, Cursor, and others). Two repository conventions make that work well.
 
 Repository Instructions
@@ -13,7 +13,7 @@ assistant; ``CLAUDE.md`` adds Claude-specific instructions. Role subagents live
 in ``.agents/agents/`` and slash-command skills in ``.agents/skills/``. Read
 those before hand-writing a prompt that repeats project conventions.
 
-One of those conventions binds every assistant: PhysioTwin4D prefers
+One of those conventions binds every assistant: MONAI Physio prefers
 compatibility, breaks a public API only when the change is generally beneficial
 to future users, and never ships deprecation shims. Any commit that does break
 an API must add an entry to :doc:`migration_next` describing the change and the

@@ -2,8 +2,8 @@
 ICP (Iterative Closest Point)
 ====================================
 
-.. module:: physiotwin4d.register_models_icp
-.. currentmodule:: physiotwin4d
+.. module:: monai_physio.register_models_icp
+.. currentmodule:: monai_physio
 
 Pure Python implementation of Iterative Closest Point registration.
 

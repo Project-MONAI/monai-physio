@@ -37,7 +37,7 @@ the grid.
    combination is in the grid, so the unperturbed score comes out of the same
    code path as every perturbed one.
 
-3. Score every combination with :class:`physiotwin4d.WorkflowEvaluateMovement`,
+3. Score every combination with :class:`monai_physio.WorkflowEvaluateMovement`,
    which carries the reference frame's labelmap into every other frame with that
    combination's inferred deformation and compares the result, per chamber, to
    the frame that was acquired.
@@ -73,7 +73,7 @@ Extra Install Required
 ----------------------
 PhysicsNeMo and PyTorch Geometric must be installed::
 
-    pip install "physiotwin4d[physicsnemo]"
+    pip install "monai-physio[physicsnemo]"
 
 Data Required
 -------------
@@ -109,7 +109,7 @@ import numpy as np
 import pyvista as pv
 from parameters_duke_heart_labelmaps import DUKE_HEART
 
-from physiotwin4d import (
+from monai_physio import (
     EvaluateMovementDukeHeart,
     TestTools,
     WorkflowEvaluateMovement,

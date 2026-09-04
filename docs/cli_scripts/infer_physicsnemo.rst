@@ -2,12 +2,12 @@
 Predict With a Trained Surrogate
 ================================
 
-``physiotwin4d-infer-physicsnemo`` loads a model directory written by
-``physiotwin4d-train-physicsnemo`` and predicts a subject's per-vertex targets
+``monai-physio-infer-physicsnemo`` loads a model directory written by
+``monai-physio-train-physicsnemo`` and predicts a subject's per-vertex targets
 at any stage — including stages that were never acquired, which is the reason
 to train a surrogate. It is the command-line form of
-:class:`~physiotwin4d.WorkflowInferPhysicsNeMo` and
-:class:`~physiotwin4d.WorkflowInferMovement`.
+:class:`~monai_physio.WorkflowInferPhysicsNeMo` and
+:class:`~monai_physio.WorkflowInferMovement`.
 
 Requires the same optional extra as training.
 
@@ -18,7 +18,7 @@ Predict every phase in a manifest and score against its stored targets:
 
 .. code-block:: bash
 
-   physiotwin4d-infer-physicsnemo \
+   monai-physio-infer-physicsnemo \
        --model-dir output/mgn_run \
        --manifest manifests/Case1Pack_manifest.json \
        --output output/mgn_run/eval
@@ -39,7 +39,7 @@ No manifest — just the subject's PCA coefficients:
 
 .. code-block:: bash
 
-   physiotwin4d-infer-physicsnemo \
+   monai-physio-infer-physicsnemo \
        --model-dir output/mgn_run \
        --shape-parameters Case1Pack_ssm_pca_coefficients.json \
        --stage 0.7 \
@@ -48,7 +48,7 @@ No manifest — just the subject's PCA coefficients:
 
 ``--fitted-reference-mesh`` is required in single-subject mode: it is the
 patient's fitted shape-model surface, written by
-``physiotwin4d-fit-statistical-model-to-patient``.
+``monai-physio-fit-statistical-model-to-patient``.
 
 Deformation Fields
 ==================
@@ -58,7 +58,7 @@ and the reference-surface normals onto that image's voxel grid:
 
 .. code-block:: bash
 
-   physiotwin4d-infer-physicsnemo \
+   monai-physio-infer-physicsnemo \
        --model-dir output/mgn_run \
        --shape-parameters coefficients.json \
        --stage 0.5 \
@@ -68,7 +68,7 @@ and the reference-surface normals onto that image's voxel grid:
 
 This writes ``deformation_field.mha`` and ``surface_normal_field.mha`` —
 apply them to volumes and labelmaps with
-:class:`~physiotwin4d.TransformTools`.
+:class:`~monai_physio.TransformTools`.
 
 Options
 =======

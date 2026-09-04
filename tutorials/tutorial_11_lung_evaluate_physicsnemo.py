@@ -12,7 +12,7 @@ Tutorial 9 training, so this scores generalization rather than recall.
    independently, giving one labelmap per respiratory phase whose lobes were
    never seen by the shape model or by the network.
 
-2. Score the prediction: :class:`physiotwin4d.WorkflowEvaluateMovement` carries
+2. Score the prediction: :class:`monai_physio.WorkflowEvaluateMovement` carries
    the reference phase's labelmap into every other phase with the network's own
    deformation, and compares the result to that phase's segmentation --- volume
    difference and surface RMSE per lobe.  Dice is left out: a lobe barely
@@ -41,7 +41,7 @@ Extra Install Required
 ----------------------
 PhysicsNeMo and PyTorch Geometric must be installed::
 
-    pip install "physiotwin4d[physicsnemo]"
+    pip install "monai-physio[physicsnemo]"
 
 Data Required
 -------------
@@ -74,7 +74,7 @@ import itk
 import pyvista as pv
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
-from physiotwin4d import (
+from monai_physio import (
     EvaluateMovementLung,
     TestTools,
     WorkflowEvaluateMovement,

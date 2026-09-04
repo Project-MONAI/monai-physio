@@ -2,9 +2,9 @@
 Chained Image Registration
 ===========================
 
-.. module:: physiotwin4d.register_images_chain
-.. module:: physiotwin4d.register_images_greedy_icon
-.. currentmodule:: physiotwin4d
+.. module:: monai_physio.register_images_chain
+.. module:: monai_physio.register_images_greedy_icon
+.. currentmodule:: monai_physio
 
 Coarse-to-fine registration composes two registrars: a fast, robust method
 recovers the large motion, then a deformable method refines it.
@@ -33,7 +33,7 @@ Basic Usage
 
 .. code-block:: python
 
-   from physiotwin4d import RegisterImagesGreedyICON
+   from monai_physio import RegisterImagesGreedyICON
 
    registrar = RegisterImagesGreedyICON()
    # Coarse-to-fine iteration schedule for the Greedy stage.

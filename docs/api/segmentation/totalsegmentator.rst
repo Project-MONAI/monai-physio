@@ -2,11 +2,11 @@
 TotalSegmentator
 ================
 
-.. module:: physiotwin4d.segment_chest_total_segmentator
-.. currentmodule:: physiotwin4d
+.. module:: monai_physio.segment_chest_total_segmentator
+.. currentmodule:: monai_physio
 
 ``SegmentChestTotalSegmentator`` groups a TotalSegmentator labelmap into the
-anatomy masks used by PhysioTwin4D workflows.
+anatomy masks used by MONAI Physio workflows.
 
 ``SegmentChestTotalSegmentatorWithContrast`` is the contrast-enhanced variant:
 same interface, thresholds and grouping tuned for contrast CT. Pick it when
@@ -32,7 +32,7 @@ Basic Usage
 
    import itk
 
-   from physiotwin4d import SegmentChestTotalSegmentator
+   from monai_physio import SegmentChestTotalSegmentator
 
    image = itk.imread("chest_ct.nrrd")
    segmenter = SegmentChestTotalSegmentator()
@@ -78,7 +78,7 @@ returned dictionary and exposes a ``contrast_threshold`` attribute
 
 .. code-block:: python
 
-   from physiotwin4d import SegmentChestTotalSegmentatorWithContrast
+   from monai_physio import SegmentChestTotalSegmentatorWithContrast
 
    segmenter = SegmentChestTotalSegmentatorWithContrast()
    segmenter.contrast_threshold = 600  # optional override
@@ -91,7 +91,7 @@ Operational Notes
 
 TotalSegmentator model inference may download model assets and can be slow on a
 CPU-only environment. For repeatable workflows, prefer the tutorial scripts or
-the ``physiotwin4d-convert-image-to-vtk`` CLI.
+the ``monai-physio-convert-image-to-vtk`` CLI.
 
 See Also
 ========

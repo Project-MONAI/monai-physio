@@ -2,7 +2,7 @@
 4D Image Conversion
 ====================================
 
-.. currentmodule:: physiotwin4d
+.. currentmodule:: monai_physio
 
 Utilities for converting 4D medical images into a 3D time-series sequence.
 ``.nrrd`` inputs (including Slicer ``.seq.nrrd`` heart sequences, whose
@@ -13,7 +13,7 @@ with ``pynrrd``; all other formats (NIfTI ``.nii.gz``, MHA, …) are read with
 Module Reference
 ================
 
-.. automodule:: physiotwin4d.convert_image_4d_to_3d
+.. automodule:: monai_physio.convert_image_4d_to_3d
    :members:
    :undoc-members:
 

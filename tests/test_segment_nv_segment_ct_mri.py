@@ -15,7 +15,7 @@ import itk
 import numpy as np
 import pytest
 
-from physiotwin4d.segment_nv_segment_ct_mri import SegmentNVSegmentCTMRI
+from monai_physio.segment_nv_segment_ct_mri import SegmentNVSegmentCTMRI
 
 #: Anatomy groups this segmenter must populate, besides the inherited "other".
 EXPECTED_GROUPS = (
@@ -31,10 +31,10 @@ EXPECTED_GROUPS = (
 class RecordCollector(logging.Handler):
     """Collect emitted records.
 
-    The shared PhysioTwin4D logger sets ``propagate = False``, so pytest's
+    The shared MONAI Physio logger sets ``propagate = False``, so pytest's
     ``caplog`` (which handles records at the root logger) never sees them.
     Attaching this handler to the logger itself is the way to assert on
-    PhysioTwin4D log output.
+    MONAI Physio log output.
     """
 
     def __init__(self) -> None:

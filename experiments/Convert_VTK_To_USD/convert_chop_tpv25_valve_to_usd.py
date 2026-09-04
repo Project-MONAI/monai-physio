@@ -28,10 +28,10 @@
 import re
 from pathlib import Path
 
-from physiotwin4d import ConvertVTKToUSD
+from monai_physio import ConvertVTKToUSD
 
 # Import USDTools for post-processing colormap
-from physiotwin4d.usd_tools import USDTools
+from monai_physio.usd_tools import USDTools
 
 # %% [markdown]
 # ## 1. Discover and Organize Time-Series Files

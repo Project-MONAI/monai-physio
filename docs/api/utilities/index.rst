@@ -2,7 +2,7 @@
 Utility Modules
 ====================================
 
-.. currentmodule:: physiotwin4d
+.. currentmodule:: monai_physio
 
 Common utilities for image processing, transforms, and file handling.
 

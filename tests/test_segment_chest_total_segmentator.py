@@ -12,8 +12,8 @@ import itk
 import numpy as np
 import pytest
 
-from physiotwin4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
-from physiotwin4d.segment_chest_total_segmentator_with_contrast import (
+from monai_physio.segment_chest_total_segmentator import SegmentChestTotalSegmentator
+from monai_physio.segment_chest_total_segmentator_with_contrast import (
     SegmentChestTotalSegmentatorWithContrast,
 )
 

@@ -2,7 +2,7 @@
 convert_image_to_vtk (CLI)
 ==========================
 
-.. automodule:: physiotwin4d.cli.convert_image_to_vtk
+.. automodule:: monai_physio.cli.convert_image_to_vtk
    :members:
    :undoc-members:
    :show-inheritance:

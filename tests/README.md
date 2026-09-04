@@ -1,6 +1,6 @@
-# PhysioTwin4D Tests
+# MONAI Physio Tests
 
-This directory contains comprehensive test suites for the PhysioTwin4D package, validating the complete medical imaging to Omniverse pipeline.
+This directory contains comprehensive test suites for the MONAI Physio package, validating the complete medical imaging to Omniverse pipeline.
 
 ## Documentation
 
@@ -131,7 +131,7 @@ pytest tests/test_tutorials.py::TestTutorial01HeartGatedCTToUSD -v -s --run-tuto
 ### Common Test Commands
 ```bash
 # Run with coverage
-pytest tests/ --cov=src/physiotwin4d --cov-report=html
+pytest tests/ --cov=src/monai_physio --cov-report=html
 
 # Run a specific test class or method
 pytest tests/test_usd_merge.py::TestUSDMerge::test_merge_usd_files_copy_method -v
@@ -163,7 +163,7 @@ tests.
   Simpleware Medical install. Opt in: `--run-simpleware`. (Combine with
   `--run-gpu` and `--run-slow`.)
 - `@pytest.mark.requires_physicsnemo` — Tests needing the optional
-  `[physicsnemo]` extra (`pip install "physiotwin4d[physicsnemo]"`, requires
+  `[physicsnemo]` extra (`pip install "monai-physio[physicsnemo]"`, requires
   Python >= 3.11). Opt in: `--run-physicsnemo`.
 - `@pytest.mark.tutorial` — Tutorial scripts run end-to-end (SLOW, never in
   CI). Opt in: `--run-tutorials`.

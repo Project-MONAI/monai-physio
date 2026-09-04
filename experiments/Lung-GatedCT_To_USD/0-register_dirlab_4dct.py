@@ -6,10 +6,10 @@ import itk
 import numpy as np
 from data_dirlab_4d_ct import DataDirLab4DCT
 
-from physiotwin4d.image_tools import ImageTools
-from physiotwin4d.register_images_icon import RegisterImagesICON
-from physiotwin4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
-from physiotwin4d.transform_tools import TransformTools
+from monai_physio.image_tools import ImageTools
+from monai_physio.register_images_icon import RegisterImagesICON
+from monai_physio.segment_chest_total_segmentator import SegmentChestTotalSegmentator
+from monai_physio.transform_tools import TransformTools
 
 # nnUNetv2 (used by TotalSegmentator) spawns a multiprocessing.Pool. On Windows
 # the spawn start method re-imports this script in each child; without the

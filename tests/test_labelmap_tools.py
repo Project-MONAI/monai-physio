@@ -12,7 +12,7 @@ import itk
 import numpy as np
 import pytest
 
-from physiotwin4d.labelmap_tools import LabelmapTools
+from monai_physio.labelmap_tools import LabelmapTools
 
 
 class TestLabelmapTools:

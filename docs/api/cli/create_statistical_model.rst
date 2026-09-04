@@ -2,7 +2,7 @@
 create_statistical_model (CLI)
 ==============================
 
-.. automodule:: physiotwin4d.cli.create_statistical_model
+.. automodule:: monai_physio.cli.create_statistical_model
    :members:
    :undoc-members:
    :show-inheritance:

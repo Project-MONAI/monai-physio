@@ -1,7 +1,7 @@
 # %%
 import os
 
-from physiotwin4d.usd_tools import USDTools
+from monai_physio.usd_tools import USDTools
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 

@@ -4,7 +4,7 @@ import os
 import itk
 import numpy as np
 
-from physiotwin4d import RegisterImagesGreedy, TransformTools
+from monai_physio import RegisterImagesGreedy, TransformTools
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 

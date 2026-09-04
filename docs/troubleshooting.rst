@@ -2,7 +2,7 @@
 Troubleshooting
 ===============
 
-Common issues and solutions for PhysioTwin4D.
+Common issues and solutions for MONAI Physio.
 
 Installation Issues
 ===================
@@ -83,7 +83,7 @@ version than the one present on the system.
 
 .. code-block:: bash
 
-   uv pip install "physiotwin4d[cuda13]"
+   uv pip install "monai-physio[cuda13]"
 
 The extra installs CuPy. In uv-managed source environments, PyTorch resolves
 from the CUDA 13.0 wheel index.
@@ -95,7 +95,7 @@ Verify the active CUDA version before reinstalling:
    nvidia-smi   # shows driver and CUDA version
 
 .. note::
-   If you have no NVIDIA GPU, a plain ``pip install physiotwin4d`` installs a
+   If you have no NVIDIA GPU, a plain ``pip install monai-physio`` installs a
    CPU-only build. CuPy is absent and a ``UserWarning`` is emitted at import time.
    CPU execution of all operations is supported but will be significantly slower
    than a GPU-enabled install.
@@ -109,7 +109,7 @@ Import Errors
 
 .. code-block:: bash
 
-   pip install --upgrade physiotwin4d
+   pip install --upgrade monai_physio
 
 Processing Issues
 =================
@@ -127,7 +127,7 @@ Poor Segmentation Quality
 
    .. code-block:: python
 
-      from physiotwin4d import (
+      from monai_physio import (
           SegmentChestTotalSegmentatorWithContrast,
           WorkflowConvertImageToUSD,
       )
@@ -152,7 +152,7 @@ Registration Not Converging
 
    .. code-block:: bash
 
-      physiotwin4d-convert-image-to-usd cardiac_4d.nrrd --registration-method Greedy
+      monai-physio-convert-image-to-usd cardiac_4d.nrrd --registration-method Greedy
 
 3. Check image orientation and spacing
 
@@ -173,7 +173,7 @@ USD Not Animating
       usdchecker model.usd
 
    ``usdchecker`` is not part of the ``usd-core`` package installed with
-   PhysioTwin4D; it ships with the OpenUSD toolset, available pre-built from
+   MONAI Physio; it ships with the OpenUSD toolset, available pre-built from
    https://developer.nvidia.com/usd.
 
 2. Open the scene in an Omniverse Kit application, switch the viewport to the
@@ -201,7 +201,7 @@ Slow Processing
 
 **Solutions**:
 
-1. Install ``physiotwin4d[cuda13]`` with uv for CUDA acceleration.
+1. Install ``monai-physio[cuda13]`` with uv for CUDA acceleration.
 2. Reduce ``--registration-iterations`` during exploratory runs.
 3. Run tutorial workflows with reduced frame counts where supported.
 
@@ -211,7 +211,7 @@ Getting Help
 If you still have issues:
 
 1. Check :doc:`faq`
-2. Search `GitHub Issues <https://github.com/Project-MONAI/physiotwin4d/issues>`_
+2. Search `GitHub Issues <https://github.com/Project-MONAI/monai-physio/issues>`_
 3. Open a new issue with:
 
    * Python version

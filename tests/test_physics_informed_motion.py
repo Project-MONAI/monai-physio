@@ -20,7 +20,7 @@ import numpy as np
 import pytest
 import pyvista as pv
 
-from physiotwin4d.train_physicsnemo_physics_informed_motion import (
+from monai_physio.train_physicsnemo_physics_informed_motion import (
     NeoHookeanResidual,
     compute_deformation_gradient,
     tet_edges,
@@ -197,7 +197,7 @@ def test_the_symbolic_and_tensor_energies_agree() -> None:
     pytest.importorskip("physicsnemo.sym")
     import torch
 
-    from physiotwin4d.train_physicsnemo_physics_informed_motion import (
+    from monai_physio.train_physicsnemo_physics_informed_motion import (
         PhysicsInformedMotion,
     )
 
@@ -233,7 +233,7 @@ def test_the_physics_residual_is_trainable() -> None:
     pytest.importorskip("physicsnemo.sym")
     import torch
 
-    from physiotwin4d.train_physicsnemo_physics_informed_motion import (
+    from monai_physio.train_physicsnemo_physics_informed_motion import (
         PhysicsInformedMotion,
     )
 
@@ -263,7 +263,7 @@ def test_the_physics_residual_is_trainable() -> None:
 
 def test_a_batch_reports_which_samples_it_drew() -> None:
     """The loss needs each row's subject, so batches carry their sample indices."""
-    from physiotwin4d import TrainPhysicsNeMoMGN
+    from monai_physio import TrainPhysicsNeMoMGN
 
     class _IndexDataset:
         """Stands in for PhaseSampleDataset, returning its own index as data."""
@@ -304,7 +304,7 @@ def test_inverted_elements_are_counted_during_training() -> None:
     pytest.importorskip("physicsnemo.sym")
     import torch
 
-    from physiotwin4d.train_physicsnemo_physics_informed_motion import (
+    from monai_physio.train_physicsnemo_physics_informed_motion import (
         PhysicsInformedMotion,
     )
 
@@ -343,8 +343,8 @@ def test_a_residual_on_the_wrong_device_is_refused() -> None:
     """
     import torch
 
-    from physiotwin4d.physicsnemo_tools import DistributedContext
-    from physiotwin4d.train_physicsnemo_physics_informed_motion import (
+    from monai_physio.physicsnemo_tools import DistributedContext
+    from monai_physio.train_physicsnemo_physics_informed_motion import (
         TrainPhysicsNeMoPhysicsInformedMotion,
     )
 
@@ -383,8 +383,8 @@ def test_the_device_check_runs_without_a_driver() -> None:
 
     import torch
 
-    from physiotwin4d.physicsnemo_tools import DistributedContext
-    from physiotwin4d.train_physicsnemo_physics_informed_motion import (
+    from monai_physio.physicsnemo_tools import DistributedContext
+    from monai_physio.train_physicsnemo_physics_informed_motion import (
         TrainPhysicsNeMoPhysicsInformedMotion,
         _resolved_device,
     )
@@ -428,8 +428,8 @@ def test_a_residual_on_another_gpu_is_refused() -> None:
     """
     import torch
 
-    from physiotwin4d.physicsnemo_tools import DistributedContext
-    from physiotwin4d.train_physicsnemo_physics_informed_motion import (
+    from monai_physio.physicsnemo_tools import DistributedContext
+    from monai_physio.train_physicsnemo_physics_informed_motion import (
         TrainPhysicsNeMoPhysicsInformedMotion,
     )
 
@@ -463,8 +463,8 @@ def test_the_epoch_log_separates_the_two_loss_terms() -> None:
     """
     import torch
 
-    from physiotwin4d.physicsnemo_tools import DistributedContext
-    from physiotwin4d.train_physicsnemo_physics_informed_motion import (
+    from monai_physio.physicsnemo_tools import DistributedContext
+    from monai_physio.train_physicsnemo_physics_informed_motion import (
         TrainPhysicsNeMoPhysicsInformedMotion,
     )
 

@@ -10,7 +10,7 @@ import pytest
 import pyvista as pv
 from scipy.optimize import approx_fprime
 
-from physiotwin4d.register_models_pca import RegisterModelsPCA
+from monai_physio.register_models_pca import RegisterModelsPCA
 
 
 def _make_registrar(**kwargs: Any) -> RegisterModelsPCA:

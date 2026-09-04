@@ -2,8 +2,8 @@
 Physics-Informed Motion (Neo-Hookean)
 =====================================
 
-.. module:: physiotwin4d.train_physicsnemo_physics_informed_motion
-.. currentmodule:: physiotwin4d
+.. module:: monai_physio.train_physicsnemo_physics_informed_motion
+.. currentmodule:: monai_physio
 
 A MeshGraphNet trained on displacement alone has no opinion about whether the
 motion it predicts is motion tissue could undergo. An element may inflate, thin
@@ -59,7 +59,7 @@ Training method
 Constitutive law and geometry
 =============================
 
-.. automodule:: physiotwin4d.train_physicsnemo_physics_informed_motion
+.. automodule:: monai_physio.train_physicsnemo_physics_informed_motion
    :members: NeoHookeanResidual, PhysicsInformedMotion, neo_hookean_pde,
              compute_deformation_gradient, tet_volumes, tet_edges, edge_matrix
    :undoc-members:
@@ -75,9 +75,9 @@ being shaped unlike the mean, confusing variation between subjects with
 deformation within one.
 
 **Two formulations of one law.** The symbolic energy
-(:func:`~physiotwin4d.train_physicsnemo_physics_informed_motion.neo_hookean_pde`)
+(:func:`~monai_physio.train_physicsnemo_physics_informed_motion.neo_hookean_pde`)
 is what PhysicsNeMo Sym differentiates during training; the tensor one
-(:class:`~physiotwin4d.train_physicsnemo_physics_informed_motion.NeoHookeanResidual`)
+(:class:`~monai_physio.train_physicsnemo_physics_informed_motion.NeoHookeanResidual`)
 computes the Cauchy stress for export, which the symbolic path does not hand
 back. ``tests/test_physics_informed_motion.py`` cross-checks them against each
 other on the same field.

@@ -3,7 +3,7 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "physiotwin4d"
+name = "monai-physio"
 version = "2026.08.0"
 description = "Methods, workflows, tutorials, and CLI for creating personalized physiological digital twins from 3D/4D medical images"
 authors = [
@@ -153,8 +153,8 @@ cuda13 = [
 # torch-scatter wheel exists it is compiled from source against the installed
 # torch, so torch and setuptools must be present first:
 #
-#   pip install "physiotwin4d[cuda13]" setuptools
-#   pip install "physiotwin4d[physicsnemo]" --no-build-isolation
+#   pip install "monai-physio[cuda13]" setuptools
+#   pip install "monai-physio[physicsnemo]" --no-build-isolation
 #
 # uv applies --no-build-isolation to torch-scatter automatically via
 # no-build-isolation-package above, so the second flag is only needed for pip.
@@ -215,35 +215,35 @@ test = [
 # torch and setuptools must already be installed, and pip needs
 # ``--no-build-isolation`` when torch-scatter has no matching wheel.
 all = [
-    "physiotwin4d[cuda13]",
-    "physiotwin4d[dev]",
-    "physiotwin4d[docs]",
-    "physiotwin4d[physicsnemo]",
-    "physiotwin4d[test]",
+    "monai-physio[cuda13]",
+    "monai-physio[dev]",
+    "monai-physio[docs]",
+    "monai-physio[physicsnemo]",
+    "monai-physio[test]",
 ]
 
 [project.urls]
-Homepage = "https://github.com/Project-MONAI/physiotwin4d"
-Documentation = "https://project-monai.github.io/physiotwin4d/"
-Repository = "https://github.com/Project-MONAI/physiotwin4d.git"
-"Bug Tracker" = "https://github.com/Project-MONAI/physiotwin4d/issues"
+Homepage = "https://github.com/Project-MONAI/monai-physio"
+Documentation = "https://project-monai.github.io/monai-physio/"
+Repository = "https://github.com/Project-MONAI/monai-physio.git"
+"Bug Tracker" = "https://github.com/Project-MONAI/monai-physio/issues"
 "Author LinkedIn" = "https://www.linkedin.com/in/stephenaylward"
 "Author Google Scholar" = "https://scholar.google.com/citations?user=u1UdL4oAAAAJ&hl"
 
 [project.scripts]
 # CLI commands installed via pip
 # Entry points reference the main() functions in the cli submodule
-physiotwin4d-convert-image-to-vtk = "physiotwin4d.cli.convert_image_to_vtk:main"
-physiotwin4d-convert-image-4d-to-3d = "physiotwin4d.cli.convert_image_4d_to_3d:main"
-physiotwin4d-convert-image-to-usd = "physiotwin4d.cli.convert_image_to_usd:main"
-physiotwin4d-convert-vtk-to-usd = "physiotwin4d.cli.convert_vtk_to_usd:main"
-physiotwin4d-create-statistical-model = "physiotwin4d.cli.create_statistical_model:main"
-physiotwin4d-download-data = "physiotwin4d.cli.download_data:main"
-physiotwin4d-fit-statistical-model-to-patient = "physiotwin4d.cli.fit_statistical_model_to_patient:main"
-physiotwin4d-train-physicsnemo = "physiotwin4d.cli.train_physicsnemo:main"
-physiotwin4d-infer-physicsnemo = "physiotwin4d.cli.infer_physicsnemo:main"
-physiotwin4d-reconstruct-highres-4d-ct = "physiotwin4d.cli.reconstruct_highres_4d_ct:main"
-physiotwin4d-visualize-pca-modes = "physiotwin4d.cli.visualize_pca_modes:main"
+monai-physio-convert-image-to-vtk = "monai_physio.cli.convert_image_to_vtk:main"
+monai-physio-convert-image-4d-to-3d = "monai_physio.cli.convert_image_4d_to_3d:main"
+monai-physio-convert-image-to-usd = "monai_physio.cli.convert_image_to_usd:main"
+monai-physio-convert-vtk-to-usd = "monai_physio.cli.convert_vtk_to_usd:main"
+monai-physio-create-statistical-model = "monai_physio.cli.create_statistical_model:main"
+monai-physio-download-data = "monai_physio.cli.download_data:main"
+monai-physio-fit-statistical-model-to-patient = "monai_physio.cli.fit_statistical_model_to_patient:main"
+monai-physio-train-physicsnemo = "monai_physio.cli.train_physicsnemo:main"
+monai-physio-infer-physicsnemo = "monai_physio.cli.infer_physicsnemo:main"
+monai-physio-reconstruct-highres-4d-ct = "monai_physio.cli.reconstruct_highres_4d_ct:main"
+monai-physio-visualize-pca-modes = "monai_physio.cli.visualize_pca_modes:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -262,7 +262,7 @@ push = false
     'current_version = "{version}"',
     'version = "{version}"',
 ]
-"src/physiotwin4d/__init__.py" = [
+"src/monai_physio/__init__.py" = [
     '__version__ = "{version}"',
 ]
 
@@ -348,12 +348,12 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = [
-    "physiotwin4d.cli.create_statistical_model",
-    "physiotwin4d.cli.fit_statistical_model_to_patient",
-    "physiotwin4d.cli.visualize_pca_modes",
-    "physiotwin4d.vtk_to_usd.mesh_utils",
-    "physiotwin4d.vtk_to_usd.vtk_reader",
-    # Tutorial scripts import physiotwin4d, which is absent from the isolated
+    "monai_physio.cli.create_statistical_model",
+    "monai_physio.cli.fit_statistical_model_to_patient",
+    "monai_physio.cli.visualize_pca_modes",
+    "monai_physio.vtk_to_usd.mesh_utils",
+    "monai_physio.vtk_to_usd.vtk_reader",
+    # Tutorial scripts import monai_physio, which is absent from the isolated
     # pre-commit mypy environment and ships no py.typed marker when installed.
     # mypy per-module patterns match whole components only, so each tutorial is
     # listed by name; add a line here when adding or renaming a tutorial.
@@ -404,7 +404,7 @@ disable_error_code = ["import-not-found", "import-untyped"]
 [[tool.mypy.overrides]]
 # torch/icon_registration/unigradicon are lazy-loaded at runtime; string
 # forward-reference annotations like "torch.Size" are intentional.
-module = ["physiotwin4d.register_images_icon"]
+module = ["monai_physio.register_images_icon"]
 ignore_errors = true
 
 [tool.pyright]
@@ -417,7 +417,7 @@ minversion = "7.0"
 addopts = [
     "--strict-markers",
     "--strict-config",
-    "--cov=physiotwin4d",
+    "--cov=monai_physio",
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-report=xml"
@@ -448,7 +448,7 @@ markers = [
 timeout = 1200
 
 [tool.coverage.run]
-source = ["src/physiotwin4d"]
+source = ["src/monai_physio"]
 omit = [
     "*/tests/*",
     "*/test_*",
@@ -536,10 +536,10 @@ ignore = [
 "tests/*.py" = ["S101", "PLR2004", "ARG001", "ARG002"]
 "experiments/**/*.py" = ["T201", "S101"]
 # torch/icon_registration are lazy-loaded at runtime; forward-reference strings are intentional
-"src/physiotwin4d/register_images_icon.py" = ["F821"]
+"src/monai_physio/register_images_icon.py" = ["F821"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["physiotwin4d"]
+known-first-party = ["monai_physio"]
 force-single-line = false
 lines-after-imports = 2
 

@@ -2,7 +2,7 @@
 train_physicsnemo (CLI)
 =======================
 
-.. automodule:: physiotwin4d.cli.train_physicsnemo
+.. automodule:: monai_physio.cli.train_physicsnemo
    :members:
    :undoc-members:
    :show-inheritance:

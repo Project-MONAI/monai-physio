@@ -15,7 +15,7 @@ import numpy as np
 import pytest
 import SimpleITK as sitk
 
-from physiotwin4d.image_tools import ImageTools
+from monai_physio.image_tools import ImageTools
 
 
 class TestImageTools:
@@ -244,7 +244,7 @@ class TestImageTools:
         test_directories: dict[str, Path],
     ) -> None:
         """Test reading and writing double precision vector images."""
-        from physiotwin4d.transform_tools import TransformTools
+        from monai_physio.transform_tools import TransformTools
 
         output_dir = test_directories["output"]
         img_output_dir = output_dir / "image_tools"

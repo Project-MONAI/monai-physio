@@ -15,7 +15,7 @@
 # - Automated heart chamber segmentation (LV, RV, LA, RA)
 # - Myocardium segmentation
 # - Major vessel segmentation (aorta, pulmonary artery, coronary arteries)
-# - Integration with PhysioTwin4D workflows
+# - Integration with MONAI Physio workflows
 
 # %% [markdown]
 # ## 1. Setup and Imports
@@ -32,8 +32,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pyvista as pv
 
-from physiotwin4d.landmark_tools import LandmarkTools
-from physiotwin4d.segment_heart_simpleware import SegmentHeartSimpleware
+from monai_physio.landmark_tools import LandmarkTools
+from monai_physio.segment_heart_simpleware import SegmentHeartSimpleware
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 

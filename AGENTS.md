@@ -2,7 +2,7 @@
 
 Role-based guidance for AI agents working in this repository.
 
-PhysioTwin4D is a collection of methods, workflows, tutorials, and CLI tools
+MONAI Physio is a collection of methods, workflows, tutorials, and CLI tools
 for creating personalized physiological digital twins: starting from a 3D
 medical image of a subject, extracting anatomic models, and then using AI
 surrogates to estimate the subject's physiological processes (initially
@@ -99,7 +99,7 @@ python -m pytest tests/ -v --run-all
 python -m pytest tests/ -v --run-gpu --run-slow
 
 # Coverage
-python -m pytest tests/ --cov=src/physiotwin4d --cov-report=html
+python -m pytest tests/ --cov=src/monai_physio --cov-report=html
 
 # Create missing baselines
 python -m pytest tests/ --create-baselines
@@ -109,7 +109,7 @@ Version bumping: `bumpver update --patch`, `--minor`, or `--major`.
 
 ## Migration Guide
 
-PhysioTwin4D prefers compatibility. Break a public API only when the change is
+MONAI Physio prefers compatibility. Break a public API only when the change is
 generally beneficial to future users. Never add deprecation shims,
 removed-symbol re-exports, or removed-symbol stubs; when a break is
 substantial, ship code that automates the conversion instead.
@@ -164,9 +164,9 @@ graphify update .               # refresh after code changes (AST-only, no API c
 
 - Read the relevant source files before proposing changes.
 - Runtime classes for workflows, segmentation, registration, and USD tools
-  inherit from `PhysioTwin4DBase`; new runtime classes must too. Standalone
+  inherit from `MONAIPhysioBase`; new runtime classes must too. Standalone
   utility scripts and data/container/helper classes do not.
-- In classes that inherit from `PhysioTwin4DBase`, use `self.log_info()` and
+- In classes that inherit from `MONAIPhysioBase`, use `self.log_info()` and
   `self.log_debug()`, never `print()`. Standalone scripts may use `print()`.
 - No emojis in `.py` files; avoid them in docs too. Windows cp1252 encoding
   has broken this project before.
@@ -244,7 +244,7 @@ graphify update .               # refresh after code changes (AST-only, no API c
   those are fixed conventions (see Data Conventions above). State only what is
   specific to the test, such as the size of a synthetic volume.
 - When a test produces an image or surface, compare against a baseline using
-  `src/physiotwin4d/test_tools.py` utilities such as `TestTools`.
+  `src/monai_physio/test_tools.py` utilities such as `TestTools`.
 - Store baselines under `tests/baselines/`, which is tracked by Git LFS. Run
   `git lfs pull` after cloning.
 - Run with `--create-baselines` to materialize missing baselines on first use.

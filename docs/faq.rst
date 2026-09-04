@@ -2,15 +2,15 @@
 FAQ
 ===
 
-Frequently Asked Questions about PhysioTwin4D.
+Frequently Asked Questions about MONAI Physio.
 
 General Questions
 =================
 
-What is PhysioTwin4D?
+What is MONAI Physio?
 -----------------------
 
-PhysioTwin4D is a collection of methods, workflows, tutorials, and CLI tools for
+MONAI Physio is a collection of methods, workflows, tutorials, and CLI tools for
 creating personalized physiological digital twins: starting from a 3D medical
 image of a subject, extracting anatomic models, and then using AI surrogates to
 estimate the subject's physiological processes (initially cardiac and
@@ -39,7 +39,7 @@ Installation Questions
 Do I need a GPU?
 ----------------
 
-No. A plain ``pip install physiotwin4d`` works without a GPU. At import time
+No. A plain ``pip install monai-physio`` works without a GPU. At import time
 a ``UserWarning`` is emitted (visible by default in all standard Python runs):
 
 .. code-block:: text
@@ -47,7 +47,7 @@ a ``UserWarning`` is emitted (visible by default in all standard Python runs):
    CuPy is not installed — GPU acceleration is unavailable and processing will be
    slow. Re-install with uv to get CuPy and CUDA-enabled PyTorch in one step
    (pip alone will not select the correct CUDA wheel):
-     uv pip install 'physiotwin4d[cuda13]'  # CUDA 13
+     uv pip install 'monai-physio[cuda13]'  # CUDA 13
 
 CPU-only mode is suitable for evaluation and small datasets. For production
 workloads an NVIDIA GPU is strongly recommended.
@@ -59,7 +59,7 @@ CUDA 13 is supported. Install the CUDA 13 extra for GPU acceleration:
 
 .. code-block:: bash
 
-   uv pip install "physiotwin4d[cuda13]"
+   uv pip install "monai-physio[cuda13]"
 
 The extra installs CuPy. In uv-managed source environments, PyTorch,
 torchvision, and torchaudio are sourced from
@@ -122,5 +122,5 @@ More Questions?
 
 * Check the :doc:`cli_scripts/heart_gated_ct`
 * Browse :doc:`tutorials`
-* Open an issue on `GitHub <https://github.com/Project-MONAI/physiotwin4d/issues>`_
+* Open an issue on `GitHub <https://github.com/Project-MONAI/monai-physio/issues>`_
 

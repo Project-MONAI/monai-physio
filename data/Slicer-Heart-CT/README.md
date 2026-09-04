@@ -5,20 +5,20 @@
 Download this dataset automatically with:
 
 ```bash
-physiotwin4d-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
+monai-physio-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
 ```
 
 or from Python:
 
 ```python
-from physiotwin4d import DataDownloadTools
+from monai_physio import DataDownloadTools
 
 data_file = DataDownloadTools.DownloadSlicerHeartCTData("data/Slicer-Heart-CT")
 assert DataDownloadTools.VerifySlicerHeartCTData("data/Slicer-Heart-CT")
 ```
 
 This fetches a single ~1.2 GB file from
-[the PhysioTwin4D release assets](https://github.com/Project-MONAI/physiotwin4d/releases/download/2026.07.1/TruncalValve_4DCT.seq.nrrd),
+[the MONAI Physio release assets](https://github.com/Project-MONAI/monai-physio/releases/download/2026.07.1/TruncalValve_4DCT.seq.nrrd),
 then splits it into per-phase 3D `slice_???.mha` volumes in the same
 directory via `ConvertImage4DTo3D`. An existing non-empty `.seq.nrrd` is
 reused, and the split is skipped once the `slice_???.mha` files are present —

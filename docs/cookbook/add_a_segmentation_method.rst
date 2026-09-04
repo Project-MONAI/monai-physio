@@ -4,7 +4,7 @@
 Adding a Segmentation Method
 =============================
 
-Wire a new segmentation backend into PhysioTwin4D so every workflow and CLI
+Wire a new segmentation backend into MONAI Physio so every workflow and CLI
 that takes a ``segmentation_method`` can use it.
 
 Ingredients
@@ -13,12 +13,12 @@ Ingredients
 * **A model or algorithm** that turns one 3D image into an integer labelmap.
 * **A label map of your own**: which integer id means which organ, and which
   anatomy group each organ belongs to.
-* **A module** at ``src/physiotwin4d/segment_<name>.py``.
+* **A module** at ``src/monai_physio/segment_<name>.py``.
 
 Steps
 =====
 
-**1. Subclass** :class:`~physiotwin4d.SegmentAnatomyBase`. The base owns
+**1. Subclass** :class:`~monai_physio.SegmentAnatomyBase`. The base owns
 preprocessing, postprocessing, contrast fusion, and anatomy-group splitting;
 you supply only the model call.
 
@@ -28,7 +28,7 @@ you supply only the model call.
 
    import itk
 
-   from physiotwin4d import SegmentAnatomyBase
+   from monai_physio import SegmentAnatomyBase
 
 
    class SegmentBrainMyModel(SegmentAnatomyBase):
@@ -67,7 +67,7 @@ for ``"other"``.
 
 .. code-block:: python
 
-   from physiotwin4d.usd_anatomy_tools import DEFAULT_RENDER_PARAMS
+   from monai_physio.usd_anatomy_tools import DEFAULT_RENDER_PARAMS
 
    DEFAULT_RENDER_PARAMS["brain"] = {
        "name": "Brain",
@@ -75,11 +75,11 @@ for ``"other"``.
        # ... copy the parameter list from an existing entry ...
    }
 
-**4. Export it** from ``src/physiotwin4d/__init__.py``, next to the other
+**4. Export it** from ``src/monai_physio/__init__.py``, next to the other
 ``segment_*`` imports, and add it to ``__all__``.
 
 **5. Add it to the CLI dispatch** in
-``src/physiotwin4d/cli/_method_factories.py`` — the single place strings become
+``src/monai_physio/cli/_method_factories.py`` — the single place strings become
 instances. Append the name to ``SEGMENTATION_METHODS`` and a branch to
 ``build_segmentation_method()``. Every ``--segmentation-method`` flag picks it
 up from there.

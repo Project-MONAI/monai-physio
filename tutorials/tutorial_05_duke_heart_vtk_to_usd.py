@@ -41,8 +41,8 @@ import numpy as np
 import pyvista as pv
 
 from parameters_base import ParametersBase
-from physiotwin4d import (
-    PhysioTwin4DBase,
+from monai_physio import (
+    MONAIPhysioBase,
     SegmentHeartSimplewareTrimmedBranches,
     TestTools,
     WorkflowConvertVTKToUSD,
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     output_dir = tutorial_paths.output_directory(test_mode) / "tutorial_05_duke_heart"
 
     log_level = logging.INFO
-    reporter = PhysioTwin4DBase(class_name=class_name, log_level=log_level)
+    reporter = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
     # The labelmaps were produced by Simpleware ASCardio, so its taxonomy is
     # what maps each structure onto an anatomy group and a material.

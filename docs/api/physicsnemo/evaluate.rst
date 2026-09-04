@@ -2,8 +2,8 @@
 Scoring a Mesh-Stage Model Against Images
 ==========================================
 
-.. module:: physiotwin4d.workflow_evaluate_movement
-.. currentmodule:: physiotwin4d
+.. module:: monai_physio.workflow_evaluate_movement
+.. currentmodule:: monai_physio
 
 A mm error against the surfaces a registration produced says how well the
 network reproduces that registration. :class:`WorkflowEvaluateMovement` asks the
@@ -29,7 +29,7 @@ Example
 
 .. code-block:: python
 
-   from physiotwin4d import (
+   from monai_physio import (
        WorkflowEvaluateMovement,
        WorkflowInferMovement,
        WorkflowInferPhysicsNeMo,

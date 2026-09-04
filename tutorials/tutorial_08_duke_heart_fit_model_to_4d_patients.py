@@ -66,7 +66,7 @@ import numpy as np
 import pyvista as pv
 from parameters_duke_heart_labelmaps import DUKE_HEART
 
-from physiotwin4d import (
+from monai_physio import (
     ContourTools,
     RegisterModelsDistanceMaps,
     TestTools,

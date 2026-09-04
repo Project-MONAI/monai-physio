@@ -7,7 +7,7 @@ every resampling leaves a region the moving image does not cover.
 import itk
 import numpy as np
 
-from physiotwin4d.register_images_base import RegisterImagesBase
+from monai_physio.register_images_base import RegisterImagesBase
 
 _SIZE = 10
 _SHIFT_MM = 5.0

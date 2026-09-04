@@ -21,13 +21,13 @@ pytest.importorskip("torch")
 pytest.importorskip("physicsnemo")
 pytest.importorskip("torch_geometric")
 
-from physiotwin4d import (  # noqa: E402
+from monai_physio import (  # noqa: E402
     DistributedContext,
     TrainPhysicsNeMoMGN,
     WorkflowInferPhysicsNeMo,
     WorkflowTrainPhysicsNeMo,
 )
-from physiotwin4d.physicsnemo_tools import uncompiled_state_dict  # noqa: E402
+from monai_physio.physicsnemo_tools import uncompiled_state_dict  # noqa: E402
 
 _TARGET_ARRAY = "displacement"
 _STAGES = (0.0, 1.0)

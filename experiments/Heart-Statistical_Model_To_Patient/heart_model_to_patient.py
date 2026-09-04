@@ -11,8 +11,8 @@ import itk
 import numpy as np
 import pyvista as pv
 
-# Import from PhysioTwin4D package
-from physiotwin4d import (
+# Import from MONAI Physio package
+from monai_physio import (
     ContourTools,
     SegmentChestTotalSegmentator,
     WorkflowFitStatisticalModelToPatient,

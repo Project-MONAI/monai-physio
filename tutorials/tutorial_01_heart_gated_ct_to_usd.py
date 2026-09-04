@@ -73,7 +73,7 @@ from pathlib import Path
 import itk
 from parameters_heart_ct_kcl import HEART_CT_KCL
 
-from physiotwin4d import (
+from monai_physio import (
     RegisterImagesGreedy,
     SegmentChestTotalSegmentatorWithContrast,
     TestTools,

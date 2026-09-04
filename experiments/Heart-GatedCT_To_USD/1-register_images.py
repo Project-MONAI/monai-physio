@@ -3,11 +3,11 @@ from pathlib import Path
 
 import itk
 
-from physiotwin4d.register_images_ants import RegisterImagesANTS
-from physiotwin4d.segment_chest_total_segmentator_with_contrast import (
+from monai_physio.register_images_ants import RegisterImagesANTS
+from monai_physio.segment_chest_total_segmentator_with_contrast import (
     SegmentChestTotalSegmentatorWithContrast,
 )
-from physiotwin4d.transform_tools import TransformTools
+from monai_physio.transform_tools import TransformTools
 
 # nnUNetv2 (used by TotalSegmentator) spawns a multiprocessing.Pool. On Windows
 # the spawn start method re-imports this script in each child; without the

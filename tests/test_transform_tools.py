@@ -14,8 +14,8 @@ import pytest
 import pyvista as pv
 import vtk
 
-from physiotwin4d.image_tools import ImageTools
-from physiotwin4d.transform_tools import TransformTools
+from monai_physio.image_tools import ImageTools
+from monai_physio.transform_tools import TransformTools
 
 
 def _sphere_shell_samples(

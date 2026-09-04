@@ -2,8 +2,8 @@
 Registration Base Class
 ====================================
 
-.. module:: physiotwin4d.register_images_base
-.. currentmodule:: physiotwin4d
+.. module:: monai_physio.register_images_base
+.. currentmodule:: monai_physio
 
 Abstract base class for all image registration methods.
 

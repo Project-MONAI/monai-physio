@@ -2,9 +2,9 @@
 Image Registration Modules
 ==========================
 
-.. currentmodule:: physiotwin4d
+.. currentmodule:: monai_physio
 
-PhysioTwin4D image registration classes align moving 3D images to a fixed
+MONAI Physio image registration classes align moving 3D images to a fixed
 3D image and return transform dictionaries.
 
 .. toctree::
@@ -36,7 +36,7 @@ Basic Example
 
    import itk
 
-   from physiotwin4d import RegisterImagesANTS
+   from monai_physio import RegisterImagesANTS
 
    fixed = itk.imread("reference.mha")
    moving = itk.imread("moving.mha")

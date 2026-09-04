@@ -5,7 +5,7 @@ Heart Model to Patient Registration
 Overview
 ========
 
-The ``physiotwin4d-fit-statistical-model-to-patient`` command-line tool registers generic anatomical heart models to patient-specific imaging data and surface models. This workflow enables:
+The ``monai-physio-fit-statistical-model-to-patient`` command-line tool registers generic anatomical heart models to patient-specific imaging data and surface models. This workflow enables:
 
 * Patient-specific anatomical modeling from generic templates
 * Multi-stage registration combining ICP, PCA, and deformable methods
@@ -22,11 +22,11 @@ The registration pipeline consists of four stages:
 Installation
 ============
 
-The script is included with PhysioTwin4D installation:
+The script is included with MONAI Physio installation:
 
 .. code-block:: bash
 
-   pip install physiotwin4d
+   pip install monai-physio
 
 Quick Start
 ===========
@@ -38,7 +38,7 @@ Register a generic heart model to patient data:
 
 .. code-block:: bash
 
-   physiotwin4d-fit-statistical-model-to-patient \
+   monai-physio-fit-statistical-model-to-patient \
        --template-model heart_model.vtu \
        --template-labelmap heart_labelmap.nii.gz \
        --patient-models lv.vtp rv.vtp myo.vtp \
@@ -52,7 +52,7 @@ Include statistical shape model fitting:
 
 .. code-block:: bash
 
-   physiotwin4d-fit-statistical-model-to-patient \
+   monai-physio-fit-statistical-model-to-patient \
        --template-model heart_model.vtu \
        --template-labelmap heart_labelmap.nii.gz \
        --patient-models lv.vtp rv.vtp myo.vtp \
@@ -86,7 +86,7 @@ Optional inputs:
    Path to template labelmap image (.nii.gz, .nrrd, .mha). Required only when
    ``--labelmap-to-image`` is set.
 
-See :class:`physiotwin4d.WorkflowFitStatisticalModelToPatient` for API documentation.
+See :class:`monai_physio.WorkflowFitStatisticalModelToPatient` for API documentation.
 
 Template Labelmap Configuration
 --------------------------------
@@ -144,7 +144,7 @@ Example 1: Basic Registration
 
 .. code-block:: bash
 
-   physiotwin4d-fit-statistical-model-to-patient \
+   monai-physio-fit-statistical-model-to-patient \
        --template-model heart_model.vtu \
        --template-labelmap heart_labelmap.nii.gz \
        --patient-models lv.vtp rv.vtp myo.vtp \
@@ -156,7 +156,7 @@ Example 2: PCA-Based Registration
 
 .. code-block:: bash
 
-   physiotwin4d-fit-statistical-model-to-patient \
+   monai-physio-fit-statistical-model-to-patient \
        --template-model heart_model.vtu \
        --template-labelmap heart_labelmap.nii.gz \
        --patient-models lv.vtp rv.vtp \

@@ -2,8 +2,8 @@
 VTK to USD Conversion
 ====================================
 
-.. module:: physiotwin4d.convert_vtk_to_usd
-.. currentmodule:: physiotwin4d
+.. module:: monai_physio.convert_vtk_to_usd
+.. currentmodule:: monai_physio
 
 Convert VTK mesh files to USD format with animation support.
 

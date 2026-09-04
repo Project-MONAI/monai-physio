@@ -2,8 +2,8 @@
 PCA-Based Registration
 ====================================
 
-.. module:: physiotwin4d.register_models_pca
-.. currentmodule:: physiotwin4d
+.. module:: monai_physio.register_models_pca
+.. currentmodule:: monai_physio
 
 Shape-based registration using principal component analysis.
 

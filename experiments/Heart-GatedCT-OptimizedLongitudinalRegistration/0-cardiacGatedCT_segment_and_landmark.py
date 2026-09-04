@@ -10,7 +10,7 @@
 # `gated_nii/<subject_id>/` directory by the first six filename characters.
 #
 # Segmentation labelmaps and landmarks are written to:
-# `d:/PhysioTwin4D/duke_data/simple_ascardio/<subject_id>/`
+# `d:/MONAI-Physio/duke_data/simple_ascardio/<subject_id>/`
 #
 # Output files follow the input stem:
 # - `<stem>_labelmap.nii.gz`
@@ -23,16 +23,16 @@ from pathlib import Path
 
 import itk
 
-from physiotwin4d import SegmentHeartSimpleware
-from physiotwin4d.landmark_tools import LandmarkTools
+from monai_physio import SegmentHeartSimpleware
+from monai_physio.landmark_tools import LandmarkTools
 
 # %%
 # Discover data (mirrors recon_4d.py)
 ########################################################
 
-ref_data_dir = "d:/PhysioTwin4D/duke_data/ref_images"
-src_data_dir_base = "d:/PhysioTwin4D/duke_data/gated_nii"
-segmentation_dir_base = "d:/PhysioTwin4D/duke_data/simple_ascardio"
+ref_data_dir = "d:/MONAI-Physio/duke_data/ref_images"
+src_data_dir_base = "d:/MONAI-Physio/duke_data/gated_nii"
+segmentation_dir_base = "d:/MONAI-Physio/duke_data/simple_ascardio"
 
 ref_files = [
     os.path.join(ref_data_dir, f)

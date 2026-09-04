@@ -570,7 +570,7 @@ def _agent_guidance_files(agent: str, repo_root: Path) -> list[str]:
 def _agent_scoped_guidance_files(agent: str, repo_root: Path) -> list[str]:
     """Return existing scoped guidance files relevant to the selected AI agent."""
     agent_file = _agent_specific_guidance_file(agent)
-    scoped_file = Path("src") / "physiotwin4d" / "vtk_to_usd" / agent_file
+    scoped_file = Path("src") / "monai_physio" / "vtk_to_usd" / agent_file
     if (repo_root / scoped_file).exists():
         return [scoped_file.as_posix()]
     return []
@@ -651,10 +651,10 @@ def build_prompt(
           needs a conversion script only when the break is substantial; it may
           record `None needed` otherwise)
         - Adds error handling for internal states that cannot happen
-        - In classes that inherit from `PhysioTwin4DBase`, uses `print()` instead
+        - In classes that inherit from `MONAIPhysioBase`, uses `print()` instead
           of `self.log_info()` / `self.log_debug()`
         - New runtime workflow / segmentation / registration class does not inherit
-          from `PhysioTwin4DBase`; helper/data/container classes need not
+          from `MONAIPhysioBase`; helper/data/container classes need not
         - Adds features or abstractions beyond what was requested
         - Calls `vtk_to_usd` internals from outside `convert_vtk_to_usd.py`
         - Applies coordinate conversion (LPS->USD Y-up) more than once, or

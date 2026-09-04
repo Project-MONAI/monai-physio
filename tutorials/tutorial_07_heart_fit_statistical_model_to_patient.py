@@ -25,7 +25,7 @@ import itk
 import pyvista as pv
 from parameters_heart_ct_kcl import HEART_CT_KCL
 
-from physiotwin4d import (
+from monai_physio import (
     ContourTools,
     SegmentChestTotalSegmentator,
     # SegmentHeartSimplewareTrimmedBranches,

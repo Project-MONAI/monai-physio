@@ -2,7 +2,7 @@
 Transform Direction Conventions
 ===============================
 
-Registration in PhysioTwin4D produces a pair of transforms, and choosing the
+Registration in MONAI Physio produces a pair of transforms, and choosing the
 wrong one of the pair is the single most common registration mistake. The rules
 are simple but easy to get backwards, because **warping an image and warping a
 point require opposite transforms**, and because **model (PCA) registration
@@ -15,15 +15,15 @@ The two transform families
 ===========================
 
 Image registration
-    :class:`physiotwin4d.RegisterImagesANTS`,
-    :class:`physiotwin4d.RegisterImagesICON`, and
-    :class:`physiotwin4d.RegisterImagesGreedy` register a *moving* image to a
+    :class:`monai_physio.RegisterImagesANTS`,
+    :class:`monai_physio.RegisterImagesICON`, and
+    :class:`monai_physio.RegisterImagesGreedy` register a *moving* image to a
     *fixed* image and return a dict with ``forward_transform`` and
-    ``inverse_transform``. :class:`physiotwin4d.RegisterTimeSeriesImages`
+    ``inverse_transform``. :class:`monai_physio.RegisterTimeSeriesImages`
     returns the list-valued ``forward_transforms`` / ``inverse_transforms``.
 
 Model (PCA) registration
-    :class:`physiotwin4d.RegisterModelsPCA` deforms a *template* model toward
+    :class:`monai_physio.RegisterModelsPCA` deforms a *template* model toward
     a *target* (patient) and, via ``compute_pca_transforms()``, returns
     ``forward_point_transform`` and ``inverse_point_transform``. These are
     **point transforms**, oriented opposite to the image-registration transforms
@@ -70,7 +70,7 @@ So for the **same** moving-to-fixed registration result:
 The first two rows are the everyday case (warping the registered moving data
 into the fixed/reference frame): the **image uses** ``forward_transform``, the
 **points use** ``inverse_transform``. The last two rows are the mirror image;
-:meth:`physiotwin4d.RegisterTimeSeriesImages.reconstruct_time_series` is the
+:meth:`monai_physio.RegisterTimeSeriesImages.reconstruct_time_series` is the
 canonical consumer of ``inverse_transform`` for image warping (it resamples the
 fixed image back onto each moving frame's grid).
 
@@ -83,7 +83,7 @@ fixed image back onto each moving frame's grid).
 PCA point transforms
 ====================
 
-:class:`physiotwin4d.RegisterModelsPCA` builds ``forward_point_transform``
+:class:`monai_physio.RegisterModelsPCA` builds ``forward_point_transform``
 directly from the template-to-target point displacement, so
 ``forward_point_transform.TransformPoint(template_point)`` returns the
 corresponding *target* point. As a **point** map it goes template (moving) to

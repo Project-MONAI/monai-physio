@@ -2,7 +2,7 @@
 PhysicsNeMo AI Surrogates
 =========================
 
-PhysioTwin4D trains and runs PhysicsNeMo mesh-stage models: given a subject's
+MONAI Physio trains and runs PhysicsNeMo mesh-stage models: given a subject's
 shape parameters and a stage (a point in the cardiac or respiratory cycle),
 predict a per-vertex target on the shared template mesh. When that target is a
 displacement, the prediction replaces a per-phase registration solve with one
@@ -18,23 +18,23 @@ network.
 
    * - Class
      - Role
-   * - :class:`~physiotwin4d.WorkflowTrainPhysicsNeMo`
+   * - :class:`~monai_physio.WorkflowTrainPhysicsNeMo`
      - Manifests, normalization, lazy datasets, checkpoints and metadata
-   * - :class:`~physiotwin4d.WorkflowInferPhysicsNeMo`
+   * - :class:`~monai_physio.WorkflowInferPhysicsNeMo`
      - Loads a trained model and predicts raw per-point targets
-   * - :class:`~physiotwin4d.WorkflowInferMovement`
+   * - :class:`~monai_physio.WorkflowInferMovement`
      - Interprets 3-component targets as displacements: deformed meshes, mm
        error statistics, rasterized deformation fields, warped images and USD
-   * - :class:`~physiotwin4d.WorkflowEvaluateMovement`
+   * - :class:`~monai_physio.WorkflowEvaluateMovement`
      - Scores those predictions per structure against the acquired frames:
        volume difference, Dice and surface RMSE
-   * - :class:`~physiotwin4d.TrainPhysicsNeMoMGN` /
-       :class:`~physiotwin4d.TrainPhysicsNeMoMLP`
+   * - :class:`~monai_physio.TrainPhysicsNeMoMGN` /
+       :class:`~monai_physio.TrainPhysicsNeMoMLP`
      - The networks to train: MeshGraphNet or fully connected
-   * - :class:`~physiotwin4d.InferPhysicsNeMoMGN` /
-       :class:`~physiotwin4d.InferPhysicsNeMoMLP`
+   * - :class:`~monai_physio.InferPhysicsNeMoMGN` /
+       :class:`~monai_physio.InferPhysicsNeMoMLP`
      - The matching networks at inference time
-   * - :class:`~physiotwin4d.TrainPhysicsNeMoPhysicsInformedMotion`
+   * - :class:`~monai_physio.TrainPhysicsNeMoPhysicsInformedMotion`
      - A MeshGraphNet whose loss also prices the tissue's strain energy. It
        predicts displacement, as the others do; the stress that deformation
        implies comes from ``NeoHookeanResidual.cauchy_stress`` afterwards, as
@@ -42,10 +42,10 @@ network.
 
 PhysicsNeMo is an optional dependency::
 
-   pip install "physiotwin4d[physicsnemo]"
+   pip install "monai-physio[physicsnemo]"
    pip install torch-geometric          # MeshGraphNet only
 
-It requires Python >= 3.11. ``import physiotwin4d`` works without it; the
+It requires Python >= 3.11. ``import monai_physio`` works without it; the
 imports happen lazily inside the methods that need them.
 
 .. toctree::

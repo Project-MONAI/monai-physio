@@ -82,7 +82,7 @@ import numpy as np
 import pyvista as pv
 from parameters_duke_heart_physics_informed import DUKE_HEART_PHYSICS_INFORMED
 
-from physiotwin4d import (
+from monai_physio import (
     ContourTools,
     RegisterModelsDistanceMaps,
     TestTools,

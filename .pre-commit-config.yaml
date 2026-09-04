@@ -1,4 +1,4 @@
-# Pre-commit configuration for PhysioTwin4D
+# Pre-commit configuration for MONAI Physio
 # Simplified to use Ruff for all linting and formatting
 
 repos:
@@ -36,5 +36,5 @@ repos:
         language: system
         pass_filenames: false
         always_run: false
-        files: ^(src/physiotwin4d/|tests/)
+        files: ^(src/monai_physio/|tests/)
         stages: [pre-push]

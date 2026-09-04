@@ -7,8 +7,8 @@ from typing import Union
 
 import pytest
 
-from physiotwin4d.cli import download_data
-from physiotwin4d.data_download_tools import DataDownloadTools
+from monai_physio.cli import download_data
+from monai_physio.data_download_tools import DataDownloadTools
 
 
 def test_download_data_cli_with_no_args_prints_help(

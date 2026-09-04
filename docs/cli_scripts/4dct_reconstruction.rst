@@ -2,7 +2,7 @@
 High-Resolution 4D CT Reconstruction
 ====================================
 
-The ``physiotwin4d-reconstruct-highres-4d-ct`` command reconstructs a
+The ``monai-physio-reconstruct-highres-4d-ct`` command reconstructs a
 high-resolution 4D CT time series from ordered phase images and a
 high-resolution reference image.
 
@@ -14,7 +14,7 @@ Input Requirements
 * A fixed high-resolution reference image.
 * Optional fixed and moving masks for registration focus.
 
-DirLab-4DCT data cannot be downloaded automatically by PhysioTwin4D. Prepare
+DirLab-4DCT data cannot be downloaded automatically by MONAI Physio. Prepare
 it manually before using the DirLab tutorial or examples — see
 ``data/DirLab-4DCT/README.md`` for the download and layout instructions.
 
@@ -23,7 +23,7 @@ Basic Usage
 
 .. code-block:: bash
 
-   physiotwin4d-reconstruct-highres-4d-ct \
+   monai-physio-reconstruct-highres-4d-ct \
        --time-series-images frame_*.mha \
        --fixed-image highres_reference.mha \
        --output-dir ./results
@@ -33,7 +33,7 @@ Choosing a Reference Frame
 
 .. code-block:: bash
 
-   physiotwin4d-reconstruct-highres-4d-ct \
+   monai-physio-reconstruct-highres-4d-ct \
        --time-series-images frame_000.mha frame_001.mha frame_002.mha \
        --fixed-image highres_reference.mha \
        --reference-frame 0 \
@@ -44,7 +44,7 @@ Registration Options
 
 .. code-block:: bash
 
-   physiotwin4d-reconstruct-highres-4d-ct \
+   monai-physio-reconstruct-highres-4d-ct \
        --time-series-images frame_*.mha \
        --fixed-image highres_reference.mha \
        --registration-method Greedy_ICON \
@@ -63,7 +63,7 @@ time point — useful when anatomy or contrast is only visible in some frames.
 
 .. code-block:: bash
 
-   physiotwin4d-reconstruct-highres-4d-ct \
+   monai-physio-reconstruct-highres-4d-ct \
        --time-series-images frame_*.mha \
        --fixed-image highres_reference.mha \
        --composite-mode mean \
@@ -79,7 +79,7 @@ The command writes reconstructed images to ``--output-dir`` using
 Python API
 ==========
 
-Use :class:`physiotwin4d.WorkflowReconstructHighres4DCT` for programmatic
+Use :class:`monai_physio.WorkflowReconstructHighres4DCT` for programmatic
 access.
 
 Related Pages

@@ -7,7 +7,7 @@ body:
     attributes:
       label: Page or file
       description: Link to the hosted doc page, or the source path (e.g. docs/tutorials.rst, tutorials/tutorial_09_*.py docstring).
-      placeholder: "https://project-monai.github.io/physiotwin4d/... or docs/..."
+      placeholder: "https://project-monai.github.io/monai-physio/... or docs/..."
     validations:
       required: true
 

@@ -2,7 +2,7 @@
 fit_statistical_model_to_patient (CLI)
 ======================================
 
-.. automodule:: physiotwin4d.cli.fit_statistical_model_to_patient
+.. automodule:: monai_physio.cli.fit_statistical_model_to_patient
    :members:
    :undoc-members:
    :show-inheritance:

@@ -2,8 +2,8 @@
 Download Example Data
 =====================
 
-The ``physiotwin4d-download-data`` command downloads example datasets used by
-PhysioTwin4D tutorials and demos.
+The ``monai-physio-download-data`` command downloads example datasets used by
+MONAI Physio tutorials and demos.
 
 Supported Datasets
 ==================
@@ -22,10 +22,10 @@ Supported Datasets
    * - ``CHOP-Valve4D``
      - CHOP Jolley Lab transcatheter pulmonary valve model, converted from
        the original FEBio model to VTK/ITK and segmented with Simpleware,
-       from the PhysioTwin4D GitHub release. See
+       from the MONAI Physio GitHub release. See
        ``data/CHOP-Valve4D/README.md``.
    * - ``Chest-CT``
-     - Ungated 3D chest CT, a single static volume, from the PhysioTwin4D
+     - Ungated 3D chest CT, a single static volume, from the MONAI Physio
        GitHub release. See ``data/Chest-CT/README.md`` for the data source
        and required citation.
 
@@ -36,7 +36,7 @@ Download a dataset into its default location:
 
 .. code-block:: bash
 
-   physiotwin4d-download-data Slicer-Heart-CT
+   monai-physio-download-data Slicer-Heart-CT
 
 Running the command with no arguments prints usage/help instead of
 downloading anything.
@@ -46,7 +46,7 @@ Options
 
 .. code-block:: bash
 
-   physiotwin4d-download-data [Slicer-Heart-CT|KCL-Heart-Model|CHOP-Valve4D|Chest-CT] [--directory DIRECTORY]
+   monai-physio-download-data [Slicer-Heart-CT|KCL-Heart-Model|CHOP-Valve4D|Chest-CT] [--directory DIRECTORY]
 
 ``data_name``
    Dataset to download. One of ``Slicer-Heart-CT``, ``KCL-Heart-Model``,
@@ -68,7 +68,7 @@ into per-phase 3-D volumes:
    data/Slicer-Heart-CT/slice_000.mha ... slice_020.mha
 
 The command uses
-:meth:`physiotwin4d.data_download_tools.DataDownloadTools.DownloadSlicerHeartCTData`,
+:meth:`monai_physio.data_download_tools.DataDownloadTools.DownloadSlicerHeartCTData`,
 so repeated runs reuse the existing non-empty file and skip the split once
 the ``slice_???.mha`` files are present.
 
@@ -80,7 +80,7 @@ For ``KCL-Heart-Model``, the command downloads, extracts, and reuses:
    data/KCL-Heart-Model/input_meshes/01.vtk ... 20.vtk
 
 The command uses
-:meth:`physiotwin4d.data_download_tools.DataDownloadTools.DownloadKCLHeartModelData`,
+:meth:`monai_physio.data_download_tools.DataDownloadTools.DownloadKCLHeartModelData`,
 which fetches each per-model ``.tar.gz`` archive from Zenodo, extracts its
 mesh, and skips archives whose target ``.vtk`` file is already present.
 
@@ -93,8 +93,8 @@ For ``CHOP-Valve4D``, the command downloads, extracts, and reuses:
    data/CHOP-Valve4D/CT/        (source CT volume and Simpleware segmentation)
 
 The command uses
-:meth:`physiotwin4d.data_download_tools.DataDownloadTools.DownloadCHOPValve4DData`,
-which fetches each subdirectory's zip archive from the PhysioTwin4D GitHub
+:meth:`monai_physio.data_download_tools.DataDownloadTools.DownloadCHOPValve4DData`,
+which fetches each subdirectory's zip archive from the MONAI Physio GitHub
 release and skips a subdirectory once it has its expected extracted files
 (the CT volume or Simpleware segmentation for ``CT/``, ``.vtk`` meshes for
 ``Alterra/`` and ``TPV25/``) — a subdirectory left behind by an interrupted
@@ -107,8 +107,8 @@ For ``Chest-CT``, the command downloads and reuses a single volume:
    data/Chest-CT/Chest-CT.mha
 
 The command uses
-:meth:`physiotwin4d.data_download_tools.DataDownloadTools.DownloadChestCTData`,
-which fetches the volume from the PhysioTwin4D GitHub release and reuses an
+:meth:`monai_physio.data_download_tools.DataDownloadTools.DownloadChestCTData`,
+which fetches the volume from the MONAI Physio GitHub release and reuses an
 existing non-empty file, so re-running resumes an interrupted download.
 
 See Also

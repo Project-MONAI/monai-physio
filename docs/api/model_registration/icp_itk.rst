@@ -2,8 +2,8 @@
 ICP with ITK Backend
 ====================================
 
-.. module:: physiotwin4d.register_models_icp_itk
-.. currentmodule:: physiotwin4d
+.. module:: monai_physio.register_models_icp_itk
+.. currentmodule:: monai_physio
 
 ICP registration using ITK's optimized implementation.
 

@@ -2,7 +2,7 @@
 infer_physicsnemo (CLI)
 =======================
 
-.. automodule:: physiotwin4d.cli.infer_physicsnemo
+.. automodule:: monai_physio.cli.infer_physicsnemo
    :members:
    :undoc-members:
    :show-inheritance:

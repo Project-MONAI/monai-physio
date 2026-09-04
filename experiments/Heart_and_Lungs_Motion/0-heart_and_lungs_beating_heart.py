@@ -64,12 +64,12 @@ import itk
 import numpy as np
 import pyvista as pv
 
-from physiotwin4d import (
+from monai_physio import (
     WorkflowConvertVTKToUSD,
     WorkflowInferMovement,
     WorkflowInferPhysicsNeMo,
 )
-from physiotwin4d import physicsnemo_tools as pnt
+from monai_physio import physicsnemo_tools as pnt
 
 
 def _ensure_mgn_inference_assets(
@@ -126,7 +126,7 @@ if __name__ == "__main__":
     model_dir = tutorials_dir / "output" / "tutorial_09_byod_mgn_3"
     epoch = 300
     # Source PCA template used to train the model (regenerates missing assets).
-    pca_mean_volume = Path("D:/PhysioTwin4D/kcl-heart-pca/pca-vol-kcl/pca_mean.vtu")
+    pca_mean_volume = Path("D:/MONAI-Physio/kcl-heart-pca/pca-vol-kcl/pca_mean.vtu")
 
     # Case1Pack reference image (defines the deformation-field grid).
     reference_image_file = repo_root / "data" / "DirLab-4DCT" / "Case1Pack_T70.mha"

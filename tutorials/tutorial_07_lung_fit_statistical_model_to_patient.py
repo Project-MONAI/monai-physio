@@ -13,7 +13,7 @@ PCA model: Tutorial 6 output (``output/tutorial_06_lung/pca_model.json``,
 ``pca_mean_surface.vtp``)
 Patient image: an ungated 3D chest CT,
 ``data/Chest-CT/Chest-CT.mha``, downloaded with
-``physiotwin4d-download-data Chest-CT --directory data/Chest-CT``
+``monai-physio-download-data Chest-CT --directory data/Chest-CT``
 (see ``data/Chest-CT/README.md`` for the data source and required citation)
 ICON weights: ``tutorial_02_lung_distancemap_finetune_icon.py`` output
 (``network_weights/icon_dirlab_4dct_distancemap/
@@ -33,7 +33,7 @@ import itk
 import pyvista as pv
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
-from physiotwin4d import (
+from monai_physio import (
     ContourTools,
     SegmentNVSegmentCTMRI,
     TestTools,
@@ -112,7 +112,7 @@ if __name__ == "__main__":
     if not patient_image_file.exists():
         raise FileNotFoundError(
             f"Patient chest CT not found: {patient_image_file}\n"
-            "Run: physiotwin4d-download-data Chest-CT --directory data/Chest-CT"
+            "Run: monai-physio-download-data Chest-CT --directory data/Chest-CT"
         )
     patient_image = itk.imread(str(patient_image_file))
 

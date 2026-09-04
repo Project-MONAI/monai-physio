@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from physiotwin4d import (
+from monai_physio import (
     EvaluateMovementBase,
     EvaluateMovementDukeHeart,
     EvaluateMovementLung,

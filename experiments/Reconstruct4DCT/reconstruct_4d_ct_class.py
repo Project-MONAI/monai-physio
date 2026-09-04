@@ -16,7 +16,7 @@ from typing import Optional
 import itk
 import numpy as np
 
-from physiotwin4d import (
+from monai_physio import (
     RegisterImagesBase,
     RegisterImagesGreedy,
     RegisterImagesGreedyICON,
