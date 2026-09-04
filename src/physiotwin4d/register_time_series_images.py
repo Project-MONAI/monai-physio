@@ -469,14 +469,15 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         fixed_arr = itk.GetArrayViewFromImage(self.fixed_image)
         dtype = fixed_arr.dtype
 
+        # float32 keeps peak memory bounded for large volumes; only widen to
+        # float64 when the source data already needs it. A float accumulator
+        # (rather than the fixed image's own dtype) also keeps np.maximum
+        # from raising when a moving image's pixel type is floating point
+        # but the fixed image's is integer.
+        accumulator_dtype = np.float64 if dtype == np.float64 else np.float32
+        accumulator = fixed_arr.astype(accumulator_dtype)
         if mode == "mean":
-            # float32 keeps peak memory bounded for large volumes; only
-            # widen to float64 when the source data already needs it.
-            accumulator_dtype = np.float64 if dtype == np.float64 else np.float32
-            accumulator = fixed_arr.astype(accumulator_dtype)
             valid_count = np.ones_like(accumulator)
-        else:
-            accumulator = fixed_arr.copy()
 
         for moving_image, forward_transform in zip(moving_images, forward_transforms):
             registered = self.transform_tools.transform_image(
@@ -487,9 +488,8 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             )
             registered_arr = itk.GetArrayViewFromImage(registered)
 
-            coverage_image = itk.image_from_array(
-                np.ones(itk.GetArrayViewFromImage(moving_image).shape, dtype=np.uint8)
-            )
+            moving_shape = itk.GetArrayViewFromImage(moving_image).shape
+            coverage_image = itk.image_from_array(np.ones(moving_shape, dtype=np.uint8))
             coverage_image.CopyInformation(moving_image)
             registered_coverage = self.transform_tools.transform_image(
                 coverage_image,
