@@ -113,7 +113,7 @@ html_show_sphinx = True
 html_context = {
     "display_github": True,
     "github_user": "Project-MONAI",
-    "github_repo": "monai_physio",
+    "github_repo": "monai-physio",
     "github_version": "main",
     "conf_py_path": "/docs/",
 }
