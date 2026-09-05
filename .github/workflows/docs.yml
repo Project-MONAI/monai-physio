@@ -57,11 +57,14 @@ jobs:
         
     - name: Install dependencies
       # uv pip install only reads [tool.uv.pip] from pyproject.toml, not the
-      # bare [tool.uv] table, so no-build-isolation-package there is not
-      # applied here. Pass it explicitly, as the self-hosted GPU job in
-      # ci.yml already does successfully.
+      # bare [tool.uv] table, so no-build-isolation-package and
+      # extra-build-dependencies there are not applied here. torch-scatter's
+      # build needs torch importable before it runs, so install torch first
+      # (this runner starts from a clean environment each time, unlike the
+      # self-hosted GPU runner's persistent venv).
       run: |
         python -m pip install --upgrade pip uv
+        uv pip install --system torch
         uv pip install --system -e ".[dev]" --no-build-isolation-package torch-scatter
 
     - name: Clear pip cache
