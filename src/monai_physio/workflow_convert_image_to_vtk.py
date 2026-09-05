@@ -72,10 +72,10 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
 
     - ``field_data['AnatomyGroup']`` - anatomy group name, e.g. ``'heart'``.
     - ``field_data['SegmentationLabelNames']`` - individual structure names within the
-      group (e.g. ``['left_ventricle', 'right_ventricle', …]``).
+      group (e.g. ``['left_ventricle', 'right_ventricle', ...]``).
     - ``field_data['SegmentationLabelIds']`` - corresponding integer label IDs.
     - ``field_data['AnatomyColor']`` - RGB float color from :class:`USDAnatomyTools`.
-    - ``cell_data['Color']`` - RGBA uint8 array (n_cells × 4) for direct VTK rendering.
+    - ``cell_data['Color']`` - RGBA uint8 array (n_cells x 4) for direct VTK rendering.
 
     **I/O contract**
 
@@ -160,7 +160,7 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
         - ``field_data['SegmentationLabelNames']`` - individual label names.
         - ``field_data['SegmentationLabelIds']`` - integer label IDs (int32).
         - ``field_data['AnatomyColor']`` - RGB float32 color.
-        - ``cell_data['Color']`` - RGBA uint8 solid color (n_cells × 4).
+        - ``cell_data['Color']`` - RGBA uint8 solid color (n_cells x 4).
         """
         vtk_obj.field_data["AnatomyGroup"] = np.array([group])
         vtk_obj.field_data["SegmentationLabelNames"] = np.array(
