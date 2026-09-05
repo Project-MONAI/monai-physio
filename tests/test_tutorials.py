@@ -50,7 +50,7 @@ import pytest
 from parameters_base import ParametersBase
 from monai_physio.test_tools import TestTools
 
-from .conftest import skip_or_fail_missing_data
+from .conftest import skip_or_fail_missing_data, tutorial_data_is_required
 
 # Tolerances for screenshot comparison. Loose to survive minor rendering
 # differences across OS / GPU / driver versions.
@@ -846,17 +846,29 @@ class TestTutorial08LungFitModelTo4DPatients:
 
 
 def _require_physicsnemo() -> None:
-    """Skip unless both MGN dependencies are installed."""
+    """Skip unless both MGN dependencies are installed.
+
+    Fails instead of skipping under ``--require-tutorial-data``: these are
+    unconditional base dependencies of monai-physio, so their absence there
+    means the environment is broken, not merely that optional data is
+    missing.
+    """
     if importlib.util.find_spec("physicsnemo") is None:
-        pytest.skip(
+        reason = (
             "PhysicsNeMo not installed, though it is a base dependency of "
             "monai-physio; the environment may be broken."
         )
+        if tutorial_data_is_required():
+            pytest.fail(f"{reason} (--require-tutorial-data is set)")
+        pytest.skip(reason)
     if importlib.util.find_spec("torch_geometric") is None:
-        pytest.skip(
+        reason = (
             "PyTorch Geometric not installed, though it is a base dependency "
             "of monai-physio; the environment may be broken."
         )
+        if tutorial_data_is_required():
+            pytest.fail(f"{reason} (--require-tutorial-data is set)")
+        pytest.skip(reason)
 
 
 def _require_physicsnemo_and_tutorial_08() -> Path:
