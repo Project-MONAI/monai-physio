@@ -48,6 +48,11 @@ When editing existing code:
 - Don't refactor things that aren't broken.
 - Match existing style, even if you'd do it differently.
 - If you notice unrelated dead code, mention it - don't delete it.
+- When fixing a bug, fix it. Don't add a comment narrating what was wrong,
+  what changed, or how it was diagnosed - the commit message and PR
+  description are where that belongs, not the code. Only record it in a
+  comment when the motivation is truly exceptional: a non-obvious constraint
+  or gotcha a future editor would otherwise reintroduce.
 
 When your changes create orphans:
 

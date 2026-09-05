@@ -177,6 +177,11 @@ graphify update .               # refresh after code changes (AST-only, no API c
 - Scripts that instantiate `SegmentChestTotalSegmentator` must guard the
   top-level invocation with `if __name__ == "__main__":` on Windows
   (`torch.multiprocessing` requires it).
+- When fixing a bug, fix it. Don't add a comment recording what was wrong,
+  what changed, or how it was diagnosed - that belongs in the commit message
+  or PR description, not the code. Only record it in a comment when the
+  motivation is truly exceptional: a non-obvious constraint or gotcha a
+  future editor would otherwise reintroduce.
 - Double quotes for strings and docstrings. Keep lines at or
   below 88 characters.
 - Full type hints are required under strict mypy. Use `Optional[X]`, not

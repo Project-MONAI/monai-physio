@@ -61,6 +61,10 @@ context such as class inheritance), then flag every occurrence of:
       LPS world space - flag it even when it also documents what the parameter
       or return value means. Only genuine deviations from the conventions in
       `CLAUDE.md` may be documented.
+- [ ] A comment that narrates a bug fix's history instead of the code itself -
+      what was wrong, what changed, or how it was diagnosed. That belongs in
+      the commit message. Flag it unless the motivation is truly exceptional
+      (a non-obvious constraint a future editor would otherwise reintroduce).
 
 ### Migration guide
 - [ ] A deprecation shim, removed-symbol re-export, or removed-symbol stub

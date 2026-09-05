@@ -21,3 +21,6 @@ Instructions:
    each to `docs/developer/migration_next.md` using the template at the bottom
    of that file.
 9. Do not add features beyond what was requested.
+10. When fixing a bug, fix it. Do not add a comment recording what was wrong,
+    what changed, or how it was diagnosed - that belongs in the commit
+    message, not the code. Only truly exceptional motivations earn a comment.

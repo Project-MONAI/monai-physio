@@ -77,3 +77,7 @@ searching manually.
 - Do not add error handling for impossible internal states.
 - Do not create new files when editing an existing one suffices.
 - Do not add features beyond what was requested.
+- When fixing a bug, fix it. Do not add a comment recording what was wrong,
+  what changed, or how it was diagnosed - that belongs in the commit message,
+  not the code. Only exceptional motivations (a non-obvious constraint a
+  future editor would otherwise reintroduce) earn a comment.
