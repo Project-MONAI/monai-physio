@@ -52,8 +52,10 @@ searching manually.
 - Double quotes for strings and docstrings. Never single quotes. 88-char line limit.
 - Full type hints; `Optional[X]` not `X | None` (mypy UP007 is suppressed).
 - `pathlib.Path` for all file paths. `subprocess.run(check=True, text=True)` - no `os.system`.
-- After every Python edit run `python -m ruff check . --fix && python -m ruff format .`
-  from the active `.\venv`.
+- After every Python edit run `python -m ruff check <file> --fix && python -m ruff format <file>`
+  on the file(s) you touched, from the active `.\venv`. Running ruff against
+  the whole repo (`.`) can rewrite unrelated files - reserve that for an
+  explicit, separate repo-wide pass.
 
 ## Data conventions - fixed, do not restate
 

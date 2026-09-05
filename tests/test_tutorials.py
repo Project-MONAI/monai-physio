@@ -848,12 +848,12 @@ class TestTutorial08LungFitModelTo4DPatients:
 def _require_physicsnemo() -> None:
     """Skip unless both MGN dependencies are installed."""
     if importlib.util.find_spec("physicsnemo") is None:
-        skip_or_fail_missing_data(
+        pytest.skip(
             "PhysicsNeMo not installed, though it is a base dependency of "
             "monai-physio; the environment may be broken."
         )
     if importlib.util.find_spec("torch_geometric") is None:
-        skip_or_fail_missing_data(
+        pytest.skip(
             "PyTorch Geometric not installed, though it is a base dependency "
             "of monai-physio; the environment may be broken."
         )

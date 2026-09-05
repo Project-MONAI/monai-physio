@@ -76,7 +76,7 @@ class _IdentityRegistrar:
         )
         transform.SetMatrix(itk.GetMatrixFromArray(np.eye(3) * scale))
         inverse_transform = itk.AffineTransform[itk.D, 3].New()
-        transform.GetInverse(inverse_transform)
+        assert transform.GetInverse(inverse_transform), "transform not invertible"
         return {
             "forward_transform": transform,
             "inverse_transform": inverse_transform,

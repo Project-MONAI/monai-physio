@@ -70,7 +70,7 @@ class ContourTools(MONAIPhysioBase):
         exporter:
 
         - ``field_data['AnatomyColor']`` - RGB float32 color.
-        - ``cell_data['Color']`` - RGBA uint8 solid color (n_cells × 4).
+        - ``cell_data['Color']`` - RGBA uint8 solid color (n_cells x 4).
 
         Args:
             mesh: Surface or volume mesh to annotate.

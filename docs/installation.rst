@@ -69,6 +69,10 @@ and the selected torch may need a ``torch-scatter`` source build. Export
 ``UV_TORCH_BACKEND=auto`` to apply the flag to every command in the shell
 session.
 
+``--torch-backend`` needs uv 0.6.9 or newer (``uv self update`` on an older
+install). On an older uv, use the ``cuda12``/``cuda13`` extras instead, which
+route to the matching PyTorch index without the flag.
+
 **CPU-only:**
 
 .. code-block:: bash

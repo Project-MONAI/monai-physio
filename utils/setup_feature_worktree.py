@@ -457,7 +457,7 @@ def install_dependencies(
             cwd=worktree_path,
             description="uv pip install torch (cu130)",
         )
-        print("    Installing the project with all extras...")
+        print("    Installing the project with the dev_cuda13 extra...")
         run(
             uv_pip_install
             + ["-e", ".[dev_cuda13]", "--no-build-isolation-package", "torch-scatter"],

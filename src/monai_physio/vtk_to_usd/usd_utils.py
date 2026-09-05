@@ -30,10 +30,10 @@ def lps_to_usd(point: NDArray | tuple | list) -> Gf.Vec3f:
 
     - USD +X = patient Left      (LPS +x)
     - USD +Y = patient Superior  (LPS +z)  - "up" in Omniverse
-    - USD +Z = patient Anterior  (−LPS +y) - toward the viewer when the
+    - USD +Z = patient Anterior  (-LPS +y) - toward the viewer when the
       camera looks at the patient from the front
 
-    Conversion: ``USD(x, y, z) = LPS(x, z, −y) * 0.001``  (mm → m)
+    Conversion: ``USD(x, y, z) = LPS(x, z, -y) * 0.001``  (mm -> m)
 
     Args:
         point: Point in LPS coordinates [x, y, z] in millimeters
@@ -58,7 +58,7 @@ def lps_to_usd(point: NDArray | tuple | list) -> Gf.Vec3f:
 def lps_points_to_usd(points: NDArray) -> Vt.Vec3fArray:
     """Convert array of LPS points (mm) to USD Y-up coordinates (m).
 
-    Applies the LPS → Y-up axis swap defined in :func:`lps_to_usd` and scales
+    Applies the LPS -> Y-up axis swap defined in :func:`lps_to_usd` and scales
     millimeters to meters (* 0.001).
 
     Args:
@@ -70,7 +70,7 @@ def lps_points_to_usd(points: NDArray) -> Vt.Vec3fArray:
     if points.shape[1] != 3:
         raise ValueError(f"Points must have shape (N, 3), got {points.shape}")
 
-    # Vectorized: USD(x, y, z) = LPS(x, z, -y) * 0.001  (mm → m)
+    # Vectorized: USD(x, y, z) = LPS(x, z, -y) * 0.001  (mm -> m)
     usd_points = np.empty(points.shape, dtype=np.float32)
     usd_points[:, 0] = points[:, 0] * 0.001
     usd_points[:, 1] = points[:, 2] * 0.001
@@ -83,7 +83,7 @@ def lps_normals_to_usd(normals: NDArray) -> Vt.Vec3fArray:
     """Convert array of LPS normals to USD Y-up coordinates.
 
     Applies only the axis swap from :func:`lps_to_usd` - normals are unit
-    direction vectors and must not be scaled by the mm→m factor.
+    direction vectors and must not be scaled by the mm->m factor.
 
     Args:
         normals: Array of normals with shape (N, 3)
