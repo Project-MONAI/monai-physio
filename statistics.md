@@ -127,7 +127,7 @@ MONAI Physio operates across several technically demanding domains:
 | ---------------------- | ----------------------------------------------------- |
 | **Medical Imaging**    | ITK, MONAI, nibabel, pydicom, pynrrd                 |
 | **Deep Learning**      | PyTorch, CuPy (CUDA 13), transformers                |
-| **AI Surrogates**      | PhysicsNeMo, torch-geometric, torch-scatter (optional `[physicsnemo]` extra) |
+| **AI Surrogates**      | PhysicsNeMo, torch-geometric, torch-scatter (base dependencies) |
 | **Registration**       | ANTs (antspyx), picsl-greedy, icon-registration, UniGradICON |
 | **3D Graphics / USD**  | VTK, PyVista, USD-core, trimesh                       |
 | **AI Segmentation**    | TotalSegmentator                                      |
@@ -165,7 +165,7 @@ MONAI Physio operates across several technically demanding domains:
 - `slow` - slower tests (opt-in via `--run-slow`)
 - `requires_gpu` - GPU/CUDA-dependent tests (opt-in via `--run-gpu`)
 - `requires_simpleware` - tests needing a local Synopsys Simpleware Medical install (opt-in via `--run-simpleware`)
-- `requires_physicsnemo` - tests needing the optional `[physicsnemo]` extra (opt-in via `--run-physicsnemo`)
+- `requires_physicsnemo` - tests needing PhysicsNeMo (opt-in via `--run-physicsnemo`)
 - `tutorial` - runs tutorial scripts end-to-end
   (opt-in via `--run-tutorials`; multi-hour)
 

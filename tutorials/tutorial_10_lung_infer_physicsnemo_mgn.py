@@ -31,12 +31,6 @@ only chooses the case, the stages and the image to warp.
 For command-line use with path arguments, use the installed
 ``monai-physio-infer-physicsnemo`` CLI instead of editing this script.
 
-Extra Install Required
-----------------------
-PhysicsNeMo and PyTorch Geometric must be installed::
-
-    pip install "monai-physio[physicsnemo]"
-
 Data Required
 -------------
   * ``output/tutorial_08_lung/<case>/``  - Tutorial 8 SSM surfaces

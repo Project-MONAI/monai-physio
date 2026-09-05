@@ -36,12 +36,6 @@ No frame registration happens anywhere here.  Tutorial 8 registers every frame
 to build the training targets a network needs; a trained network predicts the
 motion instead, which is the point of the chain.
 
-Extra Install Required
-----------------------
-PhysicsNeMo and PyTorch Geometric must be installed::
-
-    pip install "monai-physio[physicsnemo]"
-
 Data Required
 -------------
   * ``data/Duke-Heart-4DLabelmaps/<case>/*_labelmap.nii.gz`` - gated frames

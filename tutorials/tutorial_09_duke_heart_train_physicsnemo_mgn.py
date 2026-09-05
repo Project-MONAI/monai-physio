@@ -36,12 +36,6 @@ Node features (per vertex):   [mean_shape_x, mean_shape_y, mean_shape_z, pca_c1 
 Edge features (per edge):     [rel_x, rel_y, rel_z, distance]   (from the mean shape)
 Output (per vertex):          [dx, dy, dz]  (displacement in mm)
 
-Extra Install Required
-----------------------
-PhysicsNeMo and PyTorch Geometric must be installed::
-
-    pip install "monai-physio[physicsnemo]"
-
 Data Required
 -------------
 SSM surfaces: Tutorial 8 (Duke Heart) output

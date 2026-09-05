@@ -33,7 +33,7 @@ This directory contains comprehensive test suites for the MONAI Physio package, 
 
 ### Workflow Tests
 - **`test_workflow_evaluate_movement.py`** - `WorkflowEvaluateMovement` metrics, CSV, and Markdown report
-- **`test_workflow_train_physicsnemo.py`** - `WorkflowTrainPhysicsNeMo` checkpoint plus the assets inference reads beside it (needs `[physicsnemo]`)
+- **`test_workflow_train_physicsnemo.py`** - `WorkflowTrainPhysicsNeMo` checkpoint plus the assets inference reads beside it
 
 ### Tutorial Tests (SLOW - Opt-in)
 - **`test_tutorials.py`** - End-to-end execution of each `tutorials/*.py` script,
@@ -76,7 +76,7 @@ If you clone after running `git lfs install`, LFS files are pulled automatically
 
 ### Install Dependencies
 ```bash
-uv pip install -e ".[test]"
+uv pip install -e ".[dev]"
 ```
 
 ### Run Tests
@@ -104,7 +104,7 @@ Each flag enables one marker family. Flags compose, so you can stack them.
 | `--run-slow` | `slow` | Slow registration / segmentation tests (>30 s) |
 | `--run-gpu` | `requires_gpu` | CUDA-dependent tests (ICON, Simpleware, etc.) |
 | `--run-simpleware` | `requires_simpleware` | Need a licensed Synopsys Simpleware Medical install (also marked `requires_gpu`) |
-| `--run-physicsnemo` | `requires_physicsnemo` | Need the optional `[physicsnemo]` extra installed |
+| `--run-physicsnemo` | `requires_physicsnemo` | PhysicsNeMo-dependent tests |
 | `--run-tutorials` | `tutorial` | Tutorial scripts run end-to-end (hours to run) |
 | `--run-all` | every bucket above | Equivalent to passing all `--run-*` flags at once |
 
@@ -162,9 +162,8 @@ tests.
 - `@pytest.mark.requires_simpleware` — Tests needing a licensed Synopsys
   Simpleware Medical install. Opt in: `--run-simpleware`. (Combine with
   `--run-gpu` and `--run-slow`.)
-- `@pytest.mark.requires_physicsnemo` — Tests needing the optional
-  `[physicsnemo]` extra (`pip install "monai-physio[physicsnemo]"`, requires
-  Python >= 3.11). Opt in: `--run-physicsnemo`.
+- `@pytest.mark.requires_physicsnemo` — Tests needing PhysicsNeMo (a base
+  dependency, requires Python >= 3.11). Opt in: `--run-physicsnemo`.
 - `@pytest.mark.tutorial` — Tutorial scripts run end-to-end (SLOW, never in
   CI). Opt in: `--run-tutorials`.
 

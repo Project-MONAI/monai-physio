@@ -11,7 +11,7 @@ Runs on every push and pull request to main branches. Includes:
 - **unit-tests**: Cross-platform unit tests
   - Runs on Ubuntu and Windows
   - Python 3.11 and 3.12
-  - Installs `.[test]` only, so no CUDA toolchain is pulled in
+  - Installs `.[dev]` only, so no CUDA toolchain is pulled in
   - Excludes slow tests and tests requiring external data
   - Generates coverage reports
 
@@ -70,7 +70,7 @@ nightly-health badge in the top-level `README.md` resolves.
 
 Runs at 07:00 UTC daily, or on manual trigger with a `reason` input. On the
 self-hosted Windows GPU runner it installs
-`.[test,docs,cuda13,dev,physicsnemo]` and runs the entire suite with
+`.[dev_cuda13]` and runs the entire suite with
 `--run-all`, which enables every opt-in bucket. The run itself is
 `continue-on-error`, so a failing test records a red status rather than
 failing the workflow.
@@ -162,9 +162,9 @@ GPU tests require self-hosted runners with:
 
 **Option 3: Run Locally**
 ```bash
-# Install with CUDA + PhysicsNeMo (matches the self-hosted GPU runner).
-# Requires Python 3.11-3.13 (the range nvidia-physicsnemo supports).
-uv pip install -e ".[test,cuda13,physicsnemo]"
+# Install with CUDA (matches the self-hosted GPU runner). PhysicsNeMo is a
+# base dependency, requiring Python 3.11-3.13 (the range it supports).
+uv pip install -e ".[dev_cuda13]"
 
 # Run GPU tests
 pytest tests/ -v --run-gpu
@@ -180,7 +180,7 @@ GitHub-hosted runners do **not** have GPU support. All GPU tests require self-ho
 Test dependencies are installed from `pyproject.toml`:
 
 ```bash
-pip install -e ".[test]"
+pip install -e ".[dev]"
 ```
 
 This installs:
@@ -225,7 +225,7 @@ def test_gpu_function():
 ### CPU Tests
 ```bash
 # Install dependencies
-pip install -e ".[test]"
+pip install -e ".[dev]"
 
 # Run unit tests
 pytest tests/ -m "unit and not requires_gpu"
@@ -236,9 +236,9 @@ pytest tests/ -m "unit and not requires_gpu" --cov=monai_physio
 
 ### GPU Tests
 ```bash
-# Install with CUDA + PhysicsNeMo (matches the self-hosted GPU runner).
-# Requires Python 3.11-3.13 (the range nvidia-physicsnemo supports).
-uv pip install -e ".[test,cuda13,physicsnemo]"
+# Install with CUDA (matches the self-hosted GPU runner). PhysicsNeMo is a
+# base dependency, requiring Python 3.11-3.13 (the range it supports).
+uv pip install -e ".[dev_cuda13]"
 
 # Run GPU tests
 pytest tests/ --run-gpu

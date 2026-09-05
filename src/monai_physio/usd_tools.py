@@ -22,7 +22,7 @@ import pyvista as pvtk
 from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade
 
 from .monai_physio_base import MONAIPhysioBase
-from .vtk_to_usd import add_framing_camera
+from .convert_vtk_to_usd import add_framing_camera
 
 
 class USDTools(MONAIPhysioBase):

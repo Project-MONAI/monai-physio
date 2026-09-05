@@ -33,12 +33,6 @@ No phase registration happens anywhere here.  Tutorial 8 registers every phase
 to build the training targets a network needs; a trained network predicts the
 motion instead, which is the point of the chain.
 
-Extra Install Required
-----------------------
-PhysicsNeMo and PyTorch Geometric must be installed::
-
-    pip install "monai-physio[physicsnemo]"
-
 Data Required
 -------------
   * ``data/DirLab-4DCT/<case>_T??.mha`` - the gated CT sequence

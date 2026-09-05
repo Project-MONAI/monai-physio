@@ -49,10 +49,14 @@ for users and contributors. Key sections:
 ### Install
 
 ```
-uv pip install "monai-physio[all]"
+uv pip install "monai-physio[cuda12]"
 ```
 
-See the [installation guide](https://project-monai.github.io/monai-physio/installation.html) for GPU setup, source installs, and optional extras (PhysicsNeMo). 
+Installs entirely from prebuilt wheels. On CUDA 13 use `monai-physio[cuda13]`,
+which additionally needs a CUDA toolkit and C++ toolchain to build
+`torch-scatter`. See the
+[installation guide](https://project-monai.github.io/monai-physio/installation.html)
+for source installs, pip, and CPU-only.
 
 ### Download Tutorials
 

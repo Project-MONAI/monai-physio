@@ -10,9 +10,11 @@ Prerequisites
 Before starting, ensure you have:
 
 * MONAI Physio installed (see :doc:`installation`)
-* NVIDIA GPU with CUDA 13 - recommended for production performance; see
-  :doc:`installation` for the ``[cuda13]`` extra. A CPU-only PyPI install works
-  for evaluation but is slow.
+* NVIDIA GPU with CUDA 12.6 or CUDA 13 - recommended for production
+  performance; see :doc:`installation` for the ``[cuda12]`` extra
+  (recommended, installs entirely from prebuilt wheels), ``[cuda13]``, or
+  ``--torch-backend=auto``. A CPU-only PyPI install works for evaluation but
+  is significantly slower.
 * Disk space for the sample datasets (~10-20 GB for the full set; each dataset
   README lists its own size)
 
@@ -309,11 +311,9 @@ layouts for every dataset.
 
 DirLab-4DCT data is manual-only; see ``data/DirLab-4DCT/README.md``. It drives
 the whole lung pipeline — Lung Tutorials 1, 2, 3, 4, 6 and 8, plus Heart
-Tutorial 7 — which then feeds the AI-surrogate Tutorials 9 through 12. Those
-additionally require the optional
-``physicsnemo`` extra (``pip install "monai-physio[physicsnemo]"``, plus
-``torch-geometric`` for the MeshGraphNet); PhysicsNeMo itself requires
-Python >= 3.11.
+Tutorial 7 — which then feeds the AI-surrogate Tutorials 9 through 12.
+PhysicsNeMo and ``torch-geometric`` (for the MeshGraphNet) are base
+dependencies of monai-physio; PhysicsNeMo itself requires Python >= 3.11.
 
 Visualizing Results
 ===================

@@ -50,6 +50,53 @@ if not workflow.forward_transforms[index].GetInverse(inverse):
 **Automated conversion:** `None needed` — no caller in the repository, the
 tutorials, the tests or the CLI referenced the attribute.
 
+## Install extras — replaced by `cuda12`, `cuda13`, `dev`, `dev_cuda12`, `dev_cuda13`
+
+**Change:** the `all`, `physicsnemo`, `dev`, `docs`, and `test` extras are
+replaced by five: `cuda12`/`cuda13` (CUDA-matched PyTorch plus CuPy), `dev`
+(test/lint/docs tooling, no CUDA component), and `dev_cuda12`/`dev_cuda13`
+(both combined). The AI-surrogate packages formerly behind `[physicsnemo]` —
+`nvidia-physicsnemo`, `torch-geometric`, `torch-scatter` — are base
+dependencies, installed with every install.
+
+**Why:** each extra now names the CUDA version it targets, so there is one
+full-bundle name per CUDA version and no version-unaware `all`. The
+AI-surrogate packages are CPU-capable, so gating them behind an extra split
+the workflow set without a supporting technical constraint; as base
+dependencies, every install runs every workflow.
+
+**Consequence:** `torch-scatter` compiles against the installed torch and
+declares no build-system dependency, so installs that resolve it without a
+matching prebuilt wheel need `setuptools` present and build isolation
+disabled. `uv` applies this from `pyproject.toml`; `pip` needs the flag
+explicitly. `[cuda12]` pins torch inside the prebuilt-wheel range and avoids
+the build entirely.
+
+**Before**
+
+```bash
+uv pip install "monai-physio[all]"
+uv pip install -e ".[cuda13]"
+pip install "monai-physio[physicsnemo]"
+pip install monai-physio[dev]
+pip install monai-physio[test]
+pip install monai-physio[docs]
+```
+
+**After**
+
+```bash
+uv pip install "monai-physio[cuda12]"              # recommended; [cuda13] for CUDA 13
+uv pip install -e ".[dev_cuda12]"                  # source/dev install
+uv pip install --torch-backend=auto monai-physio   # auto-detected PyTorch, no CuPy
+```
+
+**Automated conversion:** `None needed` — install-time extra names, not
+Python symbols.
+
+**Automated conversion:** `None needed` — no code referenced `[physicsnemo]`
+as a Python symbol; only install commands change.
+
 ## Entry template
 
 Append one section per breaking change, newest last, using this shape:

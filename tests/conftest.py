@@ -90,10 +90,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         "--run-physicsnemo",
         action="store_true",
         default=False,
-        help=(
-            "Run tests marked 'requires_physicsnemo' (need the optional "
-            "[physicsnemo] extra installed)"
-        ),
+        help="Run tests marked 'requires_physicsnemo' (skipped by default)",
     )
     parser.addoption(
         "--run-all",
@@ -166,8 +163,8 @@ def pytest_configure(config: pytest.Config) -> None:
     )
     config.addinivalue_line(
         "markers",
-        "requires_physicsnemo: marks tests that need the optional "
-        "[physicsnemo] extra installed (skipped unless --run-physicsnemo is passed)",
+        "requires_physicsnemo: marks tests that need PhysicsNeMo "
+        "(skipped unless --run-physicsnemo is passed)",
     )
     # Initialize test timing storage
     config._test_timings = {  # type: ignore[attr-defined]
@@ -226,8 +223,8 @@ def pytest_collection_modifyitems(
             item.add_marker(
                 pytest.mark.skip(
                     reason=(
-                        "PhysicsNeMo tests require --run-physicsnemo (or --run-all) "
-                        "and the optional [physicsnemo] extra installed"
+                        "PhysicsNeMo tests require --run-physicsnemo "
+                        "(or --run-all) to run"
                     )
                 )
             )

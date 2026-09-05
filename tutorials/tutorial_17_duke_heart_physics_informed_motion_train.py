@@ -35,18 +35,10 @@ physics term -- measuring against Tutorial 9 instead would confound it with the
 change from a surface shape model to a volumetric one -- and Tutorial 18 scores
 the two against each other.
 
-Extra Install Required
-----------------------
-PhysicsNeMo and PyTorch Geometric::
-
-    pip install "monai-physio[physicsnemo]"
-    pip install torch-geometric
-
+Hardware Required
+-----------------
 A CUDA GPU is required; a CPU-only run is not a supported
 configuration.
-
-PhysicsNeMo Sym, which supplies ``PhysicsInformer``, ships inside
-``nvidia-physicsnemo``; no separate install is needed.
 
 Data Required
 -------------

@@ -8,7 +8,7 @@ note for contributors editing the docs.
 ## Building locally
 
 ```bash
-pip install -e ".[docs]"
+pip install -e ".[dev]"
 python -m sphinx -b html docs docs/_build/html
 ```
 

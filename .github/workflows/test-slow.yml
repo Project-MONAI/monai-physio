@@ -21,8 +21,8 @@ jobs:
         lfs: true
 
     - name: Create venv in RUNNER_TEMP
-      # Python 3.11 is required because the [physicsnemo] extra pulls in
-      # nvidia-physicsnemo, which requires Python >= 3.11.
+      # Python 3.11 is required because the base dependency nvidia-physicsnemo
+      # requires Python >= 3.11.
       run: |
         & "C:\Program Files\Python311\python.exe" -m venv "$env:RUNNER_TEMP\monai-physio-venv"
         echo "$env:RUNNER_TEMP\monai-physio-venv\Scripts" >> $env:GITHUB_PATH
@@ -54,11 +54,12 @@ jobs:
 
     - name: Install package with test dependencies
       # uv respects [tool.uv.sources], routing torch to pytorch-cu130 for cuda13.
-      # The [physicsnemo] extra is required for --run-physicsnemo (Tutorial 9
-      # and any tests marked requires_physicsnemo).
+      # PhysicsNeMo is a base dependency, so it is always installed; it is
+      # what --run-physicsnemo (Tutorial 9 and any tests marked
+      # requires_physicsnemo) needs.
       # Invoke via python -m uv so uv targets the active venv interpreter.
       run: |
-        python -m uv pip install -e ".[test,cuda13,physicsnemo]"
+        python -m uv pip install -e ".[dev_cuda13]" --no-build-isolation-package torch-scatter
 
     - name: Assert CUDA is accessible
       run: |

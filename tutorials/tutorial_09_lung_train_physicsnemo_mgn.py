@@ -44,12 +44,6 @@ roughly 4 hours for the 1500 epochs below. Lower ``batch_size``, or call
 ``training_method.set_num_processor_checkpoint_segments(...)`` to trade compute
 for memory, on a smaller card.
 
-Extra Install Required
-----------------------
-PhysicsNeMo and PyTorch Geometric must be installed::
-
-    pip install "monai-physio[physicsnemo]"
-
 Data Required
 -------------
 SSM surfaces: Tutorial 8 output (``output/tutorial_08_lung/Case*Pack/``)

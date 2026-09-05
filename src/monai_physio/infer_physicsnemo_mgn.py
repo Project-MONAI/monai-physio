@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, cast
 
 import numpy as np
 
+from . import physicsnemo_tools as pnt
 from .infer_physicsnemo_base import InferPhysicsNeMoBase
 
 if TYPE_CHECKING:  # typed for mypy; imported lazily at runtime
@@ -23,16 +24,7 @@ class InferPhysicsNeMoMGN(InferPhysicsNeMoBase):
     model_tag = "mgn"
 
     def build_model(self, meta: dict) -> "torch.nn.Module":
-        try:
-            import torch_geometric  # noqa: F401 - needed by the graph seams
-
-            from physicsnemo.models.meshgraphnet import MeshGraphNet
-        except ImportError as exc:  # pragma: no cover - optional dependency
-            raise ImportError(
-                "The MGN inferencer requires PhysicsNeMo and PyTorch Geometric. "
-                'Install with: pip install "monai-physio[physicsnemo]" && '
-                "pip install torch-geometric"
-            ) from exc
+        MeshGraphNet = pnt.import_meshgraphnet()
 
         num_layers = int(meta.get("num_layers", 2))
         hidden_dim = int(meta["hidden_dim"])

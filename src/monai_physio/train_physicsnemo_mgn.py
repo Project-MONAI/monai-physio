@@ -83,16 +83,7 @@ class TrainPhysicsNeMoMGN(TrainPhysicsNeMoBase):
         self.num_processor_checkpoint_segments = num_segments
 
     def build_model(self, in_features: int, out_features: int) -> "torch.nn.Module":
-        try:
-            import torch_geometric  # noqa: F401 - needed by the graph seams
-
-            from physicsnemo.models.meshgraphnet import MeshGraphNet
-        except ImportError as exc:  # pragma: no cover - optional dependency
-            raise ImportError(
-                "The MGN trainer requires PhysicsNeMo and PyTorch Geometric. "
-                'Install with: pip install "monai-physio[physicsnemo]" && '
-                "pip install torch-geometric"
-            ) from exc
+        MeshGraphNet = pnt.import_meshgraphnet()
 
         model = MeshGraphNet(
             input_dim_nodes=in_features,

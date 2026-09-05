@@ -36,7 +36,18 @@ def _bumpy_sphere(amplitude: float) -> pv.PolyData:
 
 
 class _IdentityRegistrar:
-    """Stand-in for RegisterModelsDistanceMaps that never deforms anything."""
+    """Stand-in for RegisterModelsDistanceMaps that barely deforms anything.
+
+    Its forward transform picks up a millionth of the size difference between
+    the sample it was handed and the template, rather than none: bumpy
+    spheres of different amplitude have different bounding-box diagonals, so
+    this ties the correspondence to a real, per-sample shape difference
+    instead of an arbitrary, shape-unrelated fudge -- and unlike a pure
+    identity it does not leave every corresponded sample bit-identical to the
+    template, which is a degenerate population sklearn's PCA warns about. The
+    fraction is small enough that it stays well under the near-zero variance
+    thresholds the projection tests assert.
+    """
 
     reference_images: list[itk.Image] = []
 
@@ -49,6 +60,7 @@ class _IdentityRegistrar:
         mask_dilation_mm: float = 20.0,
     ) -> None:
         self.moving_model = moving_model
+        self.fixed_model = fixed_model
         self.distance_squared_max = distance_squared_max
         self.mask_dilation_mm = mask_dilation_mm
         _IdentityRegistrar.reference_images.append(reference_image)
@@ -57,11 +69,17 @@ class _IdentityRegistrar:
         self.weights_path = weights_path
 
     def register(self, transform_type: str) -> dict[str, Any]:
-        identity = itk.AffineTransform[itk.D, 3].New()
-        identity.SetIdentity()
+        transform = itk.AffineTransform[itk.D, 3].New()
+        transform.SetIdentity()
+        scale = 1.0 + 1.0e-6 * (
+            self.moving_model.length / self.fixed_model.length - 1.0
+        )
+        transform.SetMatrix(itk.GetMatrixFromArray(np.eye(3) * scale))
+        inverse_transform = itk.AffineTransform[itk.D, 3].New()
+        transform.GetInverse(inverse_transform)
         return {
-            "forward_transform": identity,
-            "inverse_transform": identity,
+            "forward_transform": transform,
+            "inverse_transform": inverse_transform,
             "registered_model": self.moving_model,
         }
 
@@ -113,7 +131,7 @@ def test_projection_is_on_by_default() -> None:
 
 def test_residual_to_the_measured_surface_is_reported(monkeypatch: Any) -> None:
     """A registration that does not deform must be reported as a full residual."""
-    workflow = _run(monkeypatch, project_to_measured_surfaces=False)
+    workflow = _run(monkeypatch)
 
     assert len(workflow.pca_input_residual_rms) == 3
     # The outer samples differ from the template, so the identity correspondence
@@ -152,7 +170,7 @@ def test_projection_threshold_leaves_distant_points_alone(monkeypatch: Any) -> N
 
 def test_reference_image_covers_every_aligned_sample(monkeypatch: Any) -> None:
     """A sample clipped by the grid would register as if it were smaller."""
-    workflow = _run(monkeypatch, project_to_measured_surfaces=False)
+    workflow = _run(monkeypatch)
 
     image = _IdentityRegistrar.reference_images[0]
     origin = np.asarray(image.GetOrigin())
@@ -190,7 +208,6 @@ def test_aligned_models_stay_the_measured_inputs(monkeypatch: Any) -> None:
     workflow = _run(
         monkeypatch,
         registrar=_DisplacingRegistrar,
-        project_to_measured_surfaces=False,
     )
 
     assert len(workflow.aligned_models) == 3
@@ -263,6 +280,6 @@ def test_icp_transform_type_reaches_the_registrar(monkeypatch: Any) -> None:
             return cast(dict[str, Any], self._inner.register(**kwargs))
 
     monkeypatch.setattr(wcsm, "RegisterModelsICP", _Recorder)
-    _run(monkeypatch, icp_transform_type="Rigid", project_to_measured_surfaces=False)
+    _run(monkeypatch, icp_transform_type="Rigid")
 
     assert seen == ["Rigid", "Rigid", "Rigid"]

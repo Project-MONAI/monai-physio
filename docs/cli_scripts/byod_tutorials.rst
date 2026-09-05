@@ -17,8 +17,14 @@ or the CPU-only variant:
 
 .. code-block:: bash
 
-   # Recommended - CUDA-enabled
-   pip install monai-physio[cuda13]
+   # Recommended - CUDA 12.6, everything installs from prebuilt wheels
+   uv pip install "monai-physio[cuda12]"
+
+   # CUDA 13 - same, but torch-scatter compiles from source
+   uv pip install "monai-physio[cuda13]"
+
+   # Auto-detected GPU torch, no CUDA version to specify, no CuPy
+   uv pip install --torch-backend=auto monai-physio
 
    # CPU-only
    pip install monai-physio

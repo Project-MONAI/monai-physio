@@ -79,14 +79,19 @@ returning ``False``, or runtime messages indicating a CUDA library version confl
 **Cause**: The installed ``cupy`` or PyTorch wheel was built for a different CUDA
 version than the one present on the system.
 
-**Solution**: Install the CUDA 13 extra:
+**Solution**: Install the extra matching your CUDA version:
 
 .. code-block:: bash
 
-   uv pip install "monai-physio[cuda13]"
+   uv pip install "monai-physio[cuda12]"   # CUDA 12.6, nothing compiles
+   uv pip install "monai-physio[cuda13]"   # CUDA 13, builds torch-scatter
 
-The extra installs CuPy. In uv-managed source environments, PyTorch resolves
-from the CUDA 13.0 wheel index.
+Each extra installs CuPy and pins PyTorch to the matching wheel index.
+``[cuda12]`` is the smoothest: it is the newest combination with prebuilt
+``torch-scatter`` wheels, while CUDA 13 has none and compiles it from source.
+If you're not sure which CUDA version to pick, ``uv pip install
+--torch-backend=auto monai-physio`` auto-detects the driver and installs a
+matching PyTorch build without CuPy.
 
 Verify the active CUDA version before reinstalling:
 
@@ -201,7 +206,9 @@ Slow Processing
 
 **Solutions**:
 
-1. Install ``monai-physio[cuda13]`` with uv for CUDA acceleration.
+1. Install ``monai-physio[cuda12]`` (or ``[cuda13]``) for GPU-accelerated
+   PyTorch and CuPy, or ``uv pip install --torch-backend=auto monai-physio``
+   for auto-detected PyTorch without CuPy.
 2. Reduce ``--registration-iterations`` during exploratory runs.
 3. Run tutorial workflows with reduced frame counts where supported.
 

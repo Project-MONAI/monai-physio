@@ -70,12 +70,6 @@ inside ``WorkflowTrainPhysicsNeMo``), and the per-case segmentation, fitting and
 registration loops are split across the ranks a case at a time. Run without a
 launcher and the same script runs as a single process.
 
-Extra Install Required
-----------------------
-PhysicsNeMo and PyTorch Geometric must be installed::
-
-    pip install "monai-physio[physicsnemo]"
-
 Data Required
 -------------
   * ``data/DirLab-4DCT/Case*_T??.mha`` - the whole cohort; see

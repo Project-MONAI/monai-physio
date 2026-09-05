@@ -22,10 +22,11 @@ class InferPhysicsNeMoMLP(InferPhysicsNeMoBase):
     def build_model(self, meta: dict) -> "torch.nn.Module":
         try:
             from physicsnemo.models.mlp import FullyConnected
-        except ImportError as exc:  # pragma: no cover - optional dependency
+        except ImportError as exc:  # pragma: no cover - broken environment
             raise ImportError(
-                "The MLP inferencer requires PhysicsNeMo, an optional dependency. "
-                'Install with: pip install "monai-physio[physicsnemo]"'
+                "The MLP inferencer requires PhysicsNeMo, a base dependency of "
+                "monai-physio. Reinstall with: "
+                "pip install --force-reinstall monai-physio"
             ) from exc
 
         model = FullyConnected(

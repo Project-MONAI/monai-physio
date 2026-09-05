@@ -839,8 +839,9 @@ class TestTutorial08LungFitModelTo4DPatients:
 # -----------------------------------------------------------------------------
 # Tutorials 9 and 10 - PhysicsNeMo train and infer
 #
-# Both need the optional [physicsnemo] extra and the Tutorial 8 fitted meshes,
-# so they skip rather than fail when either is absent.
+# Both need PhysicsNeMo/PyTorch Geometric (base dependencies) and the
+# Tutorial 8 fitted meshes, so they skip rather than fail when either is
+# absent.
 # -----------------------------------------------------------------------------
 
 
@@ -848,13 +849,13 @@ def _require_physicsnemo() -> None:
     """Skip unless both MGN dependencies are installed."""
     if importlib.util.find_spec("physicsnemo") is None:
         skip_or_fail_missing_data(
-            "PhysicsNeMo not installed (optional [physicsnemo] extra)."
+            "PhysicsNeMo not installed, though it is a base dependency of "
+            "monai-physio; the environment may be broken."
         )
     if importlib.util.find_spec("torch_geometric") is None:
         skip_or_fail_missing_data(
-            "PyTorch Geometric not installed; the MGN trainer needs it in addition "
-            'to PhysicsNeMo. Install with: pip install "monai-physio[physicsnemo]" '
-            "&& pip install torch-geometric"
+            "PyTorch Geometric not installed, though it is a base dependency "
+            "of monai-physio; the environment may be broken."
         )
 
 

@@ -67,12 +67,6 @@ inside ``WorkflowTrainPhysicsNeMo``), and the per-case contouring, fitting and
 frame-registration loops are split across the ranks a case at a time.  Run
 without a launcher and the same script runs as a single process.
 
-Extra Install Required
-----------------------
-PhysicsNeMo and PyTorch Geometric must be installed::
-
-    pip install "monai-physio[physicsnemo]"
-
 Data Required
 -------------
   * ``data/Duke-Heart-4DLabelmaps/pm????/*_labelmap.nii.gz`` - the whole cohort,

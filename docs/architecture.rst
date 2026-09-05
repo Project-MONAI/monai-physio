@@ -117,8 +117,8 @@ inference time:
    then evaluates the held-out cases with ``WorkflowInferPhysicsNeMo`` wrapped
    in ``WorkflowInferMovement``, turning predicted displacements back into
    surfaces without running registration — i.e. the AI surrogate stands in for
-   ``WorkflowReconstructHighres4DCT`` at inference time. Requires the
-   ``[physicsnemo]`` extra and ``torch-geometric``; Python >= 3.11.
+   ``WorkflowReconstructHighres4DCT`` at inference time. Requires PhysicsNeMo
+   and ``torch-geometric`` (base dependencies); Python >= 3.11.
 
 ``tutorial_10_lung_infer_physicsnemo_mgn.py``
    Loads that checkpoint and predicts the case's surface at a requested stage
@@ -223,7 +223,6 @@ workflow classes. They are the preferred examples for executable API usage:
 * ``monai-physio-visualize-pca-modes``
 
 ``monai-physio-train-physicsnemo`` and ``monai-physio-infer-physicsnemo`` wrap
-``WorkflowTrainPhysicsNeMo`` and ``WorkflowInferPhysicsNeMo`` and need the
-optional ``[physicsnemo]`` extra. There is no CLI wrapper for
+``WorkflowTrainPhysicsNeMo`` and ``WorkflowInferPhysicsNeMo``. There is no CLI wrapper for
 ``WorkflowFinetuneICONRegistration``; it is used through the Python API and
 tutorial scripts.

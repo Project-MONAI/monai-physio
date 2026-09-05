@@ -40,8 +40,8 @@ ConsoleSimplewareMedical.exe \
 
 The Python script then:
 ```python
-output_dir = app.GetInputValue()            # Output directory from --input-value
-doc = sw.App.GetDocument()                  # Active document (loaded NIfTI)
+output_dir = app.GetInputValue()  # Output directory from --input-value
+doc = sw.App.GetDocument()  # Active document (loaded NIfTI)
 as_cardio = doc.GetAutoSegmenters().GetASCardio()
 # ... run ASCardio, then export each mask to mask_<name>.mhd in output_dir ...
 ```
@@ -70,9 +70,9 @@ ct_image = itk.imread("heart_ct.nii.gz")
 result = segmenter.segment(ct_image)
 
 # Access results
-labelmap = result['labelmap']
-heart_mask = result['heart']
-vessel_mask = result['major_vessels']
+labelmap = result["labelmap"]
+heart_mask = result["heart"]
+vessel_mask = result["major_vessels"]
 
 # Save results
 itk.imwrite(labelmap, "heart_segmentation.nii.gz")
@@ -224,8 +224,8 @@ Within the script, the output directory is passed via `--input-value` and read a
 import simpleware.scripting as sw
 
 app = sw.App.GetInstance()
-output_dir = app.GetInputValue()   # Value from --input-value (output directory)
-doc = sw.App.GetDocument()         # Active document (NIfTI loaded via --input-file)
+output_dir = app.GetInputValue()  # Value from --input-value (output directory)
+doc = sw.App.GetDocument()  # Active document (NIfTI loaded via --input-file)
 ```
 
 ## License

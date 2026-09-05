@@ -14,8 +14,8 @@ maintainers = [
 ]
 readme = {file = "README.md", content-type = "text/markdown"}
 license = {text = "Apache-2.0"}
-# 3.11 is the floor because the [physicsnemo] extra needs nvidia-physicsnemo,
-# which supports >=3.11,<3.14. Declaring 3.10 made that extra unresolvable
+# 3.11 is the floor because the base dependency nvidia-physicsnemo needs it,
+# supporting >=3.11,<3.14. Declaring 3.10 made that dependency unresolvable
 # there while claiming otherwise.
 requires-python = ">=3.11"
 classifiers = [
@@ -78,6 +78,35 @@ dependencies = [
     "huggingface_hub>=0.24.0",
     "einops>=0.6.1",
 
+    # AI surrogates (PhysicsNeMo MeshGraphNet workflows, Tutorial 9). All
+    # three are CPU-capable (physicsnemo falls back to PyTorch/CPU;
+    # torch-geometric/torch-scatter ship CPU wheel builds), so they are base
+    # dependencies rather than a CUDA-gated extra -- every install, including
+    # the CPU-only fallback, can run the AI-surrogate workflows, just slower
+    # without a GPU.
+    #
+    # torch-scatter is the one dependency here that can require a source
+    # build. It compiles against torch but declares no build-system
+    # dependency, so its build environment must be the project environment:
+    # torch and setuptools must already be installed before it resolves. See
+    # [tool.uv] no-build-isolation-package below (uv) or the installation
+    # guide's explicit pip sequence.
+    #
+    # This is self-imposed by physicsnemo, not by PyG: torch_geometric's own
+    # ``torch_geometric.utils.scatter`` runs on native torch.scatter_reduce_
+    # and treats torch_scatter as an optional accelerator, but physicsnemo
+    # hard-imports the compiled package (physicsnemo/nn/module/gnn_layers/
+    # utils.py: ``importlib.import_module("torch_scatter")``). A one-line
+    # upstream switch to torch_geometric.utils.scatter would remove this
+    # dependency entirely; when that lands in physicsnemo, this requirement
+    # and the no-build-isolation ceremony around it can both go away.
+    #
+    # Prebuilt wheel availability (https://data.pyg.org/whl/) is the reason
+    # the cuda12 extra pins torch below 2.13; see that extra's comment.
+    "nvidia-physicsnemo>=2.0.0",
+    "torch-geometric>=2.5.0",
+    "torch-scatter>=2.1.0",
+
     # Registration
     # 0.6.1 is the first release with a CPython 3.13 Windows wheel. Below it the
     # solver is free to pick 0.5.3, whose newest Windows wheel is 3.12, and on
@@ -108,22 +137,41 @@ dependencies = [
 link-mode = "copy"
 # torch-scatter compiles against torch but does not declare it as a build
 # dependency. Its build environment must therefore be the project environment,
-# so torch (and setuptools) must already be installed before installing the
-# physicsnemo extra.
+# so torch (and setuptools) must already be installed before it resolves.
+# torch-scatter is a base dependency (see [project.dependencies] above), so
+# this applies to every install, not just a CUDA-specific extra.
 no-build-isolation-package = ["torch-scatter"]
 # antspyx builds ANTs and ITK from source, which takes a long time and needs a
 # toolchain the runners do not all have. Refusing the sdist turns a silent
 # fallback to a doomed source build into an immediate resolution error naming
 # the interpreter that has no wheel.
 no-build-package = ["antspyx"]
+# cuda12 and cuda13 both pin torch/torchvision/torchaudio but to different
+# wheel indexes (see [tool.uv.sources] below) -- installing both together in
+# one command is not meaningful.
+conflicts = [[{ extra = "cuda12" }, { extra = "cuda13" }]]
 
-# PyTorch packages default to the CUDA 13.0 wheel index for uv-managed
-# environments. This avoids ambiguous resolution across multiple PyTorch CUDA
-# indexes.
+# torch/torchvision/torchaudio route to the cuda13 or cuda12 PyTorch wheel
+# index depending on which extra is requested. Best-effort: the uv pip
+# interface has been observed to ignore tool.uv.sources for index routing
+# (see .github/workflows/nightly-health.yml), so this is not relied upon as
+# the sole mechanism -- the installation guide's recommended command instead
+# uses `uv pip install --torch-backend=auto`, which selects the matching
+# PyTorch build directly from the installed NVIDIA driver, independent of
+# extras or this source config.
 [tool.uv.sources]
-torch = { index = "pytorch-cu130" }
-torchvision = { index = "pytorch-cu130" }
-torchaudio = { index = "pytorch-cu130" }
+torch = [
+    { index = "pytorch-cu126", extra = "cuda12" },
+    { index = "pytorch-cu130", extra = "cuda13" },
+]
+torchvision = [
+    { index = "pytorch-cu126", extra = "cuda12" },
+    { index = "pytorch-cu130", extra = "cuda13" },
+]
+torchaudio = [
+    { index = "pytorch-cu126", extra = "cuda12" },
+    { index = "pytorch-cu130", extra = "cuda13" },
+]
 # The PyPI unigradicon release ships no ``unigradicon.finetuning`` module, so
 # finetuning (WorkflowFinetuneICONRegistration, Tutorial 2) needs this branch.
 # Declared as a uv source instead of a PEP 508 direct reference in
@@ -137,70 +185,50 @@ name = "pytorch-cu130"
 url = "https://download.pytorch.org/whl/cu130"
 explicit = true
 
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
 [project.optional-dependencies]
+# CUDA-matched acceleration only (cupy + pinned torch/torchvision/torchaudio).
+# The AI-surrogate stack (nvidia-physicsnemo, torch-geometric, torch-scatter)
+# is a base dependency, not part of these extras -- see [project.dependencies]
+# above. Recommended: `uv pip install --torch-backend=auto monai-physio`,
+# which auto-selects a matching GPU torch build without needing either of
+# these extras; use cuda13/cuda12 only when CuPy acceleration is also wanted,
+# since CuPy has no auto-detect equivalent and needs an explicit CUDA choice.
+# CUDA 13: newest CUDA, but no prebuilt torch-scatter wheel exists for any
+# torch on this index (data.pyg.org publishes none for torch >= 2.13, and its
+# 2.12+cu130 wheels are Linux-only), so torch-scatter always compiles from
+# source here -- requiring nvcc and a C++ toolchain. torch is left unpinned
+# because pinning it would not buy a wheel.
 cuda13 = [
     "cupy-cuda13x>=13.6.0",
     "torch>=2.0.0",
     "torchvision",
     "torchaudio",
 ]
-# PhysicsNeMo pulls in a large dependency stack (CUDA-only toolchain, narrower
-# Python support). It is needed for the PhysicsNeMo train/infer workflows and
-# Tutorial 9 (mesh stage MLP / MeshGraphNet). ``torch-geometric`` supplies the
-# graph batching / connectivity utilities used by the MeshGraphNet (MGN) path,
-# and ``torch-scatter`` provides its scatter/segment reduction backend. Note:
-# nvidia-physicsnemo itself requires Python >= 3.11. When no matching pre-built
-# torch-scatter wheel exists it is compiled from source against the installed
-# torch, so torch and setuptools must be present first:
-#
-#   pip install "monai-physio[cuda13]" setuptools
-#   pip install "monai-physio[physicsnemo]" --no-build-isolation
-#
-# uv applies --no-build-isolation to torch-scatter automatically via
-# no-build-isolation-package above, so the second flag is only needed for pip.
-physicsnemo = [
-    "nvidia-physicsnemo>=2.0.0",
-    "torch-geometric>=2.5.0",
-    "torch-scatter>=2.1.0",
+# CUDA 12.6: the newest combination with published prebuilt torch-scatter
+# wheels on every platform this project supports, including Windows
+# (torch_scatter-2.1.2+pt212cu126-cp311..cp314-win_amd64.whl). torch is capped
+# below 2.13 to stay inside that window -- above it, data.pyg.org ships no
+# torch_scatter wheels at all and installs fall back to a source build. Raise
+# the cap when pyg publishes newer wheels, or drop it entirely once
+# physicsnemo no longer hard-imports torch_scatter (see the AI-surrogate
+# comment in [project.dependencies]).
+cuda12 = [
+    "cupy-cuda12x>=13.6.0",
+    "torch>=2.10,<2.13",
+    "torchvision",
+    "torchaudio",
 ]
+# Development, testing, and documentation tooling -- no CUDA/cupy component,
+# for pairing with `uv pip install --torch-backend=auto -e ".[dev]"`.
 dev = [
     "bumpver>=2023.0.0",
     "jupytext>=1.16.0",
     "pre-commit>=3.0.0",
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    # See the [test] extra: conftest.py needs a pluggy new enough for
-    # pytest.hookimpl(wrapper=True), which pytest>=7.0 alone does not pin.
-    "pluggy>=1.2.0",
-    "mypy>=2.1.0",
-    "ruff>=0.1.0",
-    "scipy-stubs>=1.14.0.0,<1.16.0.0",
-    "types-requests>=2.32.0.0",
-]
-docs = [
-    # Sphinx core and theme
-    "sphinx>=8.0.0",
-    "sphinx-rtd-theme>=3.0.0",
-
-    # Sphinx extensions
-    "sphinx-autodoc-typehints>=3.0.0",
-    "sphinx-copybutton>=0.5.2",
-    "sphinx-tabs>=3.4.7",
-    "myst-parser>=4.0.0",
-
-    # Docutils 0.22 removed some node attributes (e.g. "backrefs") that
-    # sphinx-tabs expects, causing a KeyError during builds.
-    "docutils<0.22",
-
-    # Additional dependencies
-    "linkify-it-py>=2.0.0",
-    "uc-micro-py>=1.0.1",
-    "markdown-it-py>=3.0.0",
-
-    # Bundled ffmpeg binary used by utils/mp4_to_gif.py
-    "imageio-ffmpeg>=0.5.0",
-]
-test = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-xdist>=3.0.0",
@@ -210,16 +238,36 @@ test = [
     "pluggy>=1.2.0",
     "pytest-timeout>=2.0.0",
     "coverage[toml]>=7.0.0",
+    "mypy>=2.1.0",
+    "ruff>=0.1.0",
+    "scipy-stubs>=1.14.0.0,<1.16.0.0",
+    "types-requests>=2.32.0.0",
+    # Sphinx core, theme, and extensions
+    "sphinx>=8.0.0",
+    "sphinx-rtd-theme>=3.0.0",
+    "sphinx-autodoc-typehints>=3.0.0",
+    "sphinx-copybutton>=0.5.2",
+    "sphinx-tabs>=3.4.7",
+    "myst-parser>=4.0.0",
+    # Docutils 0.22 removed some node attributes (e.g. "backrefs") that
+    # sphinx-tabs expects, causing a KeyError during builds.
+    "docutils<0.22",
+    "linkify-it-py>=2.0.0",
+    "uc-micro-py>=1.0.1",
+    "markdown-it-py>=3.0.0",
+    # Bundled ffmpeg binary used by utils/mp4_to_gif.py
+    "imageio-ffmpeg>=0.5.0",
 ]
-# Every optional component at once. Inherits the physicsnemo caveats above:
-# torch and setuptools must already be installed, and pip needs
-# ``--no-build-isolation`` when torch-scatter has no matching wheel.
-all = [
+# Full source/dev installs: CUDA-matched acceleration plus dev/test/docs
+# tooling. Recommended for anyone building from source, per the assumption
+# that a source install implies wanting to run tests and build docs too.
+dev_cuda13 = [
     "monai-physio[cuda13]",
     "monai-physio[dev]",
-    "monai-physio[docs]",
-    "monai-physio[physicsnemo]",
-    "monai-physio[test]",
+]
+dev_cuda12 = [
+    "monai-physio[cuda12]",
+    "monai-physio[dev]",
 ]
 
 [project.urls]
@@ -434,6 +482,10 @@ filterwarnings = [
     "always",
     "ignore:builtin type Swig",
     "ignore:builtin type swigvarlink",
+    # torch.jit.interface is deprecated in modern torch, but physicsnemo's
+    # MeshGraphNet import pulls in monai.networks.nets.dints, which still
+    # uses it at module scope. Third-party, not ours to fix.
+    "ignore:`torch.jit.interface` is deprecated:FutureWarning",
 ]
 markers = [
     "unit: marks tests as unit tests (fast, isolated)",
@@ -441,7 +493,7 @@ markers = [
     "slow: marks tests as slow (skipped by default; opt-in via --run-slow)",
     "requires_gpu: marks tests that require GPU/CUDA support (opt-in via --run-gpu)",
     "requires_simpleware: marks tests that require a local Synopsys Simpleware Medical installation (opt-in via --run-simpleware)",
-    "requires_physicsnemo: marks tests that require the optional [physicsnemo] extra (opt-in via --run-physicsnemo)",
+    "requires_physicsnemo: marks tests that require PhysicsNeMo (opt-in via --run-physicsnemo)",
     "tutorial: marks tests that run tutorial scripts (data/GPU gated, manual only)",
     "xdist_group: marks tests to run in the same pytest-xdist worker (prevents parallel conflicts)"
 ]

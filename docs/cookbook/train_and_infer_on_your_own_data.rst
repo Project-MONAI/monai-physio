@@ -16,12 +16,7 @@ Ingredients
 * **One held-out subject**, kept out of training, for scoring.
 * **A segmentation backend** that covers your anatomy — see
   :doc:`add_a_segmentation_method` if none does.
-* **The optional extra**, plus a CUDA GPU::
-
-     pip install "monai-physio[physicsnemo]"
-     pip install torch-geometric      # MeshGraphNet only
-
-  PhysicsNeMo requires Python >= 3.11.
+* **A CUDA GPU**, and Python >= 3.11.
 
 Steps
 =====

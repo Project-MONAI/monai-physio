@@ -53,10 +53,11 @@ class TrainPhysicsNeMoMLP(TrainPhysicsNeMoBase):
     def build_model(self, in_features: int, out_features: int) -> "torch.nn.Module":
         try:
             from physicsnemo.models.mlp import FullyConnected
-        except ImportError as exc:  # pragma: no cover - optional dependency
+        except ImportError as exc:  # pragma: no cover - broken environment
             raise ImportError(
-                "The MLP trainer requires PhysicsNeMo, an optional dependency. "
-                'Install with: pip install "monai-physio[physicsnemo]"'
+                "The MLP trainer requires PhysicsNeMo, a base dependency of "
+                "monai-physio. Reinstall with: "
+                "pip install --force-reinstall monai-physio"
             ) from exc
 
         model = FullyConnected(

@@ -8,11 +8,6 @@ shared template mesh. It is the command-line form of
 :class:`~monai_physio.WorkflowTrainPhysicsNeMo`; Tutorial 9 in
 :doc:`../tutorials` is the same thing as a script.
 
-Requires the optional extra::
-
-   pip install "monai-physio[physicsnemo]"
-   pip install torch-geometric          # MeshGraphNet only
-
 PhysicsNeMo needs Python >= 3.11.
 
 Basic Usage

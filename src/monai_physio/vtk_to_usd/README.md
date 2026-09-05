@@ -36,7 +36,7 @@ vtk_to_usd/
 ```python
 from monai_physio.vtk_to_usd import convert_vtk_file
 
-stage = convert_vtk_file('mesh.vtp', 'output.usd')
+stage = convert_vtk_file("mesh.vtp", "output.usd")
 ```
 
 ## Custom Settings
@@ -52,19 +52,19 @@ settings = ConversionSettings(
     triangulate_meshes=True,
     compute_normals=True,
     meters_per_unit=1.0,
-    up_axis='Y',
+    up_axis="Y",
 )
 
 material = MaterialData(
-    name='cardiac_tissue',
+    name="cardiac_tissue",
     diffuse_color=(0.9, 0.3, 0.3),
     roughness=0.4,
 )
 
 stage = convert_vtk_file(
-    'heart.vtp',
-    'heart.usd',
-    data_basename='Heart',
+    "heart.vtp",
+    "heart.usd",
+    data_basename="Heart",
     settings=settings,
     material=material,
 )
@@ -79,10 +79,10 @@ application workflows:
 from monai_physio import ConvertVTKToUSD
 
 stage = ConvertVTKToUSD.from_files(
-    data_basename='AnimatedMesh',
-    vtk_files=['frame_0.vtp', 'frame_1.vtp', 'frame_2.vtp'],
+    data_basename="AnimatedMesh",
+    vtk_files=["frame_0.vtp", "frame_1.vtp", "frame_2.vtp"],
     time_codes=[0.0, 1.0, 2.0],
-).convert('animated.usd')
+).convert("animated.usd")
 ```
 
 ## MeshData Inspection
@@ -90,7 +90,7 @@ stage = ConvertVTKToUSD.from_files(
 ```python
 from monai_physio.vtk_to_usd import read_vtk_file
 
-mesh_data = read_vtk_file('mesh.vtp')
+mesh_data = read_vtk_file("mesh.vtp")
 print(len(mesh_data.points))
 print(len(mesh_data.face_vertex_counts))
 for array in mesh_data.generic_arrays:

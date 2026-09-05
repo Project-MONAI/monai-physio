@@ -94,7 +94,7 @@ matching OmniSurface material (diffuse color, subsurface scattering, etc.).
 Prerequisites
 -------------
 Tutorial 6 (lung), Tutorial 7 (lung), Tutorial 6 (Duke heart) and Tutorial 9 for
-both anatomies. Requires the ``[physicsnemo]`` extra and Simpleware Medical.
+both anatomies. Requires Simpleware Medical.
 
 Data Required
 -------------

@@ -101,8 +101,10 @@ jobs:
 
       - name: Install uv and package
         # Invoke via python -m uv so uv targets the active venv interpreter.
-        # The [physicsnemo] extra is required for --run-physicsnemo (Tutorial 9
-        # and any tests marked requires_physicsnemo).
+        # nvidia-physicsnemo/torch-geometric/torch-scatter are base
+        # dependencies (installed unconditionally), so --run-physicsnemo
+        # (Tutorial 9 and any tests marked requires_physicsnemo) works without
+        # a separate extra.
         #
         # torch-scatter compiles against torch and imports it at build time, but
         # declares neither torch nor setuptools as a build dependency. Its build
@@ -110,7 +112,8 @@ jobs:
         # passed explicitly rather than relying on uv discovering
         # no-build-isolation-package in pyproject.toml), which makes the venv
         # itself the build environment: setuptools, wheel, and torch must all be
-        # installed before the physicsnemo extra is resolved.
+        # installed before ANY monai-physio extra is resolved, since
+        # torch-scatter is now a base dependency and is pulled in immediately.
         #
         # torch, torchvision, and torchaudio are all pinned to the pytorch-cu130
         # index here because the uv pip interface ignores tool.uv.sources.
@@ -133,9 +136,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -c "import torch; print(f'build-time torch {torch.__version__} (CUDA {torch.version.cuda})')"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m uv pip install -e ".[cuda13]"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m uv pip install -e ".[test,docs,cuda13,dev,physicsnemo]" --no-build-isolation-package torch-scatter
+          python -m uv pip install -e ".[dev_cuda13]" --no-build-isolation-package torch-scatter
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Assert CUDA is accessible

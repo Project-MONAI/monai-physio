@@ -37,12 +37,6 @@ chain, so this scores generalization rather than recall.
    path with its dates.  Each metric is reported both averaged over the frames
    and at the frame it is worst at.
 
-Extra Install Required
-----------------------
-PhysicsNeMo and PyTorch Geometric must be installed::
-
-    pip install "monai-physio[physicsnemo]"
-
 Data Required
 -------------
   * ``data/Duke-Heart-4DLabelmaps/<case>/*_labelmap.nii.gz`` - gated frames

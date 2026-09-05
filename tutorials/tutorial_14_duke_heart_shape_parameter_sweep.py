@@ -69,12 +69,6 @@ are the knobs.  The acquired labelmaps are resampled and contoured once per
 combination even though they never change; that is the price of calling the
 scoring workflow unchanged.
 
-Extra Install Required
-----------------------
-PhysicsNeMo and PyTorch Geometric must be installed::
-
-    pip install "monai-physio[physicsnemo]"
-
 Data Required
 -------------
   * ``data/Duke-Heart-4DLabelmaps/<case>/*_labelmap.nii.gz`` - gated frames

@@ -40,13 +40,10 @@ network.
        implies comes from ``NeoHookeanResidual.cauchy_stress`` afterwards, as
        Tutorial 18 does it
 
-PhysicsNeMo is an optional dependency::
-
-   pip install "monai-physio[physicsnemo]"
-   pip install torch-geometric          # MeshGraphNet only
-
-It requires Python >= 3.11. ``import monai_physio`` works without it; the
-imports happen lazily inside the methods that need them.
+PhysicsNeMo and PyTorch Geometric are base dependencies of monai-physio, so
+installing the package is enough; it requires Python >= 3.11. The imports
+still happen lazily inside the methods that need them, so ``import
+monai_physio`` stays lightweight.
 
 .. toctree::
    :maxdepth: 2

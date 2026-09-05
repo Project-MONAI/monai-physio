@@ -36,10 +36,8 @@ This tutorial therefore builds the same model volumetrically:
 Nothing here reads or writes anything belonging to Tutorials 1 to 15 except
 Tutorial 4's surfaces and Tutorial 2's ICON weights, both read-only.
 
-Extra Install Required
-----------------------
-None beyond the base install; Tutorial 17 is what needs PhysicsNeMo.
-
+Hardware Required
+-----------------
 A CUDA GPU is required.  Every registration below runs on one, and a
 CPU-only run is not a supported configuration.
 

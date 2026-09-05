@@ -18,8 +18,9 @@ Usage:
   py utils/setup_feature_worktree.py my-feature --dependency-mode editable
 
 Dependency modes: 'requirements' reads requirements.txt, 'pyproject' does a bare
-'-e .', and 'editable' does a full '-e .[all]' (staging setuptools/wheel and CUDA
-torch first, since the cuda13 and physicsnemo extras need them preinstalled).
+'-e .', and 'editable' does a full '-e .[dev_cuda13]' (staging setuptools/wheel
+and CUDA torch first, since torch-scatter -- a base dependency -- needs them
+preinstalled).
 """
 
 from __future__ import annotations
@@ -431,10 +432,10 @@ def install_dependencies(
         )
 
     elif mode == "editable":
-        # ".[all]" pulls in [cuda13] and [physicsnemo], which per the comment above
-        # the "all" extra in pyproject.toml require torch and setuptools to already
-        # be installed, plus --no-build-isolation when torch-scatter has no matching
-        # wheel. A brand-new venv has neither, so stage the prerequisites first.
+        # ".[dev_cuda13]" pulls in [cuda13] plus dev/test/docs tooling; torch-
+        # scatter is a base dependency and needs torch and setuptools already
+        # installed, plus --no-build-isolation when it has no matching wheel.
+        # A brand-new venv has neither, so stage the prerequisites first.
         # This mirrors .github/workflows/nightly-health.yml.
         print("    Installing build prerequisites (setuptools, wheel)...")
         run(
@@ -459,9 +460,9 @@ def install_dependencies(
         print("    Installing the project with all extras...")
         run(
             uv_pip_install
-            + ["-e", ".[all]", "--no-build-isolation-package", "torch-scatter"],
+            + ["-e", ".[dev_cuda13]", "--no-build-isolation-package", "torch-scatter"],
             cwd=worktree_path,
-            description="uv pip install -e .[all]",
+            description="uv pip install -e .[dev_cuda13]",
         )
 
     else:
@@ -554,7 +555,7 @@ Examples:
             "auto (default): detect from project files. "
             "requirements: use requirements.txt. "
             "pyproject: use pyproject.toml (via a bare editable install). "
-            'editable: editable install with all extras ("-e .[all]", '
+            'editable: editable install with all extras ("-e .[dev_cuda13]", '
             "staging setuptools/wheel and CUDA torch first; downloads several GB)."
         ),
     )

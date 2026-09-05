@@ -846,12 +846,7 @@ Dataset
    targets those manifests point at.
 
 Requirements
-   GPU, plus the optional extra::
-
-      pip install "monai-physio[physicsnemo]"
-      pip install torch-geometric
-
-   Python >= 3.11. 1500 epochs by default.
+   GPU, Python >= 3.11. 1500 epochs by default.
 
 Preview
    .. figure:: assets/tutorial_09_lung_motion.gif
@@ -939,8 +934,8 @@ Dataset
    Tutorial 8's fitted surfaces for one case, and Tutorial 9's checkpoint.
 
 Requirements
-   The ``[physicsnemo]`` extra; otherwise trivial — one forward pass per stage
-   replaces the per-phase registration solve that produced the training data.
+   Trivial — one forward pass per stage replaces the per-phase registration
+   solve that produced the training data.
 
 Preview
    .. figure:: assets/tutorial_10_lung_motion_usd.gif
@@ -1013,7 +1008,7 @@ Dataset
    the held-out case.
 
 Requirements
-   The ``[physicsnemo]`` extra. The lung variant also segments every gated frame
+   The lung variant also segments every gated frame
    on first run, so it needs a GPU and the segmentation weights; the labelmaps
    are cached, and a re-run skips them.
 
@@ -1104,7 +1099,7 @@ Dataset
    place.
 
 Requirements
-   The ``[physicsnemo]`` extra. The output directory is emptied at the start of
+   The output directory is emptied at the start of
    every run, so nothing is reused and the reported runtimes are the whole
    pipeline's. Neither variant registers a phase — that is what the network
    replaces, and it is why this runs in minutes where Tutorial 8 runs in hours.
@@ -1191,7 +1186,7 @@ Dataset
    See ``data/Chest-CT/README.md`` for the data source and required citation.
 
 Requirements
-   The ``[physicsnemo]`` extra, and Simpleware Medical for the heart
+   Simpleware Medical for the heart
    segmentation. Both segmentations and the heart fit are cached, so a re-run
    goes straight to inference. Budget disk: 100 combined frames, each with its
    own warped CT and labelmap, come to roughly 43 GB.
@@ -1268,7 +1263,7 @@ Dataset
    checkpoint.
 
 Requirements
-   The ``[physicsnemo]`` extra plus ``torch-geometric``, a GPU, and the
+   A GPU, and the
    segmentation weights --- every grid point is scored against independently
    segmented frames, exactly as Tutorial 11 scores its one fit.
 
@@ -1351,7 +1346,7 @@ Dataset
    its own fits and its own network.
 
 Requirements
-   The ``[physicsnemo]`` extra plus ``torch-geometric``. Written for a
+   Written for a
    multi-GPU Linux host, though it runs as a single process too.
 
 .. TODO(image): no preview media exists yet for Tutorial 15. Add a
@@ -1427,8 +1422,7 @@ Dataset
    population's variance. Nothing in Tutorials 1 to 15 is modified.
 
 Requirements
-   None beyond the base install; Tutorial 17 is what needs PhysicsNeMo. A CUDA
-   GPU is required --- every registration runs on one. This is the most
+   A CUDA GPU is required --- every registration runs on one. This is the most
    expensive tutorial in the chain: an atlas pass over the population, one
    deformable registration per case for the model, then one fit plus one
    registration per gated frame per case, against a template far denser than
@@ -1498,18 +1492,10 @@ Dataset
    ``ssm_template.vtu``.
 
 Requirements
-   The ``[physicsnemo]`` extra plus ``torch-geometric``:
-
-   .. code-block:: bash
-
-      pip install "monai-physio[physicsnemo]"
-      pip install torch-geometric
-
-   ``physicsnemo.sym``, which supplies ``PhysicsInformer``, ships inside
-   ``nvidia-physicsnemo``; no separate install is needed. A CUDA GPU is
-   required. The mesh graph is several times larger than Tutorial 9's surface
-   one, so expect to lower ``batch_size`` and leave gradient checkpointing on;
-   training the ablation baseline (on by default) doubles the run.
+   A CUDA GPU is required. The mesh graph is several times larger than
+   Tutorial 9's surface one, so expect to lower ``batch_size`` and leave
+   gradient checkpointing on; training the ablation baseline (on by default)
+   doubles the run.
 
 .. TODO(image): no preview media exists yet for Tutorial 17. Add the
    ``training_losses.png`` comparison of both runs' loss curves once one is
@@ -1588,7 +1574,7 @@ Dataset
    ``data/Duke-Heart-4DLabelmaps/<case>/*_labelmap.nii.gz``.
 
 Requirements
-   The ``[physicsnemo]`` extra plus ``torch-geometric``, and a CUDA GPU ---
+   A CUDA GPU ---
    same as Tutorial 17. Far cheaper than Tutorials 16 and 17: two inference
    passes and two evaluations over the held-out case's gated frames, then one
    stress evaluation per frame.

@@ -12,7 +12,8 @@ name: CI
 # - slow                 -> --run-slow
 # - requires_gpu         -> --run-gpu
 # - requires_simpleware  -> --run-simpleware  (also implies GPU)
-# - requires_physicsnemo -> --run-physicsnemo (needs the [physicsnemo] extra)
+# - requires_physicsnemo -> --run-physicsnemo (nvidia-physicsnemo is a base
+#                            dependency; no extra needed)
 # - tutorial             -> --run-tutorials
 # --run-all enables every bucket above at once.
 # Tests that need external data download it automatically via fixtures.
@@ -95,8 +96,12 @@ jobs:
         python -m pip install --upgrade pip setuptools wheel
 
     - name: Install package with test dependencies
+      # torch-scatter (a base dependency) compiles against torch and needs
+      # build isolation disabled; pip has no per-package flag for this, so
+      # --no-build-isolation applies to the whole install (setuptools/wheel
+      # are already present from the previous step).
       run: |
-        pip install -e ".[test]"
+        pip install -e ".[dev]" --no-build-isolation
 
     - name: Clear pip cache
       run: |
@@ -210,8 +215,12 @@ jobs:
         python -m pip install --upgrade pip setuptools wheel
 
     - name: Install package with test dependencies
+      # torch-scatter (a base dependency) compiles against torch and needs
+      # build isolation disabled; pip has no per-package flag for this, so
+      # --no-build-isolation applies to the whole install (setuptools/wheel
+      # are already present from the previous step).
       run: |
-        pip install -e ".[test]"
+        pip install -e ".[dev]" --no-build-isolation
 
     - name: Clear pip cache
       run: |
@@ -319,13 +328,20 @@ jobs:
 
     - name: Install package with test dependencies
       # uv respects [tool.uv.sources], routing torch to pytorch-cu130 for cuda13.
-      # The [physicsnemo] extra brings in nvidia-physicsnemo so Tutorial 9 and
-      # requires_physicsnemo-marked tests can run on this GPU runner.
+      # nvidia-physicsnemo/torch-geometric/torch-scatter are base dependencies
+      # (installed unconditionally), so Tutorial 9 and requires_physicsnemo-
+      # marked tests can run on this GPU runner without a separate extra.
+      # torch-scatter compiles against torch and needs --no-build-isolation-
+      # package from the very first install, since it's pulled in as soon as
+      # any extra resolves the base dependencies. The source build is
+      # unavoidable on CUDA 13 -- data.pyg.org publishes no torch-scatter
+      # wheel for it on Windows -- and is only needed at all because
+      # physicsnemo hard-imports torch_scatter instead of using PyG's
+      # native-backed torch_geometric.utils.scatter; see the AI-surrogate
+      # comment in pyproject.toml.
       # Invoke via python -m uv so uv targets the active venv interpreter.
       run: |
-        python -m uv pip install -e ".[cuda13]"
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-        python -m uv pip install -e ".[test,cuda13,physicsnemo]" --no-build-isolation-package torch-scatter
+        python -m uv pip install -e ".[dev_cuda13]" --no-build-isolation-package torch-scatter
 
     - name: Assert CUDA is accessible
       run: |
@@ -408,12 +424,16 @@ jobs:
         cache: 'pip'
 
     - name: Install dev dependencies
+      # torch-scatter (a base dependency) compiles against torch and needs
+      # setuptools present and build isolation disabled; pip has no
+      # per-package flag for this, so --no-build-isolation applies to the
+      # whole install.
       run: |
-        python -m pip install --upgrade pip
+        python -m pip install --upgrade pip setuptools
         # Ruff runs via pre-commit so its version is pinned in one place
         # (.pre-commit-config.yaml); mypy is still invoked directly below.
         pip install pre-commit mypy
-        pip install -e ".[dev]"
+        pip install -e ".[dev]" --no-build-isolation
 
     - name: Check formatting with Ruff (via pre-commit)
       run: |
@@ -455,7 +475,7 @@ jobs:
 #
 # Self-hosted GPU runner enables ALL buckets via --run-all
 # (--run-gpu --run-slow --run-simpleware --run-physicsnemo --run-tutorials).
-# That runner installs the [physicsnemo] extra in addition to [test,cuda13].
+# That runner installs [dev_cuda13] (nvidia-physicsnemo is a base dependency).
 #
 # To run tutorial tests (manual only, slow):
 #   pytest tests/test_tutorials.py -v --run-tutorials

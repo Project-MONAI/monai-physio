@@ -25,13 +25,8 @@ Jacobian positive: a strain energy is a prior, and a prior that improved the
 data fit would be suspicious.  Read ``mechanics_comparison.csv`` and report what
 it says.
 
-Extra Install Required
-----------------------
-PhysicsNeMo and PyTorch Geometric::
-
-    pip install "monai-physio[physicsnemo]"
-    pip install torch-geometric
-
+Hardware Required
+-----------------
 A CUDA GPU is required; a CPU-only run is not a supported
 configuration.
 

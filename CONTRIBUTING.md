@@ -30,21 +30,13 @@ Thank you for your interest in contributing to MONAI Physio! This guide will hel
 4. **Install in development mode**:
 
    ```bash
-   pip install -e ".[dev]"
+   uv pip install -e ".[dev_cuda12]"
    ```
 
-   To install the full developer environment with CUDA 13, documentation, test,
-   and development dependencies:
-
-   ```bash
-   uv pip install -e ".[cuda13,docs,test,dev]"
-   ```
-
-   Or install every declared extra, including `physicsnemo`:
-
-   ```bash
-   uv pip install -e . --all-extras
-   ```
+   `dev_cuda12` is the full developer environment: CUDA 12.6 acceleration
+   plus the test, lint, and documentation tooling. Use `dev_cuda13` for
+   CUDA 13, or `dev` alone for the tooling without CuPy. See the
+   [installation guide](https://project-monai.github.io/monai-physio/installation.html).
 
 5. **Install pre-commit hooks**:
 
@@ -124,10 +116,8 @@ feature.
 After cloning the repository:
 
 1. Install Python 3.11+ and create virtual environment
-2. Install development dependencies: `pip install -e ".[dev]"`,
-   or install all extras with
-   `uv pip install -e ".[cuda13,docs,test,dev]"` or
-   `uv pip install -e . --all-extras`
+2. Install development dependencies: `uv pip install -e ".[dev_cuda12]"`
+   (or `dev_cuda13` for CUDA 13, `dev` for tooling only)
 3. Install pre-commit hooks: `pre-commit install`
 4. Install Ruff extension in VS Code/Cursor
 5. Remove old formatter extensions (black, isort, flake8, pylint)
@@ -262,7 +252,7 @@ pytest tests/
 # Opt into specific buckets
 pytest tests/ --run-slow
 pytest tests/ --run-gpu --run-slow   # typical local GPU profile
-pytest tests/ --run-physicsnemo      # needs [physicsnemo] extra; requires Python >= 3.11
+pytest tests/ --run-physicsnemo      # needs PhysicsNeMo; requires Python >= 3.11
 # --run-all turns on every --run-* bucket at once (used by self-hosted CI):
 pytest tests/ --run-all
 ```
@@ -275,7 +265,7 @@ Documentation is built with Sphinx and hosted on ReadTheDocs.
 
 ```bash
 # Install documentation dependencies
-pip install -e ".[docs]"
+pip install -e ".[dev]"
 
 # Build HTML documentation
 cd docs

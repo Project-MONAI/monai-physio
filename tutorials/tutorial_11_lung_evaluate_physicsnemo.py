@@ -37,12 +37,6 @@ Step 1 costs one segmentation pass per phase on first run and is cached
 afterwards; Steps 2 to 4 are the workflow, so this script only chooses the case,
 the lobes and the ground truth.
 
-Extra Install Required
-----------------------
-PhysicsNeMo and PyTorch Geometric must be installed::
-
-    pip install "monai-physio[physicsnemo]"
-
 Data Required
 -------------
   * ``data/DirLab-4DCT/<case>_T??.mha``  - the gated CT sequence

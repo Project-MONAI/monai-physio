@@ -39,14 +39,18 @@ Installation Questions
 Do I need a GPU?
 ----------------
 
-No. A plain ``pip install monai-physio`` works without a GPU. At import time
-a ``UserWarning`` is emitted (visible by default in all standard Python runs):
+No. A plain ``pip install monai-physio`` works without a GPU, and runs every
+workflow including the AI-surrogate ones — just significantly slower than a
+GPU-enabled install. At import time a ``UserWarning`` is emitted (visible by
+default in all standard Python runs):
 
 .. code-block:: text
 
-   CuPy is not installed — GPU acceleration is unavailable and processing will be
-   slow. Re-install with uv to get CuPy and CUDA-enabled PyTorch in one step
-   (pip alone will not select the correct CUDA wheel):
+   CuPy is not installed — GPU-accelerated mesh operations will fall back to
+   NumPy and run significantly slower. Every workflow still runs. Re-install
+   with uv to get CuPy and CUDA-enabled PyTorch in one step (pip alone will
+   not select the correct CUDA wheel):
+     uv pip install 'monai-physio[cuda12]'  # CUDA 12.6
      uv pip install 'monai-physio[cuda13]'  # CUDA 13
 
 CPU-only mode is suitable for evaluation and small datasets. For production
@@ -55,25 +59,37 @@ workloads an NVIDIA GPU is strongly recommended.
 Which CUDA version is required?
 --------------------------------
 
-CUDA 13 is supported. Install the CUDA 13 extra for GPU acceleration:
+Both CUDA 13 and CUDA 12.6 are supported. CUDA 12.6 is the smoothest
+install, because it is the newest combination with prebuilt ``torch-scatter``
+wheels on every supported platform — nothing compiles:
 
 .. code-block:: bash
 
-   uv pip install "monai-physio[cuda13]"
+   uv pip install "monai-physio[cuda12]"   # CUDA 12.6
+   uv pip install "monai-physio[cuda13]"   # CUDA 13, builds torch-scatter
 
-The extra installs CuPy. In uv-managed source environments, PyTorch,
-torchvision, and torchaudio are sourced from
-``https://download.pytorch.org/whl/cu130`` by default.
+Each extra installs CuPy and pins PyTorch, torchvision, and torchaudio to the
+matching wheel index (``https://download.pytorch.org/whl/cu126`` or
+``cu130``). On CUDA 13 there is no prebuilt ``torch-scatter`` wheel, so it
+compiles from source and needs a CUDA toolkit plus a C++ toolchain; see
+:doc:`installation`.
+
+To let uv pick the PyTorch build from your driver without naming a CUDA
+version — at the cost of CuPy, which has no auto-detect option:
+
+.. code-block:: bash
+
+   uv pip install --torch-backend=auto monai-physio
 
 What Python version is required?
 ---------------------------------
 
 Python 3.11, 3.12 and 3.13 are supported.
 
-The floor is set by the optional ``[physicsnemo]`` extra: ``nvidia-physicsnemo``
-supports >= 3.11, < 3.14, and the AI-surrogate tutorials need it. The rest of
-the library would run on 3.10, but declaring 3.10 would promise an install
-that cannot resolve that extra.
+The floor is set by ``nvidia-physicsnemo`` (a base dependency): it supports
+>= 3.11, < 3.14, and the AI-surrogate tutorials need it. The rest of the
+library would run on 3.10, but declaring 3.10 would promise an install that
+cannot resolve.
 
 Usage Questions
 ===============
