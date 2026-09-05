@@ -151,6 +151,12 @@ no-build-package = ["antspyx"]
 # one command is not meaningful.
 conflicts = [[{ extra = "cuda12" }, { extra = "cuda13" }]]
 
+# no-build-isolation-package (above) builds torch-scatter in the project
+# environment, but its build backend still needs torch listed as a build
+# requirement to see it there.
+[tool.uv.extra-build-dependencies]
+torch-scatter = ["torch"]
+
 # torch/torchvision/torchaudio route to the cuda13 or cuda12 PyTorch wheel
 # index depending on which extra is requested. Best-effort: the uv pip
 # interface has been observed to ignore tool.uv.sources for index routing
