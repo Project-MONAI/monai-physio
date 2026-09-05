@@ -344,7 +344,12 @@ jobs:
       # native-backed torch_geometric.utils.scatter; see the AI-surrogate
       # comment in pyproject.toml.
       # Invoke via python -m uv so uv targets the active venv interpreter.
+      # torch's headers now require C++17 (nested-namespace definitions,
+      # std::optional/string_view); MSVC defaults to C++14, and torch-scatter's
+      # setup.py does not add /std:c++17 itself, so cl.exe rejects the headers.
+      # cl.exe reads the CL env var as default flags for every invocation.
       run: |
+        $env:CL = "/std:c++17"
         python -m uv pip install -e ".[dev_cuda13]" --no-build-isolation-package torch-scatter
 
     - name: Assert CUDA is accessible
