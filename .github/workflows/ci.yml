@@ -101,6 +101,14 @@ jobs:
       # --no-build-isolation applies to the whole install (setuptools/wheel
       # are already present from the previous step). torch must already be
       # importable before that build runs, so install it first.
+      # torch's headers require C++17 (nested-namespace definitions,
+      # std::optional/string_view); MSVC defaults to C++14 and gcc's default
+      # standard depends on version, and torch-scatter's setup.py does not
+      # request C++17 itself. CL is read by cl.exe, CXXFLAGS by gcc/g++; each
+      # compiler ignores the env var meant for the other.
+      env:
+        CL: "/std:c++17"
+        CXXFLAGS: "-std=c++17"
       run: |
         pip install torch
         pip install -e ".[dev]" --no-build-isolation
@@ -222,6 +230,14 @@ jobs:
       # --no-build-isolation applies to the whole install (setuptools/wheel
       # are already present from the previous step). torch must already be
       # importable before that build runs, so install it first.
+      # torch's headers require C++17 (nested-namespace definitions,
+      # std::optional/string_view); MSVC defaults to C++14 and gcc's default
+      # standard depends on version, and torch-scatter's setup.py does not
+      # request C++17 itself. CL is read by cl.exe, CXXFLAGS by gcc/g++; each
+      # compiler ignores the env var meant for the other.
+      env:
+        CL: "/std:c++17"
+        CXXFLAGS: "-std=c++17"
       run: |
         pip install torch
         pip install -e ".[dev]" --no-build-isolation
@@ -437,7 +453,11 @@ jobs:
       # setuptools present and build isolation disabled; pip has no
       # per-package flag for this, so --no-build-isolation applies to the
       # whole install. torch must already be importable before that build
-      # runs, so install it first.
+      # runs, so install it first. gcc's default C++ standard depends on
+      # version and torch-scatter's setup.py does not request C++17 itself,
+      # so set it explicitly (torch's headers require it).
+      env:
+        CXXFLAGS: "-std=c++17"
       run: |
         python -m pip install --upgrade pip setuptools
         # Ruff runs via pre-commit so its version is pinned in one place
