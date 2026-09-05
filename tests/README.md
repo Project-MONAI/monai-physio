@@ -84,7 +84,7 @@ uv pip install -e ".[dev]"
 The fast path is the default. Heavy buckets (slow tests, GPU tests, Simpleware
 tests, tutorial scripts) are **auto-skipped** unless you
 pass their `--run-<bucket>` flag. Tests that need downloadable data fetch it
-through the session fixtures and run by default — there is no `requires_data`
+through the session fixtures and run by default - there is no `requires_data`
 marker any more.
 
 ```bash
@@ -121,7 +121,7 @@ pytest tests/ -v --run-all
 # Full Simpleware coverage (requires Simpleware Medical installed locally)
 pytest tests/ -v --run-simpleware --run-gpu --run-slow
 
-# Tutorial tests (SLOW — hours to complete)
+# Tutorial tests (SLOW - hours to complete)
 pytest tests/test_tutorials.py -v --run-tutorials
 
 # A single tutorial by name
@@ -157,19 +157,19 @@ tests.
 - **Output Organization**: Results saved to `tests/results/` by module
 
 ### Test Markers (all opt-in via a matching `--run-*` flag)
-- `@pytest.mark.slow` — Tests taking >30 seconds. Opt in: `--run-slow`.
-- `@pytest.mark.requires_gpu` — Tests needing CUDA. Opt in: `--run-gpu`.
-- `@pytest.mark.requires_simpleware` — Tests needing a licensed Synopsys
+- `@pytest.mark.slow` - Tests taking >30 seconds. Opt in: `--run-slow`.
+- `@pytest.mark.requires_gpu` - Tests needing CUDA. Opt in: `--run-gpu`.
+- `@pytest.mark.requires_simpleware` - Tests needing a licensed Synopsys
   Simpleware Medical install. Opt in: `--run-simpleware`. (Combine with
   `--run-gpu` and `--run-slow`.)
-- `@pytest.mark.requires_physicsnemo` — Tests needing PhysicsNeMo (a base
+- `@pytest.mark.requires_physicsnemo` - Tests needing PhysicsNeMo (a base
   dependency, requires Python >= 3.11). Opt in: `--run-physicsnemo`.
-- `@pytest.mark.tutorial` — Tutorial scripts run end-to-end (SLOW, never in
+- `@pytest.mark.tutorial` - Tutorial scripts run end-to-end (SLOW, never in
   CI). Opt in: `--run-tutorials`.
 
 `--run-all` is a convenience flag that turns on every `--run-*` bucket at once.
-- `@pytest.mark.integration` — Integration tests vs unit tests (filter-only).
-- `@pytest.mark.timeout(seconds)` — Per-test timeout override.
+- `@pytest.mark.integration` - Integration tests vs unit tests (filter-only).
+- `@pytest.mark.timeout(seconds)` - Per-test timeout override.
 
 The previous `requires_data` marker has been retired: tests that need
 downloadable data request the session fixtures (`test_directories`,
@@ -241,7 +241,7 @@ When creating new tests:
 
 1. **Name properly**: Use `test_` prefix for files and methods
 2. **Add markers**: `@pytest.mark.slow`, `@pytest.mark.requires_gpu`,
-   `@pytest.mark.requires_simpleware`, etc. — each one places the test in
+   `@pytest.mark.requires_simpleware`, etc. - each one places the test in
    its corresponding `--run-*` opt-in bucket.
 3. **Use fixtures**: Define shared fixtures in `conftest.py`
 4. **Document well**: Clear docstrings explaining what's validated

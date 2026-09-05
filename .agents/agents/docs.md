@@ -11,13 +11,13 @@ and the knowledge graph accurate and concise.
 
 - Docstrings for public classes, methods, and functions.
 - Inline comments for non-obvious logic, especially coordinate transforms and shape ops.
-- `graphify-out/` — refreshed, never hand-edited: `graphify update .`
-- `README.md` — update only for pipeline-level or dependency changes.
+- `graphify-out/` - refreshed, never hand-edited: `graphify update .`
+- `README.md` - update only for pipeline-level or dependency changes.
 
 ## Rules
 
 - Read the changed code before writing any docs.
-- Keep docstrings factual — describe what the code does, not what you wish it did.
+- Keep docstrings factual - describe what the code does, not what you wish it did.
 - Do not restate ITK image shape, axis order, or world space in docstrings.
   Those are fixed project-wide conventions (see `AGENTS.md`); repeating them
   adds noise. Document only genuine deviations, such as a raw NumPy array

@@ -70,20 +70,20 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
 
     Each :class:`pyvista.PolyData` surface returned by :meth:`process` carries:
 
-    - ``field_data['AnatomyGroup']`` — anatomy group name, e.g. ``'heart'``.
-    - ``field_data['SegmentationLabelNames']`` — individual structure names within the
+    - ``field_data['AnatomyGroup']`` - anatomy group name, e.g. ``'heart'``.
+    - ``field_data['SegmentationLabelNames']`` - individual structure names within the
       group (e.g. ``['left_ventricle', 'right_ventricle', …]``).
-    - ``field_data['SegmentationLabelIds']`` — corresponding integer label IDs.
-    - ``field_data['AnatomyColor']`` — RGB float color from :class:`USDAnatomyTools`.
-    - ``cell_data['Color']`` — RGBA uint8 array (n_cells × 4) for direct VTK rendering.
+    - ``field_data['SegmentationLabelIds']`` - corresponding integer label IDs.
+    - ``field_data['AnatomyColor']`` - RGB float color from :class:`USDAnatomyTools`.
+    - ``cell_data['Color']`` - RGBA uint8 array (n_cells × 4) for direct VTK rendering.
 
     **I/O contract**
 
     :meth:`process` performs *no* file I/O.  Use
     :class:`ContourTools`'s static helpers
     :meth:`ContourTools.save_surfaces` and
-    :meth:`ContourTools.save_combined_surfaces` — or the CLI
-    ``monai-physio-convert-image-to-vtk`` — to write results to disk.
+    :meth:`ContourTools.save_combined_surfaces` - or the CLI
+    ``monai-physio-convert-image-to-vtk`` - to write results to disk.
     """
 
     def __init__(
@@ -156,11 +156,11 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
 
         Sets:
 
-        - ``field_data['AnatomyGroup']`` — group name.
-        - ``field_data['SegmentationLabelNames']`` — individual label names.
-        - ``field_data['SegmentationLabelIds']`` — integer label IDs (int32).
-        - ``field_data['AnatomyColor']`` — RGB float32 color.
-        - ``cell_data['Color']`` — RGBA uint8 solid color (n_cells × 4).
+        - ``field_data['AnatomyGroup']`` - group name.
+        - ``field_data['SegmentationLabelNames']`` - individual label names.
+        - ``field_data['SegmentationLabelIds']`` - integer label IDs (int32).
+        - ``field_data['AnatomyColor']`` - RGB float32 color.
+        - ``cell_data['Color']`` - RGBA uint8 solid color (n_cells × 4).
         """
         vtk_obj.field_data["AnatomyGroup"] = np.array([group])
         vtk_obj.field_data["SegmentationLabelNames"] = np.array(
@@ -200,8 +200,8 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
                 (origin/spacing/direction) on the isolated label mask.
             labelmap_arr: ``labelmap_image``'s voxel array. Callers extracting
                 multiple labels from the same labelmap (as :meth:`process`
-                does) should compute this once — e.g. via
-                ``itk.GetArrayViewFromImage`` — and pass the same array to
+                does) should compute this once - e.g. via
+                ``itk.GetArrayViewFromImage`` - and pass the same array to
                 every call, rather than re-deriving it per label.
             label_id: Integer label id to isolate.
 
@@ -239,20 +239,20 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
                 Applied to both group and (when requested) label surfaces.
             extract_label_surfaces: When ``True``, also extract one surface per
                 individual anatomical structure (label) within each processed
-                group — e.g. ``left_ventricle`` and ``right_ventricle``
-                separately within the ``heart`` group — in addition to the
+                group - e.g. ``left_ventricle`` and ``right_ventricle``
+                separately within the ``heart`` group - in addition to the
                 per-group surfaces.  ``False`` (default) skips this and leaves
                 ``'label_surfaces'`` empty.
 
         Returns:
             ``dict`` with the following keys:
 
-            - ``'surfaces'`` — ``dict[str, pv.PolyData]``: smoothed surface per group.
-            - ``'label_surfaces'`` — ``dict[str, pv.PolyData]``: smoothed surface per
+            - ``'surfaces'`` - ``dict[str, pv.PolyData]``: smoothed surface per group.
+            - ``'label_surfaces'`` - ``dict[str, pv.PolyData]``: smoothed surface per
               individual label, populated only when *extract_label_surfaces* is True.
-            - ``'labelmap'`` — ``itk.Image``: detailed per-structure segmentation
+            - ``'labelmap'`` - ``itk.Image``: detailed per-structure segmentation
               labelmap from the segmenter.
-            - ``'segmentation_masks'`` — ``dict[str, itk.Image]``: per-group binary
+            - ``'segmentation_masks'`` - ``dict[str, itk.Image]``: per-group binary
               masks used to produce the VTK objects.
 
         Raises:
@@ -292,13 +292,13 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
         for group in groups_to_process:
             if group not in seg_result:
                 self.log_warning(
-                    "Group %s absent from segmentation result — skipping", group
+                    "Group %s absent from segmentation result - skipping", group
                 )
                 continue
 
             mask_image = seg_result[group]
             if int(itk.GetArrayFromImage(mask_image).sum()) == 0:
-                self.log_info("Group %s is empty — skipping", group)
+                self.log_info("Group %s is empty - skipping", group)
                 continue
 
             self.log_info("Processing anatomy group: %s", group)

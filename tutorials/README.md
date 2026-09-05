@@ -5,7 +5,7 @@ These are the recommended starting point for new users.
 
 ## Before You Begin
 
-These scripts live only in the source repository — `pip install monai-physio`
+These scripts live only in the source repository - `pip install monai-physio`
 does not install them. Clone the repository first:
 
 ```bash
@@ -91,7 +91,7 @@ installed `monai-physio-*` CLI commands instead.
 
 ## Running as Pytest Tutorial Tests
 
-Some tutorials are wired into the test suite under the `tutorial` marker —
+Some tutorials are wired into the test suite under the `tutorial` marker -
 currently 9 of the 29 scripts, as one hand-written class each in
 `tests/test_tutorials.py` rather than a parametrized sweep, so adding a tutorial
 does not automatically add a test. Those that are covered run end-to-end and
@@ -115,7 +115,7 @@ variants for the anatomy you care about: every tutorial consumes the output of
 its own anatomy's earlier tutorials, never the other's.
 
 1. **Tutorial 1** converts one gated 4D CT into an animated USD - the heart variant uses Slicer-Heart-CT, the lung variant DirLab-4DCT. Prepare the dataset for your anatomy per `data/README.md`, then start here.
-2. **Tutorial 2** requires DirLab-4DCT (download it per `data/README.md`) and finetunes the ICON weights Tutorial 8 uses when they are present — it falls back to the stock uniGradICON weights otherwise.
+2. **Tutorial 2** requires DirLab-4DCT (download it per `data/README.md`) and finetunes the ICON weights Tutorial 8 uses when they are present - it falls back to the stock uniGradICON weights otherwise.
 3. **Tutorial 3** registers with Greedy and needs no finetuned weights; the heart variant uses Slicer-Heart-CT, the lung variant DirLab-4DCT.
 4. **Tutorial 4** segments a CT into VTK surfaces; the heart variant uses Slicer-Heart-CT, the lung variant DirLab-4DCT.
 5. **Tutorial 5** (heart only) uses the VTK surfaces produced by Tutorial 4 (heart) - run Tutorial 4 first.
@@ -207,5 +207,5 @@ access can be requested from Stephen Aylward (<saylward@nvidia.com>). See
 Class-level API reference: [../docs/api/index.rst](../docs/api/index.rst)
 
 To explore the code with an AI assistant, query the graphify knowledge graph
-(`graphify query "<question>"`) instead of grepping — see
+(`graphify query "<question>"`) instead of grepping - see
 [../docs/developer/ai_assistants.rst](../docs/developer/ai_assistants.rst)

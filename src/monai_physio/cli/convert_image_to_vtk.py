@@ -33,15 +33,15 @@ Anatomy groups
   heart, lung, major_vessels, bone, soft_tissue, other, contrast
   (empty groups are skipped automatically)
 
-Output files — combined mode (default)
+Output files - combined mode (default)
 ---------------------------------------
   {prefix}_surfaces.vtp   all surfaces merged into one file
 
-Output files — group mode (--output-mode group)
+Output files - group mode (--output-mode group)
 ---------------------------------------------------
   {prefix}_{group}.vtp    one surface per anatomy group
 
-Output files — label mode (--output-mode label)
+Output files - label mode (--output-mode label)
 ---------------------------------------------------
   {prefix}_{label}.vtp    one surface per individual anatomical structure
 

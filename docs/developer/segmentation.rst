@@ -24,7 +24,7 @@ Current Segmentation Contract
 
 Segmentation outputs are dictionaries of ITK images. Access masks by key,
 not by positional unpacking. The exact key set depends on the segmenter's
-:class:`monai_physio.AnatomyTaxonomy` — see :doc:`../api/segmentation/base`
+:class:`monai_physio.AnatomyTaxonomy` - see :doc:`../api/segmentation/base`
 for the per-segmenter key sets and the general contract.
 
 Implemented Segmenters
@@ -111,6 +111,6 @@ See Also
 ========
 
 * :doc:`../api/segmentation/index`
-* :doc:`../api/segmentation/base` — full AnatomyTaxonomy reference
+* :doc:`../api/segmentation/base` - full AnatomyTaxonomy reference
 * :doc:`workflows`
-* :doc:`usd_generation` — how the taxonomy drives USD output
+* :doc:`usd_generation` - how the taxonomy drives USD output

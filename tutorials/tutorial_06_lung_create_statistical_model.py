@@ -12,7 +12,7 @@ modes. Tutorials 7 and 8 reuse the saved ``pca_model.json``.
 Data Required
 -------------
 Full data: ``data/DirLab-4DCT/Case*T70.mha``
-DirLab-4DCT is not auto-downloaded — see ``data/DirLab-4DCT/README.md``.
+DirLab-4DCT is not auto-downloaded - see ``data/DirLab-4DCT/README.md``.
 
 Outputs (under ``tutorials/output/tutorial_06_lung/``)
 -----------------------------------------------------

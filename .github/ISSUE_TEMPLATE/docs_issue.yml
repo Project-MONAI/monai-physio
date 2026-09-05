@@ -22,6 +22,6 @@ body:
     id: suggestion
     attributes:
       label: Suggested fix
-      description: Optional — a proposed rewrite, or what you expected to find instead.
+      description: Optional - a proposed rewrite, or what you expected to find instead.
     validations:
       required: false

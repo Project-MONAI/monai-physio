@@ -200,7 +200,7 @@ def build_html(data: dict) -> str:
             else ""
         )
     else:
-        n_pass = n_fail = n_err = n_skip = n_total = "—"
+        n_pass = n_fail = n_err = n_skip = n_total = "-"
         pass_cls = fail_cls = "muted"
         extra_err = ""
 
@@ -215,7 +215,7 @@ def build_html(data: dict) -> str:
             f"</div>"
         )
     else:
-        cov_display = "—"
+        cov_display = "-"
         cov_col = "#8b949e"
         cov_bar = ""
 
@@ -225,7 +225,7 @@ def build_html(data: dict) -> str:
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MONAI Physio — Nightly Health</title>
+<title>MONAI Physio - Nightly Health</title>
 <style>{_CSS}</style>
 </head>
 <body>
@@ -285,7 +285,7 @@ def build_status_json(data: dict) -> dict:
     junit = data["junit"]
 
     if not junit.get("available"):
-        # JUnit XML missing or unparseable — step was cancelled or never ran.
+        # JUnit XML missing or unparseable - step was cancelled or never ran.
         color, message = "critical", "unknown"
     elif (junit["failed"] + junit["errors"]) > 0:
         n_bad = junit["failed"] + junit["errors"]
@@ -333,7 +333,7 @@ def build_summary_md(data: dict) -> str:
         status_text = "Passing"
 
     lines = [
-        f"# {status_icon} MONAI Physio Nightly Health — {ts_display}",
+        f"# {status_icon} MONAI Physio Nightly Health - {ts_display}",
         "",
         f"**Status:** {status_text} &nbsp; | &nbsp; [View run]({run_url})",
         "",

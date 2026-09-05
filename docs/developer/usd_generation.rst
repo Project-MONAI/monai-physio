@@ -148,7 +148,7 @@ Every USD stage that ``ConvertVTKToUSD`` (and the lower-level
 tight ``clippingRange`` sized to the geometry's bounding box. This avoids
 the common "Omniverse Kit near-plane clips small geometry" problem for
 medical-scale meshes (~0.03 m wide). Alongside it, ``add_framing_camera``
-authors a ``/World/DistantLight`` sharing the camera's transform — a
+authors a ``/World/DistantLight`` sharing the camera's transform - a
 DistantLight emits along its local -Z, the same direction the camera looks,
 so the anatomy is lit from the viewing direction in stages that carry no
 other light. The light is created only when valid, non-degenerate bounds
@@ -191,7 +191,7 @@ module-level defaults (affects future instances) or a single instance:
    tools.render_params["brain"] = {...}
 
 ``enhance_meshes`` falls back to ``render_params["other"]`` for any group
-without a registered entry, so newly registered groups still render — just
+without a registered entry, so newly registered groups still render - just
 with the generic "other" look until a dedicated entry is added.
 
 Advanced Low-Level Facade

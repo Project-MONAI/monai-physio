@@ -263,9 +263,9 @@ class DataDownloadTools:
         """Return True when ``target_dir`` already has subdir_name's expected files.
 
         Used to decide whether a subdirectory can be skipped on a re-run.
-        Checking for *any* file is not enough — an interrupted extraction
+        Checking for *any* file is not enough - an interrupted extraction
         can leave a partially-populated directory that would then be
-        skipped forever — so this checks for the specific files each
+        skipped forever - so this checks for the specific files each
         subdirectory is expected to contain once fully extracted.
         """
         if not target_dir.is_dir():
@@ -326,7 +326,7 @@ class DataDownloadTools:
     def DownloadChestCTData(dirname: Union[str, Path]) -> Path:  # noqa: N802
         """Download the Chest-CT sample volume into ``dirname``.
 
-        Fetches ``Chest-CT.mha`` — an ungated 3-D chest CT — from the
+        Fetches ``Chest-CT.mha`` - an ungated 3-D chest CT - from the
         MONAI Physio 2026.07.1 GitHub release. An existing non-empty file is
         reused, so re-running resumes an interrupted download. See
         ``data/Chest-CT/README.md`` for the data source and required citation.

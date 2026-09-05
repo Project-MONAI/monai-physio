@@ -14,7 +14,7 @@ Inference is split in two so that the generic half stays target-agnostic:
 * :class:`WorkflowInferPhysicsNeMo` loads the checkpoint and returns the raw
   ``(n_points, n_target)`` prediction, whatever the target means.
 * :class:`WorkflowInferMovement` wraps it and interprets three-component
-  targets as displacements — deformed meshes, error statistics in millimetres,
+  targets as displacements - deformed meshes, error statistics in millimetres,
   and rasterized deformation fields.
 
 Generic prediction
@@ -80,7 +80,7 @@ Notes
 **Where the displacements are applied.**
 :meth:`WorkflowInferMovement.predict_single` and
 :meth:`~WorkflowInferMovement.create_deformation_field` both require a
-``fitted_reference_mesh`` — the patient's shape-model surface as fitted by
+``fitted_reference_mesh`` - the patient's shape-model surface as fitted by
 :class:`~monai_physio.WorkflowFitStatisticalModelToPatient`, which is shape
 parameters *and* a deformable registration. The prediction stays in that mesh's
 world frame, so a fit that carried a pose transform lands where the patient

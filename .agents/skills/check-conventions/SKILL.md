@@ -1,5 +1,5 @@
 ---
-description: Audit changed files (or a given path) against MONAI Physio's hard project rules — base-class inheritance, logging, coordinate conventions, USD entry point, Windows multiprocessing guard, quoting, type-hint style, line length, and emoji ban. Reports violations without auto-fixing.
+description: Audit changed files (or a given path) against MONAI Physio's hard project rules - base-class inheritance, logging, coordinate conventions, USD entry point, Windows multiprocessing guard, quoting, type-hint style, line length, and emoji ban. Reports violations without auto-fixing.
 ---
 
 Audit MONAI Physio source for hard-rule violations.
@@ -36,7 +36,7 @@ context such as class inheritance), then flag every occurrence of:
       from a file that is **not** `src/monai_physio/convert_vtk_to_usd.py`
       and is **not** itself inside `src/monai_physio/vtk_to_usd/`.
       Experiments, CLIs, tests, and tutorials must use `ConvertVTKToUSD`.
-- [ ] A docstring or comment claiming PyVista surfaces are in **RAS** — they
+- [ ] A docstring or comment claiming PyVista surfaces are in **RAS** - they
       are in **LPS** internally; convert to USD Y-up only at export.
 
 ### Windows multiprocessing
@@ -58,7 +58,7 @@ context such as class inheritance), then flag every occurrence of:
 ### Public API hygiene
 - [ ] A public method (no leading underscore) without a NumPy-style docstring.
 - [ ] A docstring or comment that restates the fixed ITK shape, axis order, or
-      LPS world space — flag it even when it also documents what the parameter
+      LPS world space - flag it even when it also documents what the parameter
       or return value means. Only genuine deviations from the conventions in
       `CLAUDE.md` may be documented.
 
@@ -85,4 +85,4 @@ End with a one-line summary: total findings per rule category.
 Do **not** auto-fix. The point is to surface violations the user can decide
 how to address. If `$ARGUMENTS` includes `--fix`, ask before mutating anything
 and limit fixes to the trivially mechanical rules (line length is not one of
-them — `ruff format` covers that).
+them - `ruff format` covers that).

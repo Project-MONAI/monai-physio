@@ -14,7 +14,7 @@ Ingredients
   Any ITK-readable input: a DICOM directory, ``.mha``, ``.nrrd``, ``.nii.gz``,
   or a 4D file.
 * **One held-out subject**, kept out of training, for scoring.
-* **A segmentation backend** that covers your anatomy — see
+* **A segmentation backend** that covers your anatomy - see
   :doc:`add_a_segmentation_method` if none does.
 * **A CUDA GPU**, and Python >= 3.11.
 
@@ -71,7 +71,7 @@ its PCA coefficient JSON.
 **5. Write one manifest per subject.** This is the only per-subject artifact
 the training stack requires, and the only place your data meets it. Name the reference mesh,
 the PCA coefficients, the point-data array holding your targets, and one entry
-per phase with its normalized ``stage``. Targets are read verbatim — write
+per phase with its normalized ``stage``. Targets are read verbatim - write
 ``phase.points - reference.points`` for a motion model, or any other per-vertex
 quantity for something else.
 
@@ -133,7 +133,7 @@ Notes
   mismatch here is the most common training failure.
 * ``stage`` is your own normalization of position in the cycle. Nothing parses
   filenames for it.
-* ``.vtp`` trains on surface points, ``.vtu`` on volume points — the template
+* ``.vtp`` trains on surface points, ``.vtu`` on volume points - the template
   mesh decides.
 * Add ``--reference-image`` at inference to rasterize predictions into
   ``deformation_field.mha`` for warping volumes and labelmaps.
@@ -144,5 +144,5 @@ See Also
 * :doc:`/api/physicsnemo/manifest`
 * :doc:`/cli_scripts/train_physicsnemo`
 * :doc:`/cli_scripts/infer_physicsnemo`
-* :doc:`/cli_scripts/byod_tutorials` — your own data straight to USD, no training
+* :doc:`/cli_scripts/byod_tutorials` - your own data straight to USD, no training
 * :doc:`/tutorials`

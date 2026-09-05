@@ -33,7 +33,7 @@ data/Chest-CT/
 
 A single-acquisition 3D chest CT from the AREN0534 pediatric Wilms tumor
 trial. Unlike the gated 4D datasets in this directory, it is a single static
-volume — one acquisition, no temporal phases — so it stands in for the ungated
+volume - one acquisition, no temporal phases - so it stands in for the ungated
 clinical scan a patient-specific model is fitted to.
 
 ### Dataset Details
@@ -73,4 +73,4 @@ TCIA's data usage policy also asks that the archive itself be cited:
 
 ### Files in This Directory
 
-- `Chest-CT.mha` — the downloaded chest CT volume
+- `Chest-CT.mha` - the downloaded chest CT volume

@@ -1,8 +1,8 @@
 """Training methods for PhysicsNeMo mesh-stage models.
 
 A training method owns the network, the optimization loop and the checkpoint
-payload. The surrounding data work — manifests, normalization statistics,
-dataset construction and artifact saving — lives in the workflows that drive
+payload. The surrounding data work - manifests, normalization statistics,
+dataset construction and artifact saving - lives in the workflows that drive
 these methods (:mod:`monai_physio.workflow_train_physicsnemo`).
 
 :class:`TrainPhysicsNeMoBase` holds every step common to the supported
@@ -44,7 +44,7 @@ if TYPE_CHECKING:  # typed for mypy; imported lazily at runtime
 class TrainPhysicsNeMoBase(MONAIPhysioBase):
     """Base class for a PhysicsNeMo mesh-stage training method.
 
-    Not instantiated directly — use :class:`monai_physio.TrainPhysicsNeMoMGN` or
+    Not instantiated directly - use :class:`monai_physio.TrainPhysicsNeMoMGN` or
     :class:`monai_physio.TrainPhysicsNeMoMLP`. Subclasses implement the network
     seams (:meth:`build_model`, :meth:`setup_inputs`, :meth:`forward`,
     :meth:`checkpoint_fields`, :meth:`save_artifacts`) and set the class
@@ -52,7 +52,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
     ``_shuffle_points_within_batch``.
     """
 
-    # Network identity / behavior — overridden by subclasses.
+    # Network identity / behavior - overridden by subclasses.
     model_tag: str = "base"
     architecture_name: str = "base"
     _shuffle_points_within_batch: bool = False
@@ -325,7 +325,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         """Assemble a self-describing checkpoint (weights + normalization stats).
 
         Both the periodic epoch checkpoints and the final model share this
-        payload so training can resume from — and inference can load — any saved
+        payload so training can resume from - and inference can load - any saved
         checkpoint, not just the final one.
         """
         checkpoint: dict[str, Any] = {

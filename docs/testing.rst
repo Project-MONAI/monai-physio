@@ -45,7 +45,7 @@ builtin used to keep related tests on one worker. Tests carrying only these
 markers always run.
 
 ``tests/test_tutorials.py`` holds the ``tutorial`` bucket. It is not
-parametrized over the tutorials directory — it is one hand-written class per
+parametrized over the tutorials directory - it is one hand-written class per
 covered script, currently all 29 tutorial scripts, so adding a tutorial does
 not automatically add a test.
 

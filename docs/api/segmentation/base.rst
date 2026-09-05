@@ -39,7 +39,7 @@ Concrete segmenters accept an ITK image and return a dictionary of ITK images:
 
 The returned dictionary always contains ``"labelmap"`` plus one entry per
 anatomy group the segmenter registered in its taxonomy (and ``"other"`` for
-unclassified labels). **The exact key set is segmenter-specific** — callers
+unclassified labels). **The exact key set is segmenter-specific** - callers
 must check membership (``"lung" in masks``) rather than assume a fixed
 schema. For example, :class:`SegmentChestTotalSegmentator` returns the full
 ``heart, lung, bone, major_vessels, soft_tissue, contrast, other`` set,

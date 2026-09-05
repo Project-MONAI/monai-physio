@@ -5,7 +5,7 @@ MONAI Physio Cookbook
 =====================
 
 Short, self-contained recipes for the things people actually ask for. Each one
-lists its **ingredients** — what you must have on hand before you start — then
+lists its **ingredients** - what you must have on hand before you start - then
 the **steps** that turn them into a result.
 
 Recipes assume you already installed the package (:doc:`/installation`) and

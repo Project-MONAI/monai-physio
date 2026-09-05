@@ -74,7 +74,7 @@ Adding a Workflow
 4. Keep file I/O behavior predictable and documented.
 5. Add a CLI wrapper only when the workflow is useful from the command line.
 6. Add focused tests using synthetic data where possible.
-7. Run ``graphify update .`` after public API changes — methods added,
+7. Run ``graphify update .`` after public API changes - methods added,
    modified, or removed.
 
 Risk Areas

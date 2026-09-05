@@ -10,7 +10,7 @@
 # ``unigradicon.finetuning.finetune`` as a subprocess.
 #
 # ``2-recon_4d_icon_eval.py`` re-derives the same split from the same sorted
-# patient list — no cached split file is needed.
+# patient list - no cached split file is needed.
 #
 # Each patient directory under ``src_data_dir_base`` is one ``subject_id``;
 # all of that patient's gated time-point frames form a paired training group.
@@ -60,7 +60,7 @@ initial_registration_dirs = [
 # the same rule so the two scripts agree without a cached split record.
 train_fraction = 0.8
 
-# Local clone of uniGradICON (feat-add-finetuning branch) — prepended to
+# Local clone of uniGradICON (feat-add-finetuning branch) - prepended to
 # PYTHONPATH so the subprocess picks up the local source instead of the
 # installed package.  Set to ``None`` to use the pip-installed unigradicon.
 unigradicon_src_path: Optional[Path] = Path(__file__).parent / "uniGradICON" / "src"
@@ -104,7 +104,7 @@ print(f"  Test  (last {len(test_subjects)}): {test_subjects}")
 # references) and pair each frame with its
 # ``<stem>_labelmap.nii.gz`` and ``<stem>_mask.nii.gz`` under ``labelmap_dir_base / <patient_id>``.
 # Patients with no source directory or no valid frames are skipped here only
-# — they remain part of the canonical train list above, but contribute no
+# - they remain part of the canonical train list above, but contribute no
 # training data.  Missing labelmaps are recorded as ``None`` so the workflow
 # skips just that frame.
 

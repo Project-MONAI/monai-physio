@@ -45,7 +45,7 @@ Thank you for your interest in contributing to MONAI Physio! This guide will hel
    ```
 
 If you work with an AI coding assistant, use the graphify knowledge graph to
-navigate the codebase — `graphify query "<question>"` returns a scoped
+navigate the codebase - `graphify query "<question>"` returns a scoped
 subgraph rather than raw search output. See the
 [AI Assistants guide](https://project-monai.github.io/monai-physio/developer/ai_assistants.html).
 

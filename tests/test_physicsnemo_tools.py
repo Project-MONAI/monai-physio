@@ -1,7 +1,7 @@
 """Synthetic tests for the PhysicsNeMo manifest and lazy sample dataset.
 
-These cover the target contract — the manifest names a point-data array and the
-dataset returns it verbatim — with no torch or PhysicsNeMo involvement, so they
+These cover the target contract - the manifest names a point-data array and the
+dataset returns it verbatim - with no torch or PhysicsNeMo involvement, so they
 run in the default fast suite.
 """
 

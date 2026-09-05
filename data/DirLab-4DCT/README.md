@@ -2,7 +2,7 @@
 
 ## Download
 
-**Manual download required** — this dataset is not fetched by
+**Manual download required** - this dataset is not fetched by
 `monai-physio-download-data`; there is no automatic downloader because
 DIR-Lab distributes each case individually and may require registration.
 
@@ -11,7 +11,7 @@ DIR-Lab distributes each case individually and may require registration.
 2. Extract each case's raw images into `data/DirLab-4DCT/downloaded_data/`
    (see layout below). The `.mhd` headers already committed in that
    directory point at those raw files, so no header-writing step is
-   required — see "About the Committed `.mhd` Files" below.
+   required - see "About the Committed `.mhd` Files" below.
 3. Run `data/DirLab-4DCT/fix_downloaded_data.py`. DIR-Lab's raw volumes are
    not in Hounsfield units (see "Fixing Raw Intensities" below); this
    script reads every `.mhd` header in `downloaded_data/` with its backing
@@ -51,7 +51,7 @@ data/DirLab-4DCT/
 
 The `Case*Pack_T*.mhd` files in `downloaded_data/` are already committed to
 the repository, but they are only MetaImage **headers** (a few hundred
-bytes each) — for example:
+bytes each) - for example:
 
 ```
 ObjectType = Image
@@ -68,7 +68,7 @@ until you complete the manual download above and the referenced
 `Case*Pack/Images/*.img` files exist alongside them.
 
 `Convert4DCTToMHD.py` is what originally generated these headers from the
-raw DIR-Lab archives. It is included for provenance/documentation only —
+raw DIR-Lab archives. It is included for provenance/documentation only -
 you do not need to run it; the `.mhd` files are already committed.
 
 ### Fixing Raw Intensities
@@ -125,15 +125,15 @@ If you use this dataset, please cite:
 
 ### Files in This Directory
 
-- `fix_downloaded_data.py` — converts `downloaded_data/*.mhd` to
+- `fix_downloaded_data.py` - converts `downloaded_data/*.mhd` to
   HU-corrected `Case*Pack_T*.mha` files in this directory (see "Fixing Raw
   Intensities" above)
-- `downloaded_data/Convert4DCTToMHD.py` — documents how the committed
+- `downloaded_data/Convert4DCTToMHD.py` - documents how the committed
   `.mhd` headers were generated from the raw DIR-Lab archives; not needed
   to run
-- `downloaded_data/Case*Pack_T*.mhd` — MetaImage headers for each
+- `downloaded_data/Case*Pack_T*.mhd` - MetaImage headers for each
   case/phase (see above)
-- `Case*Pack_T*.mha` — HU-corrected volumes written by
+- `Case*Pack_T*.mha` - HU-corrected volumes written by
   `fix_downloaded_data.py`; what tutorials and experiments actually read
 
 ### Additional Resources

@@ -53,7 +53,7 @@ beneficial to future users:
   stubs
 - When a break is substantial, ship code that automates the conversion instead
 - Every commit that breaks a public API adds an entry to
-  `docs/developer/migration_next.md` in that same commit — what changed, why it
+  `docs/developer/migration_next.md` in that same commit - what changed, why it
   benefits future users, before/after code, and the conversion script (or
   `None needed` when the break is not substantial)
 - At release, archive the guide under the new version and start a fresh one:

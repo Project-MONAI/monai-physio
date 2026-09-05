@@ -6,7 +6,7 @@ MONAI Physio trains and runs PhysicsNeMo mesh-stage models: given a subject's
 shape parameters and a stage (a point in the cardiac or respiratory cycle),
 predict a per-vertex target on the shared template mesh. When that target is a
 displacement, the prediction replaces a per-phase registration solve with one
-forward pass — see Tutorials 9 through 13 in :doc:`../../tutorials`.
+forward pass - see Tutorials 9 through 13 in :doc:`../../tutorials`.
 
 The layer follows the same has-a shape as the rest of the workflow tier: a
 workflow owns the data and the artifacts, and a *method* object owns the

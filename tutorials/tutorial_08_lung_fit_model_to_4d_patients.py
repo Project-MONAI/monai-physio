@@ -32,7 +32,7 @@ PCA model: Tutorial 6 output (``output/tutorial_06_lung/pca_model.json``,
 ICON weights: Tutorial 2 output
 (``network_weights/icon_dirlab_4dct_distancemap/
 icon_dirlab_4dct_distancemap_model/checkpoints/network_weights_final.trch``) for
-the distance-map stage of the SSM fit. Optional — the stock uniGradICON weights
+the distance-map stage of the SSM fit. Optional - the stock uniGradICON weights
 are used when it is absent.
 
 Outputs (per case, under ``output/tutorial_08_lung/<case>/``)

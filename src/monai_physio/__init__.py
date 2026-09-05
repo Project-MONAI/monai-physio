@@ -28,12 +28,12 @@ import warnings as _warnings
 
 if _importlib_util.find_spec("cupy") is None:
     _warnings.warn(
-        "CuPy is not installed — GPU-accelerated mesh operations will fall "
+        "CuPy is not installed - GPU-accelerated mesh operations will fall "
         "back to NumPy and run significantly slower. Every workflow still "
         "runs. Re-install with uv to get CuPy and CUDA-enabled PyTorch in one "
         "step (pip alone will not select the correct CUDA wheel):\n"
-        "  uv pip install 'monai-physio[cuda12]'  # CUDA 12.6\n"
-        "  uv pip install 'monai-physio[cuda13]'  # CUDA 13",
+        '  uv pip install "monai-physio[cuda12]"  # CUDA 12.6\n'
+        '  uv pip install "monai-physio[cuda13]"  # CUDA 13',
         UserWarning,
         stacklevel=2,
     )
@@ -47,7 +47,7 @@ if _installer is not None and _installer.strip() == "pip":
         "monai-physio was installed with pip, which selects the PyTorch CUDA "
         "wheel manually and needs a separate PyTorch install step (see the "
         "installation guide). uv does it in one command:\n"
-        "  uv pip install 'monai-physio[cuda12]'",
+        '  uv pip install "monai-physio[cuda12]"',
         UserWarning,
         stacklevel=2,
     )

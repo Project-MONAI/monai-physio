@@ -4,7 +4,7 @@ Predict With a Trained Surrogate
 
 ``monai-physio-infer-physicsnemo`` loads a model directory written by
 ``monai-physio-train-physicsnemo`` and predicts a subject's per-vertex targets
-at any stage — including stages that were never acquired, which is the reason
+at any stage - including stages that were never acquired, which is the reason
 to train a surrogate. It is the command-line form of
 :class:`~monai_physio.WorkflowInferPhysicsNeMo` and
 :class:`~monai_physio.WorkflowInferMovement`.
@@ -35,7 +35,7 @@ written.
 Single-Subject Mode
 ===================
 
-No manifest — just the subject's PCA coefficients:
+No manifest - just the subject's PCA coefficients:
 
 .. code-block:: bash
 
@@ -66,7 +66,7 @@ and the reference-surface normals onto that image's voxel grid:
        --reference-image patient_ct.mha \
        --output output/fields
 
-This writes ``deformation_field.mha`` and ``surface_normal_field.mha`` —
+This writes ``deformation_field.mha`` and ``surface_normal_field.mha`` -
 apply them to volumes and labelmaps with
 :class:`~monai_physio.TransformTools`.
 

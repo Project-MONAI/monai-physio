@@ -10,14 +10,14 @@ Runs on the public DIR-Lab 4D CT data. A thin driver over the reusable
    (``tutorial_08_lung_fit_model_to_4d_patients.py``), write the training target
    for each phase, and write one JSON manifest per case. The target here is the
    per-vertex displacement from the case's reference surface, stored as a
-   ``displacement`` point-data array — the workflow reads targets verbatim and
+   ``displacement`` point-data array - the workflow reads targets verbatim and
    never derives them. Respiratory stages are parsed from the ``T{PP}`` phase
    filenames and written explicitly into the manifest (the workflow never parses
    filenames).
 
-2. Split the cases into train and held-out test — plus an optional validation
+2. Split the cases into train and held-out test - plus an optional validation
    set, empty by default, which is what makes the intermittent validation RMSE
-   read ``n/a`` — and train the MeshGraphNet (``WorkflowTrainPhysicsNeMo``
+   read ``n/a`` - and train the MeshGraphNet (``WorkflowTrainPhysicsNeMo``
    driving ``TrainPhysicsNeMoMGN``).
 
 3. Evaluate the held-out test cases against their ground-truth phases with
@@ -117,7 +117,7 @@ def _write_target_mesh(
 
     The target is the per-vertex displacement from the case's reference surface,
     stored as the ``TARGET_ARRAY`` point-data array on a copy of the phase
-    surface. Any other per-vertex quantity could be written here instead — the
+    surface. Any other per-vertex quantity could be written here instead - the
     training workflow reads whatever array the manifest names.
     """
     phase_mesh = pv.read(str(phase_file))

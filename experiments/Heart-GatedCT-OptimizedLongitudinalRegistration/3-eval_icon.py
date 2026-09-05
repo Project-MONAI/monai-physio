@@ -2,7 +2,7 @@
 # # Evaluate ICON default vs finetuned weights on held-out longitudinal CT
 #
 # Enumerates the Duke patient cohort from ``timepoint_base_dir`` subdirectories
-# and uses the *last 20%* of patients as the held-out test set — the same fixed
+# and uses the *last 20%* of patients as the held-out test set - the same fixed
 # split applied by ``2-finetune_icon.py`` (first 80% train, last 20% test).
 # Each subject directory must contain exactly one file whose name ends with
 # ``ref.nii.gz``; that file is the fixed image for all registration methods.
@@ -172,7 +172,7 @@ print("All test subjects have exactly one ref.nii.gz")
 # %% [markdown]
 # ## 3. Reader instance used in the per-frame inner loop
 #
-# Landmarks are read with :meth:`LandmarkTools.read_landmarks_3dslicer` —
+# Landmarks are read with :meth:`LandmarkTools.read_landmarks_3dslicer` -
 # they were written as ``<stem>_landmark.mrk.json`` (3D Slicer Markups JSON,
 # LPS) by ``0-cardiacGatedCT_segment_and_landmark.py``.  Binary registration
 # masks come from :meth:`LabelmapTools.convert_labelmap_to_mask` (``>0``

@@ -122,7 +122,7 @@ class ConvertImage4DTo3D(MONAIPhysioBase):
     ) -> None:
         """Build per-frame 3D ITK images from a Slicer 4D ``.seq.nrrd``."""
         # pynrrd returns the data in (T, X, Y, Z) order for a 4D NRRD.
-        # ITK numpy views use (T, Z, Y, X) — transpose the spatial axes.
+        # ITK numpy views use (T, Z, Y, X) - transpose the spatial axes.
         arr_4d = np.ascontiguousarray(data.transpose(0, 3, 2, 1))
 
         required_keys = ("space origin", "space directions", "measurement frame")

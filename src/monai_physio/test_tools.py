@@ -647,7 +647,7 @@ class TestTools(MONAIPhysioBase):
         # On headless Linux runners VTK needs an X server or off-screen GL
         # context. If DISPLAY is already provided (e.g. xvfb-run wrapping
         # pytest), trust it. Otherwise try pv.start_xvfb() and let failures
-        # surface — silently swallowing them previously caused VTK to
+        # surface - silently swallowing them previously caused VTK to
         # segfault inside Plotter.screenshot() on GitHub Actions.
         xvfb_started = False
         if sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):

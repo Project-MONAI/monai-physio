@@ -430,12 +430,12 @@ class TestSyntheticConversion:
 
     Covers:
     - Gap C: single-frame prim carries explicit time sample after create_time_varying_mesh change
-    - Gap D: mask_ids / _convert_with_labels — per-label prims, time-code filtering
+    - Gap D: mask_ids / _convert_with_labels - per-label prims, time-code filtering
     - Gap E: static-merge prim naming uses data_basename
     """
 
     # ------------------------------------------------------------------
-    # Gap C — single-part prim must carry explicit time sample
+    # Gap C - single-part prim must carry explicit time sample
     # ------------------------------------------------------------------
 
     def test_single_frame_prim_has_time_sample(self, tmp_path: Path) -> None:
@@ -451,7 +451,7 @@ class TestSyntheticConversion:
         assert samples[0] == pytest.approx(0.0)
 
     # ------------------------------------------------------------------
-    # Gap E — static-merge prim naming uses data_basename
+    # Gap E - static-merge prim naming uses data_basename
     # ------------------------------------------------------------------
 
     def test_static_merge_prim_names_use_data_basename(self, tmp_path: Path) -> None:
@@ -568,7 +568,7 @@ class TestSyntheticConversion:
             )
 
     # ------------------------------------------------------------------
-    # Gap D — mask_ids / _convert_with_labels
+    # Gap D - mask_ids / _convert_with_labels
     # ------------------------------------------------------------------
 
     def test_mask_ids_basic_produces_per_label_prims(self, tmp_path: Path) -> None:
@@ -643,7 +643,7 @@ class TestSyntheticConversion:
         v_samples = UsdGeom.Mesh(ventricle).GetPointsAttr().GetTimeSamples()
         a_samples = UsdGeom.Mesh(atrium).GetPointsAttr().GetTimeSamples()
         assert list(v_samples) == [0.0, 1.0, 2.0], f"ventricle samples: {v_samples}"
-        # atrium absent from frame 1 — time code 1.0 must NOT appear
+        # atrium absent from frame 1 - time code 1.0 must NOT appear
         assert list(a_samples) == [0.0, 2.0], (
             f"atrium should only appear at t=0 and t=2, got {a_samples}"
         )

@@ -20,7 +20,7 @@ Instructions:
      that should not be committed, display an error, stop processing, and abort
    - Do NOT add any untracked files to the commit.
 
-2. Scan the diff for breaking changes to the public API — renamed or removed
+2. Scan the diff for breaking changes to the public API - renamed or removed
    classes, methods, or CLI flags, changed signatures or defaults, changed
    output file layouts.
    - If there are none, continue.
@@ -56,7 +56,7 @@ Instructions:
         `ruff check --fix` and `ruff format`. Do not run ruff project-wide.
       - For `mypy` errors: fix the type annotations in the flagged files.
       - For other hook failures: diagnose and fix the root cause; do NOT use `--no-verify`.
-   c. Return to step 4 and retry — repeat until the commit succeeds or you have exhausted reasonable fixes.
+   c. Return to step 4 and retry - repeat until the commit succeeds or you have exhausted reasonable fixes.
    d. If an issue cannot be fixed automatically (e.g. a failing test unrelated to the current changes), report it to the user and stop.
 
 6. After a successful commit, print the one-line commit summary (`git log --oneline -1`)

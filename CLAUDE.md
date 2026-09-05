@@ -7,7 +7,7 @@ Project guidance for Claude Code in this repository.
 We are developing open-source code for scientific AI libraries.
 
 **A GPU is assumed.** Supporting CPU-only machines is not a requirement.
-Design for the GPU first and use it wherever it is faster — do not add CPU
+Design for the GPU first and use it wherever it is faster - do not add CPU
 fallbacks, dtype compromises, or size limits to keep a CPU-only path viable,
 and do not weaken an algorithm because a CPU could not run it.
 
@@ -120,7 +120,7 @@ pre-commit run --all-files
 
 All classes inherit from `MONAIPhysioBase` (`monai_physio_base.py`),
 which provides a shared logger. Use `self.log_info()`, `self.log_debug()`
-— never `print()`.
+- never `print()`.
 
 Use graphify (see section below) to locate classes, methods, and signatures.
 
@@ -129,7 +129,7 @@ Use graphify (see section below) to locate classes, methods, and signatures.
 - Images: `itk.Image`, axes X, Y, Z [, T] in LPS world space (ITK's native
   frame; `itk.imread` normalizes DICOM, NIfTI, MHA, and NRRD inputs to LPS)
   stored using itk.imwrite with compression=True
-— never silently squeeze or permute axes
+- never silently squeeze or permute axes
 - Surfaces: `pv.PolyData` in LPS (inherited from the source `itk.Image` via
   `itk.vtk_image_from_image`); converted to USD right-handed Y-up only at USD
   export by `vtk_to_usd.lps_points_to_usd` (USD +X=Left, +Y=Superior, +Z=Anterior)
@@ -138,23 +138,23 @@ Use graphify (see section below) to locate classes, methods, and signatures.
 - Transforms: ITK transforms stored in `.hdf` files with compression
 
 These conventions are fixed and hold everywhere, so this list is their single
-source of truth — do not restate shape, axis order, or world space in
+source of truth - do not restate shape, axis order, or world space in
 docstrings, comments, or test docstrings. Document only genuine deviations,
 such as a raw NumPy array whose axes are reversed relative to the ITK image it
 came from.
 
 ## Testing
 
-- Fast tests (recommended for development — slow/GPU/Simpleware/tutorial
+- Fast tests (recommended for development - slow/GPU/Simpleware/tutorial
   tests are auto-skipped unless their opt-in flag is passed)
   py -m pytest tests/ -v
-- Baselines in `tests/baselines/` via Git LFS — run `git lfs pull` after cloning
+- Baselines in `tests/baselines/` via Git LFS - run `git lfs pull` after cloning
 - `tests/conftest.py`: session-scoped fixtures chaining
   download → convert → segment → register
 - `src/monai_physio/test_tools.py`: baseline comparison utilities (`TestTools`, etc.)
 - Markers (all opt-in via `--run-<bucket>`): `slow`, `requires_gpu`,
   `requires_simpleware`, `tutorial`. Data-dependent tests no
-  longer use a marker — they pull data through fixtures and run by default.
+  longer use a marker - they pull data through fixtures and run by default.
 - `experiments/` scripts are exploratory and are not run as tests; the
   `tutorials/` scripts are the optional end-to-end suite
 - **Avoid `pytest --run-slow` (or `--run-all`) unless the user explicitly
@@ -170,22 +170,22 @@ Role-specific subagents live in `.agents/agents/`; slash-command skills in
 `.agents/skills/`. See `AGENTS.md` for role-based guidance that applies across
 Claude, Codex, and other AI tooling.
 
-- `/plan` — inspect files, summarize design, produce a numbered plan (no code changes)
-- `/impl` — read → summarize → plan → implement in small diffs
-- `/test-feature` — propose test plan, write real-data-driven pytest tests
+- `/plan` - inspect files, summarize design, produce a numbered plan (no code changes)
+- `/impl` - read → summarize → plan → implement in small diffs
+- `/test-feature` - propose test plan, write real-data-driven pytest tests
   with baselines
-- `/doc-feature` — update docstrings
-- `/check-conventions` — audit changed files against project hard rules
+- `/doc-feature` - update docstrings
+- `/check-conventions` - audit changed files against project hard rules
   (base-class, logging, coordinate frame, USD entry point, Windows mp guard,
   quoting, type hints, line length, emoji ban)
-- `/simplify-staged` — readability / quality pass over `git diff HEAD`
-- `/commit` — stage tracked changes, draft `<TAG>: …` message, loop until hooks pass
-- `/review-pr <NUMBER>` — drive `utils/ai_agent_github_reviews.py` to triage
+- `/simplify-staged` - readability / quality pass over `git diff HEAD`
+- `/commit` - stage tracked changes, draft `<TAG>: …` message, loop until hooks pass
+- `/review-pr <NUMBER>` - drive `utils/ai_agent_github_reviews.py` to triage
   a PR's review comments and apply accepted edits as pending changes
 
 ## File Operations
 
-Use `git mv` / `git rm` — not `mv` / `rm` — to preserve history.
+Use `git mv` / `git rm` - not `mv` / `rm` - to preserve history.
 
 ## Documentation Policy
 

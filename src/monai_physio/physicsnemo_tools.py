@@ -4,28 +4,28 @@ This module holds the pieces common to the MeshGraphNet (MGN) and fully
 connected (MLP) PhysicsNeMo workflows so the workflow classes stay focused on
 orchestration.  It provides:
 
-- :class:`SubjectManifest` / :func:`parse_manifest` — the per-subject JSON
+- :class:`SubjectManifest` / :func:`parse_manifest` - the per-subject JSON
   manifest that lists a fitted reference mesh, a PCA shape-parameter file, the
   name of the point-data array holding the training targets, and the phase
   meshes that carry that array with their stages.
-- :func:`load_target_array` — read one phase's ``(n_points, n_target)`` target
+- :func:`load_target_array` - read one phase's ``(n_points, n_target)`` target
   values out of a mesh's point data.
-- :func:`build_node_features` — the shared per-vertex feature layout
+- :func:`build_node_features` - the shared per-vertex feature layout
   ``[mean_coords_norm, pca_norm (tiled), stage]`` used by both networks.
-- :func:`mesh_to_edge_index` / :func:`compute_edge_features` — MGN mesh-graph
+- :func:`mesh_to_edge_index` / :func:`compute_edge_features` - MGN mesh-graph
   construction from the shared template mesh (surface or volumetric).
-- :func:`uncompiled_state_dict` / :func:`strip_compile_prefix` — checkpoint I/O
+- :func:`uncompiled_state_dict` / :func:`strip_compile_prefix` - checkpoint I/O
   that is robust to ``torch.compile`` and ``DistributedDataParallel`` wrapping.
-- :class:`DistributedContext` / :func:`distributed_context` — the rank, device
+- :class:`DistributedContext` / :func:`distributed_context` - the rank, device
   and world size of the current process, from PhysicsNeMo's
   ``DistributedManager``.  A run started without a launcher gets world size 1,
   so single-process callers need no distributed-specific code.
-- :class:`PhaseSampleDataset` — a lazy ``(subject, phase)`` sample provider with
+- :class:`PhaseSampleDataset` - a lazy ``(subject, phase)`` sample provider with
   a bounded in-RAM cache so the training set need not fit in memory.
 
 Targets are whatever the caller stored in the manifest's ``target_array``: the
-stack never computes them.  A displacement model is one application of that —
-the caller writes ``phase.points - reference.points`` into the array — but any
+stack never computes them.  A displacement model is one application of that -
+the caller writes ``phase.points - reference.points`` into the array - but any
 per-point vector of any width works the same way.
 
 ``torch`` and ``torch_geometric`` are base dependencies, but every function
@@ -47,12 +47,13 @@ import pyvista as pv
 
 if TYPE_CHECKING:  # imported lazily at runtime; typed here for mypy only
     import torch
+    from physicsnemo.models.meshgraphnet import MeshGraphNet
 
 
 # --------------------------------------------------------------------------- #
 # MeshGraphNet import guard                                                    #
 # --------------------------------------------------------------------------- #
-def import_meshgraphnet() -> Any:
+def import_meshgraphnet() -> type[MeshGraphNet]:
     """Import PhysicsNeMo's ``MeshGraphNet``, reporting install faults clearly.
 
     PhysicsNeMo builds MeshGraphNet on ``torch_scatter``, a compiled extension
@@ -75,6 +76,10 @@ def import_meshgraphnet() -> Any:
         import torch_geometric  # noqa: F401 - needed by the graph seams
         from physicsnemo.models.meshgraphnet import MeshGraphNet
     except OSError as exc:
+        if "scatter" not in str(exc).lower():
+            raise ImportError(
+                f"Failed to import MeshGraphNet's dependencies: {exc}"
+            ) from exc
         import torch
 
         raise ImportError(
@@ -85,13 +90,13 @@ def import_meshgraphnet() -> Any:
             "inside the range with prebuilt torch_scatter wheels. See the "
             "installation guide for the platform-by-platform wheel matrix."
         ) from exc
-    except ImportError as exc:
+    except ModuleNotFoundError as exc:
         raise ImportError(
             "MeshGraphNet requires PhysicsNeMo and PyTorch Geometric, which "
             "are base dependencies of monai-physio. Reinstall with: "
             "pip install --force-reinstall monai-physio"
         ) from exc
-    return MeshGraphNet
+    return cast("type[MeshGraphNet]", MeshGraphNet)
 
 
 # --------------------------------------------------------------------------- #
@@ -464,7 +469,7 @@ class PhaseSampleDataset:
     normalized PCA parameters and the phase stage (cheap).  Only the phase
     target arrays are read from disk, and those are held in a bounded LRU cache
     so an arbitrarily large training set streams from disk while a small set
-    stays resident.  Targets are returned as stored — the dataset never derives
+    stays resident.  Targets are returned as stored - the dataset never derives
     them from geometry.
 
     Args:

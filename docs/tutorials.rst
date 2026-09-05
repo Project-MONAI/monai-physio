@@ -24,7 +24,7 @@ Before You Start
 ================
 
 **1. Get the scripts.** They ship with the source repository, not with the pip
-package — ``pip install monai-physio`` gives you the library and the
+package - ``pip install monai-physio`` gives you the library and the
 ``monai-physio-*`` commands but no ``tutorials/`` directory:
 
 .. code-block:: bash
@@ -47,8 +47,8 @@ relative to the current working directory:
 
 That covers Heart Tutorials 1, 3, 4 and 6 (``Slicer-Heart-CT`` and
 ``KCL-Heart-Model``) and Lung Tutorial 7 (``Chest-CT``), which Tutorial 13 also
-animates. ``DirLab-4DCT`` — used by Lung Tutorials 1, 2, 3, 4, 6, 8, 10, 11 and
-12, and by Heart Tutorial 7 — is **not** auto-downloaded: DIR-Lab distributes
+animates. ``DirLab-4DCT`` - used by Lung Tutorials 1, 2, 3, 4, 6, 8, 10, 11 and
+12, and by Heart Tutorial 7 - is **not** auto-downloaded: DIR-Lab distributes
 each case individually and may require registration.
 
 Tutorials 5 and 9 need no dataset of their own; they consume the outputs of
@@ -187,32 +187,32 @@ the toolkit
 work end-to-end; 6 through 18 build the statistical-model and AI-surrogate
 pipeline on top.
 
-1. **Tutorial 1** — after downloading Slicer-Heart-CT.
-2. **Tutorial 2** — after obtaining DIR-Lab. It writes the finetuned ICON
+1. **Tutorial 1** - after downloading Slicer-Heart-CT.
+2. **Tutorial 2** - after obtaining DIR-Lab. It writes the finetuned ICON
    weights Tutorial 8 uses when present; optional if stock weights are
    acceptable.
-3. **Tutorial 3** — after obtaining its dataset; it registers with Greedy and
+3. **Tutorial 3** - after obtaining its dataset; it registers with Greedy and
    needs no finetuned weights.
-4. **Tutorial 4** — after downloading Slicer-Heart-CT.
-5. **Tutorial 5** — after Tutorial 4, whose surfaces it converts.
-6. **Tutorial 6** — heart needs KCL-Heart-Model, lung needs DIR-Lab.
-7. **Tutorial 7** — after Tutorial 6; the lung variant also needs Chest-CT.
-8. **Tutorial 8** — after Tutorial 6 (lung); Tutorial 2 optional.
-9. **Tutorial 9** — after Tutorial 8, whose fitted meshes it trains on.
-10. **Tutorial 10** — after Tutorial 9, whose checkpoint it loads.
-11. **Tutorial 11** — after Tutorial 9. The lung variant segments every gated
+4. **Tutorial 4** - after downloading Slicer-Heart-CT.
+5. **Tutorial 5** - after Tutorial 4, whose surfaces it converts.
+6. **Tutorial 6** - heart needs KCL-Heart-Model, lung needs DIR-Lab.
+7. **Tutorial 7** - after Tutorial 6; the lung variant also needs Chest-CT.
+8. **Tutorial 8** - after Tutorial 6 (lung); Tutorial 2 optional.
+9. **Tutorial 9** - after Tutorial 8, whose fitted meshes it trains on.
+10. **Tutorial 10** - after Tutorial 9, whose checkpoint it loads.
+11. **Tutorial 11** - after Tutorial 9. The lung variant segments every gated
     frame of the held-out case, so it needs a GPU and the segmentation weights.
-12. **Tutorial 12** — after Tutorial 6 and Tutorial 9 for its anatomy; it fits
+12. **Tutorial 12** - after Tutorial 6 and Tutorial 9 for its anatomy; it fits
     the model to the patient itself, so nothing is read from Tutorial 8.
-13. **Tutorial 13** — after Tutorial 7 (lung) and Tutorial 9 for both anatomies.
+13. **Tutorial 13** - after Tutorial 7 (lung) and Tutorial 9 for both anatomies.
     It also needs Simpleware Medical, which segments the heart it fits.
-14. **Tutorial 14** — after Tutorial 8 and Tutorial 9, whose fit and
+14. **Tutorial 14** - after Tutorial 8 and Tutorial 9, whose fit and
     checkpoint every point of the grid reuses. It scores each point the way
     Tutorial 11 does, so it needs a GPU and the segmentation weights too.
-15. **Tutorial 15** — needs only the cohort. It rebuilds the shape model, the
+15. **Tutorial 15** - needs only the cohort. It rebuilds the shape model, the
     fits and the network per fold, so nothing from Tutorials 6, 8 or 9 is read;
     those outputs are reused as a cache when they happen to be there.
-16. **Tutorials 16, 17 and 18** (Duke heart) — in that order, after Tutorial 4.
+16. **Tutorials 16, 17 and 18** (Duke heart) - in that order, after Tutorial 4.
     They branch off the chain rather than continuing it: a strain energy needs
     volume elements, so Tutorial 16 rebuilds the shape model tetrahedrally
     instead of reusing the surface one from Tutorials 6 to 8. Tutorial 17 then
@@ -275,7 +275,7 @@ Run
 
 Outputs
    The animated USD named after ``usd_project_name``, the per-phase registered
-   volumes and labelmaps, and screenshots — all under
+   volumes and labelmaps, and screenshots - all under
    ``tutorials/output/tutorial_01_{heart,lung}/``.
 
 Adapt to your data
@@ -284,7 +284,7 @@ Adapt to your data
    ``.nii.gz``) in acquisition order, or a 4D ``.seq.nrrd`` split first with
    ``monai-physio-convert-image-4d-to-3d``. Choose the reference phase by
    changing the index expression, and swap ``segmentation_method`` for the one
-   matching your anatomy and contrast — see :doc:`api/segmentation/index`. For
+   matching your anatomy and contrast - see :doc:`api/segmentation/index`. For
    command-line use without editing code, run
    ``monai-physio-convert-image-to-usd`` (:doc:`cli_scripts/heart_gated_ct`).
 
@@ -294,12 +294,12 @@ Tutorial 2: Finetune ICON Registration
 Script
    ``tutorials/tutorial_02_lung_finetune_icon.py``
 
-   ``tutorials/tutorial_02_lung_distancemap_finetune_icon.py`` — the lung
+   ``tutorials/tutorial_02_lung_distancemap_finetune_icon.py`` - the lung
    distance-map variant, which finetunes on distance maps rather than image
    intensities so the labelmap-to-labelmap stage of Tutorials 7 and 8 has
    in-distribution weights.
 
-   ``tutorials/tutorial_02_duke_heart_distancemap_finetune_icon.py`` — the same
+   ``tutorials/tutorial_02_duke_heart_distancemap_finetune_icon.py`` - the same
    for the heart, on Duke-Heart-4DLabelmaps. The heart needs its own run because
    it registers with a much tighter mask than the lungs, so its distance maps
    saturate over a shorter radius and do not share an intensity distribution
@@ -308,7 +308,7 @@ Script
    ``tutorials/parameters_duke_heart_labelmaps.py`` for this one. This is a
    ``duke_heart`` tutorial: Duke-Heart-4DLabelmaps is being released soon (see
    `Before You Start`_), and until then access can be requested from Stephen
-   Aylward (saylward@nvidia.com) — see
+   Aylward (saylward@nvidia.com) - see
    ``data/Duke-Heart-4DLabelmaps/README.md``.
 
 Workflow
@@ -319,8 +319,8 @@ Workflow
 
 Dataset
    DIR-Lab (manual). Every case except ``Case1Pack`` trains; ``Case1Pack`` is
-   held out and registered three ways — Greedy alone with its defaults, then
-   Greedy+ICON with the stock uniGradICON weights and with the finetuned ones —
+   held out and registered three ways - Greedy alone with its defaults, then
+   Greedy+ICON with the stock uniGradICON weights and with the finetuned ones -
    so the improvement is measured, not asserted.
 
 Scoring
@@ -341,7 +341,7 @@ Preview
       :alt: Registration accuracy table for the held-out case
       :width: 100%
 
-      The held-out case scored per method — unregistered, Greedy, Greedy+ICON
+      The held-out case scored per method - unregistered, Greedy, Greedy+ICON
       with the stock weights, and with the finetuned weights.
 
 Inner API usage
@@ -373,7 +373,7 @@ Outputs
 
 Adapt to your data
    Replace the training cohort glob with your own volumes and set ``epochs``
-   to fit your budget — the workflow needs only a list of image files and
+   to fit your budget - the workflow needs only a list of image files and
    matching subject ids. Raise ``dice_loss_weight`` above ``0.0`` when you also
    have labelmaps to supervise with. Load the resulting weights anywhere by
    passing them to :class:`~monai_physio.RegisterImagesICON`.
@@ -392,7 +392,7 @@ Workflow
 
 Dataset
    Slicer-Heart-CT for the heart; DIR-Lab for the lung, which reconstructs
-   against its T70 (end-exhale) phase — the same reference Tutorial 8 fits to.
+   against its T70 (end-exhale) phase - the same reference Tutorial 8 fits to.
 
 Requirements
    CPU is enough. One coarse-to-fine registration per phase, greedy schedule
@@ -447,7 +447,7 @@ Adapt to your data
    Set ``case_glob`` and ``data_dir`` to your series and pick the reference
    with ``reference_time_frame``. If you have a separate breath-hold or
    contrast-enhanced volume, pass it as ``reference_image`` instead of one of
-   the phases — that is what the workflow is really designed for. Tune
+   the phases - that is what the workflow is really designed for. Tune
    ``number_of_iterations_greedy`` down for a fast smoke test. The saved
    ``.hdf`` transforms are reusable:
    :class:`~monai_physio.TransformTools` applies them to meshes and labelmaps.
@@ -460,7 +460,7 @@ Script
 
    ``tutorials/tutorial_04_lung_ct_to_vtk.py``
 
-   ``tutorials/tutorial_04_duke_heart_labelmap_to_vtk.py`` — starts from gated
+   ``tutorials/tutorial_04_duke_heart_labelmap_to_vtk.py`` - starts from gated
    labelmaps rather than CT, and also extracts tetrahedral meshes. Needs
    Duke-Heart-4DLabelmaps (see `Before You Start`_).
 
@@ -470,7 +470,7 @@ Workflow
    :class:`~monai_physio.SegmentChestTotalSegmentator` (lung).
 
 Dataset
-   One frame of Slicer-Heart-CT or DIR-Lab — a single static volume is enough.
+   One frame of Slicer-Heart-CT or DIR-Lab - a single static volume is enough.
 
 Requirements
    GPU recommended for segmentation; no registration, so this is the quickest
@@ -528,7 +528,7 @@ Adapt to your data
    for lighter meshes. Every
    segmenter declares its own labels through
    :class:`~monai_physio.AnatomyTaxonomy`, so downstream grouping and USD
-   materials follow automatically — see :doc:`api/segmentation/index`.
+   materials follow automatically - see :doc:`api/segmentation/index`.
 
 Tutorial 5: VTK Surfaces to Animated USD
 ========================================
@@ -536,7 +536,7 @@ Tutorial 5: VTK Surfaces to Animated USD
 Script
    ``tutorials/tutorial_05_heart_vtk_to_usd.py``
 
-   ``tutorials/tutorial_05_duke_heart_vtk_to_usd.py`` — the 4D counterpart,
+   ``tutorials/tutorial_05_duke_heart_vtk_to_usd.py`` - the 4D counterpart,
    animating Tutorial 4 (duke heart)'s per-phase surfaces. Needs
    Duke-Heart-4DLabelmaps (see `Before You Start`_).
 
@@ -544,7 +544,7 @@ Workflow
    :class:`~monai_physio.WorkflowConvertVTKToUSD`.
 
 Dataset
-   Tutorial 4's per-structure ``patient_*.vtp`` surfaces — no image data, no
+   Tutorial 4's per-structure ``patient_*.vtp`` surfaces - no image data, no
    download.
 
 Requirements
@@ -574,7 +574,7 @@ Inner API usage
    Each input surface keeps the structure name that
    :class:`~monai_physio.WorkflowConvertImageToVTK` wrote into its
    ``field_data['SegmentationLabelNames']``. That name becomes the USD prim
-   name and, with ``anatomy_type`` left unset, selects the prim's material —
+   name and, with ``anatomy_type`` left unset, selects the prim's material -
    so the left chambers, right chambers, myocardium and great vessels each get
    their own look rather than one shared heart material.
 
@@ -588,7 +588,7 @@ Outputs
    ``tutorials/output/tutorial_05_heart/``.
 
 Adapt to your data
-   ``input_meshes`` takes any list of PyVista meshes — pass one per time point,
+   ``input_meshes`` takes any list of PyVista meshes - pass one per time point,
    in order, for an animated scene instead of a static one (drop
    ``static_merge``), and set ``frames_per_second`` to control playback.
    ``appearance="anatomy"`` binds per-organ materials through
@@ -605,7 +605,7 @@ Script
 
    ``tutorials/tutorial_06_lung_create_statistical_model.py``
 
-   ``tutorials/tutorial_06_duke_heart_create_statistical_model.py`` — builds the
+   ``tutorials/tutorial_06_duke_heart_create_statistical_model.py`` - builds the
    cardiac model the ``duke_heart`` surrogate chain trains against. Needs
    Duke-Heart-4DLabelmaps (see `Before You Start`_).
 
@@ -668,7 +668,7 @@ Adapt to your data
    ``sample_meshes`` at your own cohort and let
    :class:`~monai_physio.WorkflowCreateMeanSurface` build the reference when no
    natural template exists. ``number_of_pca_components`` trades fidelity
-   against cohort size — you need more subjects than modes. The saved
+   against cohort size - you need more subjects than modes. The saved
    ``pca_model.json`` is the portable artifact: Tutorials 7 and 8 and
    :doc:`cli_scripts/create_statistical_model` all speak it.
 
@@ -680,7 +680,7 @@ Script
 
    ``tutorials/tutorial_07_lung_fit_statistical_model_to_patient.py``
 
-   ``tutorials/tutorial_07_duke_heart_fit_statistical_model_to_patient.py`` —
+   ``tutorials/tutorial_07_duke_heart_fit_statistical_model_to_patient.py`` -
    fits the Tutorial 6 (duke heart) model. Needs Duke-Heart-4DLabelmaps (see
    `Before You Start`_).
 
@@ -689,7 +689,7 @@ Workflow
 
 Dataset
    Tutorial 6's model plus one patient scan. The lung variant fits to
-   ``Chest-CT`` — an ungated, single-acquisition chest CT, the kind a
+   ``Chest-CT`` - an ungated, single-acquisition chest CT, the kind a
    patient-specific model is normally fitted to. See
    ``data/Chest-CT/README.md`` for the data source and required citation.
 
@@ -732,15 +732,15 @@ Run
       python tutorials/tutorial_07_lung_fit_statistical_model_to_patient.py
 
 Outputs
-   The registered template surface, the fitted mesh, and — the piece the rest
-   of the pipeline needs — ``*_registered_coefficients.json``, the patient's
+   The registered template surface, the fitted mesh, and - the piece the rest
+   of the pipeline needs - ``*_registered_coefficients.json``, the patient's
    position in shape space. Under
    ``tutorials/output/tutorial_07_{heart,lung}/``.
 
 Adapt to your data
    Set the patient image path and keep the segmenter consistent with the one
    that built the model. ``labelmap_interior_object_ids`` (heart) tells the fit
-   which labels are interior structures — those ids are TotalSegmentator's
+   which labels are interior structures - those ids are TotalSegmentator's
    chamber labels, so change them if you change segmenter. Turn
    ``set_use_pca_registration`` off to fall back to an unconstrained
    template-to-patient fit when you have no model. The CLI equivalent is
@@ -752,7 +752,7 @@ Tutorial 8: Propagate the Shape Model Through 4D
 Script
    ``tutorials/tutorial_08_lung_fit_model_to_4d_patients.py``
 
-   ``tutorials/tutorial_08_duke_heart_fit_model_to_4d_patients.py`` — the same
+   ``tutorials/tutorial_08_duke_heart_fit_model_to_4d_patients.py`` - the same
    fit-then-propagate pass over cardiac phases, using
    :class:`~monai_physio.RegisterModelsDistanceMaps` in place of the image
    registration. Needs Duke-Heart-4DLabelmaps (see `Before You Start`_).
@@ -828,7 +828,7 @@ Tutorial 9: Train a PhysicsNeMo Surrogate
 Script
    ``tutorials/tutorial_09_lung_train_physicsnemo_mgn.py``
 
-   ``tutorials/tutorial_09_duke_heart_train_physicsnemo_mgn.py`` — trains the
+   ``tutorials/tutorial_09_duke_heart_train_physicsnemo_mgn.py`` - trains the
    cardiac network Tutorial 13 uses for its heartbeat. Needs
    Duke-Heart-4DLabelmaps (see `Before You Start`_).
 
@@ -867,7 +867,7 @@ Preview
       :width: 90%
 
       Deformation magnitude, which is what the error above should be read
-      against — the largest errors sit where the motion is largest.
+      against - the largest errors sit where the motion is largest.
 
    .. figure:: assets/tutorial_09_duke_heart_motion.gif
       :alt: Predicted heart motion across the cardiac cycle
@@ -910,7 +910,7 @@ Adapt to your data
    The contract is the manifest, not the tutorial. Each JSON names a reference
    mesh, a PCA coefficient file, a ``target_array`` name and one entry per
    phase; the workflow reads that array verbatim, so the target can be
-   displacement — as here — or any per-point quantity of any width. Produce
+   displacement - as here - or any per-point quantity of any width. Produce
    manifests in that shape from your own pipeline and nothing else changes.
    See :doc:`api/physicsnemo/index` for the schema, and
    :doc:`cli_scripts/train_physicsnemo` for the command-line path.
@@ -921,7 +921,7 @@ Tutorial 10: Predict Motion With the Surrogate
 Script
    ``tutorials/tutorial_10_lung_infer_physicsnemo_mgn.py``
 
-   ``tutorials/tutorial_10_duke_heart_infer_physicsnemo_mgn.py`` — the same
+   ``tutorials/tutorial_10_duke_heart_infer_physicsnemo_mgn.py`` - the same
    prediction over a cardiac cycle. Needs Duke-Heart-4DLabelmaps (see
    `Before You Start`_).
 
@@ -934,7 +934,7 @@ Dataset
    Tutorial 8's fitted surfaces for one case, and Tutorial 9's checkpoint.
 
 Requirements
-   Trivial — one forward pass per stage replaces the per-phase registration
+   Trivial - one forward pass per stage replaces the per-phase registration
    solve that produced the training data.
 
 Preview
@@ -942,7 +942,7 @@ Preview
       :alt: Animated USD of the predicted lung motion
       :width: 90%
 
-      The exported USD scene, played back over the respiratory cycle — every
+      The exported USD scene, played back over the respiratory cycle - every
       frame a forward pass rather than a registration solve.
 
    .. figure:: assets/tutorial_10_duke_heart_motion_usd.gif
@@ -984,7 +984,7 @@ Outputs
 
 Adapt to your data
    Change ``case_id`` to predict a different subject, or pass ``stages`` that
-   were never acquired — which is the point of the surrogate. Omit
+   were never acquired - which is the point of the surrogate. Omit
    ``reference_image`` to write meshes without warping anything. Use
    :class:`~monai_physio.WorkflowInferPhysicsNeMo` on its own to get the raw
    target array when your model predicts something other than displacement.
@@ -1003,8 +1003,8 @@ Workflow
    :class:`~monai_physio.SegmentNVSegmentCTMRI`.
 
 Dataset
-   The gated sequence itself — DIR-Lab for the lung, Duke-Heart-4DLabelmaps for
-   the heart — plus Tutorial 8's fitted surface and Tutorial 9's checkpoint for
+   The gated sequence itself - DIR-Lab for the lung, Duke-Heart-4DLabelmaps for
+   the heart - plus Tutorial 8's fitted surface and Tutorial 9's checkpoint for
    the held-out case.
 
 Requirements
@@ -1024,7 +1024,7 @@ Preview
       :alt: Per-lobe volume difference and surface RMSE for the lung case
       :width: 90%
 
-      The same run summarised per lobe. No Dice column — see the note below.
+      The same run summarised per lobe. No Dice column - see the note below.
 
    .. figure:: assets/tutorial_11_duke_heart_stats.png
       :alt: Per-chamber Dice, volume difference and surface RMSE for the heart
@@ -1073,7 +1073,7 @@ Outputs
 
 Adapt to your data
    Change ``LOBE_LABEL_IDS`` (or ``HEART_LABEL_IDS``) to score a different set
-   of structures — any label your segmenter writes and your reference frame
+   of structures - any label your segmenter writes and your reference frame
    contains. Raise ``evaluation_spacing_mm`` if the deformation fields do not
    fit in memory; lower it to resolve a thin wall, at the cost of its cube.
 
@@ -1092,8 +1092,8 @@ Workflow
    :meth:`~monai_physio.WorkflowInferMovement.process_time_series`.
 
 Dataset
-   The gated sequence alone — DIR-Lab for the lung, Duke-Heart-4DLabelmaps for
-   the heart — plus the Tutorial 6 shape model and the Tutorial 9 checkpoint.
+   The gated sequence alone - DIR-Lab for the lung, Duke-Heart-4DLabelmaps for
+   the heart - plus the Tutorial 6 shape model and the Tutorial 9 checkpoint.
    Unlike Tutorial 10, nothing is read from Tutorial 8: this script fits the
    model to the patient itself, so the chain from image to animation runs in one
    place.
@@ -1101,7 +1101,7 @@ Dataset
 Requirements
    The output directory is emptied at the start of
    every run, so nothing is reused and the reported runtimes are the whole
-   pipeline's. Neither variant registers a phase — that is what the network
+   pipeline's. Neither variant registers a phase - that is what the network
    replaces, and it is why this runs in minutes where Tutorial 8 runs in hours.
 
 Preview
@@ -1109,7 +1109,7 @@ Preview
       :alt: Lung motion predicted end-to-end from a gated series
       :width: 90%
 
-      The whole chain on one DIR-Lab case: segment, fit, infer, animate — no
+      The whole chain on one DIR-Lab case: segment, fit, infer, animate - no
       phase registered anywhere in it.
 
    .. figure:: assets/tutorial_12_duke_heart.gif
@@ -1164,7 +1164,7 @@ Adapt to your data
    Point the script at any case of the same cohort by changing ``case_id``; the
    stages come from the filenames, so a sequence with a different number of
    phases needs no other change. To predict stages the acquisition never
-   sampled, pass your own ``stages`` list — the network is continuous in stage,
+   sampled, pass your own ``stages`` list - the network is continuous in stage,
    and nothing downstream requires a matching image.
 
 Tutorial 13: Breathe and Beat a Static Clinical CT
@@ -1204,7 +1204,7 @@ Preview
       :alt: The static CT warped by the same combined heart and lung motion
       :width: 90%
 
-      The same per-frame deformation applied to the CT itself — the voxels move
+      The same per-frame deformation applied to the CT itself - the voxels move
       with the surfaces, so the scan breathes and beats along with them.
 
 Inner API usage
@@ -1632,12 +1632,12 @@ Adapt to your data
 Where to Go Next
 ================
 
-- :doc:`viewing_usd` — installing an Omniverse Kit application and opening the
+- :doc:`viewing_usd` - installing an Omniverse Kit application and opening the
   scenes these tutorials produce.
-- :doc:`cli_scripts/byod_tutorials` — running the workflows on your own DICOM,
+- :doc:`cli_scripts/byod_tutorials` - running the workflows on your own DICOM,
   NRRD or VTK data, including directory layout and conversion.
-- :doc:`api/index` — every workflow, segmenter, registrar and utility class.
-- :doc:`architecture` — how the workflow layer fits together and where to
+- :doc:`api/index` - every workflow, segmenter, registrar and utility class.
+- :doc:`architecture` - how the workflow layer fits together and where to
   extend it.
-- :doc:`testing` — ``tests/test_tutorials.py`` runs these scripts end-to-end
+- :doc:`testing` - ``tests/test_tutorials.py`` runs these scripts end-to-end
   behind the ``--run-tutorials`` flag.

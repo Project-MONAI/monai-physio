@@ -29,7 +29,7 @@ class SegmentAnatomyBase(MONAIPhysioBase):
 
     Extensibility
     -------------
-    Each segmenter is free to define its own group names — the taxonomy does
+    Each segmenter is free to define its own group names - the taxonomy does
     not hard-code a fixed set. A new subclass adds groups by calling
     ``self.taxonomy.add_organ(group_name, label_id, organ_name)`` for each
     organ; the group is created lazily on first use. To assign a custom
@@ -379,7 +379,7 @@ class SegmentAnatomyBase(MONAIPhysioBase):
             dict[str, itk.image]: Dictionary of labelmaps keyed by group
                 name. Exactly one entry per group registered in
                 :attr:`taxonomy` (plus ``"other"``). The returned key set
-                is segmenter-specific — callers that need a particular
+                is segmenter-specific - callers that need a particular
                 group should check membership (``"lung" in labelmaps``)
                 rather than assume a fixed schema.
 

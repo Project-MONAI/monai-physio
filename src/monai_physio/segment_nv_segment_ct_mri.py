@@ -31,7 +31,7 @@ class SegmentNVSegmentCTMRI(SegmentAnatomyBase):
     NV-Segment-CTMR is a VISTA3D-architecture network finetuned on more than
     30,000 CT and MRI scans. It covers 345 classes across three modalities
     (``CT_BODY``, ``MRI_BODY``, ``MRI_BRAIN``) and, unlike VISTA3D, supports
-    only automatic (label-prompt) segmentation — there is no point-click
+    only automatic (label-prompt) segmentation - there is no point-click
     interactive branch.
 
     Model weights (~872 MB) are downloaded from :attr:`hf_repo_id` on the

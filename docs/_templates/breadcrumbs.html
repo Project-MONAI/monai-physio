@@ -1,0 +1,16 @@
+{# Label the per-page repository link "Go to GitHub" instead of the theme's
+   default "Edit on GitHub". Only the GitHub branch of the theme's aside is
+   reproduced, since html_context in conf.py configures GitHub alone. #}
+{%- extends "!breadcrumbs.html" %}
+
+{%- block breadcrumbs_aside %}
+  <li class="wy-breadcrumbs-aside">
+    {%- if hasdoc(pagename) and display_vcs_links and display_github %}
+      {%- if check_meta and 'github_url' in meta %}
+        <a href="{{ meta['github_url'] }}" class="fa fa-github"> {{ _('Go to GitHub') }}</a>
+      {%- else %}
+        <a href="https://{{ github_host|default("github.com") }}/{{ github_user }}/{{ github_repo }}/{{ theme_vcs_pageview_mode or "blob" }}/{{ github_version }}{{ conf_py_path }}{{ pagename }}{{ page_source_suffix }}" class="fa fa-github"> {{ _('Go to GitHub') }}</a>
+      {%- endif %}
+    {%- endif %}
+  </li>
+{%- endblock %}

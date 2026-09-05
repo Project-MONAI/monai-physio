@@ -386,7 +386,7 @@ class ImageTools(MONAIPhysioBase):
         their physical positions: the padded image's index ``(0, 0, 0)`` sits one
         margin below the input's, and the input data occupies the interior.
         (``itk.ConstantPadImageFilter`` alone reports the margin as a negative
-        start index instead, which most file formats drop on write — shifting the
+        start index instead, which most file formats drop on write - shifting the
         data. The region-of-interest pass here folds that index back into the
         origin.)
 

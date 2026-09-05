@@ -34,9 +34,9 @@ from .workflow_infer_physicsnemo import WorkflowInferPhysicsNeMo
 class WorkflowInferMovement(MONAIPhysioBase):
     """Reconstruct geometry from displacement predictions.
 
-    The displacements are added to the subject's fitted reference mesh — the
+    The displacements are added to the subject's fitted reference mesh - the
     manifest's ``fitted_reference_mesh``, or the ``fitted_reference_mesh``
-    argument of the single-subject methods — which keeps the result in that
+    argument of the single-subject methods - which keeps the result in that
     mesh's world frame. That mesh is what
     :class:`monai_physio.WorkflowFitStatisticalModelToPatient` produces: PCA
     shape parameters *and* a deformable registration to the patient. A surface

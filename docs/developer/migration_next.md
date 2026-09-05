@@ -1,4 +1,4 @@
-# Migration Guide — Unreleased
+# Migration Guide - Unreleased
 
 Breaking changes committed since the last release, and how to update code that
 depends on them.
@@ -12,11 +12,11 @@ break is recorded here in the commit that introduces it.
 At release time this file is renamed `migration_<version>.md` and a fresh
 `migration_next.md` is started for the next cycle.
 
-## `WorkflowCreateStatisticalModel.inverse_transforms` — removed
+## `WorkflowCreateStatisticalModel.inverse_transforms` - removed
 
 **Change:** the attribute is gone. `forward_transforms` is unaffected.
 
-**Why:** it was populated but never read — not by the workflow, nor by any
+**Why:** it was populated but never read - not by the workflow, nor by any
 tutorial, test or CLI in the repository. Each entry held a `CompositeTransform`
 owning dense full-grid displacement fields, so on a cohort of a few dozen
 samples the list retained gigabytes of host memory for the life of the workflow.
@@ -47,17 +47,18 @@ if not workflow.forward_transforms[index].GetInverse(inverse):
 ``GetInverse`` returns whether it succeeded rather than raising, and leaves
 *inverse* unusable when it does not, so the result has to be checked.
 
-**Automated conversion:** `None needed` — no caller in the repository, the
+**Automated conversion:** `None needed` - no caller in the repository, the
 tutorials, the tests or the CLI referenced the attribute.
 
-## Install extras — replaced by `cuda12`, `cuda13`, `dev`, `dev_cuda12`, `dev_cuda13`
+## Install extras - replaced by `cuda12`, `cuda13`, `dev`, `dev_cuda12`, `dev_cuda13`
 
-**Change:** the `all`, `physicsnemo`, `dev`, `docs`, and `test` extras are
-replaced by five: `cuda12`/`cuda13` (CUDA-matched PyTorch plus CuPy), `dev`
-(test/lint/docs tooling, no CUDA component), and `dev_cuda12`/`dev_cuda13`
-(both combined). The AI-surrogate packages formerly behind `[physicsnemo]` —
-`nvidia-physicsnemo`, `torch-geometric`, `torch-scatter` — are base
-dependencies, installed with every install.
+**Change:** the `all`, `physicsnemo`, `docs`, and `test` extras are removed,
+and `dev` is redefined. The five extras going forward are `cuda12`/`cuda13`
+(CUDA-matched PyTorch plus CuPy), `dev` (now test/lint/docs tooling, no CUDA
+component, replacing the old `docs`/`test` extras), and
+`dev_cuda12`/`dev_cuda13` (both combined). The AI-surrogate packages formerly
+behind `[physicsnemo]` -- `nvidia-physicsnemo`, `torch-geometric`,
+`torch-scatter` -- are base dependencies, installed with every install.
 
 **Why:** each extra now names the CUDA version it targets, so there is one
 full-bundle name per CUDA version and no version-unaware `all`. The
@@ -91,18 +92,16 @@ uv pip install -e ".[dev_cuda12]"                  # source/dev install
 uv pip install --torch-backend=auto monai-physio   # auto-detected PyTorch, no CuPy
 ```
 
-**Automated conversion:** `None needed` — install-time extra names, not
-Python symbols.
-
-**Automated conversion:** `None needed` — no code referenced `[physicsnemo]`
-as a Python symbol; only install commands change.
+**Automated conversion:** `None needed` - these are install-time extra names,
+not Python symbols; no code referenced `[physicsnemo]` or the other removed
+extras, so only install commands change.
 
 ## Entry template
 
 Append one section per breaking change, newest last, using this shape:
 
 ````markdown
-## <symbol, module, or CLI flag> — <one-line summary>
+## <symbol, module, or CLI flag> - <one-line summary>
 
 **Change:** what moved, was renamed, or changed signature.
 

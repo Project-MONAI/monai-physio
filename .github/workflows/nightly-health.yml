@@ -27,7 +27,7 @@ on:
         description: 'Reason for manual trigger'
         required: false
         default: 'Manual health check'
-        # Branch selection is handled by the standard GitHub UI branch picker —
+        # Branch selection is handled by the standard GitHub UI branch picker -
         # no free-text ref input, so arbitrary non-default refs cannot be used
         # to produce a misleading public artifact or dashboard.
 

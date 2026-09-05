@@ -9,18 +9,18 @@ exercise the library's scientific pipelines using real downloaded data
 wherever practical.
 
 **A GPU is assumed.** Supporting CPU-only machines is not a requirement, so a
-test may require a GPU. Mark it `@pytest.mark.requires_gpu` and move on — do
+test may require a GPU. Mark it `@pytest.mark.requires_gpu` and move on - do
 not shrink a case, weaken an assertion, or add a CPU fallback just to keep a
 test off the GPU bucket.
 
 ## Test architecture
 
-- `tests/conftest.py` — session-scoped fixtures chaining: download → convert → segment → register
-- `tests/baselines/` — stored via Git LFS; fetch with `git lfs pull`
-- `src/monai_physio/test_tools.py` — baseline comparison utilities (`TestTools`)
+- `tests/conftest.py` - session-scoped fixtures chaining: download → convert → segment → register
+- `tests/baselines/` - stored via Git LFS; fetch with `git lfs pull`
+- `src/monai_physio/test_tools.py` - baseline comparison utilities (`TestTools`)
 - Markers (all opt-in via `--run-<bucket>`): `slow`, `requires_gpu`,
   `requires_simpleware`, `tutorial`. The `requires_data` marker
-  no longer exists — tests that need downloadable data pull it through the
+  no longer exists - tests that need downloadable data pull it through the
   session fixtures and run by default.
 
 ## Run commands
@@ -39,7 +39,7 @@ python -m pytest tests/ -v --run-gpu --run-slow
 python -m pytest tests/ --create-baselines                        # create missing baselines
 ```
 
-## Writing tests — rules
+## Writing tests - rules
 
 1. Read the implementation file first; understand the public interface.
 2. Propose a test plan: what behaviors to cover, what inputs each needs.
@@ -55,7 +55,7 @@ python -m pytest tests/ --create-baselines                        # create missi
      that does not fit the test's purpose.
    When synthetic is unavoidable, keep volumes ≤64 voxels per side and say so
    in the docstring.
-5. Do not restate ITK shape, axis order, or world frame in test docstrings —
+5. Do not restate ITK shape, axis order, or world frame in test docstrings -
    those are fixed conventions. State only what is specific to the test, such
    as the size of a synthetic volume.
 6. When a test produces an image or surface, compare against a baseline using
@@ -68,7 +68,7 @@ python -m pytest tests/ --create-baselines                        # create missi
    `@pytest.mark.requires_simpleware`. Mark tutorial tests with
    `@pytest.mark.tutorial`. Tests that just
    need downloadable data need no marker.
-10. Do not mock segmentation or registration models — test real outputs.
+10. Do not mock segmentation or registration models - test real outputs.
 11. No emojis in test files (Windows cp1252 encoding has bitten this project).
 
 ## Naming

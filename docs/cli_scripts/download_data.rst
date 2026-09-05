@@ -50,7 +50,7 @@ Options
 
 ``data_name``
    Dataset to download. One of ``Slicer-Heart-CT``, ``KCL-Heart-Model``,
-   ``CHOP-Valve4D``, or ``Chest-CT``. Required — omitting it prints help and
+   ``CHOP-Valve4D``, or ``Chest-CT``. Required - omitting it prints help and
    exits.
 
 ``--directory``
@@ -97,7 +97,7 @@ The command uses
 which fetches each subdirectory's zip archive from the MONAI Physio GitHub
 release and skips a subdirectory once it has its expected extracted files
 (the CT volume or Simpleware segmentation for ``CT/``, ``.vtk`` meshes for
-``Alterra/`` and ``TPV25/``) — a subdirectory left behind by an interrupted
+``Alterra/`` and ``TPV25/``) - a subdirectory left behind by an interrupted
 extraction is re-downloaded rather than treated as complete.
 
 For ``Chest-CT``, the command downloads and reuses a single volume:
@@ -114,10 +114,10 @@ existing non-empty file, so re-running resumes an interrupted download.
 See Also
 ========
 
-* :doc:`../tutorials` — ``Slicer-Heart-CT`` drives Heart Tutorials 1, 3 and 4;
+* :doc:`../tutorials` - ``Slicer-Heart-CT`` drives Heart Tutorials 1, 3 and 4;
   ``KCL-Heart-Model`` drives Heart Tutorial 6; ``Chest-CT`` drives Lung
-  Tutorial 7 and Tutorial 13. ``DirLab-4DCT`` — Lung Tutorials 1, 2, 3, 4, 6, 8
-  and 10-12, plus Heart Tutorial 7 — is manual-only, see
+  Tutorial 7 and Tutorial 13. ``DirLab-4DCT`` - Lung Tutorials 1, 2, 3, 4, 6, 8
+  and 10-12, plus Heart Tutorial 7 - is manual-only, see
   ``data/DirLab-4DCT/README.md``. ``Duke-Heart-4DLabelmaps``, which drives the
   ten ``duke_heart`` variants, is being released soon; see
   ``data/Duke-Heart-4DLabelmaps/README.md``.

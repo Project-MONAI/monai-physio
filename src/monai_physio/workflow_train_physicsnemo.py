@@ -3,8 +3,8 @@
 The workflow owns the data side of training: per-subject manifests,
 normalization statistics, lazy dataset construction, output-directory
 resolution and the saving of checkpoints, metadata, logs and PCA assets. The
-network itself — model construction, the optimization loop and the checkpoint
-payload — lives in the training method it drives
+network itself - model construction, the optimization loop and the checkpoint
+payload - lives in the training method it drives
 (:class:`monai_physio.TrainPhysicsNeMoMGN` or
 :class:`monai_physio.TrainPhysicsNeMoMLP`).
 
@@ -49,7 +49,7 @@ from .train_physicsnemo_mgn import TrainPhysicsNeMoMGN
 class WorkflowTrainPhysicsNeMo(MONAIPhysioBase):
     """Train a PhysicsNeMo mesh-stage model from per-subject manifests.
 
-    The network is supplied as a training method — pass a configured
+    The network is supplied as a training method - pass a configured
     :class:`monai_physio.TrainPhysicsNeMoMGN` or
     :class:`monai_physio.TrainPhysicsNeMoMLP` instance as ``training_method``;
     a default MeshGraphNet method is used when none is given.
@@ -75,7 +75,7 @@ class WorkflowTrainPhysicsNeMo(MONAIPhysioBase):
                 empty to skip validation.
             pca_mean_mesh: PCA template mesh whose point count matches
                 ``pca_model.json`` (typically ``pca_mean.vtu``). Its points
-                define the shared node coordinates and — for the MGN — the
+                define the shared node coordinates and - for the MGN - the
                 mesh-graph topology, so a volumetric template trains on volume
                 points and a surface template on surface points. The sibling
                 ``pca_model.json`` (if present) is copied into
@@ -439,7 +439,7 @@ class WorkflowTrainPhysicsNeMo(MONAIPhysioBase):
         None of this depends on the trained weights, so it is written before
         training starts:
         :class:`monai_physio.WorkflowInferPhysicsNeMo` reads the template mesh
-        and — through the inference method — the shared graph tensors from the
+        and - through the inference method - the shared graph tensors from the
         model directory, and cannot load an intermittent epoch checkpoint until
         they are there.  The training method writes its own artifacts once its
         inputs are set up, at the top of its training loop.

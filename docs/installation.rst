@@ -11,7 +11,7 @@ System Requirements
 -------------------
 
 * **Python**: 3.11, 3.12, or 3.13
-* **GPU**: NVIDIA GPU with CUDA 12.6 or CUDA 13 — needed for full
+* **GPU**: NVIDIA GPU with CUDA 12.6 or CUDA 13 - needed for full
   performance; CPU-only runs every workflow, significantly slower
 * **RAM**: 16GB minimum (32GB+ recommended for large datasets)
 * **Storage**: 10GB+ for package and model weights
@@ -38,14 +38,14 @@ Installing
 Use ``uv``. It selects the CUDA wheel and applies this project's
 ``torch-scatter`` build configuration from ``pyproject.toml``.
 
-**CUDA 12.6 — recommended, installs entirely from prebuilt wheels:**
+**CUDA 12.6 - recommended, installs entirely from prebuilt wheels:**
 
 .. code-block:: bash
 
    uv pip install "monai-physio[cuda12]"     # runtime
    uv pip install -e ".[dev_cuda12]"         # plus dev/test/docs tooling
 
-**CUDA 13 — same, plus a** ``torch-scatter`` **source build:**
+**CUDA 13 - same, plus a** ``torch-scatter`` **source build:**
 
 .. code-block:: bash
 
@@ -64,7 +64,7 @@ Linux). See :ref:`torch-scatter-wheels`.
    uv pip install --torch-backend=auto -e ".[dev]"
 
 ``--torch-backend=auto`` picks the PyTorch build matching your driver, so no
-CUDA version is named. CuPy is not covered — it is not a PyTorch package —
+CUDA version is named. CuPy is not covered - it is not a PyTorch package -
 and the selected torch may need a ``torch-scatter`` source build. Export
 ``UV_TORCH_BACKEND=auto`` to apply the flag to every command in the shell
 session.
@@ -184,7 +184,7 @@ extra:
 Development Tools
 ==================
 
-The ``dev`` extra — included in ``dev_cuda12`` and ``dev_cuda13`` — provides:
+The ``dev`` extra - included in ``dev_cuda12`` and ``dev_cuda13`` - provides:
 
 * **ruff** (linting and formatting)
 * **mypy** (type checking)
@@ -248,7 +248,7 @@ Optional External Software
 One segmentation backend is not a Python dependency and cannot be installed
 with pip:
 
-* **Synopsys Simpleware Medical** — required by
+* **Synopsys Simpleware Medical** - required by
   :class:`~monai_physio.SegmentHeartSimpleware` and
   :class:`~monai_physio.SegmentHeartSimplewareTrimmedBranches`, and therefore by
   Tutorial 13, which uses Simpleware to segment the heart. It needs a local

@@ -29,8 +29,8 @@ def lps_to_usd(point: NDArray | tuple | list) -> Gf.Vec3f:
     The USD frame produced by this conversion is right-handed Y-up with:
 
     - USD +X = patient Left      (LPS +x)
-    - USD +Y = patient Superior  (LPS +z)  — "up" in Omniverse
-    - USD +Z = patient Anterior  (−LPS +y) — toward the viewer when the
+    - USD +Y = patient Superior  (LPS +z)  - "up" in Omniverse
+    - USD +Z = patient Anterior  (−LPS +y) - toward the viewer when the
       camera looks at the patient from the front
 
     Conversion: ``USD(x, y, z) = LPS(x, z, −y) * 0.001``  (mm → m)
@@ -82,7 +82,7 @@ def lps_points_to_usd(points: NDArray) -> Vt.Vec3fArray:
 def lps_normals_to_usd(normals: NDArray) -> Vt.Vec3fArray:
     """Convert array of LPS normals to USD Y-up coordinates.
 
-    Applies only the axis swap from :func:`lps_to_usd` — normals are unit
+    Applies only the axis swap from :func:`lps_to_usd` - normals are unit
     direction vectors and must not be scaled by the mm→m factor.
 
     Args:

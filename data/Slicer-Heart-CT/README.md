@@ -21,7 +21,7 @@ This fetches a single ~1.2 GB file from
 [the MONAI Physio release assets](https://github.com/Project-MONAI/monai-physio/releases/download/2026.07.1/TruncalValve_4DCT.seq.nrrd),
 then splits it into per-phase 3D `slice_???.mha` volumes in the same
 directory via `ConvertImage4DTo3D`. An existing non-empty `.seq.nrrd` is
-reused, and the split is skipped once the `slice_???.mha` files are present —
+reused, and the split is skipped once the `slice_???.mha` files are present -
 so re-running the command resumes an interrupted download or conversion.
 
 **Directory structure after download:**
@@ -65,6 +65,6 @@ Philadelphia):
 
 ### Files in This Directory
 
-- `TruncalValve_4DCT.seq.nrrd` — the downloaded 4D CT sequence
-- `slice_000.mha` ... `slice_020.mha` — the 21 cardiac phases split out of
+- `TruncalValve_4DCT.seq.nrrd` - the downloaded 4D CT sequence
+- `slice_000.mha` ... `slice_020.mha` - the 21 cardiac phases split out of
   the sequence above

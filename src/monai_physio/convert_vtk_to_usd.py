@@ -1046,7 +1046,7 @@ class ConvertVTKToUSD(MONAIPhysioBase):
         colors_rgba = cmap(normalized)
 
         # Return RGB (drop alpha). The intermediate variable pins the type so
-        # mypy doesn't lose track through .astype() — matplotlib's colormap
+        # mypy doesn't lose track through .astype() - matplotlib's colormap
         # return signature is loose.
         colors_rgb: np.ndarray = colors_rgba[:, :3].astype(np.float32)
         return colors_rgb

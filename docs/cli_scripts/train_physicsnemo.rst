@@ -2,7 +2,7 @@
 Train a PhysicsNeMo Surrogate
 ==============================
 
-``monai-physio-train-physicsnemo`` trains a mesh-stage model — given a
+``monai-physio-train-physicsnemo`` trains a mesh-stage model - given a
 subject's PCA shape parameters and a stage, predict a per-vertex target on the
 shared template mesh. It is the command-line form of
 :class:`~monai_physio.WorkflowTrainPhysicsNeMo`; Tutorial 9 in
@@ -32,7 +32,7 @@ Options
 
 ``--train-manifest JSON [JSON ...]``
    Required. One per-subject manifest per training subject. See
-   :doc:`../api/physicsnemo/manifest` for the schema — producing these is the
+   :doc:`../api/physicsnemo/manifest` for the schema - producing these is the
    only work needed to train on your own data.
 
 ``--val-manifest JSON [JSON ...]``

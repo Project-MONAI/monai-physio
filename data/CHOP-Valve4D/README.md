@@ -25,7 +25,7 @@ into matching subdirectories:
 | ----------------------------- | --------------- | ------------------------------------------- | ------- |
 | `CHOP-Valve4D-Alterra.zip`    | `Alterra/`       | Alterra valve mesh time series (`.vtk`)      | >1 GB   |
 | `CHOP-Valve4D-TPV25.zip`      | `TPV25/`         | TPV25 valve mesh time series (`.vtk`)        | >1 GB   |
-| `CHOP-Valve4D-CT.zip`         | `CT/`            | Source CT volume + Simpleware segmentation   | —       |
+| `CHOP-Valve4D-CT.zip`         | `CT/`            | Source CT volume + Simpleware segmentation   | -       |
 
 A subdirectory that already contains files is left alone, so re-running the
 command resumes an interrupted download.
@@ -59,7 +59,7 @@ ventricular outflow tract (RVOT).
 
 The source data is an FEBio finite-element model (`.feb`) published by the
 Jolley Lab at CHOP (Children's Hospital of Philadelphia). This repository
-does not redistribute the source `.feb` file — it is available from the
+does not redistribute the source `.feb` file - it is available from the
 FEBio website:
 
 - Project page: https://repo.febio.org/permalink/project/136

@@ -1,5 +1,5 @@
 """
-ai_agent_github_reviews.py — Screen GitHub PR review comments with an AI agent.
+ai_agent_github_reviews.py - Screen GitHub PR review comments with an AI agent.
 
 Workflow:
   1. Fetch all inline review threads and PR-level review bodies via gh CLI
@@ -41,12 +41,12 @@ Usage:
   --no-resolve and --mark-resolved are mutually exclusive; passing both is an error.
 
 Requirements:
-  - gh CLI (GitHub CLI) — not a Python package; install separately:
+  - gh CLI (GitHub CLI) - not a Python package; install separately:
       Windows: winget install GitHub.cli
       Then authenticate: gh auth login
-  - Claude Code CLI — https://claude.ai/code
+  - Claude Code CLI - https://claude.ai/code
       Windows: winget install Anthropic.ClaudeCode
-  - Codex CLI — default agent
+  - Codex CLI - default agent
 """
 
 from __future__ import annotations
@@ -288,7 +288,7 @@ def _gh_graphql(query: str, variables: dict) -> dict:
     return result
 
 
-# GraphQL query — fetches one page of review threads (up to 100) with the
+# GraphQL query - fetches one page of review threads (up to 100) with the
 # first 50 comments per thread.  Both connections include pageInfo so the
 # caller can paginate until exhausted.
 _REVIEW_THREADS_QUERY = """
@@ -396,9 +396,9 @@ def fetch_review_threads(pr_number: int, repo: str) -> list[dict]:
     thread list and per-thread comments until exhausted.
 
     Each entry has:
-      ``id``         — GraphQL node ID (used for resolution mutation)
-      ``isResolved`` — bool
-      ``comments``   — list of comment dicts (keys: path, line, original_line,
+      ``id``         - GraphQL node ID (used for resolution mutation)
+      ``isResolved`` - bool
+      ``comments``   - list of comment dicts (keys: path, line, original_line,
                        diff_hunk, body, created_at, user.login, _thread_id)
     """
     owner, name = repo.split("/", 1)
@@ -471,14 +471,14 @@ def resolve_review_threads(thread_ids: list[str], repo: str) -> None:
     if not thread_ids:
         return
     print(f"[*] Resolving {len(thread_ids)} inline-comment thread(s)...")
-    owner, name = repo.split("/", 1)  # noqa: F841 — kept for future use
+    owner, name = repo.split("/", 1)  # noqa: F841 - kept for future use
     for tid in thread_ids:
         try:
             _gh_graphql(_RESOLVE_THREAD_MUTATION, {"threadId": tid})
             print(f"    Resolved thread {tid}")
         except SystemExit:
             # _gh_graphql calls sys.exit on error; catch so we can continue.
-            print(f"    [WARNING] Could not resolve thread {tid} — skipping.")
+            print(f"    [WARNING] Could not resolve thread {tid} - skipping.")
 
 
 # ---------------------------------------------------------------------------
@@ -517,7 +517,7 @@ def _format_review_bodies(reviews: list[dict]) -> str:
     for i, r in enumerate(relevant, 1):
         reviewer = r["user"]["login"]
         state = r.get("state", "")
-        parts.append(f"### Review {i} — {reviewer} ({state})")
+        parts.append(f"### Review {i} - {reviewer} ({state})")
         parts.append(r["body"].strip())
         parts.append("")
     return "\n".join(parts)
@@ -622,29 +622,29 @@ def build_prompt(
         Branch: `{branch}` -> `{base}`
         Total comments to assess: {total}
 
-        ## Step 1 — Read project standards
+        ## Step 1 - Read project standards
 
         Before assessing any comment, read these files:
         __GUIDANCE_BLOCK__
 
-        ## Step 2 — Assess each comment
+        ## Step 2 - Assess each comment
 
         For every comment below, in order:
 
         1. Read the referenced source file (`path`, near `line`) to understand
-           the full context — do not rely solely on the diff hunk.
+           the full context - do not rely solely on the diff hunk.
         2. Decide:
-           - **APPLY** — suggestion is correct and consistent with agent guidance.
+           - **APPLY** - suggestion is correct and consistent with agent guidance.
              Apply it as-is.
-           - **REVISE** — directionally right but conflicts with repo conventions.
+           - **REVISE** - directionally right but conflicts with repo conventions.
              Apply your corrected version.
-           - **REJECT** — wrong, unnecessary, or conflicts with explicit project rules.
+           - **REJECT** - wrong, unnecessary, or conflicts with explicit project rules.
              Do not edit the file. State the specific rule or reason.
         3. For APPLY / REVISE: edit the file to make the change.
            Do NOT run git add, git commit, or any git staging commands.
            Leave all edits as pending working-tree modifications only.
 
-        Rejection triggers (from {guidance_names} — treat these as hard rules):
+        Rejection triggers (from {guidance_names} - treat these as hard rules):
         - Introduces `X | None` instead of `Optional[X]` (ruff UP007 is suppressed)
         - Adds a deprecation shim, removed-symbol re-export, or removed-symbol
           stub instead of a `docs/developer/migration_next.md` entry (that entry
@@ -664,7 +664,7 @@ def build_prompt(
           instantiate `SegmentChestTotalSegmentator`
         - Exceeds 88-character line length
 
-        ## Step 3 — Write summary
+        ## Step 3 - Write summary
 
         After processing all {total} comment(s), write `{summary_filename}`
         to the repository root using this exact structure:
@@ -1010,7 +1010,7 @@ def main() -> None:
                 "(full prompt follows)."
             )
         print(f"\n{separator}")
-        print(f"PROMPT (prompt-only — not sent to {args.agent})")
+        print(f"PROMPT (prompt-only - not sent to {args.agent})")
         print(separator)
         print(prompt)
         print(separator)
@@ -1032,7 +1032,7 @@ def main() -> None:
     if summary_path.exists():
         print(f"[+] Summary written : {summary_filename}")
     else:
-        print("[!] Summary file not found — check agent output above.")
+        print("[!] Summary file not found - check agent output above.")
     print("[*] Inspect changes : git diff")
     print("[*] Stage selectively: git add -p")
 

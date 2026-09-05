@@ -14,7 +14,7 @@
 
 **A collection of methods, workflows, tutorials, and CLI tools for creating personalized physiological digital twins.**
 
-MONAI Physio typically begins with a 3D medical image of a subject, extracts anatomic models from that image, and then uses AI surrogates to estimate the subject's physiological processes — initially focusing on cardiac and respiratory motion, and expanding to electrophysiology, blood flow, and organ perfusion. The package provides methods for forming these physiological AI surrogates and for finetuning the segmentation and registration AI methods that power them, with special emphasis on statistical shape models: they capture subject-specific characteristics that help determine subject-specific physiological function, and establish correspondence across subjects to aid AI surrogate generalization and simplify the application of traditional solvers.
+MONAI Physio typically begins with a 3D medical image of a subject, extracts anatomic models from that image, and then uses AI surrogates to estimate the subject's physiological processes - initially focusing on cardiac and respiratory motion, and expanding to electrophysiology, blood flow, and organ perfusion. The package provides methods for forming these physiological AI surrogates and for finetuning the segmentation and registration AI methods that power them, with special emphasis on statistical shape models: they capture subject-specific characteristics that help determine subject-specific physiological function, and establish correspondence across subjects to aid AI surrogate generalization and simplify the application of traditional solvers.
 
 MONAI Physio is not validated for clinical use. It is a research and
 visualization toolkit, not a medical device, and must not be used for
@@ -26,10 +26,10 @@ diagnosis, treatment planning, or clinical decision-making.
 for users and contributors. Key sections:
 
 - [Installation](https://project-monai.github.io/monai-physio/installation.html) and [Quickstart](https://project-monai.github.io/monai-physio/quickstart.html)
-- [Tutorials](https://project-monai.github.io/monai-physio/tutorials.html) — runnable end-to-end workflows and their datasets
-- [CLI & Scripts Guide](https://project-monai.github.io/monai-physio/cli_scripts/overview.html) — command-line tools for conversion, segmentation, registration, and USD workflows
-- [API Reference](https://project-monai.github.io/monai-physio/api/index.html) — workflow, registration, segmentation, and USD classes
-- [Developer Guides](https://project-monai.github.io/monai-physio/developer/architecture.html) — architecture, extension points, and implementation conventions
+- [Tutorials](https://project-monai.github.io/monai-physio/tutorials.html) - runnable end-to-end workflows and their datasets
+- [CLI & Scripts Guide](https://project-monai.github.io/monai-physio/cli_scripts/overview.html) - command-line tools for conversion, segmentation, registration, and USD workflows
+- [API Reference](https://project-monai.github.io/monai-physio/api/index.html) - workflow, registration, segmentation, and USD classes
+- [Developer Guides](https://project-monai.github.io/monai-physio/developer/architecture.html) - architecture, extension points, and implementation conventions
 - [Contributing](CONTRIBUTING.md) and [Testing](https://project-monai.github.io/monai-physio/testing.html)
 - [FAQ](https://project-monai.github.io/monai-physio/faq.html) and [Troubleshooting](https://project-monai.github.io/monai-physio/troubleshooting.html)
 - [Issues](https://github.com/Project-MONAI/monai-physio/issues) and [Discussions](https://github.com/Project-MONAI/monai-physio/discussions)
@@ -41,7 +41,7 @@ for users and contributors. Key sections:
 - **Simplified workflows on industry-leading open-source tools**: ICON and Greedy for registration; MONAI with TotalSegmentator and Simpleware for segmentation; scikit-learn for statistical shape modeling; ITK for image processing; PyVista and OpenUSD/Omniverse for geometry manipulation; CuPy for accelerated computing; and PhysicsNeMo for AI surrogates
 - **Extensible class hierarchy**: add new segmentation and registration methods, and extend to new data types, organs, and physiological processes, without reworking the workflow layer
 - **Physiological motion**: cardiac and respiratory motion today, expanding to electrophysiology, blood flow, and organ perfusion
-- **NVIDIA Omniverse as the simulation hub**: the end goal for simulation — a simulation-information hub and gateway to other engines (e.g., Ansys solvers), interactive simulations for treatment planning (e.g., Isaac Sim, Newton), visualization systems (e.g., AR/VR devices), and physical systems (e.g., robots via ROS)
+- **NVIDIA Omniverse as the simulation hub**: the end goal for simulation - a simulation-information hub and gateway to other engines (e.g., Ansys solvers), interactive simulations for treatment planning (e.g., Isaac Sim, Newton), visualization systems (e.g., AR/VR devices), and physical systems (e.g., robots via ROS)
 - **CLI and Python API**: installed command-line tools and workflow classes for repeatable, scriptable pipelines
 
 ## Quick Start

@@ -8,7 +8,7 @@ Training a Mesh-Stage Model
 .. module:: monai_physio.train_physicsnemo_mlp
 .. currentmodule:: monai_physio
 
-:class:`WorkflowTrainPhysicsNeMo` owns the data side of training — manifests,
+:class:`WorkflowTrainPhysicsNeMo` owns the data side of training - manifests,
 normalization statistics, lazy datasets, output directories, checkpoints,
 metadata and logs. The network and its optimization loop live in the training
 method it drives.
@@ -70,7 +70,7 @@ Notes
 =====
 
 **The template mesh sets the node domain.** ``pca_mean_mesh`` defines the
-points every subject is expressed on, and — for the MeshGraphNet — the graph
+points every subject is expressed on, and - for the MeshGraphNet - the graph
 topology. Pass a ``.vtu`` to train on volume points, a ``.vtp`` to train on
 surface points. When the PCA model is volumetric but your manifests reference
 surfaces, set ``use_template_surface=True`` and the workflow trains on the
@@ -81,7 +81,7 @@ the network's output size and is recorded in the checkpoint, so inference
 rebuilds a matching network without being told.
 
 **Resuming writes to a fresh directory.** Passing ``resume_from`` inherits the
-prior run's normalization statistics — so the loaded weights stay valid — and
+prior run's normalization statistics - so the loaded weights stay valid - and
 writes to a numbered sibling of ``output_directory``. Read the actual location
 from ``result["output_directory"]``.
 

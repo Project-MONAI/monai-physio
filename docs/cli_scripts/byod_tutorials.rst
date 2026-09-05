@@ -292,7 +292,7 @@ support ``.usd``, ``.usda``, or ``.usdc`` output files directly.
 Open **Omniverse USD Composer**, drag your ``.usd`` file onto the viewport,
 then press **Play** (spacebar) to watch the animation. For 4D cardiac data,
 use the **Timeline** panel to scrub through phases. Set the viewport renderer
-to RTX and switch to the scene's ``/World/Camera`` first —
+to RTX and switch to the scene's ``/World/Camera`` first -
 :doc:`../viewing_usd` covers why both matter.
 
 See Also

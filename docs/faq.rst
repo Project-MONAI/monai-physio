@@ -40,13 +40,13 @@ Do I need a GPU?
 ----------------
 
 No. A plain ``pip install monai-physio`` works without a GPU, and runs every
-workflow including the AI-surrogate ones — just significantly slower than a
+workflow including the AI-surrogate ones - just significantly slower than a
 GPU-enabled install. At import time a ``UserWarning`` is emitted (visible by
 default in all standard Python runs):
 
 .. code-block:: text
 
-   CuPy is not installed — GPU-accelerated mesh operations will fall back to
+   CuPy is not installed - GPU-accelerated mesh operations will fall back to
    NumPy and run significantly slower. Every workflow still runs. Re-install
    with uv to get CuPy and CUDA-enabled PyTorch in one step (pip alone will
    not select the correct CUDA wheel):
@@ -61,7 +61,7 @@ Which CUDA version is required?
 
 Both CUDA 13 and CUDA 12.6 are supported. CUDA 12.6 is the smoothest
 install, because it is the newest combination with prebuilt ``torch-scatter``
-wheels on every supported platform — nothing compiles:
+wheels on every supported platform - nothing compiles:
 
 .. code-block:: bash
 
@@ -75,7 +75,7 @@ compiles from source and needs a CUDA toolkit plus a C++ toolchain; see
 :doc:`installation`.
 
 To let uv pick the PyTorch build from your driver without naming a CUDA
-version — at the cost of CuPy, which has no auto-detect option:
+version - at the cost of CuPy, which has no auto-detect option:
 
 .. code-block:: bash
 
@@ -121,7 +121,7 @@ Which registration method should I use?
 * **Greedy**: CPU-capable classical deformable registration; what Tutorials 1
   and 3 use by default
 * **ICON**: Recommended for cardiac/lung (fast, GPU), and finetunable on your
-  own cohort — see Tutorial 2
+  own cohort - see Tutorial 2
 * **ANTs**: Best for brain imaging and general purpose
 * **Greedy+ICON** (``RegisterImagesGreedyICON``, a ``RegisterImagesChain``
   preset): Greedy for the coarse alignment, ICON for the refinement

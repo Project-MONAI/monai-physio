@@ -11,11 +11,11 @@ $ARGUMENTS
 This is an open-source project that welcomes contributors with a range of backgrounds
 and skill levels. Every change should meet the following bar before it is committed:
 
-- **Readable** — logic is immediately clear to a developer unfamiliar with the file.
-- **Focused** — each function or method does one thing; no hidden side effects.
-- **Consistent** — style, naming, and patterns match the surrounding codebase.
-- **Well-typed** — full type hints; no `Any` unless unavoidable and documented.
-- **Documented** — every public method has a docstring that states what it does,
+- **Readable** - logic is immediately clear to a developer unfamiliar with the file.
+- **Focused** - each function or method does one thing; no hidden side effects.
+- **Consistent** - style, naming, and patterns match the surrounding codebase.
+- **Well-typed** - full type hints; no `Any` unless unavoidable and documented.
+- **Documented** - every public method has a docstring that states what it does,
   its arguments, and return value.
 
 ## Instructions
@@ -23,10 +23,10 @@ and skill levels. Every change should meet the following bar before it is commit
 1. Run `git diff HEAD` to get the full diff of tracked modified files.
    Also run `git diff HEAD --name-only` to list just the changed files.
 
-2. For each modified Python file, read the **entire file** — not just the diff.
+2. For each modified Python file, read the **entire file** - not just the diff.
    Understanding the unchanged context is necessary to judge whether the new code
    fits naturally. If a path from `git diff HEAD --name-only` no longer exists on
-   disk (deleted or renamed), skip it — do not attempt to read or edit it.
+   disk (deleted or renamed), skip it - do not attempt to read or edit it.
 
 3. For each changed section, apply the checks below. Fix every issue found directly
    in the file using small, targeted edits. Do not refactor code that was not changed.
@@ -60,7 +60,7 @@ and skill levels. Every change should meet the following bar before it is commit
 4. After editing, run ruff only on Python files that are modified and still exist
    on disk. Use `git diff --diff-filter=d --name-only HEAD -- '*.py'` to list
    changed, non-deleted `.py` files, then pass only that list to
-   `ruff check --fix` and `ruff format`. Do not run ruff project-wide — it
+   `ruff check --fix` and `ruff format`. Do not run ruff project-wide - it
    may reformat files outside the current change set.
 
 5. Report a concise summary of every change made, grouped by file. If a file needed

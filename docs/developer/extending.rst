@@ -70,7 +70,7 @@ Testing Requirements
 
 Use synthetic ITK images and small PyVista meshes where possible. When real
 data is unavoidable, request the session fixtures (``test_directories``,
-``download_test_data``, ``test_images``) — the data is downloaded on first
+``download_test_data``, ``test_images``) - the data is downloaded on first
 use. Mark tests that need a GPU, a slow runtime, or a licensed Simpleware
 install with ``requires_gpu``, ``slow``, or ``requires_simpleware``.
 

@@ -17,7 +17,7 @@ break in the migration guide (see below).
 We are developing open-source code for scientific AI libraries.
 
 **A GPU is assumed.** Supporting CPU-only machines is not a requirement.
-Design for the GPU first and use it wherever it is faster — do not add CPU
+Design for the GPU first and use it wherever it is faster - do not add CPU
 fallbacks, dtype compromises, or size limits to keep a CPU-only path viable,
 and do not weaken an algorithm because a CPU could not run it.
 
@@ -115,7 +115,7 @@ removed-symbol re-exports, or removed-symbol stubs; when a break is
 substantial, ship code that automates the conversion instead.
 
 At commit time: if the diff breaks a public API, append an entry to
-`docs/developer/migration_next.md` in that same commit — what changed, why it
+`docs/developer/migration_next.md` in that same commit - what changed, why it
 benefits future users, before/after code, and the conversion script (or
 `None needed`). Follow the entry template at the bottom of that file.
 
@@ -209,7 +209,7 @@ graphify update .               # refresh after code changes (AST-only, no API c
 - Masks are binary ITK images.
 - Transforms are ITK composite transforms stored in compressed `.hdf` files.
 - These conventions are fixed and hold everywhere. This section is their single
-  source of truth — do not restate them in docstrings, comments, or test
+  source of truth - do not restate them in docstrings, comments, or test
   docstrings. Document only genuine deviations, such as a raw NumPy array whose
   axes are reversed relative to the ITK image it came from.
 
@@ -240,7 +240,7 @@ graphify update .               # refresh after code changes (AST-only, no API c
   or when real data would push the test into a slow, GPU, or Simpleware bucket
   that does not fit the test's purpose. Keep synthetic volumes at or below 64
   voxels per side and say so in the docstring.
-- Do not restate ITK shape, axis order, or world frame in test docstrings —
+- Do not restate ITK shape, axis order, or world frame in test docstrings -
   those are fixed conventions (see Data Conventions above). State only what is
   specific to the test, such as the size of a synthetic volume.
 - When a test produces an image or surface, compare against a baseline using

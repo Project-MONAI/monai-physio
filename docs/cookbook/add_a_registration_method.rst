@@ -58,7 +58,7 @@ supply only the solve.
                "loss": loss,
            }
 
-``registration_method()`` is the one required override. It is internal —
+``registration_method()`` is the one required override. It is internal -
 callers use ``register()``, which wraps it.
 
 **2. Honor the contract.** ``forward_transform`` warps the *moving image* onto
@@ -71,7 +71,7 @@ before you return anything.
 ``self.fixed_image_pre`` and ``moving_image_pre`` rather than preprocessing
 again, ``self.fixed_mask`` / ``self.moving_mask`` for ROI-limited solves, and
 ``self.modality`` for modality-specific parameters. Honor ``self.fast_mode``
-by dropping to cheaper settings — automated tests rely on it.
+by dropping to cheaper settings - automated tests rely on it.
 
 **4. Do not accept an initial transform.** Seeding is the base class's job:
 ``register_from()`` pre-warps the moving image, calls your method on the
@@ -81,7 +81,7 @@ residual, and composes. One implementation, identical for every backend.
 ``register_images_*`` imports, and add it to ``__all__``.
 
 **6. Add it to the CLI dispatch** in
-``src/monai_physio/cli/_method_factories.py`` — the single place strings become
+``src/monai_physio/cli/_method_factories.py`` - the single place strings become
 instances. Append the name to ``REGISTRATION_METHODS`` and a branch to
 ``build_registration_method()``. Every ``--registration-method`` flag picks it
 up from there.
@@ -107,7 +107,7 @@ Notes
   :class:`~monai_physio.RegisterTimeSeriesImages` will apply it across a whole
   4D series, without either class knowing about it.
 * Use ``TransformTools.transform_image()`` and
-  ``TransformTools.transform_pvcontour()`` to apply results — they encode the
+  ``TransformTools.transform_pvcontour()`` to apply results - they encode the
   direction rules.
 * Registering *models* to patients is a different base class; see
   :doc:`/developer/registration_models`.
@@ -115,7 +115,7 @@ Notes
 See Also
 ========
 
-* :doc:`/developer/registration_images` — the extended guide
-* :doc:`/developer/transform_conventions` — required reading
+* :doc:`/developer/registration_images` - the extended guide
+* :doc:`/developer/transform_conventions` - required reading
 * :doc:`/api/registration/base`
 * :doc:`add_a_segmentation_method`

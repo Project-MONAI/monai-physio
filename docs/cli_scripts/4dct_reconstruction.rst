@@ -15,7 +15,7 @@ Input Requirements
 * Optional fixed and moving masks for registration focus.
 
 DirLab-4DCT data cannot be downloaded automatically by MONAI Physio. Prepare
-it manually before using the DirLab tutorial or examples — see
+it manually before using the DirLab tutorial or examples - see
 ``data/DirLab-4DCT/README.md`` for the download and layout instructions.
 
 Basic Usage
@@ -59,7 +59,7 @@ By default, the high-resolution reference image is warped back to each time
 point. ``--composite-mode mean`` or ``--composite-mode max`` instead build a
 pixel-by-pixel mean or max composite of the reference image and every
 registered time-series image first, then warp that composite back to each
-time point — useful when anatomy or contrast is only visible in some frames.
+time point - useful when anatomy or contrast is only visible in some frames.
 
 .. code-block:: bash
 

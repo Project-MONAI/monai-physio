@@ -7,7 +7,7 @@ writing of predicted meshes. Scoring those predictions belongs to
 as an inference method (:class:`monai_physio.InferPhysicsNeMoMGN` or
 :class:`monai_physio.InferPhysicsNeMoMLP`).
 
-Predictions are the targets the model was trained on, whatever those are — the
+Predictions are the targets the model was trained on, whatever those are - the
 manifest's ``target_array`` values at each template point. For the common case
 where those targets are displacements from the subject's reference mesh, wrap
 this workflow in :class:`monai_physio.WorkflowInferMovement` to get
@@ -35,7 +35,7 @@ from .monai_physio_base import MONAIPhysioBase
 class WorkflowInferPhysicsNeMo(MONAIPhysioBase):
     """Predict per-point targets for a subject at requested stages.
 
-    The network is supplied as an inference method — pass a
+    The network is supplied as an inference method - pass a
     :class:`monai_physio.InferPhysicsNeMoMGN` or
     :class:`monai_physio.InferPhysicsNeMoMLP` instance as ``inference_method``;
     a default MeshGraphNet method is used when none is given.

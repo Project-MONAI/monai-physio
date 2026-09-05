@@ -2,8 +2,8 @@
 
 An inference method owns the network: rebuilding it from a checkpoint's
 metadata, loading any architecture-specific artifacts, and running the forward
-pass. Everything around it — checkpoint loading, normalization statistics,
-manifests and output writing — lives in the workflow that drives the method
+pass. Everything around it - checkpoint loading, normalization statistics,
+manifests and output writing - lives in the workflow that drives the method
 (:mod:`monai_physio.workflow_infer_physicsnemo`).
 
 :class:`InferPhysicsNeMoBase` mirrors
@@ -33,7 +33,7 @@ if TYPE_CHECKING:  # typed for mypy; imported lazily at runtime
 class InferPhysicsNeMoBase(MONAIPhysioBase):
     """Base class for a PhysicsNeMo mesh-stage inference method.
 
-    Not instantiated directly — use :class:`monai_physio.InferPhysicsNeMoMGN` or
+    Not instantiated directly - use :class:`monai_physio.InferPhysicsNeMoMGN` or
     :class:`monai_physio.InferPhysicsNeMoMLP`. Subclasses implement
     :meth:`build_model`, :meth:`load_artifacts` and :meth:`predict`, and set the
     class attribute ``model_tag``.

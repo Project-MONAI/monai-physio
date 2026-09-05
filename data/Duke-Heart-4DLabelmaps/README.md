@@ -22,7 +22,7 @@ There are ten of them. Nine form their own chain: Tutorial 4 (duke heart) -> 5
 separate optional ICON finetuning variant that the chain does not require.
 They will not run until the data is
 available. The other 19 tutorial scripts use publicly available datasets and are
-unaffected — see [../README.md](../README.md) for download instructions.
+unaffected - see [../README.md](../README.md) for download instructions.
 
 Downstream tutorials that consume `duke_heart` outputs (such as the finetuned
 distance-map ICON weights used by

@@ -1,6 +1,6 @@
 """Unit tests for :class:`monai_physio.AnatomyTaxonomy`.
 
-These tests exercise the pure-data taxonomy in isolation — no ITK, no pxr,
+These tests exercise the pure-data taxonomy in isolation - no ITK, no pxr,
 no GPU. They are fast and run unconditionally in the default test suite.
 """
 

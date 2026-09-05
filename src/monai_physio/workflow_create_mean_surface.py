@@ -14,7 +14,7 @@ template through each sample and averaging the *template's* points:
 
 A single pass leaves the mean in the shape space of whichever surface was chosen
 as the template. Repeating the four steps with the previous mean as the new
-template washes that bias out — the standard groupwise / atlas iteration, as in
+template washes that bias out - the standard groupwise / atlas iteration, as in
 ``antsMultivariateTemplateConstruction``. Iteration stops once the mean moves
 less than the convergence tolerance.
 
@@ -275,8 +275,8 @@ class WorkflowCreateMeanSurface(MONAIPhysioBase):
 
         Registration never recovers a sample's size exactly, and the residual
         error is one-sided: each iteration averages slightly under-deformed
-        templates, so an unconstrained atlas creeps toward — and eventually
-        below — the smallest input. Setting the size explicitly from the aligned
+        templates, so an unconstrained atlas creeps toward - and eventually
+        below - the smallest input. Setting the size explicitly from the aligned
         inputs, which are measured rather than registered, removes that drift.
         With ``Affine`` alignment the inputs already carry the template's size,
         so the correction is a no-op and the mean stays size-normalized.

@@ -28,7 +28,7 @@ If `$ARGUMENTS` is empty, ask the user for the PR number before doing anything.
    If not authenticated, stop and tell the user to run `gh auth login`.
 
 2. Confirm the current branch is **not** `main` and not detached. If it is,
-   warn the user — applied edits will land on whichever branch is checked
+   warn the user - applied edits will land on whichever branch is checked
    out. Ask before proceeding.
 
 3. Confirm the working tree has no unstaged Python edits the user would not
@@ -73,7 +73,7 @@ Defaults worth knowing:
    working-tree changes only; the user controls staging
    (`git add -p`) and commit.
 
-4. Delete `pr_<NUMBER>_review_summary.md` after reporting — the working-tree
+4. Delete `pr_<NUMBER>_review_summary.md` after reporting - the working-tree
    diff is the durable record; the summary is intermediate state.
 
 5. If the run failed:

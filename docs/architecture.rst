@@ -111,19 +111,19 @@ inference time:
 ``tutorial_09_lung_train_physicsnemo_mgn.py``
    Trains a PhysicsNeMo surrogate with ``WorkflowTrainPhysicsNeMo``, driving a
    graph-based ``TrainPhysicsNeMoMGN`` (``MeshGraphNet``) method on the
-   Tutorial 8 output. The tutorial writes each phase's training target — here
-   the per-vertex displacement — into a mesh point-data array the manifest
+   Tutorial 8 output. The tutorial writes each phase's training target - here
+   the per-vertex displacement - into a mesh point-data array the manifest
    names, so the same stack trains on any per-point target of any width. It
    then evaluates the held-out cases with ``WorkflowInferPhysicsNeMo`` wrapped
    in ``WorkflowInferMovement``, turning predicted displacements back into
-   surfaces without running registration — i.e. the AI surrogate stands in for
+   surfaces without running registration - i.e. the AI surrogate stands in for
    ``WorkflowReconstructHighres4DCT`` at inference time. Requires PhysicsNeMo
    and ``torch-geometric`` (base dependencies); Python >= 3.11.
 
 ``tutorial_10_lung_infer_physicsnemo_mgn.py``
    Loads that checkpoint and predicts the case's surface at a requested stage
    with ``WorkflowInferPhysicsNeMo`` plus ``WorkflowInferMovement``, then
-   exports it as USD — one forward pass in place of the registration solve that
+   exports it as USD - one forward pass in place of the registration solve that
    produced the training data, and able to predict stages that were never
    acquired.
 
@@ -137,7 +137,7 @@ inference time:
 
 ``tutorial_12_lung_end_to_end_inference.py``
    Collapses the chain into one script: segment the reference frame, fit the
-   shape model to that patient, and infer every stage — no registration
+   shape model to that patient, and infer every stage - no registration
    anywhere, and nothing read from Tutorial 8. This is the shape the deployed
    pipeline takes, and why it runs in minutes where Tutorial 8 runs in hours.
 
@@ -173,15 +173,15 @@ Deriving from a base class propagates capability, not just interface. Each
 ``SegmentAnatomyBase`` subclass owns an :class:`AnatomyTaxonomy` instance and
 declares its own group→organ label map by calling
 ``self.taxonomy.add_organ(group_name, label_id, organ_name)`` for every label
-it produces — a new segmenter for a new organ or data type only has to
+it produces - a new segmenter for a new organ or data type only has to
 declare that map once. Everything downstream reads it rather than
 special-casing the segmenter: ``ConvertVTKToUSD`` groups label-mode mesh
 prims under per-anatomy-group Xforms (``/World/{name}/{group}/{organ}``)
 straight from the taxonomy, and ``USDAnatomyTools`` looks up
 :data:`DEFAULT_RENDER_PARAMS` by group name to assign the matching
 OmniSurface material. A group without a registered look still renders (via
-the ``"other"`` fallback), so a new segmentation class is usable end-to-end —
-segmented, meshed, grouped, and materialized — before anyone writes a custom
+the ``"other"`` fallback), so a new segmentation class is usable end-to-end -
+segmented, meshed, grouped, and materialized - before anyone writes a custom
 render style for it.
 
 Registration classes produce ITK transforms or transformed meshes.

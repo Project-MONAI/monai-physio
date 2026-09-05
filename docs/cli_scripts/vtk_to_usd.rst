@@ -47,7 +47,7 @@ One anatomy material for every mesh:
 
 A material per structure. Omitting ``--anatomy-type`` picks each object's
 material from its name, and with ``--static-merge`` the objects are named after
-the structures recorded in each file's ``SegmentationLabelNames`` field data —
+the structures recorded in each file's ``SegmentationLabelNames`` field data -
 as written by the image-to-VTK workflow:
 
 .. code-block:: bash

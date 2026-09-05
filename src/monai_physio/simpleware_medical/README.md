@@ -114,8 +114,8 @@ The ASCardio module segments the following cardiac structures (label IDs match `
 1. MONAI Physio preprocesses the CT image (resampling to 1 mm isotropic, intensity scaling).
 2. Preprocessed image is saved to a temporary NIfTI file (e.g. `input_image.nii.gz`) in a temporary directory.
 3. `ConsoleSimplewareMedical.exe` is launched with:
-   - `--input-file <path_to_input.nii.gz>` — the preprocessed CT (Simpleware opens it as the active document)
-   - `--input-value <tmp_dir>` — directory where the script will write mask files
+   - `--input-file <path_to_input.nii.gz>` - the preprocessed CT (Simpleware opens it as the active document)
+   - `--input-value <tmp_dir>` - directory where the script will write mask files
    - `--run-script SimplewareScript_heart_segmentation.py`
    - `--exit-after-script` and `--no-progress`
 4. The script runs inside Simpleware:

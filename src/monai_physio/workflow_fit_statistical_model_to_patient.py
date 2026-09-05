@@ -927,7 +927,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             self.l2i_inverse_transform = result["inverse_transform"]
             self.l2i_forward_transform = result["forward_transform"]
 
-        # Transform model with result — use the best available pre-L2I surface.
+        # Transform model with result - use the best available pre-L2I surface.
         source_surface = (
             self.l2l_template_model_surface
             or self.pca_template_model_surface

@@ -1,5 +1,5 @@
 """
-setup_feature_worktree.py — Automate creation of a Git feature worktree on Windows.
+setup_feature_worktree.py - Automate creation of a Git feature worktree on Windows.
 
 Workflow:
   1. Validate prerequisites (git, py.exe).
@@ -132,7 +132,7 @@ def check_prerequisites() -> str:
     """Check that git and py.exe are available on PATH and no venv is active.
 
     Returns:
-        The resolved path to py.exe. git is only checked, not returned — git is
+        The resolved path to py.exe. git is only checked, not returned - git is
         always invoked as a bare "git" so it resolves through PATH.
     """
     print("[*] Checking prerequisites...")
@@ -182,7 +182,7 @@ def get_current_branch() -> str:
     )
     if result.returncode == 0:
         return result.stdout.strip()
-    # Detached HEAD — use the short SHA instead
+    # Detached HEAD - use the short SHA instead
     result = subprocess.run(
         ["git", "rev-parse", "--short", "HEAD"],
         check=True,
@@ -221,7 +221,7 @@ def sanitize_name(raw: str) -> tuple[str, str]:
         raw: The user-supplied feature name.
 
     Returns:
-        (branch_name, folder_name) — both derived from the same sanitised slug.
+        (branch_name, folder_name) - both derived from the same sanitised slug.
         The branch_name is prefixed with 'feature/' per convention.
 
     Raises:
@@ -320,7 +320,7 @@ def install_uv(venv_dir: Path) -> tuple[Path, Path]:
         venv_dir: Path to the venv directory.
 
     Returns:
-        Tuple of (uv_exe, venv_python) — both inside the venv.
+        Tuple of (uv_exe, venv_python) - both inside the venv.
     """
     venv_python = venv_dir / "Scripts" / "python.exe"
     uv_exe = venv_dir / "Scripts" / "uv.exe"

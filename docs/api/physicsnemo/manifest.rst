@@ -30,14 +30,14 @@ Targets are read verbatim
 
 The stack never derives targets from geometry. Whatever array
 ``target_array`` names is what the network learns to predict, and its width
-sets the network's output size — three columns for a displacement, one for a
+sets the network's output size - three columns for a displacement, one for a
 scalar field, any number for something else. Tutorial 9 writes
 ``phase.points - reference.points`` into that array, which is what makes its
 model a motion model; write something else and the same code trains on it.
 
 Every phase mesh must share the template's point count and ordering, and
 ``stage`` is the caller's own normalization of where the phase sits in the
-cycle — the workflow never parses filenames.
+cycle - the workflow never parses filenames.
 
 Meshes may be surfaces (``.vtp``) or volumes (``.vtu``); the template mesh
 decides which domain the model lives on.
@@ -46,7 +46,7 @@ Reference
 =========
 
 These live in :mod:`monai_physio.physicsnemo_tools`, which is not re-exported
-from the top-level package — import it by module:
+from the top-level package - import it by module:
 
 .. code-block:: python
 

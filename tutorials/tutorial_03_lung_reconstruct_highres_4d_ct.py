@@ -6,7 +6,7 @@ Purpose
 Register a respiratory CT time series to a fixed reference phase and save the
 reconstructed frames. DIR-Lab does not provide a separate high-resolution
 breath-hold reference image, so this tutorial uses the T70 (end-exhale) phase
-as the fixed reference — the same reference Tutorial 8 fits its lung SSM to.
+as the fixed reference - the same reference Tutorial 8 fits its lung SSM to.
 
 Data Required
 -------------

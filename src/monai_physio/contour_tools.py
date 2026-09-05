@@ -69,8 +69,8 @@ class ContourTools(MONAIPhysioBase):
         from here colors the same way in Paraview, PyVista, and the USD
         exporter:
 
-        - ``field_data['AnatomyColor']`` — RGB float32 color.
-        - ``cell_data['Color']`` — RGBA uint8 solid color (n_cells × 4).
+        - ``field_data['AnatomyColor']`` - RGB float32 color.
+        - ``cell_data['Color']`` - RGBA uint8 solid color (n_cells × 4).
 
         Args:
             mesh: Surface or volume mesh to annotate.
@@ -1372,9 +1372,9 @@ class ContourTools(MONAIPhysioBase):
         the merge.  Downstream, :class:`ConvertVTKToUSD` splits on this array
         when given ``mask_ids``, giving one prim (and one anatomy material) per
         structure.  A surface whose ``field_data['SegmentationLabelIds']`` does
-        not hold exactly one ID has no per-cell attribution — that is the case
+        not hold exactly one ID has no per-cell attribution - that is the case
         for the per-group surfaces of :class:`WorkflowConvertImageToVTK`, which
-        are contoured from a merged binary mask — so its cells are tagged ``0``.
+        are contoured from a merged binary mask - so its cells are tagged ``0``.
         Pass the per-label surfaces (``'label_surfaces'``) to get real IDs.
 
         Per-object ``field_data`` is *not* preserved: it is per-object, so a
@@ -1382,9 +1382,9 @@ class ContourTools(MONAIPhysioBase):
         remaining keys set by :meth:`WorkflowConvertImageToVTK._annotate` are
         therefore lost:
 
-        - ``AnatomyGroup`` — group name, e.g. ``'heart'``.
-        - ``SegmentationLabelNames`` — structure names within the group.
-        - ``AnatomyColor`` — RGB float color (survives indirectly as the
+        - ``AnatomyGroup`` - group name, e.g. ``'heart'``.
+        - ``SegmentationLabelNames`` - structure names within the group.
+        - ``AnatomyColor`` - RGB float color (survives indirectly as the
           per-cell ``Color`` array).
 
         Use :meth:`save_surfaces` instead when structure *names* must be

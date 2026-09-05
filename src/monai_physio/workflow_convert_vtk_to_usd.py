@@ -104,7 +104,7 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
                 without it, parts are named by connectivity-component order,
                 which is positional per frame. None (default) reads the ids off
                 the meshes themselves when they carry the per-cell array, and
-                names them from *segmenter*'s taxonomy — so passing a mesh
+                names them from *segmenter*'s taxonomy - so passing a mesh
                 merged by :meth:`ContourTools.save_combined_surfaces` splits by
                 structure without further arguments. ``static_merge`` accepts
                 only one labeled mesh: several would collide on one prim path
@@ -168,7 +168,7 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
         :meth:`ContourTools.save_combined_surfaces` writes on a merge, and that
         contouring a multi-label labelmap leaves behind. That array is
         preferred wherever it exists because it survives merging, which the
-        per-object ``field_data`` naming does not — so a combined surface file
+        per-object ``field_data`` naming does not - so a combined surface file
         splits back into its structures instead of collapsing onto one prim.
 
         Ids are named from *segmenter*'s taxonomy first, then from the
@@ -263,7 +263,7 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
 
         With ``anatomy_type`` set, that one name is the only candidate. Without
         it, the prim's own name is tried first, then the anatomy group of the
-        object it came from — so ``"rib_left_3"``, which matches no material of
+        object it came from - so ``"rib_left_3"``, which matches no material of
         its own, still lands on the bone material through its group.
         """
         if self.anatomy_type is not None:

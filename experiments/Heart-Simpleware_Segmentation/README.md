@@ -44,7 +44,7 @@ The `SegmentHeartSimpleware` class provides integration between MONAI Physio and
 ### Quick Start
 
 1. Open `simpleware_heart_segmentation.py` in VS Code, Cursor, or any editor
-   with `# %%` cell support — or run it top-to-bottom with
+   with `# %%` cell support - or run it top-to-bottom with
    `python simpleware_heart_segmentation.py`.
 2. Update the `input_image_path` near the top of the script to point to your
    cardiac CT image.

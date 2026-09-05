@@ -7,8 +7,8 @@ Convert the VTK surface output from Tutorial 4, or another VTK-compatible mesh,
 into a USD file with anatomy materials.
 
 Tutorial 4 writes one VTP per anatomical structure, each annotated with its
-structure name. Feeding those files in individually — rather than the single
-combined surface — keeps that name attached through the conversion, so each
+structure name. Feeding those files in individually - rather than the single
+combined surface - keeps that name attached through the conversion, so each
 structure becomes its own named USD prim and gets its own material: bright
 oxygenated red for the left chambers, darker deoxygenated red for the right,
 red-brown myocardium, and so on, instead of one uniform heart material.

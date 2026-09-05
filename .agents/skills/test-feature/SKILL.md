@@ -14,8 +14,8 @@ Instructions:
 4. **Strongly prefer real (downloaded) test data over synthetic data.** Request
    the session fixtures (`test_directories`, `download_test_data`,
    `test_images`) so the standard test datasets are pulled automatically on
-   first use. Real data exercises the production code paths — preprocessing,
-   resampling, dtype handling, world-frame metadata — that synthetic toy
+   first use. Real data exercises the production code paths - preprocessing,
+   resampling, dtype handling, world-frame metadata - that synthetic toy
    volumes silently bypass. Only fall back to synthetic `itk.Image` or
    `pv.PolyData` inputs when:
      - the behavior under test is a pure unit (e.g. axis arithmetic, dict
@@ -30,14 +30,14 @@ Instructions:
    (Git LFS-tracked). Run with `--create-baselines` to materialize missing
    baselines on first use; afterward, regression compares to the stored
    baseline. This catches drift that hand-written numeric thresholds miss.
-6. Do not restate ITK shape, axis order, or world frame in test docstrings —
+6. Do not restate ITK shape, axis order, or world frame in test docstrings -
    those are fixed conventions. State only what is specific to the test, such
    as the size of a synthetic volume.
 7. Mark tests that need a GPU, a slow runtime, or a licensed Simpleware
    install with `@pytest.mark.requires_gpu`, `@pytest.mark.slow`, or
    `@pytest.mark.requires_simpleware` so they fall into the right opt-in
    bucket (`--run-gpu`, `--run-slow`, `--run-simpleware`). Tests that just
-   need downloadable data need **no** marker — the fixture chain handles it.
+   need downloadable data need **no** marker - the fixture chain handles it.
 8. Show the exact command to run the new tests, including any opt-in flags
    the markers require. Examples:
    - `py -m pytest tests/test_<module>.py -v`

@@ -20,9 +20,9 @@ The workflow:
 
 Outputs written to the output directory:
 
-* ``pca_mean_surface.vtp`` — Mean shape as a surface (PolyData)
-* ``pca_mean.vtu`` — Reference volume mesh in mean space (only if reference is volumetric)
-* ``pca_model.json`` — PCA model (eigenvalues, components) for use with
+* ``pca_mean_surface.vtp`` - Mean shape as a surface (PolyData)
+* ``pca_mean.vtu`` - Reference volume mesh in mean space (only if reference is volumetric)
+* ``pca_model.json`` - PCA model (eigenvalues, components) for use with
   :class:`monai_physio.WorkflowFitStatisticalModelToPatient` or
   :class:`monai_physio.RegisterModelsPCA`
 

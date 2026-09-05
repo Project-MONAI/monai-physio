@@ -21,7 +21,7 @@ Open `docs/_build/html/index.html`. A clean build ends with
 | Path | Contents |
 | --- | --- |
 | `index.rst` | Landing page: hero, tutorial cards, topic grid, toctrees |
-| `tutorials.rst` | The primary entry point for new users — one section per tutorial |
+| `tutorials.rst` | The primary entry point for new users - one section per tutorial |
 | `quickstart.rst`, `installation.rst` | Getting started |
 | `cli_scripts/` | Task-oriented guides for the installed `monai-physio-*` commands |
 | `api/` | Class and module reference, grouped by functionality |
@@ -41,5 +41,5 @@ Open `docs/_build/html/index.html`. A clean build ends with
 - Tutorial numbers appear in `index.rst` card anchors, `tutorials.rst` section
   titles, `quickstart.rst`, and `tutorials/README.md`. When a tutorial is
   renumbered, the card `href` values must be regenerated from the new section
-  titles — Sphinx derives anchors from the heading text, and `linkcheck` does
+  titles - Sphinx derives anchors from the heading text, and `linkcheck` does
   not catch same-page fragments.

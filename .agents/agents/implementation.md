@@ -23,7 +23,7 @@ Key modules: `monai_physio_base.py`, `segment_chest_*.py`, `register_images_*.py
 `workflow_*.py`. Use `graphify query "<question>"` to locate classes before
 searching manually.
 
-## Process — follow this order every time
+## Process - follow this order every time
 
 1. Read the relevant source file(s) in full.
 2. Summarize current behavior in 2–4 sentences.
@@ -51,11 +51,11 @@ searching manually.
   (`torch.multiprocessing` requires it).
 - Double quotes for strings and docstrings. Never single quotes. 88-char line limit.
 - Full type hints; `Optional[X]` not `X | None` (mypy UP007 is suppressed).
-- `pathlib.Path` for all file paths. `subprocess.run(check=True, text=True)` — no `os.system`.
+- `pathlib.Path` for all file paths. `subprocess.run(check=True, text=True)` - no `os.system`.
 - After every Python edit run `python -m ruff check . --fix && python -m ruff format .`
   from the active `.\venv`.
 
-## Data conventions — fixed, do not restate
+## Data conventions - fixed, do not restate
 
 - ITK images: axes X, Y, Z [, T] in LPS world space (ITK's native frame).
 - 4D time series: shape `(X, Y, Z, T)`. Never silently squeeze or permute.

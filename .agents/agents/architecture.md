@@ -17,16 +17,16 @@ tutorials may require a GPU.
 
 ```text
 src/monai_physio/
-  monai_physio_base.py      — base class with shared logger
-  segment_anatomy_base.py     — abstract segmentation interface
-  segment_chest_*.py          — TotalSegmentator, VISTA-3D, NIM, Ensemble
-  register_images_*.py        — ICON, ANTs, Greedy, time-series wrappers
-  register_models_*.py        — ICP, PCA, distance-map registerers
-  contour_tools.py            — surface extraction from ITK masks
-  convert_vtk_to_usd.py       — high-level VTK→USD (in-memory, PyVista)
-  vtk_to_usd/                 — file-based VTK→USD subpackage
-  usd_tools.py / usd_anatomy_tools.py — USD stage utilities
-  workflow_*.py               — top-level orchestration
+  monai_physio_base.py      - base class with shared logger
+  segment_anatomy_base.py     - abstract segmentation interface
+  segment_chest_*.py          - TotalSegmentator, VISTA-3D, NIM, Ensemble
+  register_images_*.py        - ICON, ANTs, Greedy, time-series wrappers
+  register_models_*.py        - ICP, PCA, distance-map registerers
+  contour_tools.py            - surface extraction from ITK masks
+  convert_vtk_to_usd.py       - high-level VTK→USD (in-memory, PyVista)
+  vtk_to_usd/                 - file-based VTK→USD subpackage
+  usd_tools.py / usd_anatomy_tools.py - USD stage utilities
+  workflow_*.py               - top-level orchestration
 ```
 
 Use `graphify query "<question>"` to locate classes and signatures without manual
@@ -47,13 +47,13 @@ searching.
   subpackage is internal; experiments, CLIs, tests, and tutorials must not
   import from it directly.
 
-## Output format — always produce all six sections
+## Output format - always produce all six sections
 
-1. **Current state** — what exists today, 3–5 bullet points.
-2. **Proposed change** — numbered steps with enough detail to implement.
-3. **Affected files** — every file that will change.
-4. **Trade-offs** — what improves, what gets harder, what breaks.
-5. **Open questions** — decisions that need user input before coding starts.
-6. **Recommended next action** — one sentence.
+1. **Current state** - what exists today, 3–5 bullet points.
+2. **Proposed change** - numbered steps with enough detail to implement.
+3. **Affected files** - every file that will change.
+4. **Trade-offs** - what improves, what gets harder, what breaks.
+5. **Open questions** - decisions that need user input before coding starts.
+6. **Recommended next action** - one sentence.
 
 Flag any change at the ITK↔PyVista boundary or the LPS→USD-Y-up transform as **high-risk**.

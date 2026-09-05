@@ -40,7 +40,7 @@ you supply only the model call.
            return run_my_model(preprocessed_image)
 
 ``segmentation_method()`` is the one required override. Return an
-``itk.Image`` labelmap on the preprocessed grid — the base resamples it back.
+``itk.Image`` labelmap on the preprocessed grid - the base resamples it back.
 
 **2. Declare the taxonomy** in ``__init__``, then finalize. Group names are
 free-form; new ones are allowed.
@@ -79,7 +79,7 @@ for ``"other"``.
 ``segment_*`` imports, and add it to ``__all__``.
 
 **5. Add it to the CLI dispatch** in
-``src/monai_physio/cli/_method_factories.py`` — the single place strings become
+``src/monai_physio/cli/_method_factories.py`` - the single place strings become
 instances. Append the name to ``SEGMENTATION_METHODS`` and a branch to
 ``build_segmentation_method()``. Every ``--segmentation-method`` flag picks it
 up from there.
@@ -110,7 +110,7 @@ Notes
 See Also
 ========
 
-* :doc:`/developer/segmentation` — the extended guide
-* :doc:`/api/segmentation/base` — ``AnatomyTaxonomy`` reference
-* :doc:`/developer/usd_generation` — how the taxonomy drives USD materials
+* :doc:`/developer/segmentation` - the extended guide
+* :doc:`/api/segmentation/base` - ``AnatomyTaxonomy`` reference
+* :doc:`/developer/usd_generation` - how the taxonomy drives USD materials
 * :doc:`add_a_registration_method`
