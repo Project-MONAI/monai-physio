@@ -82,8 +82,8 @@ class RegisterModelsICP(MONAIPhysioBase):
         moving_model (pv.PolyData): Surface model to be aligned
         fixed_model (pv.PolyData): Target surface model
         transform_tools (TransformTools): Transform utility instance
-        moving_to_fixed_transform (itk.AffineTransform): Optimized moving→fixed transform
-        fixed_to_moving_transform (itk.AffineTransform): Optimized fixed→moving transform
+        moving_to_fixed_transform (itk.AffineTransform): Optimized moving-to-fixed transform
+        fixed_to_moving_transform (itk.AffineTransform): Optimized fixed-to-moving transform
         registered_model (pv.PolyData): Aligned moving model
 
     Example:
@@ -158,8 +158,8 @@ class RegisterModelsICP(MONAIPhysioBase):
             max_iterations: Maximum ICP iterations for this stage.
 
         Returns:
-            Tuple of the transformed model and this stage's moving→fixed point
-            transform.
+            Tuple of the transformed model and this stage's moving-to-fixed
+            point transform.
         """
         icp = vtk.vtkIterativeClosestPointTransform()
         icp.SetSource(model)
@@ -289,9 +289,9 @@ class RegisterModelsICP(MONAIPhysioBase):
         Returns:
             Dictionary containing:
                 - 'registered_model': Aligned moving model (PyVista PolyData)
-                - 'moving_to_fixed_transform': Moving→fixed transform
+                - 'moving_to_fixed_transform': Moving-to-fixed transform
                     (ITK AffineTransform)
-                - 'fixed_to_moving_transform': Fixed→moving transform
+                - 'fixed_to_moving_transform': Fixed-to-moving transform
                     (ITK AffineTransform)
 
         Raises:

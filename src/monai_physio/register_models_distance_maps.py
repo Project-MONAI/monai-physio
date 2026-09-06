@@ -91,8 +91,8 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
         contour_tools (ContourTools): Model utility instance
         registrar_Greedy (RegisterImagesGreedy): Greedy registration instance
         registrar_ICON (RegisterImagesICON): ICON registration instance
-        fixed_to_moving_transform (itk.CompositeTransform): Optimized moving→fixed transform
-        moving_to_fixed_transform (itk.CompositeTransform): Optimized fixed→moving transform
+        fixed_to_moving_transform (itk.CompositeTransform): Optimized fixed-to-moving transform
+        moving_to_fixed_transform (itk.CompositeTransform): Optimized moving-to-fixed transform
         registered_model (pv.PolyData): Aligned moving model
 
     Example:
@@ -173,10 +173,10 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
 
         # Registration results
         self.fixed_to_moving_transform: Optional[itk.CompositeTransform] = (
-            None  # Moving→fixed
+            None  # Fixed-to-moving
         )
         self.moving_to_fixed_transform: Optional[itk.CompositeTransform] = (
-            None  # Fixed→moving
+            None  # Moving-to-fixed
         )
         self.registered_model: Optional[pv.PolyData] = None
 
@@ -359,8 +359,8 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
         Returns:
             Dictionary containing:
                 - 'registered_model': Aligned moving model (PyVista PolyData)
-                - 'fixed_to_moving_transform': Moving→fixed transform (ITK CompositeTransform)
-                - 'moving_to_fixed_transform': Fixed→moving transform (ITK CompositeTransform)
+                - 'fixed_to_moving_transform': Fixed-to-moving transform (ITK CompositeTransform)
+                - 'moving_to_fixed_transform': Moving-to-fixed transform (ITK CompositeTransform)
 
         Raises:
             ValueError: If transform_type is not 'None', 'Rigid', 'Affine', or 'Deformable'
@@ -462,10 +462,10 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
             # Compose Greedy affine + ICON deformable.
             # ICON runs on images already resampled to the patient (fixed) grid,
             # so its transforms are deformations within patient space.
-            # Forward (fixed→moving for image pull-back): apply ICON first
-            # (patient-space δ), then Greedy (patient→ICP-template).
-            # Inverse (moving→fixed for point push-forward): apply Greedy first
-            # (ICP-template→patient), then ICON (patient-space refinement).
+            # fixed_to_moving_transform (image pull-back): apply ICON first
+            # (patient-space delta), then Greedy (patient-to-ICP-template).
+            # moving_to_fixed_transform (point push-forward): apply Greedy first
+            # (ICP-template-to-patient), then ICON (patient-space refinement).
             # combine_displacement_field_transforms(a, b) evaluates b then a, so
             # the stage that runs first is the second argument.
             self.fixed_to_moving_transform = (
