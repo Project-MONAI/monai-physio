@@ -433,10 +433,10 @@ class RegisterImagesGreedy(RegisterImagesBase):
         Converts ITK images to SimpleITK, runs Greedy (affine and/or deformable),
         then converts outputs back to ITK transforms.
 
-        Returns a dict with "forward_transform", "inverse_transform", and
+        Returns a dict with "fixed_to_moving_transform", "moving_to_fixed_transform", and
         "loss". As with the other image-registration backends,
-        forward_transform warps the moving image onto the fixed grid and
-        inverse_transform warps the fixed image onto the moving grid; point and
+        fixed_to_moving_transform warps the moving image onto the fixed grid and
+        moving_to_fixed_transform warps the fixed image onto the moving grid; point and
         landmark warps use the opposite transform from image warps (see
         docs/developer/transform_conventions).
         """
@@ -497,8 +497,8 @@ class RegisterImagesGreedy(RegisterImagesBase):
         iterations_str = self._greedy_iterations_str()
         metric_str = self._greedy_metric()
 
-        forward_transform: itk.Transform
-        inverse_transform: itk.Transform
+        fixed_to_moving_transform: itk.Transform
+        moving_to_fixed_transform: itk.Transform
         loss_val: float
 
         if self.transform_type == "Rigid":
@@ -513,10 +513,10 @@ class RegisterImagesGreedy(RegisterImagesBase):
                 metric_str=metric_str,
                 dof=6,
             )
-            forward_transform = self._matrix_to_itk_affine(mat)
+            fixed_to_moving_transform = self._matrix_to_itk_affine(mat)
             inverse_affine = itk.AffineTransform[itk.D, 3].New()
-            forward_transform.GetInverse(inverse_affine)
-            inverse_transform = inverse_affine
+            fixed_to_moving_transform.GetInverse(inverse_affine)
+            moving_to_fixed_transform = inverse_affine
         elif self.transform_type == "Affine":
             mat, loss_val = self._registration_method_affine_or_rigid(
                 fixed_sitk,
@@ -529,10 +529,10 @@ class RegisterImagesGreedy(RegisterImagesBase):
                 metric_str=metric_str,
                 dof=12,
             )
-            forward_transform = self._matrix_to_itk_affine(mat)
+            fixed_to_moving_transform = self._matrix_to_itk_affine(mat)
             inverse_affine = itk.AffineTransform[itk.D, 3].New()
-            forward_transform.GetInverse(inverse_affine)
-            inverse_transform = inverse_affine
+            fixed_to_moving_transform.GetInverse(inverse_affine)
+            moving_to_fixed_transform = inverse_affine
         else:
             # Deformable: affine + warp
             aff_mat, warp_sitk, loss_val = self._registration_method_deformable(
@@ -565,17 +565,17 @@ class RegisterImagesGreedy(RegisterImagesBase):
                 )
                 disp_tfm = itk.DisplacementFieldTransform[itk.D, 3].New()
                 disp_tfm.SetDisplacementField(disp_itk)
-            # forward_transform is consumed by transform_image(moving, ...,
+            # fixed_to_moving_transform is consumed by transform_image(moving, ...,
             # fixed) to warp the moving image onto the fixed grid, so it holds
             # Greedy's raw affine+warp (Greedy applies the affine first, then
-            # the warp). inverse_transform is the numerically inverted field,
+            # the warp). moving_to_fixed_transform is the numerically inverted field,
             # used to warp the fixed image onto the moving grid. This matches
             # RegisterImagesANTS/ICON and RegisterTimeSeriesImages.
             forward_composite = itk.CompositeTransform[itk.D, 3].New()
             if aff_tfm is not None:
                 forward_composite.AddTransform(aff_tfm)
             forward_composite.AddTransform(disp_tfm)
-            forward_transform = forward_composite
+            fixed_to_moving_transform = forward_composite
             inv_disp = TransformTools().invert_displacement_field_transform(disp_tfm)
             inv_aff = itk.AffineTransform[itk.D, 3].New()
             if aff_tfm is not None:
@@ -584,10 +584,10 @@ class RegisterImagesGreedy(RegisterImagesBase):
             inverse_composite.AddTransform(inv_disp)
             if aff_tfm is not None:
                 inverse_composite.AddTransform(inv_aff)
-            inverse_transform = inverse_composite
+            moving_to_fixed_transform = inverse_composite
 
         return {
-            "forward_transform": forward_transform,
-            "inverse_transform": inverse_transform,
+            "fixed_to_moving_transform": fixed_to_moving_transform,
+            "moving_to_fixed_transform": moving_to_fixed_transform,
             "loss": loss_val,
         }

@@ -158,17 +158,17 @@ icp_result = icp_registrar.register(
 
 # Get the aligned mesh and transform
 icp_registered_model_surface = icp_result["registered_model"]
-icp_forward_point_transform = icp_result["forward_point_transform"]
+icp_moving_to_fixed_transform = icp_result["moving_to_fixed_transform"]
 
 print("\nICP affine registration complete")
-print("   Transform =", icp_result["forward_point_transform"])
+print("   Transform =", icp_result["moving_to_fixed_transform"])
 
 # Save aligned model
 icp_registered_model_surface.save(str(output_dir / "icp_registered_model_surface.vtp"))
 print("  Saved ICP-aligned model surface")
 
 itk.transformwrite(
-    [icp_result["forward_point_transform"]],
+    [icp_result["moving_to_fixed_transform"]],
     str(output_dir / "icp_transform.hdf"),
     compression=True,
 )
@@ -179,7 +179,7 @@ print("  Saved ICP transform")
 # This gets the volumetric mesh into patient space for PCA registration
 transform_tools = TransformTools()
 icp_registered_model = transform_tools.transform_pvcontour(
-    template_model, icp_forward_point_transform
+    template_model, icp_moving_to_fixed_transform
 )
 icp_registered_model.save(str(output_dir / "icp_registered_model.vtk"))
 print("\nApplied ICP transform to full model mesh")

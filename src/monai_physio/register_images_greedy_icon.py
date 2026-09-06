@@ -13,7 +13,7 @@ from .register_images_icon import RegisterImagesICON
 
 class RegisterImagesGreedyICON(RegisterImagesChain):
     """Greedy registration followed by ICON refinement, using Greedy's
-    forward_transform to initialize ICON.
+    fixed_to_moving_transform to initialize ICON.
 
     Access the two stages by name via ``.greedy``/``.icon`` (e.g.
     ``RegisterImagesGreedyICON().greedy.set_number_of_iterations([30, 15, 7, 3])``)

@@ -2,5 +2,5 @@
 # This overrides settings in pyproject.toml
 
 [lint]
-# Ignore UP007: Use Optional[X] instead of X | None for itk.Image compatibility
-ignore = ["UP007"]
+# Ignore UP007/UP045: Use Optional[X] instead of X | None for itk.Image compatibility
+ignore = ["UP007", "UP045"]

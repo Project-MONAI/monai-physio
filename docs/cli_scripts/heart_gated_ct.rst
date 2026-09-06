@@ -171,7 +171,7 @@ Intermediate Files
    intermediate/
    ├── slice_*.mha                  # Individual 3D images per time point
    ├── slice_*.labelmap.mha         # Segmentation masks
-   ├── slice_*.reg_*.inverse_transform.hdf5  # Registration transforms
+   ├── slice_*.reg_*.moving_to_fixed_transform.hdf5  # Registration transforms
    └── slice_max.reg_*.mha          # Maximum intensity projections
    
    meshes/

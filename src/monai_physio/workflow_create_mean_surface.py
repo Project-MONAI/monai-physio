@@ -8,7 +8,7 @@ template through each sample and averaging the *template's* points:
    default, so size differences remain part of the averaged shape).
 2. Register each aligned sample to the template with
    :class:`RegisterModelsDistanceMaps` (Greedy affine + ICON on distance maps).
-3. Warp the template by each sample's forward transform, giving one surface per
+3. Warp the template by each sample's fixed_to_moving transform, giving one surface per
    sample that carries the sample's shape on the template's topology.
 4. Average those point sets.
 
@@ -107,7 +107,7 @@ class WorkflowCreateMeanSurface(MONAIPhysioBase):
         # Results (populated by process()).
         self.mean_surface: Optional[pv.PolyData] = None
         self.corresponded_surfaces: list[pv.PolyData] = []
-        self.forward_transforms: list[Any] = []
+        self.fixed_to_moving_transforms: list[Any] = []
         self.iteration_rms_mm: list[float] = []
 
     # ─────────────────────────── Tuning setters ────────────────────────────
@@ -197,7 +197,7 @@ class WorkflowCreateMeanSurface(MONAIPhysioBase):
 
         Returns:
             Dict with ``mean_surface`` (template topology, mean shape),
-            ``corresponded_surfaces`` and ``forward_transforms`` from the final
+            ``corresponded_surfaces`` and ``fixed_to_moving_transforms`` from the final
             iteration, the per-iteration ``iteration_rms_mm``, and
             ``number_of_iterations_run``.
         """
@@ -219,7 +219,9 @@ class WorkflowCreateMeanSurface(MONAIPhysioBase):
             self.log_info(
                 "Atlas iteration %d/%d", iteration + 1, self.number_of_iterations
             )
-            corresponded, forward_transforms, aligned = self._correspond(template)
+            corresponded, fixed_to_moving_transforms, aligned = self._correspond(
+                template
+            )
 
             mean_points = np.mean(
                 [np.asarray(surface.points) for surface in corresponded], axis=0
@@ -240,7 +242,7 @@ class WorkflowCreateMeanSurface(MONAIPhysioBase):
             template = new_template
 
             self.corresponded_surfaces = corresponded
-            self.forward_transforms = forward_transforms
+            self.fixed_to_moving_transforms = fixed_to_moving_transforms
             self.log_info("  mean moved %.4f mm (RMS) from the previous template", rms)
 
             if rms < self.convergence_tolerance:
@@ -254,7 +256,7 @@ class WorkflowCreateMeanSurface(MONAIPhysioBase):
         return {
             "mean_surface": self.mean_surface,
             "corresponded_surfaces": self.corresponded_surfaces,
-            "forward_transforms": self.forward_transforms,
+            "fixed_to_moving_transforms": self.fixed_to_moving_transforms,
             "iteration_rms_mm": self.iteration_rms_mm,
             "number_of_iterations_run": iterations_run,
         }
@@ -301,7 +303,7 @@ class WorkflowCreateMeanSurface(MONAIPhysioBase):
         """Warp ``template`` onto every input surface.
 
         Returns one surface per input, each carrying that input's shape on the
-        template's topology, the forward transform that produced it, and the
+        template's topology, the fixed_to_moving transform that produced it, and the
         ICP-aligned inputs those transforms were computed against.
         """
         aligned: list[pv.PolyData] = []
@@ -333,7 +335,7 @@ class WorkflowCreateMeanSurface(MONAIPhysioBase):
         )
 
         corresponded: list[pv.PolyData] = []
-        forward_transforms: list[Any] = []
+        fixed_to_moving_transforms: list[Any] = []
         for index, aligned_surface in enumerate(aligned):
             self.log_info("  registering surface %d/%d", index + 1, len(aligned))
 
@@ -349,16 +351,16 @@ class WorkflowCreateMeanSurface(MONAIPhysioBase):
                 registrar.set_icon_weights_path(self.icon_weights_path)
             result = registrar.register(transform_type=self.registration_transform_type)
 
-            # The forward (image-convention) transform maps template points into
-            # the sample's shape, so warping the template by it yields template
-            # topology with sample shape.
+            # fixed_to_moving_transform maps template points into the sample's
+            # shape, so warping the template by it yields template topology
+            # with sample shape.
             corresponded.append(
                 self.contour_tools.transform_contours(
                     template,
-                    tfm=result["forward_transform"],
+                    tfm=result["fixed_to_moving_transform"],
                     with_deformation_magnitude=False,
                 )
             )
-            forward_transforms.append(result["forward_transform"])
+            fixed_to_moving_transforms.append(result["fixed_to_moving_transform"])
 
-        return corresponded, forward_transforms, aligned
+        return corresponded, fixed_to_moving_transforms, aligned

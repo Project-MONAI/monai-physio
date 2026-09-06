@@ -104,29 +104,41 @@ class TestRegisterImagesANTS:
 
         # Verify result is a dictionary
         assert isinstance(result, dict), "Result should be a dictionary"
-        assert "inverse_transform" in result, "Missing inverse_transform in result"
-        assert "forward_transform" in result, "Missing forward_transform in result"
+        assert "moving_to_fixed_transform" in result, (
+            "Missing moving_to_fixed_transform in result"
+        )
+        assert "fixed_to_moving_transform" in result, (
+            "Missing fixed_to_moving_transform in result"
+        )
 
-        inverse_transform = result["inverse_transform"]
-        forward_transform = result["forward_transform"]
+        moving_to_fixed_transform = result["moving_to_fixed_transform"]
+        fixed_to_moving_transform = result["fixed_to_moving_transform"]
 
         # Verify transforms are valid
-        assert inverse_transform is not None, "inverse_transform is None"
-        assert forward_transform is not None, "forward_transform is None"
+        assert moving_to_fixed_transform is not None, (
+            "moving_to_fixed_transform is None"
+        )
+        assert fixed_to_moving_transform is not None, (
+            "fixed_to_moving_transform is None"
+        )
 
         print("Registration complete without mask")
-        print(f"  inverse_transform type: {type(inverse_transform).__name__}")
-        print(f"  forward_transform type: {type(forward_transform).__name__}")
+        print(
+            f"  moving_to_fixed_transform type: {type(moving_to_fixed_transform).__name__}"
+        )
+        print(
+            f"  fixed_to_moving_transform type: {type(fixed_to_moving_transform).__name__}"
+        )
 
         # Save transforms
         itk.transformwrite(
-            [inverse_transform],
-            str(reg_output_dir / "ants_inverse_transform_no_mask.hdf"),
+            [moving_to_fixed_transform],
+            str(reg_output_dir / "ants_moving_to_fixed_transform_no_mask.hdf"),
             compression=True,
         )
         itk.transformwrite(
-            [forward_transform],
-            str(reg_output_dir / "ants_forward_transform_no_mask.hdf"),
+            [fixed_to_moving_transform],
+            str(reg_output_dir / "ants_fixed_to_moving_transform_no_mask.hdf"),
             compression=True,
         )
         print(f"  Saved transforms to: {reg_output_dir}")
@@ -201,26 +213,34 @@ class TestRegisterImagesANTS:
 
         # Verify result
         assert isinstance(result, dict), "Result should be a dictionary"
-        assert "inverse_transform" in result, "Missing inverse_transform in result"
-        assert "forward_transform" in result, "Missing forward_transform in result"
+        assert "moving_to_fixed_transform" in result, (
+            "Missing moving_to_fixed_transform in result"
+        )
+        assert "fixed_to_moving_transform" in result, (
+            "Missing fixed_to_moving_transform in result"
+        )
 
-        inverse_transform = result["inverse_transform"]
-        forward_transform = result["forward_transform"]
+        moving_to_fixed_transform = result["moving_to_fixed_transform"]
+        fixed_to_moving_transform = result["fixed_to_moving_transform"]
 
-        assert inverse_transform is not None, "inverse_transform is None"
-        assert forward_transform is not None, "forward_transform is None"
+        assert moving_to_fixed_transform is not None, (
+            "moving_to_fixed_transform is None"
+        )
+        assert fixed_to_moving_transform is not None, (
+            "fixed_to_moving_transform is None"
+        )
 
         print("Registration complete with masks")
 
         # Save transforms
         itk.transformwrite(
-            [inverse_transform],
-            str(reg_output_dir / "ants_inverse_transform_with_mask.hdf"),
+            [moving_to_fixed_transform],
+            str(reg_output_dir / "ants_moving_to_fixed_transform_with_mask.hdf"),
             compression=True,
         )
         itk.transformwrite(
-            [forward_transform],
-            str(reg_output_dir / "ants_forward_transform_with_mask.hdf"),
+            [fixed_to_moving_transform],
+            str(reg_output_dir / "ants_fixed_to_moving_transform_with_mask.hdf"),
             compression=True,
         )
 
@@ -243,14 +263,17 @@ class TestRegisterImagesANTS:
         registrar_ANTS.set_fixed_image(fixed_image)
         result = registrar_ANTS.register(moving_image=moving_image)
 
-        forward_transform = result["forward_transform"]
+        fixed_to_moving_transform = result["fixed_to_moving_transform"]
 
         print("\nApplying transform to moving image...")
 
         # Apply transform
         transform_tools = TransformTools()
         registered_image = transform_tools.transform_image(
-            moving_image, forward_transform, fixed_image, interpolation_method="linear"
+            moving_image,
+            fixed_to_moving_transform,
+            fixed_image,
+            interpolation_method="linear",
         )
 
         # Verify registered image
@@ -309,10 +332,10 @@ class TestRegisterImagesANTS:
         registrar.set_fixed_image(known_shift_case.fixed)
 
         result = registrar.register(moving_image=known_shift_case.moving)
-        forward_transform = result["forward_transform"]
+        fixed_to_moving_transform = result["fixed_to_moving_transform"]
 
-        error_mm = known_shift_case.center_error_mm(forward_transform)
-        ncc = known_shift_case.foreground_ncc(forward_transform)
+        error_mm = known_shift_case.center_error_mm(fixed_to_moving_transform)
+        ncc = known_shift_case.foreground_ncc(fixed_to_moving_transform)
         unregistered_ncc = known_shift_case.unregistered_ncc()
 
         print("\nANTs known-shift recovery:")
@@ -355,8 +378,12 @@ class TestRegisterImagesANTS:
         )
 
         assert isinstance(result, dict), "Result should be a dictionary"
-        assert result["inverse_transform"] is not None, "inverse_transform is None"
-        assert result["forward_transform"] is not None, "forward_transform is None"
+        assert result["moving_to_fixed_transform"] is not None, (
+            "moving_to_fixed_transform is None"
+        )
+        assert result["fixed_to_moving_transform"] is not None, (
+            "fixed_to_moving_transform is None"
+        )
 
         print("Registration with initial transform complete")
 
@@ -369,8 +396,8 @@ class TestRegisterImagesANTS:
         """Verify the register_from() composition path with metrics.
 
         Exercises the two initial-transform inputs the platform actually uses
-        (identity and a prior deformable forward_transform, as in prior-based
-        time-series registration) and confirms the composed forward_transform
+        (identity and a prior deformable fixed_to_moving_transform, as in prior-based
+        time-series registration) and confirms the composed fixed_to_moving_transform
         warps the moving image onto the fixed grid. Scored with foreground NCC
         over the brightest 30% of the fixed image (tissue/blood pool). See
         docs/developer/transform_conventions.
@@ -404,10 +431,10 @@ class TestRegisterImagesANTS:
 
         transform_tools = TransformTools()
 
-        def warp_score(forward_transform: Any) -> float:
+        def warp_score(fixed_to_moving_transform: Any) -> float:
             warped = transform_tools.transform_image(
                 moving_image,
-                forward_transform,
+                fixed_to_moving_transform,
                 fixed_image,
                 interpolation_method="linear",
             )
@@ -419,7 +446,7 @@ class TestRegisterImagesANTS:
         registrar_ANTS.set_modality("ct")
         registrar_ANTS.set_fixed_image(fixed_image)
         baseline = registrar_ANTS.register(moving_image=moving_image)
-        ncc_baseline = warp_score(baseline["forward_transform"])
+        ncc_baseline = warp_score(baseline["fixed_to_moving_transform"])
 
         # Identity initial: the composition machinery must be a no-op.
         identity = itk.AffineTransform[itk.D, 3].New()
@@ -428,17 +455,17 @@ class TestRegisterImagesANTS:
         registrar_identity.set_modality("ct")
         registrar_identity.set_fixed_image(fixed_image)
         identity_result = registrar_identity.register_from(identity, moving_image)
-        ncc_identity = warp_score(identity_result["forward_transform"])
+        ncc_identity = warp_score(identity_result["fixed_to_moving_transform"])
 
         # Prior deformable initial: the realistic time-series prior use case.
         registrar_prior = RegisterImagesANTS()
         registrar_prior.set_modality("ct")
         registrar_prior.set_fixed_image(fixed_image)
         prior_result = registrar_prior.register_from(
-            baseline["forward_transform"],
+            baseline["fixed_to_moving_transform"],
             moving_image,
         )
-        ncc_prior = warp_score(prior_result["forward_transform"])
+        ncc_prior = warp_score(prior_result["fixed_to_moving_transform"])
 
         print("\nANTS initial-transform composition metrics (foreground NCC):")
         print(f"  unregistered:          {ncc_unregistered:.4f}")
@@ -448,7 +475,7 @@ class TestRegisterImagesANTS:
 
         warped_prior = transform_tools.transform_image(
             moving_image,
-            prior_result["forward_transform"],
+            prior_result["fixed_to_moving_transform"],
             fixed_image,
             interpolation_method="linear",
         )
@@ -485,7 +512,7 @@ class TestRegisterImagesANTS:
         Regression guard for the previously-broken matrix initial_transform
         path: feeding a translation initial used to corrupt the composition
         (foreground NCC far below the unregistered pair). With the moving image
-        pre-warped by the initial, the composed forward_transform must align the
+        pre-warped by the initial, the composed fixed_to_moving_transform must align the
         moving image onto the fixed grid at least as well as the unregistered
         pair.
         """
@@ -509,7 +536,7 @@ class TestRegisterImagesANTS:
         transform_tools = TransformTools()
         warped = transform_tools.transform_image(
             moving_image,
-            result["forward_transform"],
+            result["fixed_to_moving_transform"],
             fixed_image,
             interpolation_method="linear",
         )
@@ -554,7 +581,7 @@ class TestRegisterImagesANTS:
             result = registrar.register(moving_image=moving_image)
             warped = transform_tools.transform_image(
                 moving_image,
-                result["forward_transform"],
+                result["fixed_to_moving_transform"],
                 fixed_image,
                 interpolation_method="linear",
             )
@@ -587,11 +614,11 @@ class TestRegisterImagesANTS:
             results.append(result)
 
             assert isinstance(result, dict), f"Result {i + 1} should be a dictionary"
-            assert "inverse_transform" in result, (
-                f"Missing inverse_transform in result {i + 1}"
+            assert "moving_to_fixed_transform" in result, (
+                f"Missing moving_to_fixed_transform in result {i + 1}"
             )
-            assert "forward_transform" in result, (
-                f"Missing forward_transform in result {i + 1}"
+            assert "fixed_to_moving_transform" in result, (
+                f"Missing fixed_to_moving_transform in result {i + 1}"
             )
 
         print(f"Multiple registrations complete: {len(results)} runs")
@@ -607,22 +634,26 @@ class TestRegisterImagesANTS:
         registrar_ANTS.set_fixed_image(fixed_image)
         result = registrar_ANTS.register(moving_image=moving_image)
 
-        inverse_transform = result["inverse_transform"]
-        forward_transform = result["forward_transform"]
+        moving_to_fixed_transform = result["moving_to_fixed_transform"]
+        fixed_to_moving_transform = result["fixed_to_moving_transform"]
 
         print("\nVerifying transform types...")
 
         # Check that transforms are CompositeTransform (ANTs returns composite)
-        assert isinstance(inverse_transform, itk.CompositeTransform), (
-            f"inverse_transform should be CompositeTransform, got {type(inverse_transform)}"
+        assert isinstance(moving_to_fixed_transform, itk.CompositeTransform), (
+            f"moving_to_fixed_transform should be CompositeTransform, got {type(moving_to_fixed_transform)}"
         )
-        assert isinstance(forward_transform, itk.CompositeTransform), (
-            f"forward_transform should be CompositeTransform, got {type(forward_transform)}"
+        assert isinstance(fixed_to_moving_transform, itk.CompositeTransform), (
+            f"fixed_to_moving_transform should be CompositeTransform, got {type(fixed_to_moving_transform)}"
         )
 
         print("Transform types verified")
-        print(f"  inverse_transform: {type(inverse_transform).__name__}")
-        print(f"  forward_transform: {type(forward_transform).__name__}")
+        print(
+            f"  moving_to_fixed_transform: {type(moving_to_fixed_transform).__name__}"
+        )
+        print(
+            f"  fixed_to_moving_transform: {type(fixed_to_moving_transform).__name__}"
+        )
 
     def test_image_conversion_cycle_scalar(
         self, registrar_ANTS: RegisterImagesANTS, test_images: list[Any]

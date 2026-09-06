@@ -596,7 +596,8 @@ if __name__ == "__main__":
                 reg_result = reg_workflow.process()
                 for phase_index, destination in enumerate(wanted):
                     itk.transformwrite(
-                        reg_result["forward_transforms"][phase_index], str(destination)
+                        reg_result["fixed_to_moving_transforms"][phase_index],
+                        str(destination),
                     )
 
     # Ground truth for the folds' held-out cases: every gated frame segmented on
@@ -754,7 +755,7 @@ if __name__ == "__main__":
                 # itk.transformread returns a list; a composite is written with
                 # its sub-transforms behind it, so the first entry is the whole
                 # transform either way.
-                forward_transform = itk.transformread(
+                fixed_to_moving_transform = itk.transformread(
                     str(
                         transform_dir
                         / case_id
@@ -763,7 +764,7 @@ if __name__ == "__main__":
                 )[0]
                 transform_tools.transform_pvcontour(
                     fitted_reference_mesh,
-                    forward_transform,
+                    fixed_to_moving_transform,
                     with_deformation_magnitude=True,
                 ).save(str(phase_surface_file))
 

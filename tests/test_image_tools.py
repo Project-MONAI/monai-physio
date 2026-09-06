@@ -251,14 +251,14 @@ class TestImageTools:
         img_output_dir.mkdir(exist_ok=True)
 
         fixed_image = test_images[0]
-        forward_transform = test_transforms["forward_transform"]
+        fixed_to_moving_transform = test_transforms["fixed_to_moving_transform"]
 
         print("\nTesting imwriteVD3 and imreadVD3...")
 
         # Generate a deformation field using TransformTools
         transform_tools = TransformTools()
         deformation_field = transform_tools.convert_transform_to_displacement_field(
-            forward_transform, fixed_image
+            fixed_to_moving_transform, fixed_image
         )
 
         # Verify it's double precision vector image

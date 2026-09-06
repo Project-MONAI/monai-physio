@@ -40,8 +40,8 @@ def register(self, moving_image: itk.Image) -> dict[str, Any]:
     Returns
     -------
     dict
-        Keys ``forward_transform`` and ``inverse_transform``, each a path
-        to an ITK composite transform ``.hdf`` file.
+        Keys ``fixed_to_moving_transform`` and ``moving_to_fixed_transform``,
+        each a path to an ITK composite transform ``.hdf`` file.
     """
 ```
 

@@ -110,8 +110,8 @@ if __name__ == "__main__":
     result = workflow.process()
 
     # Result saving
-    forward_transform = result["forward_transforms"]
-    inverse_transform = result["inverse_transforms"]
+    fixed_to_moving_transform = result["fixed_to_moving_transforms"]
+    moving_to_fixed_transform = result["moving_to_fixed_transforms"]
     reconstructed_images: list[itk.Image] = result["reconstructed_images"]
     reconstructed_files: list[Path] = []
     for frame_index, image in enumerate(reconstructed_images):
@@ -120,10 +120,10 @@ if __name__ == "__main__":
         reconstructed_files.append(out_path)
 
         out_path = output_dir / f"reconstructed_frame_{frame_index:03d}_fwd.hdf"
-        itk.transformwrite(forward_transform[frame_index], str(out_path))
+        itk.transformwrite(fixed_to_moving_transform[frame_index], str(out_path))
 
         out_path = output_dir / f"reconstructed_frame_{frame_index:03d}_inv.hdf"
-        itk.transformwrite(inverse_transform[frame_index], str(out_path))
+        itk.transformwrite(moving_to_fixed_transform[frame_index], str(out_path))
 
     # Testing
     tt = TestTools(

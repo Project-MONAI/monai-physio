@@ -722,22 +722,33 @@ def test_transforms(
     """
     small_data_dir = test_directories["slicer_heart_small_data"]
     frame_tag = "001_to_007"
-    inverse_transform_path = small_data_dir / f"ants_inverse_transform_{frame_tag}.hdf"
-    forward_transform_path = small_data_dir / f"ants_forward_transform_{frame_tag}.hdf"
+    moving_to_fixed_transform_path = (
+        small_data_dir / f"ants_moving_to_fixed_transform_{frame_tag}.hdf"
+    )
+    fixed_to_moving_transform_path = (
+        small_data_dir / f"ants_fixed_to_moving_transform_{frame_tag}.hdf"
+    )
 
-    if inverse_transform_path.exists() and forward_transform_path.exists():
+    if (
+        moving_to_fixed_transform_path.exists()
+        and fixed_to_moving_transform_path.exists()
+    ):
         logger.info("Loading existing ANTs registration results")
         try:
-            inverse_transform = itk.transformread(str(inverse_transform_path))
-            forward_transform = itk.transformread(str(forward_transform_path))
+            moving_to_fixed_transform = itk.transformread(
+                str(moving_to_fixed_transform_path)
+            )
+            fixed_to_moving_transform = itk.transformread(
+                str(fixed_to_moving_transform_path)
+            )
             return {
-                "inverse_transform": inverse_transform,
-                "forward_transform": forward_transform,
+                "moving_to_fixed_transform": moving_to_fixed_transform,
+                "fixed_to_moving_transform": fixed_to_moving_transform,
             }
         except (RuntimeError, Exception) as e:
             logger.warning("Error loading transforms: %s; regenerating", e)
-            inverse_transform_path.unlink(missing_ok=True)
-            forward_transform_path.unlink(missing_ok=True)
+            moving_to_fixed_transform_path.unlink(missing_ok=True)
+            fixed_to_moving_transform_path.unlink(missing_ok=True)
 
     # Perform registration if files don't exist or loading failed
     logger.info("Performing ANTs registration")
@@ -747,14 +758,18 @@ def test_transforms(
     registrar_ANTS.set_fixed_image(fixed_image)
     result = registrar_ANTS.register(moving_image=moving_image)
 
-    inverse_transform = result["inverse_transform"]
-    forward_transform = result["forward_transform"]
+    moving_to_fixed_transform = result["moving_to_fixed_transform"]
+    fixed_to_moving_transform = result["fixed_to_moving_transform"]
 
-    itk.transformwrite(inverse_transform, str(inverse_transform_path), compression=True)
-    itk.transformwrite(forward_transform, str(forward_transform_path), compression=True)
+    itk.transformwrite(
+        moving_to_fixed_transform, str(moving_to_fixed_transform_path), compression=True
+    )
+    itk.transformwrite(
+        fixed_to_moving_transform, str(fixed_to_moving_transform_path), compression=True
+    )
     return {
-        "inverse_transform": inverse_transform,
-        "forward_transform": forward_transform,
+        "moving_to_fixed_transform": moving_to_fixed_transform,
+        "fixed_to_moving_transform": fixed_to_moving_transform,
     }
 
 
@@ -824,7 +839,7 @@ class KnownShiftCase:
 
     ``moving`` is built by resampling ``fixed`` through a translation of
     ``shift_mm``, so ``moving(q) == fixed(q + shift_mm)``. Warping ``moving``
-    back onto the fixed grid therefore requires a ``forward_transform`` of
+    back onto the fixed grid therefore requires a ``fixed_to_moving_transform`` of
     ``-shift_mm``, which gives an absolute accuracy target instead of the
     "did it return something" checks that let a sign error go unnoticed.
     """
@@ -860,17 +875,20 @@ class KnownShiftCase:
         self._fixed_array = itk.array_from_image(fixed_image)
         self._foreground = self._fixed_array >= np.percentile(self._fixed_array, 70)
 
-    def center_error_mm(self, forward_transform: itk.Transform) -> float:
+    def center_error_mm(self, fixed_to_moving_transform: itk.Transform) -> float:
         """Distance, in mm, between the recovered and true displacement."""
         displacement = np.array(
-            list(forward_transform.TransformPoint(self._center))
+            list(fixed_to_moving_transform.TransformPoint(self._center))
         ) - np.array(self._center)
         return float(np.linalg.norm(displacement - self.expected_displacement))
 
-    def foreground_ncc(self, forward_transform: itk.Transform) -> float:
+    def foreground_ncc(self, fixed_to_moving_transform: itk.Transform) -> float:
         """Normalized cross-correlation after warping moving onto the fixed grid."""
         warped = self.transform_tools.transform_image(
-            self.moving, forward_transform, self.fixed, interpolation_method="linear"
+            self.moving,
+            fixed_to_moving_transform,
+            self.fixed,
+            interpolation_method="linear",
         )
         moved = itk.array_from_image(warped)[self._foreground]
         target = self._fixed_array[self._foreground]
@@ -908,7 +926,7 @@ class KnownAffineCase:
 
     ``moving`` is built by resampling ``fixed`` through ``A``, so
     ``moving(q) == fixed(A(q))``. Warping ``moving`` back onto the fixed grid
-    therefore needs a ``forward_transform`` of ``A^-1``, which is the exact
+    therefore needs a ``fixed_to_moving_transform`` of ``A^-1``, which is the exact
     answer every probe is measured against.
     """
 
@@ -1029,11 +1047,11 @@ class KnownAffineCase:
         points.append(self._center.tolist())
         return points
 
-    def probe_errors_mm(self, forward_transform: itk.Transform) -> np.ndarray:
+    def probe_errors_mm(self, fixed_to_moving_transform: itk.Transform) -> np.ndarray:
         """Return the per-probe distance, in mm, from the exact answer."""
         errors = []
         for point in self.probe_points():
-            recovered = np.array(list(forward_transform.TransformPoint(point)))
+            recovered = np.array(list(fixed_to_moving_transform.TransformPoint(point)))
             exact = np.array(list(self.expected.TransformPoint(point)))
             errors.append(float(np.linalg.norm(recovered - exact)))
         return np.asarray(errors)

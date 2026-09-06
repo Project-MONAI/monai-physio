@@ -78,8 +78,8 @@ class _IdentityRegistrar:
         inverse_transform = itk.AffineTransform[itk.D, 3].New()
         assert transform.GetInverse(inverse_transform), "transform not invertible"
         return {
-            "forward_transform": transform,
-            "inverse_transform": inverse_transform,
+            "fixed_to_moving_transform": transform,
+            "moving_to_fixed_transform": inverse_transform,
             "registered_model": self.moving_model,
         }
 

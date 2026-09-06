@@ -69,8 +69,8 @@ class _RecordingRegistrar(RegisterImagesBase):
         inverse = itk.TranslationTransform[itk.D, 3].New()
         inverse.SetOffset([-self.sentinel_value, 0.0, 0.0])
         return {
-            "forward_transform": forward,
-            "inverse_transform": inverse,
+            "fixed_to_moving_transform": forward,
+            "moving_to_fixed_transform": inverse,
             "loss": self.sentinel_value,
         }
 
@@ -93,7 +93,7 @@ def test_chain_refines_previous_stage_result() -> None:
     assert stage1.seen_moving_image is moving
     # Stage 2 registers the pre-warped image, not the caller's image.
     assert stage2.seen_moving_image is not moving
-    composed = cast(itk.Transform, result["forward_transform"])
+    composed = cast(itk.Transform, result["fixed_to_moving_transform"])
     assert list(composed.TransformPoint([0.0, 0.0, 0.0])) == [3.0, 0.0, 0.0]
     assert result["loss"] == 2.0
 
@@ -113,7 +113,7 @@ class _CompositeRegistrar(_RecordingRegistrar):
         result = super().registration_method(
             moving_image, moving_mask, moving_labelmap, moving_image_pre
         )
-        for key in ("forward_transform", "inverse_transform"):
+        for key in ("fixed_to_moving_transform", "moving_to_fixed_transform"):
             composite = itk.CompositeTransform[itk.D, 3].New()
             composite.AddTransform(cast(itk.Transform, result[key]))
             result[key] = composite
@@ -134,7 +134,7 @@ def test_chain_result_holds_no_nested_composite(tmp_path: Any) -> None:
 
     result = chain.register(_small_image())
 
-    for key in ("forward_transform", "inverse_transform"):
+    for key in ("fixed_to_moving_transform", "moving_to_fixed_transform"):
         composed = cast(itk.Transform, result[key])
         assert isinstance(composed, itk.CompositeTransform[itk.D, 3])
         for i in range(composed.GetNumberOfTransforms()):
@@ -143,7 +143,7 @@ def test_chain_result_holds_no_nested_composite(tmp_path: Any) -> None:
         itk.transformwrite(composed, str(tmp_path / f"{key}.hdf"))
 
     # Splicing the sub-transforms in must leave the mapping unchanged.
-    forward = cast(itk.Transform, result["forward_transform"])
+    forward = cast(itk.Transform, result["fixed_to_moving_transform"])
     assert list(forward.TransformPoint([0.0, 0.0, 0.0])) == [3.0, 0.0, 0.0]
 
 

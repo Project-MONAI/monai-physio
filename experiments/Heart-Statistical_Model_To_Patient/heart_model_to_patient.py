@@ -159,8 +159,8 @@ if __name__ == "__main__":
     # %%
     # Rough alignment using ICP
     icp_results = registrar.register_model_to_model_icp()
-    icp_inverse_point_transform = icp_results["inverse_point_transform"]
-    icp_forward_point_transform = icp_results["forward_point_transform"]
+    icp_fixed_to_moving_transform = icp_results["fixed_to_moving_transform"]
+    icp_moving_to_fixed_transform = icp_results["moving_to_fixed_transform"]
     icp_model_surface = icp_results["fitted_reference_mesh"]
     icp_labelmap = icp_results["registered_template_labelmap"]
 
@@ -184,8 +184,8 @@ if __name__ == "__main__":
     print("Starting deformable labelmap-to-labelmap registration...")
 
     l2l_results = registrar.register_labelmap_to_labelmap()
-    l2l_inverse_transform = l2l_results["inverse_transform"]
-    l2l_forward_transform = l2l_results["forward_transform"]
+    l2l_moving_to_fixed_transform = l2l_results["moving_to_fixed_transform"]
+    l2l_fixed_to_moving_transform = l2l_results["fixed_to_moving_transform"]
     l2l_model_surface = l2l_results["fitted_reference_mesh"]
     l2l_labelmap = l2l_results["registered_template_labelmap"]
 
@@ -199,8 +199,8 @@ if __name__ == "__main__":
     print("This may take several minutes depending on GPU availability.")
 
     l2i_results = registrar.register_labelmap_to_image()
-    l2i_inverse_transform = l2i_results["inverse_transform"]
-    l2i_forward_transform = l2i_results["forward_transform"]
+    l2i_moving_to_fixed_transform = l2i_results["moving_to_fixed_transform"]
+    l2i_fixed_to_moving_transform = l2i_results["fixed_to_moving_transform"]
     l2i_surface = l2i_results["fitted_reference_mesh"]
     l2i_labelmap = l2i_results["registered_template_labelmap"]
     print("\nRegistration complete!")
@@ -218,7 +218,7 @@ if __name__ == "__main__":
 
     start_time = time.time()
     # Timing only; the workflow stores the ICP-aligned model before PCA registration.
-    icp_p = registrar.icp_registrar.forward_point_transform.TransformPoint(tmp_p)
+    icp_p = registrar.icp_registrar.moving_to_fixed_transform.TransformPoint(tmp_p)
     print(
         f"--- ICP forward transform time: {time.time() - start_time} seconds",
         flush=True,
@@ -234,11 +234,11 @@ if __name__ == "__main__":
     print(f"PCA transform time: {time.time() - start_time} seconds", flush=True)
 
     start_time = time.time()
-    tmp_p = registrar.l2l_inverse_transform.TransformPoint(tmp_p)
+    tmp_p = registrar.l2l_moving_to_fixed_transform.TransformPoint(tmp_p)
     print(f"L2L inverse transform time: {time.time() - start_time} seconds", flush=True)
 
     start_time = time.time()
-    tmp_p = registrar.l2i_inverse_transform.TransformPoint(tmp_p)
+    tmp_p = registrar.l2i_moving_to_fixed_transform.TransformPoint(tmp_p)
     print(f"L2I inverse transform time: {time.time() - start_time} seconds", flush=True)
 
     # %%

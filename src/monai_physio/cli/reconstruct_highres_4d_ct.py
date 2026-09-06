@@ -345,11 +345,11 @@ Examples:
         # Save transforms if requested
         if args.save_transforms:
             print("  Saving transforms...")
-            forward_transforms = result["forward_transforms"]
-            inverse_transforms = result["inverse_transforms"]
+            fixed_to_moving_transforms = result["fixed_to_moving_transforms"]
+            moving_to_fixed_transforms = result["moving_to_fixed_transforms"]
 
             for i, (fwd_tfm, inv_tfm) in enumerate(
-                zip(forward_transforms, inverse_transforms)
+                zip(fixed_to_moving_transforms, moving_to_fixed_transforms)
             ):
                 fwd_file = os.path.join(
                     args.output_dir, f"{args.output_prefix}_forward_{i:03d}.hdf5"
@@ -363,7 +363,7 @@ Examples:
                 if i == 0:
                     print(f"    {fwd_file}")
                     print(f"    {inv_file}")
-                elif i == len(forward_transforms) - 1:
+                elif i == len(fixed_to_moving_transforms) - 1:
                     print(f"    ... {fwd_file}")
                     print(f"    ... {inv_file}")
 
@@ -394,7 +394,7 @@ Examples:
         print(f"\nAll output files saved to: {args.output_dir}")
         print(f"  - {len(reconstructed_images)} reconstructed images")
         if args.save_transforms:
-            print(f"  - {len(forward_transforms) * 2} transform files")
+            print(f"  - {len(fixed_to_moving_transforms) * 2} transform files")
         if args.save_losses:
             print("  - 1 loss statistics file")
 

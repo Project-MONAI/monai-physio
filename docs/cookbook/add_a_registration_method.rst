@@ -53,19 +53,19 @@ supply only the solve.
            forward, inverse, loss = solve(self.fixed_image_pre, moving_pre)
 
            return {
-               "forward_transform": forward,
-               "inverse_transform": inverse,
+               "fixed_to_moving_transform": forward,
+               "moving_to_fixed_transform": inverse,
                "loss": loss,
            }
 
 ``registration_method()`` is the one required override. It is internal -
 callers use ``register()``, which wraps it.
 
-**2. Honor the contract.** ``forward_transform`` warps the *moving image* onto
-the fixed grid. ``inverse_transform`` warps *moving points* into fixed space.
-Images and points take opposite transforms; getting this backwards is the
-classic silent failure here. Read :doc:`/developer/transform_conventions`
-before you return anything.
+**2. Honor the contract.** ``fixed_to_moving_transform`` warps the *moving
+image* onto the fixed grid. ``moving_to_fixed_transform`` warps *moving
+points* into fixed space. Images and points take opposite transforms; getting
+this backwards is the classic silent failure here. Read
+:doc:`/developer/transform_conventions` before you return anything.
 
 **3. Read the base's state, don't re-derive it.** Use
 ``self.fixed_image_pre`` and ``moving_image_pre`` rather than preprocessing

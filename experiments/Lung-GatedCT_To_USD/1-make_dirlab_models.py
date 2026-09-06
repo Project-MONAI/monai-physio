@@ -32,13 +32,13 @@ if __name__ == "__main__":
         con_tools = ContourTools()
         new_contours = []
         for i in range(10):
-            inverse_transform = itk.transformread(
+            moving_to_fixed_transform = itk.transformread(
                 f"{output_dir}/{case_name}_T{i * 10:02d}_{mask_name}_inverse.hdf"
             )[0]
 
             print(f"Transforming {case_name} - {mask_name} - T{i * 10:02d}")
             new_contours.append(
-                con_tools.transform_contours(contours, inverse_transform)
+                con_tools.transform_contours(contours, moving_to_fixed_transform)
             )
 
         return new_contours

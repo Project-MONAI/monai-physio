@@ -39,7 +39,7 @@ Example:
     >>>
     >>> # Access results
     >>> aligned_model = result['registered_model']
-    >>> forward_transform = result['forward_transform']  # warps moving image -> fixed grid
+    >>> fixed_to_moving_transform = result['fixed_to_moving_transform']  # warps moving image -> fixed grid
 """
 
 import logging
@@ -75,11 +75,11 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
         they follow the image convention (see
         docs/developer/transform_conventions):
 
-        - forward_transform: warps the moving image/mask onto the fixed grid.
+        - fixed_to_moving_transform: warps the moving image/mask onto the fixed grid.
           Warping the moving MODEL points/landmarks onto the fixed model uses
-          inverse_transform instead (image and point warps use opposite
+          moving_to_fixed_transform instead (image and point warps use opposite
           transforms).
-        - inverse_transform: warps the fixed image/mask onto the moving grid.
+        - moving_to_fixed_transform: warps the fixed image/mask onto the moving grid.
 
     Attributes:
         moving_model (pv.PolyData): Surface model to be aligned
@@ -91,8 +91,8 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
         contour_tools (ContourTools): Model utility instance
         registrar_Greedy (RegisterImagesGreedy): Greedy registration instance
         registrar_ICON (RegisterImagesICON): ICON registration instance
-        forward_transform (itk.CompositeTransform): Optimized moving→fixed transform
-        inverse_transform (itk.CompositeTransform): Optimized fixed→moving transform
+        fixed_to_moving_transform (itk.CompositeTransform): Optimized moving→fixed transform
+        moving_to_fixed_transform (itk.CompositeTransform): Optimized fixed→moving transform
         registered_model (pv.PolyData): Aligned moving model
 
     Example:
@@ -115,7 +115,7 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
         >>>
         >>> # Get aligned model and transforms
         >>> aligned_model = result['registered_model']
-        >>> forward_transform = result['forward_transform']
+        >>> fixed_to_moving_transform = result['fixed_to_moving_transform']
     """
 
     def __init__(
@@ -172,8 +172,12 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
         self.moving_mask_image: Optional[itk.Image] = None
 
         # Registration results
-        self.forward_transform: Optional[itk.CompositeTransform] = None  # Moving→fixed
-        self.inverse_transform: Optional[itk.CompositeTransform] = None  # Fixed→moving
+        self.fixed_to_moving_transform: Optional[itk.CompositeTransform] = (
+            None  # Moving→fixed
+        )
+        self.moving_to_fixed_transform: Optional[itk.CompositeTransform] = (
+            None  # Fixed→moving
+        )
         self.registered_model: Optional[pv.PolyData] = None
 
     def set_icon_weights_path(self, weights_path: str) -> None:
@@ -355,8 +359,8 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
         Returns:
             Dictionary containing:
                 - 'registered_model': Aligned moving model (PyVista PolyData)
-                - 'forward_transform': Moving→fixed transform (ITK CompositeTransform)
-                - 'inverse_transform': Fixed→moving transform (ITK CompositeTransform)
+                - 'fixed_to_moving_transform': Moving→fixed transform (ITK CompositeTransform)
+                - 'moving_to_fixed_transform': Fixed→moving transform (ITK CompositeTransform)
 
         Raises:
             ValueError: If transform_type is not 'None', 'Rigid', 'Affine', or 'Deformable'
@@ -384,8 +388,8 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
         # Step 2: Greedy rigid or affine stage (skipped for None/Deformable uses Affine)
         greedy_type = "Affine" if transform_type == "Deformable" else transform_type
 
-        forward_transform_Greedy = None
-        inverse_transform_Greedy = None
+        fixed_to_moving_transform_Greedy = None
+        moving_to_fixed_transform_Greedy = None
         greedy_loss: Optional[float] = None
         if greedy_type != "None":
             self.log_info("Performing Greedy %s registration...", greedy_type)
@@ -398,17 +402,21 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
                 moving_image=self.moving_distance_map_image,
                 moving_mask=self.moving_mask_image,
             )
-            forward_transform_Greedy = result_Greedy["forward_transform"]
-            inverse_transform_Greedy = result_Greedy["inverse_transform"]
+            fixed_to_moving_transform_Greedy = result_Greedy[
+                "fixed_to_moving_transform"
+            ]
+            moving_to_fixed_transform_Greedy = result_Greedy[
+                "moving_to_fixed_transform"
+            ]
             greedy_loss = result_Greedy.get("loss")
         else:
             identity_transform = itk.AffineTransform[itk.D, 3].New()
             identity_transform.SetIdentity()
-            forward_transform_Greedy = identity_transform
-            inverse_transform_Greedy = identity_transform
+            fixed_to_moving_transform_Greedy = identity_transform
+            moving_to_fixed_transform_Greedy = identity_transform
 
-        self.forward_transform = forward_transform_Greedy
-        self.inverse_transform = inverse_transform_Greedy
+        self.fixed_to_moving_transform = fixed_to_moving_transform_Greedy
+        self.moving_to_fixed_transform = moving_to_fixed_transform_Greedy
 
         # Step 3: ICON deformable stage (only for Deformable mode)
         if transform_type == "Deformable":
@@ -418,7 +426,7 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
             moving_distance_map_affine_transformed = (
                 self.transform_tools.transform_image(
                     self.moving_distance_map_image,
-                    forward_transform_Greedy,
+                    fixed_to_moving_transform_Greedy,
                     self.reference_image,
                     interpolation_method="linear",
                 )
@@ -434,7 +442,7 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
             )
             # moving_mask_affine_transformed = self.transform_tools.transform_image(
             # self.moving_mask_image,
-            # forward_transform_Greedy,
+            # fixed_to_moving_transform_Greedy,
             # self.reference_image,
             # interpolation_method="nearest",
             # )
@@ -448,8 +456,8 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
                 moving_image=moving_distance_map_affine_transformed,
                 # moving_mask=moving_mask_affine_transformed,
             )
-            forward_transform_ICON = result_ICON["forward_transform"]
-            inverse_transform_ICON = result_ICON["inverse_transform"]
+            fixed_to_moving_transform_ICON = result_ICON["fixed_to_moving_transform"]
+            moving_to_fixed_transform_ICON = result_ICON["moving_to_fixed_transform"]
 
             # Compose Greedy affine + ICON deformable.
             # ICON runs on images already resampled to the patient (fixed) grid,
@@ -460,18 +468,18 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
             # (ICP-template→patient), then ICON (patient-space refinement).
             # combine_displacement_field_transforms(a, b) evaluates b then a, so
             # the stage that runs first is the second argument.
-            self.forward_transform = (
+            self.fixed_to_moving_transform = (
                 self.transform_tools.combine_displacement_field_transforms(
-                    forward_transform_Greedy,
-                    forward_transform_ICON,
+                    fixed_to_moving_transform_Greedy,
+                    fixed_to_moving_transform_ICON,
                     reference_image=self.reference_image,
                     mode="compose",
                 )
             )
-            self.inverse_transform = (
+            self.moving_to_fixed_transform = (
                 self.transform_tools.combine_displacement_field_transforms(
-                    inverse_transform_ICON,
-                    inverse_transform_Greedy,
+                    moving_to_fixed_transform_ICON,
+                    moving_to_fixed_transform_Greedy,
                     reference_image=self.reference_image,
                     mode="compose",
                 )
@@ -481,7 +489,7 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
         self.log_info("Transforming moving model...")
         self.registered_model = self.transform_tools.transform_pvcontour(
             self.moving_model,
-            self.inverse_transform,
+            self.moving_to_fixed_transform,
             with_deformation_magnitude=True,
         )
 
@@ -493,8 +501,8 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
 
         # Return results as dictionary
         return {
-            "forward_transform": self.forward_transform,
-            "inverse_transform": self.inverse_transform,
+            "fixed_to_moving_transform": self.fixed_to_moving_transform,
+            "moving_to_fixed_transform": self.moving_to_fixed_transform,
             "registered_model": self.registered_model,
         }
 
@@ -508,7 +516,7 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
         of any size the peak is set by how much is still reachable rather than by
         how much any one registration needs.
 
-        Only the working set goes.  ``forward_transform``, ``inverse_transform``
+        Only the working set goes.  ``fixed_to_moving_transform``, ``moving_to_fixed_transform``
         and ``registered_model`` are the result and are left alone.
         """
         self.fixed_distance_map_image = None
@@ -527,5 +535,5 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
             registrar.moving_image_registered = None
             # The composed result above no longer refers to these, and each is a
             # dense field on the reference grid.
-            registrar.forward_transform = None
-            registrar.inverse_transform = None
+            registrar.fixed_to_moving_transform = None
+            registrar.moving_to_fixed_transform = None

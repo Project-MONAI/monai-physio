@@ -68,11 +68,11 @@ if __name__ == "__main__":
             moving_mask_d = dilate_mask(moving_mask, heart_mask_dilation)
             reg_images.set_fixed_mask(fixed_mask_d)
         results = reg_images.register(moving_image, moving_mask_d)
-        inverse_transform = results["inverse_transform"]
-        forward_transform = results["forward_transform"]
+        moving_to_fixed_transform = results["moving_to_fixed_transform"]
+        fixed_to_moving_transform = results["fixed_to_moving_transform"]
         print("Registering image...Done!")
         moving_image_reg = TransformTools().transform_image(
-            moving_image, forward_transform, fixed_image, "sinc"
+            moving_image, fixed_to_moving_transform, fixed_image, "sinc"
         )  # Final resampling with sinc
         itk.imwrite(
             moving_image_reg,
@@ -81,13 +81,13 @@ if __name__ == "__main__":
         )
 
         itk.transformwrite(
-            [forward_transform],
+            [fixed_to_moving_transform],
             f"{output_dir}/{case_name}_T{image_num * 10:02d}_{mask_name}_forward.hdf",
             compression=True,
         )
 
         itk.transformwrite(
-            [inverse_transform],
+            [moving_to_fixed_transform],
             f"{output_dir}/{case_name}_T{image_num * 10:02d}_{mask_name}_inverse.hdf",
             compression=True,
         )

@@ -77,7 +77,7 @@ class RegisterImagesICON(RegisterImagesBase):
         >>> registrar.set_modality('ct')
         >>> registrar.set_fixed_image(reference_image)
         >>> result = registrar.register(moving_image)
-        >>> forward_transform = result['forward_transform']
+        >>> fixed_to_moving_transform = result['fixed_to_moving_transform']
     """
 
     # Networks already built in this process, keyed by everything that changes
@@ -231,19 +231,19 @@ class RegisterImagesICON(RegisterImagesBase):
 
         Returns:
             dict: Dictionary containing:
-                - "forward_transform": Warps the moving image onto the fixed
+                - "fixed_to_moving_transform": Warps the moving image onto the fixed
                   grid (warping moving points/landmarks into fixed space uses
-                  "inverse_transform" instead -- image and point warps use
+                  "moving_to_fixed_transform" instead -- image and point warps use
                   opposite transforms; see
                   docs/developer/transform_conventions)
-                - "inverse_transform": Warps the fixed image onto the moving grid
+                - "moving_to_fixed_transform": Warps the fixed image onto the moving grid
                 - "loss": Loss value from the registration
 
         Note:
             The transformations are inverse consistent, meaning
-            forward_transform is approximately inverse(inverse_transform).
-            Use forward_transform to warp the moving image onto the fixed grid,
-            and inverse_transform to warp the fixed image onto the moving grid.
+            fixed_to_moving_transform is approximately inverse(moving_to_fixed_transform).
+            Use fixed_to_moving_transform to warp the moving image onto the fixed grid,
+            and moving_to_fixed_transform to warp the fixed image onto the moving grid.
             Point/landmark warps use the opposite transform from image warps
             (see docs/developer/transform_conventions).
 
@@ -257,8 +257,8 @@ class RegisterImagesICON(RegisterImagesBase):
         Example:
             >>> # Basic registration
             >>> result = registrar.register(moving_image)
-            >>> forward_transform = result['forward_transform']
-            >>> inverse_transform = result['inverse_transform']
+            >>> fixed_to_moving_transform = result['fixed_to_moving_transform']
+            >>> moving_to_fixed_transform = result['moving_to_fixed_transform']
             >>>
             >>> # Masked registration for cardiac structures
             >>> registrar.set_fixed_mask(heart_mask_fixed)
@@ -277,12 +277,12 @@ class RegisterImagesICON(RegisterImagesBase):
 
         self._ensure_net()
 
-        inverse_transform = None
-        forward_transform = None
+        moving_to_fixed_transform = None
+        fixed_to_moving_transform = None
         loss_artifacts = None
         _, icon_itk_wrapper, _, _, _, _, _ = _load_icon()
         if fixed_effective_mask is not None and moving_effective_mask is not None:
-            inverse_transform, forward_transform, loss_artifacts = (
+            moving_to_fixed_transform, fixed_to_moving_transform, loss_artifacts = (
                 icon_itk_wrapper.register_pair_with_mask(
                     self.net,
                     self.fixed_image_pre,
@@ -294,7 +294,7 @@ class RegisterImagesICON(RegisterImagesBase):
                 )
             )
         else:
-            inverse_transform, forward_transform, loss_artifacts = (
+            moving_to_fixed_transform, fixed_to_moving_transform, loss_artifacts = (
                 icon_itk_wrapper.register_pair(
                     self.net,
                     self.fixed_image_pre,
@@ -307,8 +307,8 @@ class RegisterImagesICON(RegisterImagesBase):
         loss = loss_artifacts[0]
 
         return {
-            "forward_transform": forward_transform,
-            "inverse_transform": inverse_transform,
+            "fixed_to_moving_transform": fixed_to_moving_transform,
+            "moving_to_fixed_transform": moving_to_fixed_transform,
             "loss": loss,
         }
 

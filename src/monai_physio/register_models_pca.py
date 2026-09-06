@@ -59,13 +59,12 @@ class RegisterModelsPCA(MONAIPhysioBase):
         registered_model_pca_coefficients (np.ndarray): Optimized PCA coefficients
         registered_model (pv.DataSet): Final registered and deformed model
         post_pca_transform (itk.Transform): Transform to apply after PCA registration
-        forward_point_transform (itk.DisplacementFieldTransform): POINT transform
+        moving_to_fixed_transform (itk.DisplacementFieldTransform): POINT transform
             mapping template points -> registered/target points; use it to warp
-            the template model/landmarks onto the target. Its orientation is
-            opposite to an image-registration forward_transform (see
+            the template model/landmarks onto the target (see
             docs/developer/transform_conventions). Does not include the post-PCA
             transform.
-        inverse_point_transform (itk.DisplacementFieldTransform): POINT transform
+        fixed_to_moving_transform (itk.DisplacementFieldTransform): POINT transform
             mapping target points -> template points. Does not include the
             post-PCA transform.
 
@@ -228,8 +227,8 @@ class RegisterModelsPCA(MONAIPhysioBase):
         self.registered_model: Optional[pv.DataSet] = None
         self.registered_model_mean_distance: float = 0.0
         self.registered_model_pca_deformation: Optional[np.ndarray] = None
-        self.forward_point_transform: Optional[itk.DisplacementFieldTransform] = None
-        self.inverse_point_transform: Optional[itk.DisplacementFieldTransform] = None
+        self.moving_to_fixed_transform: Optional[itk.DisplacementFieldTransform] = None
+        self.fixed_to_moving_transform: Optional[itk.DisplacementFieldTransform] = None
 
         # Sampling caches, built lazily by _prepare_sampling()
         self._sampling_ready: bool = False
@@ -945,12 +944,12 @@ class RegisterModelsPCA(MONAIPhysioBase):
             >>> p[0], p[1], p[2] = 10.0, 20.0, 30.0
             >>> transformed_p = registrar.transform_point(p)
         """
-        if self.forward_point_transform is None:
+        if self.moving_to_fixed_transform is None:
             self.log_error("Forward point transform is not set.")
             raise ValueError(
                 "compute_pca_transforms() must be called before transform_point()"
             )
-        transformed_point = self.forward_point_transform.TransformPoint(point)
+        transformed_point = self.moving_to_fixed_transform.TransformPoint(point)
 
         if include_post_pca_transform and self.post_pca_transform is not None:
             transformed_point = self.post_pca_transform.TransformPoint(
@@ -976,15 +975,15 @@ class RegisterModelsPCA(MONAIPhysioBase):
 
         Returns:
             Dictionary containing:
-                - 'forward_point_transform': POINT transform mapping template
+                - 'moving_to_fixed_transform': POINT transform mapping template
                   points -> target points (warps the template onto the target)
-                - 'inverse_point_transform': POINT transform mapping target
+                - 'fixed_to_moving_transform': POINT transform mapping target
                   points -> template points
 
         Note:
-            These are point transforms, oriented opposite to image-registration
-            transforms; see docs/developer/transform_conventions. Neither
-            includes post_pca_transform.
+            These are point transforms (see docs/developer/transform_conventions
+            for image-warp vs. point-warp direction). Neither includes
+            post_pca_transform.
         """
         assert self.registered_model_pca_deformation is not None, (
             "PCA deformation must be computed"
@@ -1000,29 +999,33 @@ class RegisterModelsPCA(MONAIPhysioBase):
             )
         )
 
-        self.forward_point_transform = itk.DisplacementFieldTransform[itk.D, 3].New()
-        self.forward_point_transform.SetDisplacementField(
+        self.moving_to_fixed_transform = itk.DisplacementFieldTransform[itk.D, 3].New()
+        self.moving_to_fixed_transform.SetDisplacementField(
             template_model_pca_deformation_field_image
         )
 
         transform_tools = TransformTools()
-        self.inverse_point_transform = (
+        self.fixed_to_moving_transform = (
             transform_tools.invert_displacement_field_transform(
-                self.forward_point_transform
+                self.moving_to_fixed_transform
             )
         )
 
         self._log_transform_fidelity(template_points)
 
         return {
-            "forward_point_transform": self.forward_point_transform,
-            "inverse_point_transform": self.inverse_point_transform,
+            "moving_to_fixed_transform": self.moving_to_fixed_transform,
+            "fixed_to_moving_transform": self.fixed_to_moving_transform,
         }
 
     def _log_transform_fidelity(self, template_points: np.ndarray) -> None:
         """Report how well the field reproduces the deformation and inverts."""
-        assert self.forward_point_transform is not None, "forward transform must be set"
-        assert self.inverse_point_transform is not None, "inverse transform must be set"
+        assert self.moving_to_fixed_transform is not None, (
+            "forward transform must be set"
+        )
+        assert self.fixed_to_moving_transform is not None, (
+            "inverse transform must be set"
+        )
         assert self.registered_model_pca_deformation is not None, (
             "PCA deformation must be computed"
         )
@@ -1038,9 +1041,9 @@ class RegisterModelsPCA(MONAIPhysioBase):
         round_trip = np.empty_like(sampled)
         for i, source in enumerate(sampled):
             point[0], point[1], point[2] = (float(v) for v in source)
-            mapped = self.forward_point_transform.TransformPoint(point)
+            mapped = self.moving_to_fixed_transform.TransformPoint(point)
             forward[i] = (mapped[0], mapped[1], mapped[2])
-            back = self.inverse_point_transform.TransformPoint(mapped)
+            back = self.fixed_to_moving_transform.TransformPoint(mapped)
             round_trip[i] = (back[0], back[1], back[2])
 
         expected = sampled + deformation

@@ -103,24 +103,32 @@ class TestRegisterImagesGreedy:
         result = registrar_greedy.register(moving_image=moving_image)
 
         assert isinstance(result, dict), "Result should be a dictionary"
-        assert "inverse_transform" in result, "Missing inverse_transform in result"
-        assert "forward_transform" in result, "Missing forward_transform in result"
+        assert "moving_to_fixed_transform" in result, (
+            "Missing moving_to_fixed_transform in result"
+        )
+        assert "fixed_to_moving_transform" in result, (
+            "Missing fixed_to_moving_transform in result"
+        )
 
-        inverse_transform = result["inverse_transform"]
-        forward_transform = result["forward_transform"]
+        moving_to_fixed_transform = result["moving_to_fixed_transform"]
+        fixed_to_moving_transform = result["fixed_to_moving_transform"]
 
-        assert inverse_transform is not None, "inverse_transform is None"
-        assert forward_transform is not None, "forward_transform is None"
+        assert moving_to_fixed_transform is not None, (
+            "moving_to_fixed_transform is None"
+        )
+        assert fixed_to_moving_transform is not None, (
+            "fixed_to_moving_transform is None"
+        )
 
         print("Greedy affine registration complete without mask")
 
         itk.transformwrite(
-            [inverse_transform],
+            [moving_to_fixed_transform],
             str(reg_output_dir / "greedy_affine_inverse_no_mask.hdf"),
             compression=True,
         )
         itk.transformwrite(
-            [forward_transform],
+            [fixed_to_moving_transform],
             str(reg_output_dir / "greedy_affine_forward_no_mask.hdf"),
             compression=True,
         )
@@ -180,8 +188,8 @@ class TestRegisterImagesGreedy:
         )
 
         assert isinstance(result, dict), "Result should be a dictionary"
-        assert result["inverse_transform"] is not None
-        assert result["forward_transform"] is not None
+        assert result["moving_to_fixed_transform"] is not None
+        assert result["fixed_to_moving_transform"] is not None
 
         print("Greedy affine registration complete with masks")
 
@@ -206,10 +214,10 @@ class TestRegisterImagesGreedy:
         registrar.set_fixed_image(known_shift_case.fixed)
 
         result = registrar.register(moving_image=known_shift_case.moving)
-        forward_transform = result["forward_transform"]
+        fixed_to_moving_transform = result["fixed_to_moving_transform"]
 
-        error_mm = known_shift_case.center_error_mm(forward_transform)
-        ncc = known_shift_case.foreground_ncc(forward_transform)
+        error_mm = known_shift_case.center_error_mm(fixed_to_moving_transform)
+        ncc = known_shift_case.foreground_ncc(fixed_to_moving_transform)
         unregistered_ncc = known_shift_case.unregistered_ncc()
 
         print(f"\nGreedy {transform_type} known-shift recovery:")
@@ -274,7 +282,9 @@ class TestRegisterImagesGreedy:
                 registrar.set_fixed_image(case.fixed)
                 result = registrar.register(moving_image=case.moving)
                 errors.append(
-                    float(case.probe_errors_mm(result["forward_transform"]).max())
+                    float(
+                        case.probe_errors_mm(result["fixed_to_moving_transform"]).max()
+                    )
                 )
             diverged = sum(1 for value in errors if value > 10.0)
             print(
@@ -322,10 +332,13 @@ class TestRegisterImagesGreedy:
         registrar_greedy.set_fixed_image(fixed_image)
         result = registrar_greedy.register(moving_image=moving_image)
 
-        forward_transform = result["forward_transform"]
+        fixed_to_moving_transform = result["fixed_to_moving_transform"]
         transform_tools = TransformTools()
         registered_image = transform_tools.transform_image(
-            moving_image, forward_transform, fixed_image, interpolation_method="linear"
+            moving_image,
+            fixed_to_moving_transform,
+            fixed_image,
+            interpolation_method="linear",
         )
 
         assert registered_image is not None, "Registered image is None"

@@ -12,6 +12,98 @@ break is recorded here in the commit that introduces it.
 At release time this file is renamed `migration_<version>.md` and a fresh
 `migration_next.md` is started for the next cycle.
 
+## Registration transform naming - `forward`/`inverse` renamed to `fixed_to_moving`/`moving_to_fixed`
+
+**Change:** every registration class now returns/exposes exactly two transform
+names, spelled out by direction instead of by "forward"/"inverse":
+
+- `fixed_to_moving_transform` - `TransformPoint()` maps a fixed-space
+  coordinate to the corresponding moving-space coordinate.
+- `moving_to_fixed_transform` - `TransformPoint()` maps a moving-space
+  coordinate to the corresponding fixed-space coordinate.
+
+This affects `RegisterImagesANTS`/`RegisterImagesICON`/`RegisterImagesGreedy`/
+`RegisterImagesGreedyICON`/`RegisterImagesChain`/`RegisterTimeSeriesImages`/
+`RegisterModelsDistanceMaps` (previously `forward_transform`/
+`inverse_transform`, or the plural `forward_transforms`/`inverse_transforms`
+for time series), and `RegisterModelsPCA`/`RegisterModelsICP`/
+`RegisterModelsICPITK` (previously `forward_point_transform`/
+`inverse_point_transform`). `WorkflowCreateStatisticalModel`,
+`WorkflowCreateMeanSurface`, and `WorkflowFitStatisticalModelToPatient`
+follow the same rename on their own `forward_transforms`/`l2l_forward_transform`/
+`l2i_forward_transform`/etc. attributes. `post_pca_transform` is unaffected.
+
+**Why:** "forward"/"inverse" did not name one fixed direction. Warping an
+image is a pull-back (needs a fixed-to-moving point map) while warping a
+point/mesh is a push-forward (needs the opposite map), so the same word meant
+opposite things depending on whether you were warping an image or a point -
+for the *same* registration result. Worse, image registration's
+`forward_transform` and PCA/ICP's `forward_point_transform` pointed in
+opposite real-world directions for the same "moving to fixed" concept. See
+`docs/developer/transform_conventions.rst` for the full explanation. Naming
+the transform by its literal source/target space removes both ambiguities:
+the correct transform for any operation is now just "the one whose name
+matches the space you have and the space you want."
+
+**The rename is not symmetric between the two families** - this is the
+detail most likely to be missed migrating by hand:
+
+| Old name | Class family | New name |
+|---|---|---|
+| `forward_transform(s)` | Image registration | `fixed_to_moving_transform(s)` |
+| `inverse_transform(s)` | Image registration | `moving_to_fixed_transform(s)` |
+| `forward_point_transform` | PCA / ICP | `moving_to_fixed_transform` |
+| `inverse_point_transform` | PCA / ICP | `fixed_to_moving_transform` |
+
+**Before**
+
+```python
+# Image registration
+result = RegisterImagesANTS().register(moving_image)
+warped = transform_tools.transform_image(
+    moving_image, result["forward_transform"], fixed_image
+)
+warped_points = transform_tools.transform_pvcontour(
+    points, result["inverse_transform"]
+)
+
+# PCA/ICP model registration
+result = registrar.compute_pca_transforms(reference_image)
+warped_template = transform_tools.transform_pvcontour(
+    template_points, result["forward_point_transform"]
+)
+```
+
+**After**
+
+```python
+# Image registration
+result = RegisterImagesANTS().register(moving_image)
+warped = transform_tools.transform_image(
+    moving_image, result["fixed_to_moving_transform"], fixed_image
+)
+warped_points = transform_tools.transform_pvcontour(
+    points, result["moving_to_fixed_transform"]
+)
+
+# PCA/ICP model registration
+result = registrar.compute_pca_transforms(reference_image)
+warped_template = transform_tools.transform_pvcontour(
+    template_points, result["moving_to_fixed_transform"]
+)
+```
+
+**Automated conversion:** none provided. A blind find-replace is unsafe here
+because the same old name maps to a *different* new name depending on which
+class produced the dict/attribute (see table above), and static analysis
+cannot always tell which family a bare `result["forward_transform"]` belongs
+to without tracing back to the registrar that built `result`. Search your
+code for `forward_transform`, `inverse_transform`, `forward_point_transform`,
+and `inverse_point_transform`, and at each hit, check which `Register*` class
+produced the value: `RegisterImages*`/`RegisterModelsDistanceMaps`/
+`RegisterTimeSeriesImages` use the top row of the table, `RegisterModelsPCA`/
+`RegisterModelsICP`/`RegisterModelsICPITK` use the bottom row.
+
 ## `WorkflowCreateStatisticalModel.inverse_transforms` - removed
 
 **Change:** the attribute is gone. `forward_transforms` is unaffected.

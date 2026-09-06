@@ -113,8 +113,8 @@ for vtk_file in vtk_files:
         transform_type="Deformable",
     )
 
-    forward_transform = result["forward_transform"]
-    inverse_transform = result["inverse_transform"]
+    fixed_to_moving_transform = result["fixed_to_moving_transform"]
+    moving_to_fixed_transform = result["moving_to_fixed_transform"]
 
     # Get registered model
     registered_model = result["registered_model"]
@@ -125,10 +125,12 @@ for vtk_file in vtk_files:
     print(f"Saved: {output_file.name}")
 
     itk.transformwrite(
-        forward_transform, output_dir / f"{case_id}.forward_transform.hdf"
+        fixed_to_moving_transform,
+        output_dir / f"{case_id}.fixed_to_moving_transform.hdf",
     )
     itk.transformwrite(
-        inverse_transform, output_dir / f"{case_id}.inverse_transform.hdf"
+        moving_to_fixed_transform,
+        output_dir / f"{case_id}.moving_to_fixed_transform.hdf",
     )
 
     # Calculate registration statistics

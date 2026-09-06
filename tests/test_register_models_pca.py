@@ -305,8 +305,8 @@ def test_pca_transforms_round_trip() -> None:
     reference_image.SetOrigin([-24.0, -24.0, -24.0])
 
     transforms = registrar.compute_pca_transforms(reference_image, blur_sigma=1.5)
-    forward = transforms["forward_point_transform"]
-    inverse = transforms["inverse_point_transform"]
+    forward = transforms["moving_to_fixed_transform"]
+    inverse = transforms["fixed_to_moving_transform"]
 
     template_points = np.asarray(registrar.pca_template_model.points, dtype=np.float64)
     expected = template_points + registrar.registered_model_pca_deformation

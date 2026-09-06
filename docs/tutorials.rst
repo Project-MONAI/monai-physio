@@ -439,8 +439,8 @@ Run
       python tutorials/tutorial_03_lung_reconstruct_highres_4d_ct.py
 
 Outputs
-   ``reconstructed_frame_<i>.mha`` plus forward and inverse transforms for
-   every phase, and two screenshots, under
+   ``reconstructed_frame_<i>.mha`` plus fixed_to_moving and moving_to_fixed
+   transforms for every phase, and two screenshots, under
    ``tutorials/output/tutorial_03_{heart,lung}/``.
 
 Adapt to your data
@@ -813,8 +813,8 @@ Run
 Outputs
    Per case, under ``tutorials/output/tutorial_08_lung/<case>/``: the fitted
    reference surface, its PCA coefficients, and one warped surface plus
-   forward/inverse transform per phase. Those per-phase surfaces are exactly
-   the training set Tutorial 9 consumes.
+   fixed_to_moving/moving_to_fixed transform per phase. Those per-phase
+   surfaces are exactly the training set Tutorial 9 consumes.
 
 Adapt to your data
    Point ``data_dir`` at a directory of per-case 4D series and set

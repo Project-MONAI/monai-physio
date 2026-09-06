@@ -84,16 +84,16 @@ t_start = time.perf_counter()
 reg_result = reg.register(moving_image=moving_image)
 elapsed = time.perf_counter() - t_start
 
-forward_transform = reg_result["forward_transform"]
+fixed_to_moving_transform = reg_result["fixed_to_moving_transform"]
 loss = float(reg_result["loss"])
 print(f"{method} registration done in {elapsed:.1f} s, loss={loss:.4f}")
 
 # %% [markdown]
 # ## 5. Warp time point 20 into time point 60's space and save
 #
-# ``forward_transform`` is the transform consumed by ``transform_image`` to
+# ``fixed_to_moving_transform`` is the transform consumed by ``transform_image`` to
 # resample the moving image onto the fixed grid (it supplies the fixed->moving
-# sampling map the ITK resampler needs). ``inverse_transform`` is the opposite
+# sampling map the ITK resampler needs). ``moving_to_fixed_transform`` is the opposite
 # direction, used to warp the fixed image onto the moving grid (e.g. in
 # ``RegisterTimeSeriesImages.reconstruct_time_series``). This holds for all
 # three backends (ANTS, ICON, Greedy).
@@ -103,7 +103,7 @@ transform_tools = TransformTools()
 warp_t_start = time.perf_counter()
 warped_image = transform_tools.transform_image(
     moving_image,
-    forward_transform,
+    fixed_to_moving_transform,
     fixed_image,
     interpolation_method="linear",
 )

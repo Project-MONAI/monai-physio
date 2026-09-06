@@ -15,7 +15,7 @@ from .register_images_base import RegisterImagesBase
 
 class RegisterImagesChain(RegisterImagesBase):
     """Run an ordered list of registrars in sequence, each stage refining the
-    previous stage's forward_transform via
+    previous stage's fixed_to_moving_transform via
     :meth:`RegisterImagesBase.register_from`.
 
     Use this to combine independent registration backends into a multi-stage
@@ -135,6 +135,6 @@ class RegisterImagesChain(RegisterImagesBase):
                     current_forward, stage_result, moving_image
                 )
             )
-            current_forward = cast(itk.Transform, result["forward_transform"])
+            current_forward = cast(itk.Transform, result["fixed_to_moving_transform"])
 
         return result

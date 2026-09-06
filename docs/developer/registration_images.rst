@@ -24,12 +24,12 @@ Basic Pattern
    result = registrar.register(moving)
    registered = registrar.get_registered_image()
 
-The result dictionary contains ``forward_transform``, ``inverse_transform``,
-and ``loss``. Applying the right one is critical and direction-dependent:
-``forward_transform`` warps the moving image onto the fixed grid, while
-``inverse_transform`` warps moving points/landmarks into fixed space (image and
-point warps use opposite transforms). See
-:doc:`transform_conventions` for the full rules.
+The result dictionary contains ``fixed_to_moving_transform``,
+``moving_to_fixed_transform``, and ``loss``. Applying the right one is
+critical and direction-dependent: ``fixed_to_moving_transform`` warps the
+moving image onto the fixed grid, while ``moving_to_fixed_transform`` warps
+moving points/landmarks into fixed space (image and point warps use opposite
+transforms). See :doc:`transform_conventions` for the full rules.
 
 Time Series
 ===========
@@ -58,7 +58,7 @@ Workflows that accept a ``registration_method`` (e.g.
 any :class:`RegisterImagesBase` instance, including a composite chain that
 runs multiple backends in sequence. :class:`RegisterImagesChain` runs an
 ordered list of registrars, each stage refining the previous stage's
-``forward_transform`` through ``register_from()`` (see `Seeding a registration`_
+``fixed_to_moving_transform`` through ``register_from()`` (see `Seeding a registration`_
 below). :class:`RegisterImagesGreedyICON` is a named 2-stage convenience class
 for the common case of a fast Greedy registration followed by ICON refinement:
 
@@ -84,7 +84,7 @@ To start from an alignment you already have, call ``register_from()`` instead of
 
 .. code-block:: python
 
-   result = registrar.register_from(known_forward_transform, moving_image)
+   result = registrar.register_from(known_fixed_to_moving_transform, moving_image)
 
 It warps the moving image, mask and labelmap onto the fixed grid by that
 transform, registers the residual, and composes the two, so the returned

@@ -140,7 +140,7 @@ def test_correspondence_tuning_reaches_the_registrar(monkeypatch: Any) -> None:
         def register(self, transform_type: str) -> dict[str, Any]:
             identity = itk.AffineTransform[itk.D, 3].New()
             identity.SetIdentity()
-            return {"forward_transform": identity}
+            return {"fixed_to_moving_transform": identity}
 
     monkeypatch.setattr(wcms, "RegisterModelsDistanceMaps", _Registrar)
 

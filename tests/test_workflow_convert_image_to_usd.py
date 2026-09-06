@@ -129,8 +129,12 @@ def test_workflow_convert_image_to_usd_default_operation(
     assert len(workflow.transformed_contours["all"]) == 1
     assert len(workflow.registration_results) == 1
     assert "all" in workflow.registration_results[0]
-    assert workflow.registration_results[0]["all"]["forward_transform"] is not None
-    assert workflow.registration_results[0]["all"]["inverse_transform"] is not None
+    assert (
+        workflow.registration_results[0]["all"]["fixed_to_moving_transform"] is not None
+    )
+    assert (
+        workflow.registration_results[0]["all"]["moving_to_fixed_transform"] is not None
+    )
 
     reference_labelmap = cast(
         itk.Image,

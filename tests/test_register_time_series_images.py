@@ -149,38 +149,46 @@ class TestRegisterTimeSeriesImages:
 
         # Verify result structure
         assert isinstance(result, dict), "Result should be a dictionary"
-        assert "forward_transforms" in result, "Missing forward_transforms in result"
-        assert "inverse_transforms" in result, "Missing inverse_transforms in result"
+        assert "fixed_to_moving_transforms" in result, (
+            "Missing fixed_to_moving_transforms in result"
+        )
+        assert "moving_to_fixed_transforms" in result, (
+            "Missing moving_to_fixed_transforms in result"
+        )
         assert "losses" in result, "Missing losses in result"
 
-        forward_transforms = result["forward_transforms"]
-        inverse_transforms = result["inverse_transforms"]
+        fixed_to_moving_transforms = result["fixed_to_moving_transforms"]
+        moving_to_fixed_transforms = result["moving_to_fixed_transforms"]
         losses = result["losses"]
 
         # Verify list lengths
-        assert len(forward_transforms) == len(moving_images), (
-            "forward_transforms length mismatch"
+        assert len(fixed_to_moving_transforms) == len(moving_images), (
+            "fixed_to_moving_transforms length mismatch"
         )
-        assert len(inverse_transforms) == len(moving_images), (
-            "inverse_transforms length mismatch"
+        assert len(moving_to_fixed_transforms) == len(moving_images), (
+            "moving_to_fixed_transforms length mismatch"
         )
         assert len(losses) == len(moving_images), "losses length mismatch"
 
         # Verify all transforms are valid
-        for i, (forward_transform, inverse_transform) in enumerate(
-            zip(forward_transforms, inverse_transforms, strict=False)
+        for i, (fixed_to_moving_transform, moving_to_fixed_transform) in enumerate(
+            zip(fixed_to_moving_transforms, moving_to_fixed_transforms, strict=False)
         ):
-            assert forward_transform is not None, f"forward_transform[{i}] is None"
-            assert inverse_transform is not None, f"inverse_transform[{i}] is None"
+            assert fixed_to_moving_transform is not None, (
+                f"fixed_to_moving_transform[{i}] is None"
+            )
+            assert moving_to_fixed_transform is not None, (
+                f"moving_to_fixed_transform[{i}] is None"
+            )
 
         print("Time series registration complete")
-        print(f"  Transforms generated: {len(forward_transforms)}")
+        print(f"  Transforms generated: {len(fixed_to_moving_transforms)}")
         print(f"  Average loss: {np.mean(losses):.6f}")
 
         transform_tools = TransformTools()
         moving_image = transform_tools.transform_image(
             moving_images[0],
-            forward_transforms[0],
+            fixed_to_moving_transforms[0],
             fixed_image,
             interpolation_method="linear",
         )
@@ -197,13 +205,13 @@ class TestRegisterTimeSeriesImages:
         # comparison (see test_register_images_greedy.py for the same
         # rationale).
         test_tools.write_result_transform(
-            forward_transforms[0], "basic_forward_transform_0.hdf"
+            fixed_to_moving_transforms[0], "basic_fixed_to_moving_transform_0.hdf"
         )
         test_tools.write_result_image(
             moving_image, "basic_time_series_registered_0.mha"
         )
         results_dir = test_directories["output"] / self._class_name
-        assert (results_dir / "basic_forward_transform_0.hdf").exists()
+        assert (results_dir / "basic_fixed_to_moving_transform_0.hdf").exists()
         assert (results_dir / "basic_time_series_registered_0.mha").exists()
 
     def test_register_time_series_from_middle_frame(
@@ -228,20 +236,22 @@ class TestRegisterTimeSeriesImages:
             register_reference=True,
         )
 
-        forward_transforms = result["forward_transforms"]
+        fixed_to_moving_transforms = result["fixed_to_moving_transforms"]
         losses = result["losses"]
 
         transform_tools = TransformTools()
         moving_image = transform_tools.transform_image(
             moving_images[0],
-            forward_transforms[0],
+            fixed_to_moving_transforms[0],
             fixed_image,
             interpolation_method="linear",
         )
 
         # Verify all transforms generated
-        for i, forward_transform in enumerate(forward_transforms):
-            assert forward_transform is not None, f"forward_transform[{i}] is None"
+        for i, fixed_to_moving_transform in enumerate(fixed_to_moving_transforms):
+            assert fixed_to_moving_transform is not None, (
+                f"fixed_to_moving_transform[{i}] is None"
+            )
 
         print("Time series registration from the middle frame complete")
         print(f"  Losses: {[f'{loss:.6f}' for loss in losses]}")
@@ -256,13 +266,14 @@ class TestRegisterTimeSeriesImages:
         # bit-reproducible across runs, so we save artifacts without
         # asserting an exact baseline match.
         test_tools.write_result_transform(
-            forward_transforms[0], "middle_frame_forward_transform_0.hdf"
+            fixed_to_moving_transforms[0],
+            "middle_frame_fixed_to_moving_transform_0.hdf",
         )
         test_tools.write_result_image(
             moving_image, "middle_frame_time_series_registered_0.mha"
         )
         results_dir = test_directories["output"] / self._class_name
-        assert (results_dir / "middle_frame_forward_transform_0.hdf").exists()
+        assert (results_dir / "middle_frame_fixed_to_moving_transform_0.hdf").exists()
         assert (results_dir / "middle_frame_time_series_registered_0.mha").exists()
 
     def test_register_time_series_identity_start(self, test_images: list[Any]) -> None:
@@ -315,7 +326,7 @@ class TestRegisterTimeSeriesImages:
                 register_reference=True,
             )
 
-            assert len(result["forward_transforms"]) == len(moving_images), (
+            assert len(result["fixed_to_moving_transforms"]) == len(moving_images), (
                 f"Wrong number of transforms for reference_frame={starting_index}"
             )
 
@@ -376,13 +387,13 @@ class TestRegisterTimeSeriesImages:
             register_reference=True,
         )
 
-        forward_transforms = result["forward_transforms"]
+        fixed_to_moving_transforms = result["fixed_to_moving_transforms"]
 
         # Apply transform to first moving image
         transform_tools = TransformTools()
         registered_image = transform_tools.transform_image(
             moving_images[0],
-            forward_transforms[0],
+            fixed_to_moving_transforms[0],
             fixed_image,
             interpolation_method="linear",
         )
@@ -428,8 +439,8 @@ class TestRegisterTimeSeriesImages:
             register_reference=True,
         )
 
-        assert len(result["forward_transforms"]) == len(moving_images)
-        assert len(result["inverse_transforms"]) == len(moving_images)
+        assert len(result["fixed_to_moving_transforms"]) == len(moving_images)
+        assert len(result["moving_to_fixed_transforms"]) == len(moving_images)
         assert len(result["losses"]) == len(moving_images)
 
         print("ICON time series registration complete")
@@ -475,7 +486,7 @@ class TestRegisterTimeSeriesImages:
             register_reference=True,
         )
 
-        assert len(result["forward_transforms"]) == len(moving_images)
+        assert len(result["fixed_to_moving_transforms"]) == len(moving_images)
 
         print("Masked time series registration complete")
 
@@ -500,14 +511,14 @@ class TestRegisterTimeSeriesImages:
             register_reference=True,
         )
 
-        forward_transforms = result["forward_transforms"]
+        fixed_to_moving_transforms = result["fixed_to_moving_transforms"]
 
         # All transforms should be generated
-        for i, forward_transform in enumerate(forward_transforms):
-            assert forward_transform is not None, f"Transform {i} is None"
+        for i, fixed_to_moving_transform in enumerate(fixed_to_moving_transforms):
+            assert fixed_to_moving_transform is not None, f"Transform {i} is None"
 
         print("Bidirectional registration successful")
-        print(f"  All {len(forward_transforms)} transforms generated")
+        print(f"  All {len(fixed_to_moving_transforms)} transforms generated")
 
 
 def _make_constant_image(value: float, size: int = 4, dtype: Any = np.float32) -> Any:
@@ -533,7 +544,7 @@ class TestReconstructTimeSeriesCompositeMode:
 
         reconstructed = registrar.reconstruct_time_series(
             moving_images=moving_images,
-            inverse_transforms=self._identity_transforms(len(moving_images)),
+            moving_to_fixed_transforms=self._identity_transforms(len(moving_images)),
             composite_mode="reference",
         )
 
@@ -554,8 +565,8 @@ class TestReconstructTimeSeriesCompositeMode:
 
         reconstructed = registrar.reconstruct_time_series(
             moving_images=moving_images,
-            inverse_transforms=self._identity_transforms(n),
-            forward_transforms=self._identity_transforms(n),
+            moving_to_fixed_transforms=self._identity_transforms(n),
+            fixed_to_moving_transforms=self._identity_transforms(n),
             composite_mode="mean",
         )
 
@@ -575,8 +586,8 @@ class TestReconstructTimeSeriesCompositeMode:
 
         reconstructed = registrar.reconstruct_time_series(
             moving_images=moving_images,
-            inverse_transforms=self._identity_transforms(n),
-            forward_transforms=self._identity_transforms(n),
+            moving_to_fixed_transforms=self._identity_transforms(n),
+            fixed_to_moving_transforms=self._identity_transforms(n),
             composite_mode="max",
         )
 
@@ -597,7 +608,7 @@ class TestReconstructTimeSeriesCompositeMode:
 
         composite = registrar._compute_composite_reference(
             moving_images=[moving_image],
-            forward_transforms=self._identity_transforms(1),
+            fixed_to_moving_transforms=self._identity_transforms(1),
             mode="mean",
         )
         arr = itk.array_from_image(composite)
@@ -624,7 +635,7 @@ class TestReconstructTimeSeriesCompositeMode:
 
         composite = registrar._compute_composite_reference(
             moving_images=[moving_image],
-            forward_transforms=self._identity_transforms(1),
+            fixed_to_moving_transforms=self._identity_transforms(1),
             mode="mean",
         )
         arr = itk.array_from_image(composite)
@@ -645,23 +656,23 @@ class TestReconstructTimeSeriesCompositeMode:
         with pytest.raises(ValueError, match="composite_mode"):
             registrar.reconstruct_time_series(
                 moving_images=moving_images,
-                inverse_transforms=self._identity_transforms(1),
-                forward_transforms=self._identity_transforms(1),
+                moving_to_fixed_transforms=self._identity_transforms(1),
+                fixed_to_moving_transforms=self._identity_transforms(1),
                 composite_mode="bogus",  # type: ignore[arg-type]
             )
 
-    def test_composite_mode_requires_forward_transforms(self) -> None:
-        """mean/max composite_mode without forward_transforms raises ValueError."""
+    def test_composite_mode_requires_fixed_to_moving_transforms(self) -> None:
+        """mean/max composite_mode without fixed_to_moving_transforms raises ValueError."""
         fixed_image = _make_constant_image(10.0)
         moving_images = [_make_constant_image(20.0)]
 
         registrar = RegisterTimeSeriesImages(registration_method=RegisterImagesGreedy())
         registrar.set_fixed_image(fixed_image)
 
-        with pytest.raises(ValueError, match="forward_transforms"):
+        with pytest.raises(ValueError, match="fixed_to_moving_transforms"):
             registrar.reconstruct_time_series(
                 moving_images=moving_images,
-                inverse_transforms=self._identity_transforms(1),
+                moving_to_fixed_transforms=self._identity_transforms(1),
                 composite_mode="mean",
             )
 

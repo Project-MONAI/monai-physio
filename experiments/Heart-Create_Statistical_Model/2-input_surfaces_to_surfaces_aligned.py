@@ -71,8 +71,8 @@ output_dir.mkdir(exist_ok=True)
 
 # Store results
 aligned_meshes = {}
-transforms_point_forward = {}  # Moving to Fixed point transforms (forward_point_transform)
-transforms_point_inverse = {}  # Fixed to Moving point transforms (inverse_point_transform)
+transforms_point_forward = {}  # Moving to Fixed point transforms (moving_to_fixed_transform)
+transforms_point_inverse = {}  # Fixed to Moving point transforms (fixed_to_moving_transform)
 
 contour_tools = ContourTools()
 
@@ -102,19 +102,19 @@ for mesh_file in mesh_files:
     # Store results
     mesh_id = mesh_file.stem
     aligned_meshes[mesh_id] = result["registered_model"]
-    transforms_point_forward[mesh_id] = result["forward_point_transform"]
-    transforms_point_inverse[mesh_id] = result["inverse_point_transform"]
+    transforms_point_forward[mesh_id] = result["moving_to_fixed_transform"]
+    transforms_point_inverse[mesh_id] = result["fixed_to_moving_transform"]
 
     # Save aligned mesh
     output_path = output_dir / f"{mesh_id}.vtp"
     result["registered_model"].save(output_path)
     itk.transformwrite(
-        result["forward_point_transform"],
-        output_dir / f"{mesh_id}_forward_point_transform.hdf",
+        result["moving_to_fixed_transform"],
+        output_dir / f"{mesh_id}_moving_to_fixed_transform.hdf",
     )
     itk.transformwrite(
-        result["inverse_point_transform"],
-        output_dir / f"{mesh_id}_inverse_point_transform.hdf",
+        result["fixed_to_moving_transform"],
+        output_dir / f"{mesh_id}_fixed_to_moving_transform.hdf",
     )
     print(f"\n  Saved aligned mesh: {output_path}")
 

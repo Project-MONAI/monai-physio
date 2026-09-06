@@ -146,14 +146,16 @@ if __name__ == "__main__":
         stale_frame.unlink()
 
     cardiac_field_files = sorted(beating_heart_dir.glob("deformation_field_s*.mha"))
-    forward_transform_files = sorted(respiratory_dir.glob("slice_*_all_forward.hdf"))
+    fixed_to_moving_transform_files = sorted(
+        respiratory_dir.glob("slice_*_all_forward.hdf")
+    )
 
     if not cardiac_field_files:
         raise FileNotFoundError(
             f"No cardiac deformation fields found in {beating_heart_dir}. "
             "Run temp_heart_and_lungs_beating_heart.py first."
         )
-    if not forward_transform_files:
+    if not fixed_to_moving_transform_files:
         raise FileNotFoundError(
             f"No respiratory forward transforms found in {respiratory_dir}. "
             "Run tutorial_01_lung_gated_ct_to_usd.py first."
@@ -164,7 +166,7 @@ if __name__ == "__main__":
             "Run tutorial_04_lung_ct_to_vtk.py first."
         )
 
-    n_phases = len(forward_transform_files)
+    n_phases = len(fixed_to_moving_transform_files)
     n_stages = len(cardiac_field_files)
     logger.info(
         "Respiratory phases: %d, cardiac stages: %d (1 cardiac cycle/phase)",
@@ -205,13 +207,13 @@ if __name__ == "__main__":
     # Respiratory-warped vertex positions for every (phase, stage):
     # resp_points[phase][stage] = forward_phase(cardiac_surface[stage]).points.
     resp_points: list[list[np.ndarray]] = []
-    for phase_idx, forward_file in enumerate(forward_transform_files):
-        forward_transform = itk.transformread(str(forward_file))
+    for phase_idx, forward_file in enumerate(fixed_to_moving_transform_files):
+        fixed_to_moving_transform = itk.transformread(str(forward_file))
         resp_points.append(
             [
                 np.asarray(
                     _transform_tools.transform_pvcontour(
-                        cardiac_surface, forward_transform
+                        cardiac_surface, fixed_to_moving_transform
                     ).points,
                     dtype=np.float32,
                 )

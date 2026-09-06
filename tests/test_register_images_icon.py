@@ -37,10 +37,10 @@ class TestRegisterImagesICON:
         registrar.set_fixed_image(known_shift_case.fixed)
 
         result = registrar.register(moving_image=known_shift_case.moving)
-        forward_transform = result["forward_transform"]
+        fixed_to_moving_transform = result["fixed_to_moving_transform"]
 
-        error_mm = known_shift_case.center_error_mm(forward_transform)
-        ncc = known_shift_case.foreground_ncc(forward_transform)
+        error_mm = known_shift_case.center_error_mm(fixed_to_moving_transform)
+        ncc = known_shift_case.foreground_ncc(fixed_to_moving_transform)
         unregistered_ncc = known_shift_case.unregistered_ncc()
 
         print("\nICON known-shift recovery:")
@@ -81,7 +81,7 @@ class TestRegisterImagesICON:
             registrar.set_number_of_iterations(5)
             registrar.set_fixed_image(known_shift_case.fixed)
             return registrar.register(moving_image=known_shift_case.moving)[
-                "forward_transform"
+                "fixed_to_moving_transform"
             ]
 
         size = itk.size(known_shift_case.fixed)
@@ -232,29 +232,41 @@ class TestRegisterImagesICON:
 
         # Verify result is a dictionary
         assert isinstance(result, dict), "Result should be a dictionary"
-        assert "inverse_transform" in result, "Missing inverse_transform in result"
-        assert "forward_transform" in result, "Missing forward_transform in result"
+        assert "moving_to_fixed_transform" in result, (
+            "Missing moving_to_fixed_transform in result"
+        )
+        assert "fixed_to_moving_transform" in result, (
+            "Missing fixed_to_moving_transform in result"
+        )
 
-        inverse_transform = result["inverse_transform"]
-        forward_transform = result["forward_transform"]
+        moving_to_fixed_transform = result["moving_to_fixed_transform"]
+        fixed_to_moving_transform = result["fixed_to_moving_transform"]
 
         # Verify transforms are valid
-        assert inverse_transform is not None, "inverse_transform is None"
-        assert forward_transform is not None, "forward_transform is None"
+        assert moving_to_fixed_transform is not None, (
+            "moving_to_fixed_transform is None"
+        )
+        assert fixed_to_moving_transform is not None, (
+            "fixed_to_moving_transform is None"
+        )
 
         print("ICON registration complete without mask")
-        print(f"  inverse_transform type: {type(inverse_transform).__name__}")
-        print(f"  forward_transform type: {type(forward_transform).__name__}")
+        print(
+            f"  moving_to_fixed_transform type: {type(moving_to_fixed_transform).__name__}"
+        )
+        print(
+            f"  fixed_to_moving_transform type: {type(fixed_to_moving_transform).__name__}"
+        )
 
         # Save transforms
         itk.transformwrite(
-            [inverse_transform],
-            str(reg_output_dir / "icon_inverse_transform_no_mask.hdf"),
+            [moving_to_fixed_transform],
+            str(reg_output_dir / "icon_moving_to_fixed_transform_no_mask.hdf"),
             compression=True,
         )
         itk.transformwrite(
-            [forward_transform],
-            str(reg_output_dir / "icon_forward_transform_no_mask.hdf"),
+            [fixed_to_moving_transform],
+            str(reg_output_dir / "icon_fixed_to_moving_transform_no_mask.hdf"),
             compression=True,
         )
         print(f"  Saved transforms to: {reg_output_dir}")
@@ -330,26 +342,34 @@ class TestRegisterImagesICON:
 
         # Verify result
         assert isinstance(result, dict), "Result should be a dictionary"
-        assert "inverse_transform" in result, "Missing inverse_transform in result"
-        assert "forward_transform" in result, "Missing forward_transform in result"
+        assert "moving_to_fixed_transform" in result, (
+            "Missing moving_to_fixed_transform in result"
+        )
+        assert "fixed_to_moving_transform" in result, (
+            "Missing fixed_to_moving_transform in result"
+        )
 
-        inverse_transform = result["inverse_transform"]
-        forward_transform = result["forward_transform"]
+        moving_to_fixed_transform = result["moving_to_fixed_transform"]
+        fixed_to_moving_transform = result["fixed_to_moving_transform"]
 
-        assert inverse_transform is not None, "inverse_transform is None"
-        assert forward_transform is not None, "forward_transform is None"
+        assert moving_to_fixed_transform is not None, (
+            "moving_to_fixed_transform is None"
+        )
+        assert fixed_to_moving_transform is not None, (
+            "fixed_to_moving_transform is None"
+        )
 
         print("ICON registration complete with masks")
 
         # Save transforms
         itk.transformwrite(
-            [inverse_transform],
-            str(reg_output_dir / "icon_inverse_transform_with_mask.hdf"),
+            [moving_to_fixed_transform],
+            str(reg_output_dir / "icon_moving_to_fixed_transform_with_mask.hdf"),
             compression=True,
         )
         itk.transformwrite(
-            [forward_transform],
-            str(reg_output_dir / "icon_forward_transform_with_mask.hdf"),
+            [fixed_to_moving_transform],
+            str(reg_output_dir / "icon_fixed_to_moving_transform_with_mask.hdf"),
             compression=True,
         )
 
@@ -373,14 +393,17 @@ class TestRegisterImagesICON:
         registrar_ICON.set_number_of_iterations(2)
         result = registrar_ICON.register(moving_image=moving_image)
 
-        forward_transform = result["forward_transform"]
+        fixed_to_moving_transform = result["fixed_to_moving_transform"]
 
         print("\nApplying ICON transform to moving image...")
 
         # Apply transform
         transform_tools = TransformTools()
         registered_image = transform_tools.transform_image(
-            moving_image, forward_transform, fixed_image, interpolation_method="linear"
+            moving_image,
+            fixed_to_moving_transform,
+            fixed_image,
+            interpolation_method="linear",
         )
 
         # Verify registered image
@@ -421,8 +444,12 @@ class TestRegisterImagesICON:
         registrar_ICON.set_number_of_iterations(2)
         result = registrar_ICON.register(moving_image=moving_image)
 
-        inverse_transform = cast(itk.Transform, result["inverse_transform"])
-        forward_transform = cast(itk.Transform, result["forward_transform"])
+        moving_to_fixed_transform = cast(
+            itk.Transform, result["moving_to_fixed_transform"]
+        )
+        fixed_to_moving_transform = cast(
+            itk.Transform, result["fixed_to_moving_transform"]
+        )
 
         # Test point transformation
         test_point = itk.Point[itk.D, 3]()
@@ -431,8 +458,10 @@ class TestRegisterImagesICON:
         test_point[2] = float(itk.size(fixed_image)[2] / 2)
 
         # Forward then backward
-        transformed_point = forward_transform.TransformPoint(test_point)
-        back_transformed_point = inverse_transform.TransformPoint(transformed_point)
+        transformed_point = fixed_to_moving_transform.TransformPoint(test_point)
+        back_transformed_point = moving_to_fixed_transform.TransformPoint(
+            transformed_point
+        )
 
         # Calculate error
         error = np.sqrt(
@@ -502,8 +531,12 @@ class TestRegisterImagesICON:
         )
 
         assert isinstance(result, dict), "Result should be a dictionary"
-        assert result["inverse_transform"] is not None, "inverse_transform is None"
-        assert result["forward_transform"] is not None, "forward_transform is None"
+        assert result["moving_to_fixed_transform"] is not None, (
+            "moving_to_fixed_transform is None"
+        )
+        assert result["fixed_to_moving_transform"] is not None, (
+            "fixed_to_moving_transform is None"
+        )
 
         print("Registration with initial transform complete")
 
@@ -519,34 +552,44 @@ class TestRegisterImagesICON:
         registrar_ICON.set_number_of_iterations(2)
         result = registrar_ICON.register(moving_image=moving_image)
 
-        inverse_transform = result["inverse_transform"]
-        forward_transform = result["forward_transform"]
+        moving_to_fixed_transform = result["moving_to_fixed_transform"]
+        fixed_to_moving_transform = result["fixed_to_moving_transform"]
 
         print("\nVerifying ICON transform types...")
 
         # ICON returns transforms (either DisplacementFieldTransform or CompositeTransform wrapping it)
         # The important thing is that they are valid ITK transforms
-        assert inverse_transform is not None, "inverse_transform is None"
-        assert forward_transform is not None, "forward_transform is None"
+        assert moving_to_fixed_transform is not None, (
+            "moving_to_fixed_transform is None"
+        )
+        assert fixed_to_moving_transform is not None, (
+            "fixed_to_moving_transform is None"
+        )
 
         # Check if it's either a DisplacementFieldTransform or CompositeTransform
         valid_inverse = isinstance(
-            inverse_transform, (itk.DisplacementFieldTransform, itk.CompositeTransform)
+            moving_to_fixed_transform,
+            (itk.DisplacementFieldTransform, itk.CompositeTransform),
         )
         valid_forward = isinstance(
-            forward_transform, (itk.DisplacementFieldTransform, itk.CompositeTransform)
+            fixed_to_moving_transform,
+            (itk.DisplacementFieldTransform, itk.CompositeTransform),
         )
 
         assert valid_inverse, (
-            f"inverse_transform should be DisplacementFieldTransform or CompositeTransform, got {type(inverse_transform)}"
+            f"moving_to_fixed_transform should be DisplacementFieldTransform or CompositeTransform, got {type(moving_to_fixed_transform)}"
         )
         assert valid_forward, (
-            f"forward_transform should be DisplacementFieldTransform or CompositeTransform, got {type(forward_transform)}"
+            f"fixed_to_moving_transform should be DisplacementFieldTransform or CompositeTransform, got {type(fixed_to_moving_transform)}"
         )
 
         print("Transform types verified")
-        print(f"  inverse_transform: {type(inverse_transform).__name__}")
-        print(f"  forward_transform: {type(forward_transform).__name__}")
+        print(
+            f"  moving_to_fixed_transform: {type(moving_to_fixed_transform).__name__}"
+        )
+        print(
+            f"  fixed_to_moving_transform: {type(fixed_to_moving_transform).__name__}"
+        )
 
     def test_different_iteration_counts(
         self, registrar_ICON: RegisterImagesICON, test_images: list[Any]
@@ -570,8 +613,12 @@ class TestRegisterImagesICON:
             results.append(result)
 
             assert isinstance(result, dict), "Result should be a dictionary"
-            assert "inverse_transform" in result, "Missing inverse_transform"
-            assert "forward_transform" in result, "Missing forward_transform"
+            assert "moving_to_fixed_transform" in result, (
+                "Missing moving_to_fixed_transform"
+            )
+            assert "fixed_to_moving_transform" in result, (
+                "Missing fixed_to_moving_transform"
+            )
 
         print(f"Tested {len(iteration_counts)} different iteration counts")
 

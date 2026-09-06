@@ -16,7 +16,7 @@ Transform Tools
    from monai_physio import TransformTools
 
    tools = TransformTools()
-   transform = itk.transformread("forward_transform.hdf")
+   transform = itk.transformread("fixed_to_moving_transform.hdf")
    moving = itk.imread("moving.mha")
    reference = itk.imread("reference.mha")
 
@@ -32,7 +32,7 @@ For PyVista contours:
    from monai_physio import TransformTools
 
    mesh = pv.read("heart_t0.vtp")
-   transform = itk.transformread("forward_transform.hdf")
+   transform = itk.transformread("fixed_to_moving_transform.hdf")
 
    transformed = TransformTools().transform_pvcontour(mesh, transform)
 

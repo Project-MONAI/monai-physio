@@ -34,8 +34,8 @@ Basic Registration
 
    result = registrar.register(moving)
 
-   forward_transform = result["forward_transform"]
-   inverse_transform = result["inverse_transform"]
+   fixed_to_moving_transform = result["fixed_to_moving_transform"]
+   moving_to_fixed_transform = result["moving_to_fixed_transform"]
    registered = registrar.get_registered_image()
 
 Installation Note

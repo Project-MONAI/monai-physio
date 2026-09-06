@@ -45,9 +45,8 @@ Development Notes
 * Convert volumetric meshes to surfaces before surface registration when needed.
 * Treat ITK/PyVista coordinate transforms as high-risk and add focused tests.
 * Keep synthetic test meshes small and deterministic.
-* ``RegisterModelsPCA`` returns ``forward_point_transform`` /
-  ``inverse_point_transform``. These are **point** transforms whose orientation
-  is opposite to the image-registration transforms; see
+* ``RegisterModelsPCA`` returns ``moving_to_fixed_transform`` /
+  ``fixed_to_moving_transform``. These are **point** transforms; see
   :doc:`transform_conventions` before applying them to images or meshes.
 
 See Also

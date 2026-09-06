@@ -62,8 +62,8 @@ class RegisterImagesBase(MONAIPhysioBase):
         ...     def registration_method(self, moving_image, **kwargs):
         ...         # Implement specific registration algorithm
         ...         return {
-        ...             'forward_transform': tfm_forward,  # warps moving image -> fixed grid
-        ...             'inverse_transform': tfm_inverse,  # warps fixed image -> moving grid
+        ...             'fixed_to_moving_transform': tfm_f2m,  # warps moving image -> fixed grid
+        ...             'moving_to_fixed_transform': tfm_m2f,  # warps fixed image -> moving grid
         ...             'loss': 0.0,
         ...         }
         >>>
@@ -71,8 +71,8 @@ class RegisterImagesBase(MONAIPhysioBase):
         >>> registrar.set_modality('ct')
         >>> registrar.set_fixed_image(reference_image)
         >>> result = registrar.register(moving_image)
-        >>> forward_tfm = result['forward_transform']  # warps moving image -> fixed grid
-        >>> inverse_tfm = result['inverse_transform']  # warps fixed image -> moving grid
+        >>> f2m_tfm = result['fixed_to_moving_transform']  # warps moving image -> fixed grid
+        >>> m2f_tfm = result['moving_to_fixed_transform']  # warps fixed image -> moving grid
 
     See :class:`RegisterImagesChain` to combine multiple registrars into a
     multi-stage pipeline (e.g. a fast coarse registrar followed by a
@@ -113,8 +113,8 @@ class RegisterImagesBase(MONAIPhysioBase):
 
         self.fast_mode: bool = False
 
-        self.forward_transform: Optional[itk.Transform] = None
-        self.inverse_transform: Optional[itk.Transform] = None
+        self.fixed_to_moving_transform: Optional[itk.Transform] = None
+        self.moving_to_fixed_transform: Optional[itk.Transform] = None
         self.loss: Optional[float] = None
         self.moving_image_registered: Optional[itk.Image] = None
 
@@ -183,8 +183,8 @@ class RegisterImagesBase(MONAIPhysioBase):
         """
         self.fixed_image = fixed_image
         self.fixed_image_pre = None
-        self.forward_transform = None
-        self.inverse_transform = None
+        self.fixed_to_moving_transform = None
+        self.moving_to_fixed_transform = None
         self.loss = None
         self.moving_image_registered = None
 
@@ -214,8 +214,8 @@ class RegisterImagesBase(MONAIPhysioBase):
             >>> registrar.set_fixed_mask(heart_mask)
         """
         self.fixed_image_pre = None
-        self.forward_transform = None
-        self.inverse_transform = None
+        self.fixed_to_moving_transform = None
+        self.moving_to_fixed_transform = None
         self.loss = None
         self.moving_image_registered = None
 
@@ -239,8 +239,8 @@ class RegisterImagesBase(MONAIPhysioBase):
                 co-registered with the fixed image, or None to clear.
         """
         self.fixed_labelmap = fixed_labelmap
-        self.forward_transform = None
-        self.inverse_transform = None
+        self.fixed_to_moving_transform = None
+        self.moving_to_fixed_transform = None
         self.loss = None
         self.moving_image_registered = None
 
@@ -289,11 +289,12 @@ class RegisterImagesBase(MONAIPhysioBase):
 
         Returns:
             dict: Dictionary containing:
-                - "forward_transform": Warps the moving image onto the fixed
-                  grid. Warping moving points/landmarks into fixed space uses
-                  "inverse_transform" instead (see register() and
+                - "fixed_to_moving_transform": Warps the moving image onto the
+                  fixed grid. Warping moving points/landmarks into fixed space
+                  uses "moving_to_fixed_transform" instead (see register() and
                   docs/developer/transform_conventions).
-                - "inverse_transform": Warps the fixed image onto the moving grid
+                - "moving_to_fixed_transform": Warps the fixed image onto the
+                  moving grid
                 - "loss": Registration loss/metric value
 
         Raises:
@@ -325,10 +326,12 @@ class RegisterImagesBase(MONAIPhysioBase):
 
         Returns:
             dict: Dictionary containing transformation results:
-                - "forward_transform": Warps the moving IMAGE onto the fixed
-                  grid, i.e. transform_image(moving, forward_transform, fixed).
-                - "inverse_transform": Warps the fixed IMAGE onto the moving
-                  grid, i.e. transform_image(fixed, inverse_transform, moving).
+                - "fixed_to_moving_transform": Warps the moving IMAGE onto the
+                  fixed grid, i.e.
+                  transform_image(moving, fixed_to_moving_transform, fixed).
+                - "moving_to_fixed_transform": Warps the fixed IMAGE onto the
+                  moving grid, i.e.
+                  transform_image(fixed, moving_to_fixed_transform, moving).
                 - "loss": Registration loss/metric value
 
         Note:
@@ -337,10 +340,10 @@ class RegisterImagesBase(MONAIPhysioBase):
             fixed-grid sample to the moving image) while point transforms push
             forward (they map a point to its corresponding location):
 
-            - Warp the moving image into fixed space  -> forward_transform
-            - Warp moving points/landmarks into fixed  -> inverse_transform
-            - Warp the fixed image into moving space   -> inverse_transform
-            - Warp fixed points/landmarks into moving   -> forward_transform
+            - Warp the moving image into fixed space  -> fixed_to_moving_transform
+            - Warp moving points/landmarks into fixed  -> moving_to_fixed_transform
+            - Warp the fixed image into moving space   -> moving_to_fixed_transform
+            - Warp fixed points/landmarks into moving   -> fixed_to_moving_transform
 
             See docs/developer/transform_conventions for the full discussion.
 
@@ -348,8 +351,8 @@ class RegisterImagesBase(MONAIPhysioBase):
             NotImplementedError: This method must be implemented by subclasses
         """
         self.moving_image_registered = None
-        self.forward_transform = None
-        self.inverse_transform = None
+        self.fixed_to_moving_transform = None
+        self.moving_to_fixed_transform = None
         self.loss = None
 
         if self.fixed_image_pre is None:
@@ -383,19 +386,19 @@ class RegisterImagesBase(MONAIPhysioBase):
             moving_image_pre=moving_image_pre,
         )
 
-        self.forward_transform = result["forward_transform"]
-        self.inverse_transform = result["inverse_transform"]
+        self.fixed_to_moving_transform = result["fixed_to_moving_transform"]
+        self.moving_to_fixed_transform = result["moving_to_fixed_transform"]
         self.loss = result["loss"]
 
         return {
-            "forward_transform": self.forward_transform,
-            "inverse_transform": self.inverse_transform,
+            "fixed_to_moving_transform": self.fixed_to_moving_transform,
+            "moving_to_fixed_transform": self.moving_to_fixed_transform,
             "loss": self.loss,
         }
 
     def register_from(
         self,
-        initial_forward_transform: itk.Transform,
+        initial_fixed_to_moving_transform: itk.Transform,
         moving_image: itk.Image,
         moving_mask: Optional[itk.Image] = None,
         moving_labelmap: Optional[itk.Image] = None,
@@ -403,20 +406,20 @@ class RegisterImagesBase(MONAIPhysioBase):
         """Register starting from a known alignment.
 
         The moving data is warped onto the fixed grid by
-        ``initial_forward_transform`` first, :meth:`register` then measures only
-        the residual misalignment, and the two are composed. This is the single
-        supported way to seed a registration: doing it here rather than inside
-        each backend keeps the pre-warp, the composition and the inversion
-        identical for every algorithm.
+        ``initial_fixed_to_moving_transform`` first, :meth:`register` then
+        measures only the residual misalignment, and the two are composed.
+        This is the single supported way to seed a registration: doing it
+        here rather than inside each backend keeps the pre-warp, the
+        composition and the inversion identical for every algorithm.
 
         The image, the mask and the labelmap are all pre-warped, so they stay in
         the same frame as each other; the mask and labelmap use nearest-neighbor
         interpolation to preserve their discrete values.
 
         Args:
-            initial_forward_transform: Starting alignment, in the same
-                convention as the returned ``forward_transform`` -- it warps the
-                moving image onto the fixed grid.
+            initial_fixed_to_moving_transform: Starting alignment, in the same
+                convention as the returned ``fixed_to_moving_transform`` -- it
+                warps the moving image onto the fixed grid.
             moving_image: The 3D image to be registered to the fixed image.
             moving_mask: Binary mask for the moving image ROI.
             moving_labelmap: Multi-label segmentation for the moving image.
@@ -429,7 +432,10 @@ class RegisterImagesBase(MONAIPhysioBase):
             ValueError: If the fixed image has not been set.
         """
         warped_image, warped_mask, warped_labelmap = self._prewarp_moving(
-            initial_forward_transform, moving_image, moving_mask, moving_labelmap
+            initial_fixed_to_moving_transform,
+            moving_image,
+            moving_mask,
+            moving_labelmap,
         )
         result = self.register(
             warped_image,
@@ -437,7 +443,7 @@ class RegisterImagesBase(MONAIPhysioBase):
             moving_labelmap=warped_labelmap,
         )
         composed = self._compose_with_initial(
-            initial_forward_transform, result, moving_image
+            initial_fixed_to_moving_transform, result, moving_image
         )
 
         # register() left the pre-warped image on self; the composed transforms
@@ -446,14 +452,14 @@ class RegisterImagesBase(MONAIPhysioBase):
         self.moving_image = moving_image
         self.moving_image_registered = None
 
-        self.forward_transform = composed["forward_transform"]
-        self.inverse_transform = composed["inverse_transform"]
+        self.fixed_to_moving_transform = composed["fixed_to_moving_transform"]
+        self.moving_to_fixed_transform = composed["moving_to_fixed_transform"]
         self.loss = composed["loss"]
         return composed
 
     def _prewarp_moving(
         self,
-        initial_forward_transform: itk.Transform,
+        initial_fixed_to_moving_transform: itk.Transform,
         moving_image: itk.Image,
         moving_mask: Optional[itk.Image],
         moving_labelmap: Optional[itk.Image],
@@ -461,8 +467,8 @@ class RegisterImagesBase(MONAIPhysioBase):
         """Warp the moving image, mask and labelmap onto the fixed grid.
 
         Args:
-            initial_forward_transform: Alignment to apply, in the image-warp
-                convention.
+            initial_fixed_to_moving_transform: Alignment to apply, in the
+                image-warp convention.
             moving_image: Raw moving image.
             moving_mask: Moving mask, or None.
             moving_labelmap: Moving labelmap, or None.
@@ -493,7 +499,7 @@ class RegisterImagesBase(MONAIPhysioBase):
                 return None
             return transform_tools.transform_image(
                 image,
-                initial_forward_transform,
+                initial_fixed_to_moving_transform,
                 self.fixed_image,
                 interpolation_method="nearest" if nearest else "linear",
                 background_value=0.0 if nearest else background_value,
@@ -507,15 +513,15 @@ class RegisterImagesBase(MONAIPhysioBase):
 
     def _compose_with_initial(
         self,
-        initial_forward_transform: itk.Transform,
+        initial_fixed_to_moving_transform: itk.Transform,
         result: dict[str, Union[itk.Transform, float]],
         moving_image: itk.Image,
     ) -> dict[str, Union[itk.Transform, float]]:
         """Compose a residual registration result onto its initial transform.
 
         Args:
-            initial_forward_transform: The alignment the moving data was
-                pre-warped by.
+            initial_fixed_to_moving_transform: The alignment the moving data
+                was pre-warped by.
             result: Result of registering the pre-warped data.
             moving_image: Raw moving image, whose grid defines the domain the
                 initial transform is inverted over.
@@ -536,10 +542,13 @@ class RegisterImagesBase(MONAIPhysioBase):
         # which is what the image-warp direction needs: a fixed-grid sample is
         # mapped by the residual, then by the initial transform, to land in the
         # original moving image.
-        forward_transform = itk.CompositeTransform[itk.D, 3].New()
-        self._add_transform_flattened(forward_transform, initial_forward_transform)
+        fixed_to_moving_transform = itk.CompositeTransform[itk.D, 3].New()
         self._add_transform_flattened(
-            forward_transform, cast(itk.Transform, result["forward_transform"])
+            fixed_to_moving_transform, initial_fixed_to_moving_transform
+        )
+        self._add_transform_flattened(
+            fixed_to_moving_transform,
+            cast(itk.Transform, result["fixed_to_moving_transform"]),
         )
 
         # The inverse runs the other way -- a moving-grid sample is mapped by the
@@ -547,17 +556,18 @@ class RegisterImagesBase(MONAIPhysioBase):
         # residual's inverse into the fixed image -- so the additions are
         # reversed too.
         initial_inverse = transform_tools.invert_transform(
-            initial_forward_transform, moving_image
+            initial_fixed_to_moving_transform, moving_image
         )
-        inverse_transform = itk.CompositeTransform[itk.D, 3].New()
+        moving_to_fixed_transform = itk.CompositeTransform[itk.D, 3].New()
         self._add_transform_flattened(
-            inverse_transform, cast(itk.Transform, result["inverse_transform"])
+            moving_to_fixed_transform,
+            cast(itk.Transform, result["moving_to_fixed_transform"]),
         )
-        self._add_transform_flattened(inverse_transform, initial_inverse)
+        self._add_transform_flattened(moving_to_fixed_transform, initial_inverse)
 
         return {
-            "forward_transform": forward_transform,
-            "inverse_transform": inverse_transform,
+            "fixed_to_moving_transform": fixed_to_moving_transform,
+            "moving_to_fixed_transform": moving_to_fixed_transform,
             "loss": result["loss"],
         }
 
@@ -659,8 +669,12 @@ class RegisterImagesBase(MONAIPhysioBase):
                 ``result``.
             result: The dict returned by ``other.registration_method(...)``.
         """
-        other.forward_transform = cast(itk.Transform, result["forward_transform"])
-        other.inverse_transform = cast(itk.Transform, result["inverse_transform"])
+        other.fixed_to_moving_transform = cast(
+            itk.Transform, result["fixed_to_moving_transform"]
+        )
+        other.moving_to_fixed_transform = cast(
+            itk.Transform, result["moving_to_fixed_transform"]
+        )
         other.loss = cast(float, result["loss"])
         other.moving_image_registered = None
 
@@ -678,7 +692,7 @@ class RegisterImagesBase(MONAIPhysioBase):
             TfmTools = TransformTools()
             self.moving_image_registered = TfmTools.transform_image(
                 self.moving_image,
-                self.forward_transform,
+                self.fixed_to_moving_transform,
                 self.fixed_image,
                 background_value=self._prewarp_background_value(self.moving_image),
             )

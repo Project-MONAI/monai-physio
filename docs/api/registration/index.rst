@@ -22,8 +22,8 @@ Common Result Shape
 
 ``RegisterImagesANTS.register()`` and ``RegisterImagesICON.register()`` return:
 
-* ``forward_transform``
-* ``inverse_transform``
+* ``fixed_to_moving_transform``
+* ``moving_to_fixed_transform``
 * ``loss``
 
 Use :meth:`RegisterImagesBase.get_registered_image` after ``register()`` when a

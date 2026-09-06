@@ -53,14 +53,14 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         ...     register_reference=True,
         ... )
         >>>
-        >>> forward_tfms = result['forward_transforms']  # warp moving images -> fixed grid
-        >>> inverse_tfms = result['inverse_transforms']  # warp fixed image -> moving grids
+        >>> forward_tfms = result['fixed_to_moving_transforms']  # warp moving images -> fixed grid
+        >>> inverse_tfms = result['moving_to_fixed_transforms']  # warp fixed image -> moving grids
         >>> losses = result['losses']
         >>>
         >>> # Reconstruct time series with optional upsampling
         >>> reconstructed = registrar.reconstruct_time_series(
         ...     moving_images=time_series_images,
-        ...     inverse_transforms=inverse_tfms,
+        ...     moving_to_fixed_transforms=inverse_tfms,
         ...     upsample_to_fixed_resolution=True,
         ... )
     """
@@ -174,12 +174,12 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
 
         Returns:
             dict: Dictionary containing results:
-                - "forward_transforms" (list[itk.Transform]): one per image;
+                - "fixed_to_moving_transforms" (list[itk.Transform]): one per image;
                   each warps its moving image onto the fixed grid (warping
                   moving points/landmarks into fixed space uses the matching
                   inverse transform instead -- see
                   docs/developer/transform_conventions)
-                - "inverse_transforms" (list[itk.Transform]): one per image;
+                - "moving_to_fixed_transforms" (list[itk.Transform]): one per image;
                   each warps the fixed image onto that moving image's grid
                   (used by reconstruct_time_series)
                 - "losses" (list[float]): Registration loss value for each image
@@ -212,7 +212,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             >>>
             >>> # Access results using new intuitive names
             >>> for i, (forward_tfm, loss) in enumerate(
-            ...     zip(result['forward_transforms'], result['losses'])
+            ...     zip(result['fixed_to_moving_transforms'], result['losses'])
             ... ):
             ...     # Apply forward transform to align moving image i to fixed
             ...     registered = transform_tools.transform_image(
@@ -248,8 +248,8 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             )
 
         # Initialize result lists
-        forward_transforms: list[Optional[itk.Transform]] = [None] * num_images
-        inverse_transforms: list[Optional[itk.Transform]] = [None] * num_images
+        fixed_to_moving_transforms: list[Optional[itk.Transform]] = [None] * num_images
+        moving_to_fixed_transforms: list[Optional[itk.Transform]] = [None] * num_images
         losses = [0.0] * num_images
 
         # Create identity transform for fixed image
@@ -275,17 +275,17 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
                 moving_mask=reference_mask,
                 moving_labelmap=reference_labelmap,
             )
-            forward_transform = result["forward_transform"]
-            inverse_transform = result["inverse_transform"]
+            fixed_to_moving_transform = result["fixed_to_moving_transform"]
+            moving_to_fixed_transform = result["moving_to_fixed_transform"]
             loss = result["loss"]
         else:
             # Use identity transform for reference frame
-            forward_transform = identity_tfm
-            inverse_transform = identity_tfm
+            fixed_to_moving_transform = identity_tfm
+            moving_to_fixed_transform = identity_tfm
             loss = 0.0
 
-        forward_transforms[reference_frame] = forward_transform
-        inverse_transforms[reference_frame] = inverse_transform
+        fixed_to_moving_transforms[reference_frame] = fixed_to_moving_transform
+        moving_to_fixed_transforms[reference_frame] = moving_to_fixed_transform
         losses[reference_frame] = loss
 
         # Register every remaining frame; each is independent of the others.
@@ -304,24 +304,28 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
                 moving_labelmap=moving_labelmap,
             )
 
-            forward_transforms[img_idx] = result["forward_transform"]
-            inverse_transforms[img_idx] = result["inverse_transform"]
+            fixed_to_moving_transforms[img_idx] = result["fixed_to_moving_transform"]
+            moving_to_fixed_transforms[img_idx] = result["moving_to_fixed_transform"]
             losses[img_idx] = cast(float, result["loss"])
 
-        assert all(t is not None for t in forward_transforms)
-        assert all(t is not None for t in inverse_transforms)
+        assert all(t is not None for t in fixed_to_moving_transforms)
+        assert all(t is not None for t in moving_to_fixed_transforms)
         return {
-            "forward_transforms": [t for t in forward_transforms if t is not None],
-            "inverse_transforms": [t for t in inverse_transforms if t is not None],
+            "fixed_to_moving_transforms": [
+                t for t in fixed_to_moving_transforms if t is not None
+            ],
+            "moving_to_fixed_transforms": [
+                t for t in moving_to_fixed_transforms if t is not None
+            ],
             "losses": losses,
         }
 
     def reconstruct_time_series(
         self,
         moving_images: list[itk.Image],
-        inverse_transforms: list[itk.Transform],
+        moving_to_fixed_transforms: list[itk.Transform],
         upsample_to_fixed_resolution: bool = False,
-        forward_transforms: Optional[list[itk.Transform]] = None,
+        fixed_to_moving_transforms: Optional[list[itk.Transform]] = None,
         composite_mode: Literal["reference", "mean", "max"] = "reference",
     ) -> list[itk.Image]:
         """Reconstruct time series images using inverse transforms.
@@ -335,20 +339,20 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         warped back to each time point. When composite_mode is "mean" or
         "max", a single composite image is built first -- the pixel-by-pixel
         mean or max across the fixed image and every moving image warped onto
-        the fixed grid via forward_transforms -- and that composite is warped
+        the fixed grid via fixed_to_moving_transforms -- and that composite is warped
         back to each time point instead. This lets anatomy or contrast only
         visible in some frames propagate into every reconstructed time point.
 
         Args:
             moving_images (list[itk.Image]): List of moving images to reconstruct
-            inverse_transforms (list[itk.Transform]): List of inverse transforms
+            moving_to_fixed_transforms (list[itk.Transform]): List of inverse transforms
                 (one per moving image), each used to warp the fixed image onto
                 that moving image's grid
             upsample_to_fixed_resolution (bool, optional): If True, reconstructed
                 images will be upsampled to isotropic resolution (mean of fixed image's
                 X and Y spacing) while maintaining their original origin and direction.
                 Default: False
-            forward_transforms (list[itk.Transform], optional): List of forward
+            fixed_to_moving_transforms (list[itk.Transform], optional): List of forward
                 transforms (one per moving image), each used to warp that moving
                 image onto the fixed grid. Required when composite_mode is
                 "mean" or "max". Default: None
@@ -362,8 +366,8 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
 
         Raises:
             ValueError: If fixed_image is not set
-            ValueError: If lengths of moving_images and inverse_transforms don't match
-            ValueError: If composite_mode is "mean"/"max" and forward_transforms
+            ValueError: If lengths of moving_images and moving_to_fixed_transforms don't match
+            ValueError: If composite_mode is "mean"/"max" and fixed_to_moving_transforms
                 is not provided or its length doesn't match moving_images
 
         Example:
@@ -378,7 +382,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             >>>
             >>> reconstructed_images = registrar.reconstruct_time_series(
             ...     moving_images=time_series_images,
-            ...     inverse_transforms=result['inverse_transforms'],
+            ...     moving_to_fixed_transforms=result['moving_to_fixed_transforms'],
             ...     upsample_to_fixed_resolution=True,
             ... )
         """
@@ -387,25 +391,25 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
                 "Fixed image must be set before reconstructing time series"
             )
 
-        if len(moving_images) != len(inverse_transforms):
+        if len(moving_images) != len(moving_to_fixed_transforms):
             raise ValueError(
                 f"Number of moving images ({len(moving_images)}) must match "
-                f"number of inverse transforms ({len(inverse_transforms)})"
+                f"number of inverse transforms ({len(moving_to_fixed_transforms)})"
             )
 
         if composite_mode == "reference":
             source_image = self.fixed_image
         elif composite_mode in ("mean", "max"):
-            if forward_transforms is None or len(forward_transforms) != len(
-                moving_images
-            ):
+            if fixed_to_moving_transforms is None or len(
+                fixed_to_moving_transforms
+            ) != len(moving_images):
                 raise ValueError(
-                    "forward_transforms must be provided and match "
+                    "fixed_to_moving_transforms must be provided and match "
                     "moving_images length when composite_mode is "
                     f"{composite_mode!r}"
                 )
             source_image = self._compute_composite_reference(
-                moving_images, forward_transforms, composite_mode
+                moving_images, fixed_to_moving_transforms, composite_mode
             )
         else:
             raise ValueError(
@@ -415,7 +419,9 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
 
         reconstructed_images: list[itk.Image] = []
 
-        for moving_image, inverse_transform in zip(moving_images, inverse_transforms):
+        for moving_image, moving_to_fixed_transform in zip(
+            moving_images, moving_to_fixed_transforms
+        ):
             if upsample_to_fixed_resolution:
                 # Create a reference image with isotropic spacing (mean of fixed image's
                 # X and Y spacing) and moving image's origin and direction
@@ -431,7 +437,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             # modality's "no tissue" value, not 0.
             reconstructed = self.transform_tools.transform_image(
                 source_image,
-                inverse_transform,
+                moving_to_fixed_transform,
                 reference_image,
                 background_value=self._prewarp_background_value(source_image),
             )
@@ -442,13 +448,13 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
     def _compute_composite_reference(
         self,
         moving_images: list[itk.Image],
-        forward_transforms: list[itk.Transform],
+        fixed_to_moving_transforms: list[itk.Transform],
         mode: Literal["mean", "max"],
     ) -> itk.Image:
         """Build a composite reference image from the fixed image and moving images.
 
         Warps every moving image onto the fixed grid using its
-        forward_transform, then combines those registered images with the
+        fixed_to_moving_transform, then combines those registered images with the
         fixed image pixel-by-pixel using the given reduction. Moving images
         whose extent does not fully cover the fixed grid contribute only
         where they actually have data -- voxels resampled from outside a
@@ -458,7 +464,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
 
         Args:
             moving_images (list[itk.Image]): Moving images to warp and combine
-            forward_transforms (list[itk.Transform]): One forward transform per
+            fixed_to_moving_transforms (list[itk.Transform]): One forward transform per
                 moving image, warping it onto the fixed grid
             mode (Literal["mean", "max"]): Pixel-wise reduction to apply
 
@@ -479,10 +485,12 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         if mode == "mean":
             valid_count = np.ones_like(accumulator)
 
-        for moving_image, forward_transform in zip(moving_images, forward_transforms):
+        for moving_image, fixed_to_moving_transform in zip(
+            moving_images, fixed_to_moving_transforms
+        ):
             registered = self.transform_tools.transform_image(
                 moving_image,
-                forward_transform,
+                fixed_to_moving_transform,
                 self.fixed_image,
                 background_value=self._prewarp_background_value(moving_image),
             )
@@ -493,7 +501,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             coverage_image.CopyInformation(moving_image)
             registered_coverage = self.transform_tools.transform_image(
                 coverage_image,
-                forward_transform,
+                fixed_to_moving_transform,
                 self.fixed_image,
                 interpolation_method="nearest",
                 background_value=0,
@@ -592,7 +600,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
                 computes its own preprocessing from the raw moving_image
 
         Returns:
-            dict: Registration result with forward_transform, inverse_transform, and loss
+            dict: Registration result with fixed_to_moving_transform, moving_to_fixed_transform, and loss
         """
         self._delegate_to(self.registrar, moving_image, moving_mask, moving_labelmap)
         result = self.registrar.registration_method(
@@ -603,7 +611,11 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         )
         self._capture_delegate_result(self.registrar, result)
         return {
-            "forward_transform": cast(itk.Transform, result["forward_transform"]),
-            "inverse_transform": cast(itk.Transform, result["inverse_transform"]),
+            "fixed_to_moving_transform": cast(
+                itk.Transform, result["fixed_to_moving_transform"]
+            ),
+            "moving_to_fixed_transform": cast(
+                itk.Transform, result["moving_to_fixed_transform"]
+            ),
             "loss": float(cast(float, result["loss"])),
         }

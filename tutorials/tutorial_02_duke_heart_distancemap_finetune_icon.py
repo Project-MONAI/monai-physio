@@ -347,7 +347,7 @@ if __name__ == "__main__":
     def landmark_errors(transform: itk.Transform) -> np.ndarray:
         """Distance from each mapped fixed landmark to its moving counterpart.
 
-        ``forward_transform`` is the resampling transform: it maps points on the
+        ``fixed_to_moving_transform`` is the resampling transform: it maps points on the
         fixed grid back into moving space, which is the direction the landmark
         correspondences are defined in.
         """
@@ -433,7 +433,7 @@ if __name__ == "__main__":
 
         labelmaps[method_name] = transform_tools.transform_image(
             moving_labelmap,
-            result["forward_transform"],
+            result["fixed_to_moving_transform"],
             fixed_labelmap,
             interpolation_method="nearest",
         )
@@ -442,7 +442,9 @@ if __name__ == "__main__":
                 "method": method_name,
                 "weights": str(method_weights) if method_weights else "-",
                 "registration_time_s": elapsed_s,
-                **landmark_metrics(landmark_errors(result["forward_transform"])),
+                **landmark_metrics(
+                    landmark_errors(result["fixed_to_moving_transform"])
+                ),
                 **overlap_metrics(labelmaps[method_name]),
             }
         )

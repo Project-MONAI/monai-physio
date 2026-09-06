@@ -133,7 +133,7 @@ class WorkflowCreateStatisticalModel(MONAIPhysioBase):
         self.sample_models: list[pv.DataSet] = []
         self.sample_ids: list[str] = []
         self.aligned_models: list[pv.DataSet] = []
-        self.forward_transforms: list = []
+        self.fixed_to_moving_transforms: list = []
         self.pca_input_models: list[pv.DataSet] = []
         self.pca_input_residual_rms: list[float] = []
         self.pca_fitted: Optional[PCA] = None
@@ -210,7 +210,7 @@ class WorkflowCreateStatisticalModel(MONAIPhysioBase):
         self.log_section("Step 2: ICP alignment to reference surface", width=70)
         assert self.reference_model is not None and self.sample_models
         self.aligned_models = []
-        self.forward_transforms = []
+        self.fixed_to_moving_transforms = []
 
         reference_surface = self.contour_tools.extract_surface(self.reference_model)
         for i, (sid, moving) in enumerate(zip(self.sample_ids, self.sample_models)):
@@ -230,11 +230,11 @@ class WorkflowCreateStatisticalModel(MONAIPhysioBase):
             else:
                 aligned_model = self.contour_tools.transform_contours(
                     cast(pv.PolyData, moving),
-                    tfm=result["forward_point_transform"],
+                    tfm=result["moving_to_fixed_transform"],
                     with_deformation_magnitude=False,
                 )
             self.aligned_models.append(aligned_model)
-            self.forward_transforms.append(result["forward_point_transform"])
+            self.fixed_to_moving_transforms.append(result["moving_to_fixed_transform"])
         self.log_info("ICP alignment complete for %d samples", len(self.aligned_models))
 
     def _step3_deformable_correspondence(self) -> None:
@@ -256,7 +256,7 @@ class WorkflowCreateStatisticalModel(MONAIPhysioBase):
             buffer_factor=self.reference_buffer_factor,
             ptype=itk.UC,
         )
-        self.forward_transforms = []
+        self.fixed_to_moving_transforms = []
 
         for i, (sid, moving) in enumerate(zip(self.sample_ids, self.aligned_models)):
             self.log_info(
@@ -278,25 +278,25 @@ class WorkflowCreateStatisticalModel(MONAIPhysioBase):
                 transform_type="Deformable",
             )
 
-            # Only the forward transform is kept.  Each one owns dense
-            # full-grid displacement fields, and holding the inverse as well
-            # doubled the cost of a population for a value nothing read.
-            self.forward_transforms.append(result["forward_transform"])
+            # Only the fixed_to_moving transform is kept.  Each one owns dense
+            # full-grid displacement fields, and holding the moving_to_fixed
+            # one as well doubled the cost of a population for a value
+            # nothing read.
+            self.fixed_to_moving_transforms.append(result["fixed_to_moving_transform"])
 
         # aligned_models stays the ICP-aligned input: step 4 measures the
         # corresponded shapes against it.
         self.log_info(
             "Deformable registration complete for %d samples",
-            len(self.forward_transforms),
+            len(self.fixed_to_moving_transforms),
         )
 
     def _step4_build_pca_inputs(self) -> None:
         """Build corresponded shapes in reference space (notebook 4).
 
-        For each case, reference_model is warped by forward (image) deformation
-        (= inverse point) transform from step 3, so that we get reference topology
-        in ICP-aligned space with residual deformation per subject to be used as PCA
-        input.
+        For each case, reference_model is warped by the fixed_to_moving_transform
+        from step 3, so that we get reference topology in ICP-aligned space with
+        residual deformation per subject to be used as PCA input.
 
         The warped template only approximates its subject: the deformable
         registration always stops short of it, and because that shortfall is
@@ -310,7 +310,7 @@ class WorkflowCreateStatisticalModel(MONAIPhysioBase):
         well the registration landed.
         """
         self.log_section("Step 4: Build PCA inputs (corresponded shapes)", width=70)
-        assert self.reference_model is not None and self.forward_transforms
+        assert self.reference_model is not None and self.fixed_to_moving_transforms
         project = self.project_to_measured_surfaces
         if project and not self.solve_for_surface_pca:
             # The PCA inputs are volume meshes here, so snapping their interior
@@ -324,7 +324,7 @@ class WorkflowCreateStatisticalModel(MONAIPhysioBase):
         self.pca_input_models = []
         self.pca_input_residual_rms = []
         for sid, fwd_tfm, aligned in zip(
-            self.sample_ids, self.forward_transforms, self.aligned_models
+            self.sample_ids, self.fixed_to_moving_transforms, self.aligned_models
         ):
             pca_input_model = self.contour_tools.transform_contours(
                 cast(pv.PolyData, self.reference_model),

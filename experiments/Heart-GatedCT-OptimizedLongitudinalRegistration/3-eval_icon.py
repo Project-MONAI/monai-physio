@@ -283,17 +283,17 @@ for subject_id in test_subjects:
 
         for index in range(len(image_files)):
             timepoint = timepoints[index]
-            forward_transform = result["forward_transforms"][index]
-            inverse_transform = result["inverse_transforms"][index]
+            fixed_to_moving_transform = result["fixed_to_moving_transforms"][index]
+            moving_to_fixed_transform = result["moving_to_fixed_transforms"][index]
             loss = float(result["losses"][index])
 
             itk.transformwrite(
-                forward_transform,
+                fixed_to_moving_transform,
                 str(method_dir / f"{subject_id}_g{timepoint}_forward_tfm.hdf"),
                 compression=True,
             )
             itk.transformwrite(
-                inverse_transform,
+                moving_to_fixed_transform,
                 str(method_dir / f"{subject_id}_g{timepoint}_inverse_tfm.hdf"),
                 compression=True,
             )
@@ -303,7 +303,9 @@ for subject_id in test_subjects:
             shared = sorted(timepoint_landmarks.keys() & fixed_landmarks.keys())
             errors = []
             for name in shared:
-                warped = inverse_transform.TransformPoint(timepoint_landmarks[name])
+                warped = moving_to_fixed_transform.TransformPoint(
+                    timepoint_landmarks[name]
+                )
                 err = float(
                     np.linalg.norm(
                         np.asarray(warped, dtype=np.float64)
@@ -341,7 +343,7 @@ for subject_id in test_subjects:
             # precomputed landmarks.
             warped_ref = transform_tools.transform_image(
                 fixed_image,
-                inverse_transform,
+                moving_to_fixed_transform,
                 moving_images[index],
                 interpolation_method="linear",
             )
@@ -452,7 +454,7 @@ print("=" * len(header))
 # ## 7. Per-method aggregate table: warped-reference landmark errors
 #
 # Compares landmarks extracted from the reference image warped back to each
-# time-point's grid (via ``inverse_transform``) against that time-point's own
+# time-point's grid (via ``moving_to_fixed_transform``) against that time-point's own
 # precomputed landmarks.  Both sets are in the moving (time-point) image space,
 # so errors are Euclidean distances without any additional transform.
 

@@ -109,12 +109,12 @@ def per_label_dice(
 
 
 def warp_landmarks(
-    inverse_transform: itk.Transform,
+    moving_to_fixed_transform: itk.Transform,
     moving_landmarks: dict[str, tuple[float, float, float]],
 ) -> dict[str, tuple[float, float, float]]:
     """Warp every moving landmark into reference space.
 
-    Point/landmark warping uses ``inverse_transform`` -- the moving-space ->
+    Point/landmark warping uses ``moving_to_fixed_transform`` -- the moving-space ->
     fixed-space point map -- which is the opposite of the transform used to
     warp the moving image onto the fixed grid (images pull back; points push
     forward). Returns a ``{label: (x, y, z)}`` dict in LPS. See
@@ -122,7 +122,7 @@ def warp_landmarks(
     """
     new_landmarks = {}
     for name, point in moving_landmarks.items():
-        new_point = inverse_transform.TransformPoint(np.array(point))
+        new_point = moving_to_fixed_transform.TransformPoint(np.array(point))
         new_landmarks[name] = tuple(np.array(new_point).tolist())
     return new_landmarks
 
@@ -492,26 +492,26 @@ for subject_index, subject_id in enumerate(cohort):
                 time_elapsed = time.perf_counter() - time_start
                 print(f"   ...finished registration in {time_elapsed:.1f}s")
 
-                forward_transform = reg_result["forward_transform"]
-                inverse_transform = reg_result["inverse_transform"]
+                fixed_to_moving_transform = reg_result["fixed_to_moving_transform"]
+                moving_to_fixed_transform = reg_result["moving_to_fixed_transform"]
                 loss = float(reg_result["loss"])
 
                 print(f"Writing results to {method_dir / f'{stem}_init_*.*'}")
 
                 itk.transformwrite(
-                    forward_transform,
+                    fixed_to_moving_transform,
                     str(method_dir / f"{stem}_init_fwd.hdf"),
                     compression=True,
                 )
                 itk.transformwrite(
-                    inverse_transform,
+                    moving_to_fixed_transform,
                     str(method_dir / f"{stem}_init_inv.hdf"),
                     compression=True,
                 )
 
                 warped_image = transform_tools.transform_image(
                     moving_image,
-                    forward_transform,
+                    fixed_to_moving_transform,
                     fixed_image,
                     interpolation_method="linear",
                 )
@@ -525,7 +525,7 @@ for subject_index, subject_id in enumerate(cohort):
                 if fixed_labelmap is not None and moving_labelmap is not None:
                     warped_labelmap = transform_tools.transform_image(
                         moving_labelmap,
-                        forward_transform,
+                        fixed_to_moving_transform,
                         fixed_labelmap,
                         interpolation_method="nearest",
                     )
@@ -557,7 +557,7 @@ for subject_index, subject_id in enumerate(cohort):
                 if fixed_mask is not None and moving_mask is not None:
                     warped_mask = transform_tools.transform_image(
                         moving_mask,
-                        forward_transform,
+                        fixed_to_moving_transform,
                         fixed_mask,
                         interpolation_method="nearest",
                     )
@@ -572,7 +572,7 @@ for subject_index, subject_id in enumerate(cohort):
                     # Landmarks live in LPS world space, unaffected by cropping, so
                     # the uncropped moving_landmarks are warped here.
                     warped_landmarks = warp_landmarks(
-                        inverse_transform, moving_landmarks
+                        moving_to_fixed_transform, moving_landmarks
                     )
                     landmark_tools.write_landmarks_3dslicer(
                         warped_landmarks,

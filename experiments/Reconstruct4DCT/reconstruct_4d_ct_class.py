@@ -161,8 +161,8 @@ for method_idx, registration_method_name in enumerate(registration_method_names)
         prior_weight=portion_of_prior_transform_to_init_next_transform,
     )
 
-    forward_transforms = result["forward_transforms"]
-    inverse_transforms = result["inverse_transforms"]
+    fixed_to_moving_transforms = result["fixed_to_moving_transforms"]
+    moving_to_fixed_transforms = result["moving_to_fixed_transforms"]
     losses = result["losses"]
 
     print(f"\n{registration_method_name.upper()} registration complete!")
@@ -175,7 +175,7 @@ for method_idx, registration_method_name in enumerate(registration_method_names)
     print("  Reconstructing time series in fixed image space...")
     reconstructed_images = registrar.reconstruct_time_series(
         moving_images=images,
-        inverse_transforms=inverse_transforms,
+        moving_to_fixed_transforms=moving_to_fixed_transforms,
         upsample_to_fixed_resolution=True,
     )
 
@@ -193,7 +193,7 @@ for method_idx, registration_method_name in enumerate(registration_method_names)
         # Also save forward-transformed images (moving to fixed using forward transform)
         # This shows the moving image aligned to fixed space
         reg_image = tfm_tools.transform_image(
-            images[i], forward_transforms[i], fixed_image
+            images[i], fixed_to_moving_transforms[i], fixed_image
         )
         out_file = os.path.join(
             _RESULTS_DIR,
@@ -203,7 +203,7 @@ for method_idx, registration_method_name in enumerate(registration_method_names)
 
         # Save transforms
         itk.transformwrite(
-            forward_transforms[i],
+            fixed_to_moving_transforms[i],
             os.path.join(
                 _RESULTS_DIR,
                 f"slice_{registration_method_name}_forward_{img_indx:03d}.hdf",
@@ -211,7 +211,7 @@ for method_idx, registration_method_name in enumerate(registration_method_names)
             compression=True,
         )
         itk.transformwrite(
-            inverse_transforms[i],
+            moving_to_fixed_transforms[i],
             os.path.join(
                 _RESULTS_DIR,
                 f"slice_{registration_method_name}_inverse_{img_indx:03d}.hdf",
@@ -238,7 +238,7 @@ for method_idx, registration_method_name in enumerate(registration_method_names)
         # Transform grid with inverse transform (FM)
         inverse_grid_image = tfm_tools.transform_image(
             grid_image,
-            inverse_transforms[i],
+            moving_to_fixed_transforms[i],
             fixed_image,
         )
         itk.imwrite(
@@ -251,13 +251,15 @@ for method_idx, registration_method_name in enumerate(registration_method_names)
         )
 
         # Save displacement field as image
-        inverse_transform_image = tfm_tools.convert_transform_to_displacement_field(
-            inverse_transforms[i],
-            fixed_image,
-            np_component_type=np.float32,
+        moving_to_fixed_transform_image = (
+            tfm_tools.convert_transform_to_displacement_field(
+                moving_to_fixed_transforms[i],
+                fixed_image,
+                np_component_type=np.float32,
+            )
         )
         itk.imwrite(
-            inverse_transform_image,
+            moving_to_fixed_transform_image,
             os.path.join(
                 _RESULTS_DIR,
                 f"slice_{registration_method_name}_inverse_{img_indx:03d}_field.mha",

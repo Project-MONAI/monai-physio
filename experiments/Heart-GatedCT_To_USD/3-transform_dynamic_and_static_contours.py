@@ -36,11 +36,11 @@ if __name__ == "__main__":
     ):
         con = ContourTools()
         for i, transform_filename in zip(frame_indices, transform_filenames):
-            forward_transform = itk.transformread(transform_filename)[0]
+            fixed_to_moving_transform = itk.transformread(transform_filename)[0]
             print(f"Applying transform {transform_filename} to {base_name}")
 
             new_contours = con.transform_contours(
-                contours, forward_transform, with_deformation_magnitude=True
+                contours, fixed_to_moving_transform, with_deformation_magnitude=True
             )
             new_contours.save(
                 os.path.join(

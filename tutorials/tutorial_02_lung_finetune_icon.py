@@ -273,7 +273,7 @@ if __name__ == "__main__":
     def landmark_errors(transform: itk.Transform) -> np.ndarray:
         """Distance from each mapped fixed landmark to its moving counterpart.
 
-        ``forward_transform`` is the resampling transform: it maps points on the
+        ``fixed_to_moving_transform`` is the resampling transform: it maps points on the
         fixed grid back into moving space, which is the direction the landmark
         correspondences are defined in.
         """
@@ -444,16 +444,18 @@ if __name__ == "__main__":
         result = registrar.register(moving_image)
         elapsed_s = time.perf_counter() - start_time
 
-        composed_errors = landmark_errors(result["forward_transform"])
+        composed_errors = landmark_errors(result["fixed_to_moving_transform"])
         chain_diagnostics = dict(empty_chain_diagnostics)
         if chain is not None:
             # RegisterImagesChain mirrors each stage's own result onto the
-            # sub-registrar before composing, so chain.greedy.forward_transform
-            # is the stage-only Greedy result and chain.icon.forward_transform
+            # sub-registrar before composing, so chain.greedy.fixed_to_moving_transform
+            # is the stage-only Greedy result and chain.icon.fixed_to_moving_transform
             # is the residual ICON added on top of it.  Both are exact
             # transforms, scored the same way as every other row.
-            greedy_stage_errors = landmark_errors(chain.greedy.forward_transform)
-            icon_stage_transform: itk.Transform = chain.icon.forward_transform
+            greedy_stage_errors = landmark_errors(
+                chain.greedy.fixed_to_moving_transform
+            )
+            icon_stage_transform: itk.Transform = chain.icon.fixed_to_moving_transform
             residual_mm = np.array(
                 [
                     np.linalg.norm(
@@ -477,7 +479,7 @@ if __name__ == "__main__":
 
             # The Greedy stage is identical across the sweep, so score it once.
             if greedy_stage_transform is None:
-                greedy_stage_transform = chain.greedy.forward_transform
+                greedy_stage_transform = chain.greedy.fixed_to_moving_transform
                 stage_image, stage_labelmap = warp_moving(greedy_stage_transform)
                 registered_images["greedy_icon_stage0"] = stage_image
                 labelmaps["greedy_icon_stage0"] = stage_labelmap
@@ -494,7 +496,7 @@ if __name__ == "__main__":
                 )
 
         registered_images[method_name], labelmaps[method_name] = warp_moving(
-            result["forward_transform"]
+            result["fixed_to_moving_transform"]
         )
         rows.append(
             {

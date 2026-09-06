@@ -35,7 +35,7 @@ Example:
     >>>
     >>> # Access results
     >>> aligned_model = result['registered_model']
-    >>> forward_point_transform = result['forward_point_transform']  # Moving to fixed
+    >>> moving_to_fixed_transform = result['moving_to_fixed_transform']  # Moving to fixed
         # transform
 """
 
@@ -70,23 +70,20 @@ class RegisterModelsICP(MONAIPhysioBase):
         whose transform has no scale degree of freedom.
 
     **Transform Convention:**
-        These are POINT transforms (applied with TransformPoint, e.g. via
-        TransformTools.transform_pvcontour), so their orientation is opposite to
-        the image-registration transforms (see
-        docs/developer/transform_conventions):
+        These are POINT transforms, applied with TransformPoint (e.g. via
+        TransformTools.transform_pvcontour); see
+        docs/developer/transform_conventions:
 
-        - forward_point_transform: maps moving points -> fixed points; use it to
-          warp the moving model/landmarks onto the fixed model. This is the
-          inverse of the transform that would warp the moving IMAGE onto the
-          fixed grid.
-        - inverse_point_transform: maps fixed points -> moving points.
+        - moving_to_fixed_transform: maps moving points -> fixed points; use it to
+          warp the moving model/landmarks onto the fixed model.
+        - fixed_to_moving_transform: maps fixed points -> moving points.
 
     Attributes:
         moving_model (pv.PolyData): Surface model to be aligned
         fixed_model (pv.PolyData): Target surface model
         transform_tools (TransformTools): Transform utility instance
-        forward_point_transform (itk.AffineTransform): Optimized moving→fixed transform
-        inverse_point_transform (itk.AffineTransform): Optimized fixed→moving transform
+        moving_to_fixed_transform (itk.AffineTransform): Optimized moving→fixed transform
+        fixed_to_moving_transform (itk.AffineTransform): Optimized fixed→moving transform
         registered_model (pv.PolyData): Aligned moving model
 
     Example:
@@ -109,7 +106,7 @@ class RegisterModelsICP(MONAIPhysioBase):
         >>>
         >>> # Get aligned model and transforms
         >>> aligned_model = result['registered_model']
-        >>> forward_point_transform = result['forward_point_transform']
+        >>> moving_to_fixed_transform = result['moving_to_fixed_transform']
     """
 
     def __init__(
@@ -138,8 +135,8 @@ class RegisterModelsICP(MONAIPhysioBase):
         self.transform_tools = TransformTools()
 
         # Registration results
-        self.forward_point_transform: Optional[itk.AffineTransform] = None
-        self.inverse_point_transform: Optional[itk.AffineTransform] = None
+        self.moving_to_fixed_transform: Optional[itk.AffineTransform] = None
+        self.fixed_to_moving_transform: Optional[itk.AffineTransform] = None
         self.registered_model: Optional[pv.PolyData] = None
 
     # ICP stages run for each transform type, in order.
@@ -292,9 +289,9 @@ class RegisterModelsICP(MONAIPhysioBase):
         Returns:
             Dictionary containing:
                 - 'registered_model': Aligned moving model (PyVista PolyData)
-                - 'forward_point_transform': Moving→fixed transform
+                - 'moving_to_fixed_transform': Moving→fixed transform
                     (ITK AffineTransform)
-                - 'inverse_point_transform': Fixed→moving transform
+                - 'fixed_to_moving_transform': Fixed→moving transform
                     (ITK AffineTransform)
 
         Raises:
@@ -344,14 +341,14 @@ class RegisterModelsICP(MONAIPhysioBase):
         self.log_info("Translating by %s to align centroids...", translation)
 
         # Create ITK affine transform with translation
-        forward_point_transform = itk.AffineTransform[itk.D, 3].New()
-        forward_point_transform.SetIdentity()
-        forward_point_transform.SetOffset(translation)
+        moving_to_fixed_transform = itk.AffineTransform[itk.D, 3].New()
+        moving_to_fixed_transform.SetIdentity()
+        moving_to_fixed_transform.SetOffset(translation)
 
         # Apply centroid alignment to model
         registered_model = self.transform_tools.transform_pvcontour(
             registered_model,
-            forward_point_transform,
+            moving_to_fixed_transform,
             with_deformation_magnitude=False,
         )
 
@@ -371,7 +368,7 @@ class RegisterModelsICP(MONAIPhysioBase):
                 scale,
             )
             scale_transform = self._scale_transform(scale, fixed_centroid)
-            forward_point_transform.Compose(scale_transform)
+            moving_to_fixed_transform.Compose(scale_transform)
             registered_model = self.transform_tools.transform_pvcontour(
                 registered_model,
                 scale_transform,
@@ -391,21 +388,21 @@ class RegisterModelsICP(MONAIPhysioBase):
             registered_model, stage_transform = self._icp_stage(
                 registered_model, stage, max_iterations
             )
-            forward_point_transform.Compose(stage_transform)
+            moving_to_fixed_transform.Compose(stage_transform)
             self.log_debug("Center after %s ICP: %s", stage, registered_model.center)
 
         # Compute inverse transform
         # Ths forward transform for ICP is consistent with the transform convention
         # used with images-to-images registration.
         self.registered_model = registered_model
-        self.forward_point_transform = forward_point_transform
-        self.inverse_point_transform = forward_point_transform.GetInverseTransform()
+        self.moving_to_fixed_transform = moving_to_fixed_transform
+        self.fixed_to_moving_transform = moving_to_fixed_transform.GetInverseTransform()
 
         self.log_info("%s ICP registration complete!", transform_type.upper())
 
         # Return results as dictionary
         return {
             "registered_model": self.registered_model,
-            "forward_point_transform": self.forward_point_transform,
-            "inverse_point_transform": self.inverse_point_transform,
+            "moving_to_fixed_transform": self.moving_to_fixed_transform,
+            "fixed_to_moving_transform": self.fixed_to_moving_transform,
         }

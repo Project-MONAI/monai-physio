@@ -41,7 +41,7 @@ def test_transform_model_applies_staged_transform() -> None:
     transform = itk.AffineTransform[itk.D, 3].New()
     transform.SetIdentity()
     transform.SetTranslation((1.0, 2.0, 3.0))
-    workflow.icp_forward_point_transform = transform
+    workflow.icp_moving_to_fixed_transform = transform
     workflow.pca_coefficients = None
     workflow.use_l2l_registration = False
     workflow.use_l2i_registration = False
@@ -167,7 +167,7 @@ def test_transform_model_preserves_unstructured_grid_topology() -> None:
     transform = itk.AffineTransform[itk.D, 3].New()
     transform.SetIdentity()
     transform.SetTranslation((1.0, 2.0, 3.0))
-    workflow.icp_forward_point_transform = transform
+    workflow.icp_moving_to_fixed_transform = transform
     workflow.pca_coefficients = None
     workflow.use_l2l_registration = False
     workflow.use_l2i_registration = False

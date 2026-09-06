@@ -101,10 +101,10 @@ if __name__ == "__main__":
         reg.set_fixed_mask(None)
         results = reg.register(moving_image)
         print(f"  Done registering whole image for slice {i:03d}.")
-        inverse_transform = results["inverse_transform"]
-        forward_transform = results["forward_transform"]
+        moving_to_fixed_transform = results["moving_to_fixed_transform"]
+        fixed_to_moving_transform = results["fixed_to_moving_transform"]
         moving_image_reg = TransformTools().transform_image(
-            moving_image, forward_transform, fixed_image, "sinc"
+            moving_image, fixed_to_moving_transform, fixed_image, "sinc"
         )  # Final resampling with sinc
         itk.imwrite(
             moving_image_reg,
@@ -112,12 +112,12 @@ if __name__ == "__main__":
             compression=True,
         )
         itk.transformwrite(
-            [forward_transform],
+            [fixed_to_moving_transform],
             str(output_dir / f"slice_{i:03d}.reg_all.forward.hdf"),
             compression=True,
         )
         itk.transformwrite(
-            [inverse_transform],
+            [moving_to_fixed_transform],
             str(output_dir / f"slice_{i:03d}.reg_all.inverse.hdf"),
             compression=True,
         )
@@ -134,10 +134,10 @@ if __name__ == "__main__":
         reg.set_fixed_mask(fixed_image_dynamic_anatomy_mask)
         results = reg.register(moving_image, moving_image_dynamic_anatomy_mask)
         print(f"  Done registering dynamic anatomy mask for slice {i:03d}.")
-        inverse_transform = results["inverse_transform"]
-        forward_transform = results["forward_transform"]
+        moving_to_fixed_transform = results["moving_to_fixed_transform"]
+        fixed_to_moving_transform = results["fixed_to_moving_transform"]
         moving_image_reg_dynamic_anatomy = TransformTools().transform_image(
-            moving_image, forward_transform, fixed_image, "sinc"
+            moving_image, fixed_to_moving_transform, fixed_image, "sinc"
         )  # Final resampling with sinc
         itk.imwrite(
             moving_image_dynamic_anatomy_mask,
@@ -150,12 +150,12 @@ if __name__ == "__main__":
             compression=True,
         )
         itk.transformwrite(
-            [forward_transform],
+            [fixed_to_moving_transform],
             str(output_dir / f"slice_{i:03d}.reg_dynamic_anatomy.forward.hdf"),
             compression=True,
         )
         itk.transformwrite(
-            [inverse_transform],
+            [moving_to_fixed_transform],
             str(output_dir / f"slice_{i:03d}.reg_dynamic_anatomy.inverse.hdf"),
             compression=True,
         )
@@ -173,10 +173,10 @@ if __name__ == "__main__":
         reg.set_fixed_mask(fixed_image_static_mask)
         results = reg.register(moving_image, moving_image_static_mask)
         print(f"  Done registering static anatomy mask for slice {i:03d}.")
-        inverse_transform = results["inverse_transform"]
-        forward_transform = results["forward_transform"]
+        moving_to_fixed_transform = results["moving_to_fixed_transform"]
+        fixed_to_moving_transform = results["fixed_to_moving_transform"]
         moving_image_reg_static = TransformTools().transform_image(
-            moving_image, forward_transform, fixed_image, "sinc"
+            moving_image, fixed_to_moving_transform, fixed_image, "sinc"
         )  # Final resampling with sinc
         itk.imwrite(
             moving_image_static_mask,
@@ -189,12 +189,12 @@ if __name__ == "__main__":
             compression=True,
         )
         itk.transformwrite(
-            [forward_transform],
+            [fixed_to_moving_transform],
             str(output_dir / f"slice_{i:03d}.reg_static_anatomy.forward.hdf"),
             compression=True,
         )
         itk.transformwrite(
-            [inverse_transform],
+            [moving_to_fixed_transform],
             str(output_dir / f"slice_{i:03d}.reg_static_anatomy.inverse.hdf"),
             compression=True,
         )

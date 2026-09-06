@@ -95,8 +95,8 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         number_of_pca_components (int): Number of PCA components when PCA enabled
         labelmap_interior_object_ids (list): List of labelmap IDs corresponding to interior objects that should
             not be used when computing a distance map.
-        icp_forward_point_transform : ICP transforms
-        icp_inverse_point_transform : ICP inverse transforms
+        icp_moving_to_fixed_transform : ICP transforms
+        icp_fixed_to_moving_transform : ICP inverse transforms
         icp_template_model_surface: template model surface after ICP alignment
         icp_template_model: template model (UnstructuredGrid) after ICP alignment
         pca_coefficients: PCA shape coefficients (if PCA used)
@@ -104,12 +104,12 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             (if PCA used)
         pca_template_model_surface: template model surface after PCA registration (if
             PCA used)
-        l2l_forward_transform: Labelmap-to-labelmap forward transform
-        l2l_inverse_transform: Labelmap-to-labelmap inverse transform
+        l2l_fixed_to_moving_transform: Labelmap-to-labelmap fixed-to-moving transform
+        l2l_moving_to_fixed_transform: Labelmap-to-labelmap moving-to-fixed transform
         l2l_template_model_surface: template model surface after labelmap-to-labelmap
             registration
-        l2i_forward_transform: Labelmap-to-image forward transform
-        l2i_inverse_transform: Labelmap-to-image inverse transform
+        l2i_fixed_to_moving_transform: Labelmap-to-image fixed-to-moving transform
+        l2i_moving_to_fixed_transform: Labelmap-to-image moving-to-fixed transform
         l2i_template_model_surface: template model surface after labelmap-to-image
             registration
         l2i_template_labelmap: template labelmap after labelmap-to-image registration
@@ -263,8 +263,8 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
 
         # Stage 1: ICP alignment results
         self.icp_registrar: Optional[RegisterModelsICP] = None
-        self.icp_inverse_point_transform: Optional[itk.Transform] = None
-        self.icp_forward_point_transform: Optional[itk.Transform] = None
+        self.icp_fixed_to_moving_transform: Optional[itk.Transform] = None
+        self.icp_moving_to_fixed_transform: Optional[itk.Transform] = None
         self.icp_template_model: Optional[pv.DataSet] = None
         self.icp_template_model_surface: Optional[pv.PolyData] = None
         self.icp_template_labelmap: Optional[itk.Image] = None
@@ -272,8 +272,8 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         # Stage 1.5: PCA registration results (optional; enable via set_use_pca_registration(True, pca_model, number_of_pca_components))
         self.use_pca_registration = False
         self.pca_registrar: Optional[RegisterModelsPCA] = None
-        self.pca_forward_point_transform: Optional[itk.Transform] = None
-        self.pca_inverse_point_transform: Optional[itk.Transform] = None
+        self.pca_moving_to_fixed_transform: Optional[itk.Transform] = None
+        self.pca_fixed_to_moving_transform: Optional[itk.Transform] = None
         self.pca_model: Optional[dict[str, Any]] = None
         self.number_of_pca_components: int = 0
         self.pca_coefficients: Optional[np.ndarray] = None
@@ -284,15 +284,15 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
 
         # Stage 2: Labelmap-to-labelmap registration results
         self.use_l2l_registration = True
-        self.l2l_inverse_transform: Optional[itk.Transform] = None
-        self.l2l_forward_transform: Optional[itk.Transform] = None
+        self.l2l_moving_to_fixed_transform: Optional[itk.Transform] = None
+        self.l2l_fixed_to_moving_transform: Optional[itk.Transform] = None
         self.l2l_template_model_surface: Optional[pv.PolyData] = None
         self.l2l_template_labelmap: Optional[itk.Image] = None
 
         # Stage 3: Labelmap-to-image registration results (disabled by default; enable via set_use_labelmap_to_image_registration(True, template_labelmap, ...))
         self.use_l2i_registration = False
-        self.l2i_inverse_transform: Optional[itk.Transform] = None
-        self.l2i_forward_transform: Optional[itk.Transform] = None
+        self.l2i_moving_to_fixed_transform: Optional[itk.Transform] = None
+        self.l2i_fixed_to_moving_transform: Optional[itk.Transform] = None
         self.l2i_template_model_surface: Optional[pv.PolyData] = None
         self.l2i_template_labelmap: Optional[itk.Image] = None
 
@@ -521,8 +521,10 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
 
         Returns:
             dict: Dictionary containing:
-                - 'forward_transform': used to warp an image from model to patient space
-                - 'inverse_transform': used to warp an image from patient to model space
+                - 'fixed_to_moving_transform': used to warp an image from
+                  model to patient space
+                - 'moving_to_fixed_transform': used to warp an image from
+                  patient to model space
                 - 'fitted_reference_mesh': Transformed model model surface
         """
         self.log_section("Stage 1: ICP Alignment (RegisterModelsICP)", width=70)
@@ -539,19 +541,19 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
 
         # Store results
         # Note: Point transforms are in opposite direction from image transforms
-        self.icp_forward_point_transform = icp_result["forward_point_transform"]
-        self.icp_inverse_point_transform = icp_result["inverse_point_transform"]
+        self.icp_moving_to_fixed_transform = icp_result["moving_to_fixed_transform"]
+        self.icp_fixed_to_moving_transform = icp_result["fixed_to_moving_transform"]
         self.icp_template_model_surface = icp_result["registered_model"]
 
         self.icp_template_model = self._transform_model_dataset(
             self.template_model,
-            self.icp_forward_point_transform,
+            self.icp_moving_to_fixed_transform,
         )
 
         if self.template_labelmap is not None:
             self.icp_template_labelmap = self.transform_tools.transform_image(
                 self.template_labelmap,
-                self.icp_inverse_point_transform,
+                self.icp_fixed_to_moving_transform,
                 self.patient_image,
                 interpolation_method="nearest",
             )
@@ -565,8 +567,8 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         self.fitted_reference_labelmap = self.icp_template_labelmap
 
         return {
-            "inverse_point_transform": self.icp_inverse_point_transform,
-            "forward_point_transform": self.icp_forward_point_transform,
+            "fixed_to_moving_transform": self.icp_fixed_to_moving_transform,
+            "moving_to_fixed_transform": self.icp_moving_to_fixed_transform,
             "fitted_reference_model": self.icp_template_model,
             "fitted_reference_mesh": self.icp_template_model_surface,
             "fitted_reference_labelmap": self.icp_template_labelmap,
@@ -582,10 +584,10 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
 
         Returns:
             dict: Dictionary containing:
-                - 'forward_point_transform': DisplacementFieldTransform mapping
+                - 'moving_to_fixed_transform': DisplacementFieldTransform mapping
                   un-aligned template points to their PCA-deformed positions.
                   It excludes the ICP alignment, which is applied separately.
-                - 'inverse_point_transform': its inverse
+                - 'fixed_to_moving_transform': its inverse
                 - 'pca_coefficients': PCA shape coefficients
                 - 'fitted_reference_mesh': PCA-registered model surface
 
@@ -603,15 +605,15 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             self.pca_template_labelmap = self.icp_template_labelmap
             identity_transform = itk.CenteredAffineTransform[itk.D, 3].New()
             identity_transform.SetIdentity()
-            self.pca_forward_point_transform = identity_transform
-            self.pca_inverse_point_transform = identity_transform
+            self.pca_moving_to_fixed_transform = identity_transform
+            self.pca_fixed_to_moving_transform = identity_transform
             return {
                 "pca_coefficients": None,
                 "fitted_reference_model": self.pca_template_model,
                 "fitted_reference_mesh": self.pca_template_model_surface,
                 "fitted_reference_labelmap": self.pca_template_labelmap,
-                "forward_point_transform": self.pca_forward_point_transform,
-                "inverse_point_transform": self.pca_inverse_point_transform,
+                "moving_to_fixed_transform": self.pca_moving_to_fixed_transform,
+                "fixed_to_moving_transform": self.pca_fixed_to_moving_transform,
             }
 
         # PCA modes are directions in the statistical model's own training
@@ -644,7 +646,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             pca_template_model=pca_template_model,
             pca_model=self.pca_model,
             pca_number_of_modes=self.number_of_pca_components,
-            post_pca_transform=self.icp_forward_point_transform,
+            post_pca_transform=self.icp_moving_to_fixed_transform,
             fixed_model=fixed_model,
             fixed_distance_map=fixed_distance_map,
             reference_image=self.patient_image,
@@ -673,11 +675,11 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         pca_transforms = self.pca_registrar.compute_pca_transforms(
             reference_image=pca_field_reference_image,
         )
-        self.pca_forward_point_transform = pca_transforms["forward_point_transform"]
-        self.pca_inverse_point_transform = pca_transforms["inverse_point_transform"]
+        self.pca_moving_to_fixed_transform = pca_transforms["moving_to_fixed_transform"]
+        self.pca_fixed_to_moving_transform = pca_transforms["fixed_to_moving_transform"]
 
         if self.log_level == logging.DEBUG:
-            tfm_field = self.pca_forward_point_transform.GetDisplacementField()
+            tfm_field = self.pca_moving_to_fixed_transform.GetDisplacementField()
             tfm_arr = itk.GetArrayFromImage(tfm_field)
             tfm_x_arr = tfm_arr[:, :, :, 0]
             tfm_y_arr = tfm_arr[:, :, :, 1]
@@ -690,19 +692,19 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             tfm_z_img.CopyInformation(tfm_field)
 
         if self.use_surface:
-            # forward_point_transform excludes the post-PCA step and is defined
+            # moving_to_fixed_transform excludes the post-PCA step and is defined
             # in the un-aligned template frame, so warp the raw volumetric
             # template with it and then apply the ICP alignment.
-            assert self.icp_forward_point_transform is not None, (
+            assert self.icp_moving_to_fixed_transform is not None, (
                 "ICP forward transform must be set"
             )
             deformed_template_model = self._transform_model_dataset(
                 self.template_model,
-                self.pca_forward_point_transform,
+                self.pca_moving_to_fixed_transform,
             )
             self.pca_template_model = self._transform_model_dataset(
                 deformed_template_model,
-                self.icp_forward_point_transform,
+                self.icp_moving_to_fixed_transform,
             )
         else:
             self.pca_template_model = registered_model
@@ -719,12 +721,12 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             # applies its transforms in reverse order of addition, so the ICP
             # inverse is added last. Resampling the raw template labelmap in one
             # step also avoids a second round of nearest-neighbor sampling.
-            assert self.icp_inverse_point_transform is not None, (
+            assert self.icp_fixed_to_moving_transform is not None, (
                 "ICP inverse transform must be set"
             )
             pca_image_transform = itk.CompositeTransform[itk.D, 3].New()
-            pca_image_transform.AddTransform(self.pca_inverse_point_transform)
-            pca_image_transform.AddTransform(self.icp_inverse_point_transform)
+            pca_image_transform.AddTransform(self.pca_fixed_to_moving_transform)
+            pca_image_transform.AddTransform(self.icp_fixed_to_moving_transform)
             self.pca_template_labelmap = self.transform_tools.transform_image(
                 self.template_labelmap,
                 pca_image_transform,
@@ -740,8 +742,8 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
 
         return {
             "pca_coefficients": self.pca_coefficients,
-            "forward_point_transform": self.pca_forward_point_transform,
-            "inverse_point_transform": self.pca_inverse_point_transform,
+            "moving_to_fixed_transform": self.pca_moving_to_fixed_transform,
+            "fixed_to_moving_transform": self.pca_fixed_to_moving_transform,
             "fitted_reference_model": self.pca_template_model,
             "fitted_reference_mesh": self.pca_template_model_surface,
             "fitted_reference_labelmap": self.pca_template_labelmap,
@@ -755,8 +757,8 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
 
         Returns:
             dict: Dictionary containing:
-                - 'forward_transform': template to patient space transform
-                - 'inverse_transform': patient to template space transform
+                - 'fixed_to_moving_transform': template to patient space transform
+                - 'moving_to_fixed_transform': patient to template space transform
                 - 'fitted_reference_mesh': Transformed template model surface
                 - 'fitted_reference_labelmap': Transformed template labelmap
         """
@@ -801,8 +803,8 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         )
 
         # Store results
-        self.l2l_forward_transform = l2l_result["forward_transform"]
-        self.l2l_inverse_transform = l2l_result["inverse_transform"]
+        self.l2l_fixed_to_moving_transform = l2l_result["fixed_to_moving_transform"]
+        self.l2l_moving_to_fixed_transform = l2l_result["moving_to_fixed_transform"]
         self.l2l_template_model_surface = l2l_result["registered_model"]
 
         self.fitted_reference_mesh = self.l2l_template_model_surface
@@ -810,7 +812,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         if self.pca_template_labelmap is not None:
             self.l2l_template_labelmap = self.transform_tools.transform_image(
                 self.pca_template_labelmap,
-                self.l2l_forward_transform,
+                self.l2l_fixed_to_moving_transform,
                 self.patient_image,
                 interpolation_method="nearest",
             )
@@ -822,8 +824,8 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         self.log_info("Stage 3 complete: Labelmap-to-labelmap registration finished.")
 
         return {
-            "forward_transform": self.l2l_forward_transform,
-            "inverse_transform": self.l2l_inverse_transform,
+            "fixed_to_moving_transform": self.l2l_fixed_to_moving_transform,
+            "moving_to_fixed_transform": self.l2l_moving_to_fixed_transform,
             "fitted_reference_mesh": self.l2l_template_model_surface,
             "fitted_reference_labelmap": self.l2l_template_labelmap,
         }
@@ -838,8 +840,8 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
 
         Returns:
             dict: Dictionary containing:
-                - 'inverse_transform': patient to template space transform
-                - 'forward_transform': template to patient space transform
+                - 'moving_to_fixed_transform': patient to template space transform
+                - 'fixed_to_moving_transform': template to patient space transform
                 - 'fitted_reference_mesh': Transformed template model surface
                 - 'fitted_reference_labelmap': Transformed template labelmap
         """
@@ -910,8 +912,8 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         result = self.registrar_Greedy.register(
             moving_image=template_labelmap, moving_mask=template_mask
         )
-        self.l2i_inverse_transform = result["inverse_transform"]
-        self.l2i_forward_transform = result["forward_transform"]
+        self.l2i_moving_to_fixed_transform = result["moving_to_fixed_transform"]
+        self.l2i_fixed_to_moving_transform = result["fixed_to_moving_transform"]
 
         if use_ICON_refinement:
             # Configure Icon registration
@@ -920,12 +922,12 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
 
             # Perform Icon registration, refining the alignment found so far
             result = self.registrar_ICON.register_from(
-                self.l2i_forward_transform,
+                self.l2i_fixed_to_moving_transform,
                 template_labelmap,
                 moving_mask=template_mask,
             )
-            self.l2i_inverse_transform = result["inverse_transform"]
-            self.l2i_forward_transform = result["forward_transform"]
+            self.l2i_moving_to_fixed_transform = result["moving_to_fixed_transform"]
+            self.l2i_fixed_to_moving_transform = result["fixed_to_moving_transform"]
 
         # Transform model with result - use the best available pre-L2I surface.
         source_surface = (
@@ -942,14 +944,14 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             pv.PolyData,
             self._transform_model_dataset(
                 source_surface,
-                self.l2i_inverse_transform,
+                self.l2i_moving_to_fixed_transform,
                 with_deformation_magnitude=True,
             ),
         )
 
         self.l2i_template_labelmap = self.transform_tools.transform_image(
             propagated_labelmap,
-            self.l2i_forward_transform,
+            self.l2i_fixed_to_moving_transform,
             self.patient_image,
             interpolation_method="nearest",
         )
@@ -961,8 +963,8 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         self.fitted_reference_labelmap = self.l2i_template_labelmap
 
         return {
-            "inverse_transform": self.l2i_inverse_transform,
-            "forward_transform": self.l2i_forward_transform,
+            "moving_to_fixed_transform": self.l2i_moving_to_fixed_transform,
+            "fixed_to_moving_transform": self.l2i_fixed_to_moving_transform,
             "fitted_reference_mesh": self.l2i_template_model_surface,
             "fitted_reference_labelmap": self.l2i_template_labelmap,
         }
@@ -999,8 +1001,8 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             # applied again here.
             assert self.pca_registrar is not None, "PCA registrar must be set"
             pca_transform = (
-                self.pca_forward_point_transform
-                or self.pca_registrar.forward_point_transform
+                self.pca_moving_to_fixed_transform
+                or self.pca_registrar.moving_to_fixed_transform
             )
             if pca_transform is not None:
                 transform_steps.append(("PCA", pca_transform))
@@ -1008,12 +1010,16 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
                 transform_steps.append(
                     ("PCA post-transform", self.pca_registrar.post_pca_transform)
                 )
-        elif self.icp_forward_point_transform is not None:
-            transform_steps.append(("ICP", self.icp_forward_point_transform))
-        if self.use_l2l_registration and self.l2l_inverse_transform is not None:
-            transform_steps.append(("Labelmap-to-labelmap", self.l2l_inverse_transform))
-        if self.use_l2i_registration and self.l2i_inverse_transform is not None:
-            transform_steps.append(("Labelmap-to-image", self.l2i_inverse_transform))
+        elif self.icp_moving_to_fixed_transform is not None:
+            transform_steps.append(("ICP", self.icp_moving_to_fixed_transform))
+        if self.use_l2l_registration and self.l2l_moving_to_fixed_transform is not None:
+            transform_steps.append(
+                ("Labelmap-to-labelmap", self.l2l_moving_to_fixed_transform)
+            )
+        if self.use_l2i_registration and self.l2i_moving_to_fixed_transform is not None:
+            transform_steps.append(
+                ("Labelmap-to-image", self.l2i_moving_to_fixed_transform)
+            )
 
         for i, (name, tfm) in enumerate(transform_steps, start=1):
             self.log_progress(i, len(transform_steps), prefix=f"Applying {name}")

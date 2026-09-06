@@ -75,7 +75,7 @@ class RegisterImagesANTS(RegisterImagesBase):
         >>> registrar.set_transform_type('Affine')
         >>> registrar.set_metric('Mattes')
         >>> result = registrar.register(moving_image)
-        >>> inverse_transform = result['inverse_transform']
+        >>> moving_to_fixed_transform = result['moving_to_fixed_transform']
     """
 
     def __init__(self, log_level: int | str = logging.INFO):
@@ -536,12 +536,12 @@ class RegisterImagesANTS(RegisterImagesBase):
 
         Returns:
             dict: Dictionary containing:
-                - "forward_transform": Warps the moving image onto the fixed
+                - "fixed_to_moving_transform": Warps the moving image onto the fixed
                   grid (warping moving points/landmarks into fixed space uses
-                  "inverse_transform" instead -- image and point warps use
+                  "moving_to_fixed_transform" instead -- image and point warps use
                   opposite transforms; see
                   docs/developer/transform_conventions)
-                - "inverse_transform": Warps the fixed image onto the moving grid
+                - "moving_to_fixed_transform": Warps the fixed image onto the moving grid
                 - "loss": Loss value from the registration
 
         Note:
@@ -562,8 +562,8 @@ class RegisterImagesANTS(RegisterImagesBase):
         Example:
             >>> # Basic registration
             >>> result = registrar.register(moving_image)
-            >>> inverse_transform = result['inverse_transform']
-            >>> forward_transform = result['forward_transform']
+            >>> moving_to_fixed_transform = result['moving_to_fixed_transform']
+            >>> fixed_to_moving_transform = result['fixed_to_moving_transform']
             >>>
             >>> # Masked registration for cardiac structures
             >>> registrar.set_fixed_mask(heart_mask_fixed)
@@ -686,8 +686,8 @@ class RegisterImagesANTS(RegisterImagesBase):
             reference_image=self.moving_image,
         )
 
-        forward_transform = forward_reg
-        inverse_transform = inverse_reg
+        fixed_to_moving_transform = forward_reg
+        moving_to_fixed_transform = inverse_reg
         moving_image_reg = registration_result["warpedmovout"]
         loss = ants.image_similarity(
             self._itk_to_ants_image(self.fixed_image),
@@ -695,7 +695,7 @@ class RegisterImagesANTS(RegisterImagesBase):
         )
 
         return {
-            "forward_transform": forward_transform,
-            "inverse_transform": inverse_transform,
+            "fixed_to_moving_transform": fixed_to_moving_transform,
+            "moving_to_fixed_transform": moving_to_fixed_transform,
             "loss": loss,
         }

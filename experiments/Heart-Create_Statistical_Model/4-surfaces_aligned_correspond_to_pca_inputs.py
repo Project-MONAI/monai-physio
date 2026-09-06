@@ -23,7 +23,7 @@ contour_tools = ContourTools()
 template_mesh = pv.read(_HERE / "kcl-heart-model/average_surface.vtp")
 
 # Find all VTK/VTP files in correspondence directory
-tfm_filenames = sorted(correspond_dir.glob("??.forward_transform.hdf"))
+tfm_filenames = sorted(correspond_dir.glob("??.fixed_to_moving_transform.hdf"))
 # Since we are transforming points, we use the forward transform to effect an inverse transform
 
 print(f"Found {len(tfm_filenames)} files in {correspond_dir}/")

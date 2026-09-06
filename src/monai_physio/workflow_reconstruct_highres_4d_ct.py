@@ -69,9 +69,9 @@ class WorkflowReconstructHighres4DCT(MONAIPhysioBase):
             reference image as-is, or a pixel-by-pixel mean/max composite of
             the reference image and all registered time-series images
         registrar (RegisterTimeSeriesImages): Internal registration object
-        forward_transforms (list[itk.Transform]): one per frame; each warps its
+        fixed_to_moving_transforms (list[itk.Transform]): one per frame; each warps its
             moving image onto the reference grid
-        inverse_transforms (list[itk.Transform]): one per frame; each warps the
+        moving_to_fixed_transforms (list[itk.Transform]): one per frame; each warps the
             reference image onto that frame's moving grid (used for reconstruction)
         losses (list[float]): Registration loss values
         reconstructed_images (list[itk.Image]): Reconstructed high-resolution images
@@ -86,7 +86,7 @@ class WorkflowReconstructHighres4DCT(MONAIPhysioBase):
         >>>
         >>> # Access results
         >>> reconstructed = result['reconstructed_images']
-        >>> transforms = result['forward_transforms']
+        >>> transforms = result['fixed_to_moving_transforms']
         >>> losses = result['losses']
     """
 
@@ -167,8 +167,8 @@ class WorkflowReconstructHighres4DCT(MONAIPhysioBase):
         )
 
         # Results storage
-        self.forward_transforms: Optional[list[itk.Transform]] = None
-        self.inverse_transforms: Optional[list[itk.Transform]] = None
+        self.fixed_to_moving_transforms: Optional[list[itk.Transform]] = None
+        self.moving_to_fixed_transforms: Optional[list[itk.Transform]] = None
         self.losses: Optional[list[float]] = None
         self.reconstructed_images: Optional[list[itk.Image]] = None
 
@@ -226,9 +226,9 @@ class WorkflowReconstructHighres4DCT(MONAIPhysioBase):
 
         Returns:
             dict: Dictionary containing:
-                - 'forward_transforms' (list[itk.Transform]): one per frame;
+                - 'fixed_to_moving_transforms' (list[itk.Transform]): one per frame;
                   each warps its moving image onto the reference grid
-                - 'inverse_transforms' (list[itk.Transform]): one per frame;
+                - 'moving_to_fixed_transforms' (list[itk.Transform]): one per frame;
                   each warps the reference image onto that frame's moving grid
                   (see docs/developer/transform_conventions)
                 - 'losses' (list[float]): Registration loss value for each image
@@ -263,8 +263,8 @@ class WorkflowReconstructHighres4DCT(MONAIPhysioBase):
         )
 
         # Store results
-        self.forward_transforms = result["forward_transforms"]
-        self.inverse_transforms = result["inverse_transforms"]
+        self.fixed_to_moving_transforms = result["fixed_to_moving_transforms"]
+        self.moving_to_fixed_transforms = result["moving_to_fixed_transforms"]
         self.losses = result["losses"]
 
         self.log_info("Stage 1 complete: Time series registration finished.")
@@ -273,8 +273,8 @@ class WorkflowReconstructHighres4DCT(MONAIPhysioBase):
         self.log_info(f"  Max loss: {max(self.losses):.6f}")
 
         return {
-            "forward_transforms": self.forward_transforms,
-            "inverse_transforms": self.inverse_transforms,
+            "fixed_to_moving_transforms": self.fixed_to_moving_transforms,
+            "moving_to_fixed_transforms": self.moving_to_fixed_transforms,
             "losses": self.losses,
         }
 
@@ -327,11 +327,11 @@ class WorkflowReconstructHighres4DCT(MONAIPhysioBase):
 
         Raises:
             RuntimeError: If reconstruction fails
-            ValueError: If inverse_transforms is not set (call register_time_series first)
+            ValueError: If moving_to_fixed_transforms is not set (call register_time_series first)
         """
-        if self.inverse_transforms is None:
+        if self.moving_to_fixed_transforms is None:
             raise ValueError(
-                "inverse_transforms not set. Call register_time_series() first."
+                "moving_to_fixed_transforms not set. Call register_time_series() first."
             )
 
         self.log_section(
@@ -346,9 +346,9 @@ class WorkflowReconstructHighres4DCT(MONAIPhysioBase):
         # Reconstruct time series
         self.reconstructed_images = self.registrar.reconstruct_time_series(
             moving_images=self.time_series_images,
-            inverse_transforms=self.inverse_transforms,
+            moving_to_fixed_transforms=self.moving_to_fixed_transforms,
             upsample_to_fixed_resolution=self.upsample_to_fixed_resolution,
-            forward_transforms=self.forward_transforms,
+            fixed_to_moving_transforms=self.fixed_to_moving_transforms,
             composite_mode=self.composite_mode,
         )
 
@@ -372,8 +372,8 @@ class WorkflowReconstructHighres4DCT(MONAIPhysioBase):
 
         Returns:
             dict: Dictionary containing all results:
-                - 'forward_transforms' (list[itk.Transform]): Registration transforms
-                - 'inverse_transforms' (list[itk.Transform]): Inverse transforms
+                - 'fixed_to_moving_transforms' (list[itk.Transform]): Registration transforms
+                - 'moving_to_fixed_transforms' (list[itk.Transform]): Inverse transforms
                 - 'losses' (list[float]): Registration loss values
                 - 'reconstructed_images' (list[itk.Image]): Reconstructed high-res images
 
@@ -407,8 +407,8 @@ class WorkflowReconstructHighres4DCT(MONAIPhysioBase):
         )
 
         return {
-            "forward_transforms": self.forward_transforms,
-            "inverse_transforms": self.inverse_transforms,
+            "fixed_to_moving_transforms": self.fixed_to_moving_transforms,
+            "moving_to_fixed_transforms": self.moving_to_fixed_transforms,
             "losses": self.losses,
             "reconstructed_images": self.reconstructed_images,
         }

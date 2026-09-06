@@ -274,19 +274,21 @@ if __name__ == "__main__":
                 compression=True,
             )
 
-            forward_transform = reg_result["forward_transforms"][phase_index]
+            fixed_to_moving_transform = reg_result["fixed_to_moving_transforms"][
+                phase_index
+            ]
             itk.transformwrite(
-                forward_transform,
+                fixed_to_moving_transform,
                 str(case_output_dir / f"{case_id}_{phase_id}_forward_tfm.hdf"),
             )
             itk.transformwrite(
-                reg_result["inverse_transforms"][phase_index],
+                reg_result["moving_to_fixed_transforms"][phase_index],
                 str(case_output_dir / f"{case_id}_{phase_id}_inverse_tfm.hdf"),
             )
 
             surface = transform_tools.transform_pvcontour(
                 fitted_reference_mesh,
-                forward_transform,
+                fixed_to_moving_transform,
                 with_deformation_magnitude=True,
             )
             surface_file = case_output_dir / f"{case_id}_{phase_id}_ssm_surface.vtp"

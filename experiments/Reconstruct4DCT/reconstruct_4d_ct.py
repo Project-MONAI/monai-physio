@@ -55,11 +55,11 @@ def register_slices(
     tfm_tools = TransformTools()
 
     img = images[reference_image_num]
-    forward_transform = None
-    inverse_transform = None
+    fixed_to_moving_transform = None
+    moving_to_fixed_transform = None
     results = None
     reg_image = None
-    prior_forward_transform = None
+    prior_fixed_to_moving_transform = None
 
     reference_image = images[reference_image_num]
     reference_image_indx = files_indx[reference_image_num]
@@ -73,37 +73,47 @@ def register_slices(
         print(
             f"Registering reference slice {reference_image_indx} using identify transform"
         )
-        forward_transform = identity_tfm
-        inverse_transform = identity_tfm
+        fixed_to_moving_transform = identity_tfm
+        moving_to_fixed_transform = identity_tfm
         if portion_of_prior_to_use > 0.0:
-            prior_forward_transform = identity_tfm
+            prior_fixed_to_moving_transform = identity_tfm
         reg_image = img
         reg_image_inv = fixed_image
     else:
         print(f"Registering reference slice {reference_image_indx} to reference image.")
         results = reg_tool.register(img)
-        forward_transform = results["forward_transform"]
-        inverse_transform = results["inverse_transform"]
+        fixed_to_moving_transform = results["fixed_to_moving_transform"]
+        moving_to_fixed_transform = results["moving_to_fixed_transform"]
         if portion_of_prior_to_use > 0.0:
-            prior_forward_transform = tfm_tools.combine_displacement_field_transforms(
-                identity_tfm,
-                forward_transform,
-                reference_image,
-                tfm1_weight=1.0,
-                tfm2_weight=portion_of_prior_to_use,
-                tfm1_blur_sigma=0.0,
-                tfm2_blur_sigma=0.5,
-                mode="add",
+            prior_fixed_to_moving_transform = (
+                tfm_tools.combine_displacement_field_transforms(
+                    identity_tfm,
+                    fixed_to_moving_transform,
+                    reference_image,
+                    tfm1_weight=1.0,
+                    tfm2_weight=portion_of_prior_to_use,
+                    tfm1_blur_sigma=0.0,
+                    tfm2_blur_sigma=0.5,
+                    mode="add",
+                )
             )
-        reg_image = tfm_tools.transform_image(img, forward_transform, fixed_image)
-        reg_image_inv = tfm_tools.transform_image(fixed_image, inverse_transform, img)
+        reg_image = tfm_tools.transform_image(
+            img, fixed_to_moving_transform, fixed_image
+        )
+        reg_image_inv = tfm_tools.transform_image(
+            fixed_image, moving_to_fixed_transform, img
+        )
 
     num_images = len(images)
 
-    forward_transform_arr = [itk.Transform[itk.D, 3].New() for _ in range(num_images)]
-    inverse_transform_arr = [itk.Transform[itk.D, 3].New() for _ in range(num_images)]
-    forward_transform_arr[reference_image_num] = forward_transform
-    inverse_transform_arr[reference_image_num] = inverse_transform
+    fixed_to_moving_transform_arr = [
+        itk.Transform[itk.D, 3].New() for _ in range(num_images)
+    ]
+    moving_to_fixed_transform_arr = [
+        itk.Transform[itk.D, 3].New() for _ in range(num_images)
+    ]
+    fixed_to_moving_transform_arr[reference_image_num] = fixed_to_moving_transform
+    moving_to_fixed_transform_arr[reference_image_num] = moving_to_fixed_transform
 
     debug_mode = True
 
@@ -121,7 +131,7 @@ def register_slices(
         itk.imwrite(reg_image_inv, out_file, compression=True)
 
         itk.transformwrite(
-            forward_transform,
+            fixed_to_moving_transform,
             os.path.join(
                 _RESULTS_DIR,
                 f"slice_{reg_tool_name}_forward_{reference_image_indx:03d}.hdf",
@@ -129,7 +139,7 @@ def register_slices(
             compression=True,
         )
         itk.transformwrite(
-            inverse_transform,
+            moving_to_fixed_transform,
             os.path.join(
                 _RESULTS_DIR,
                 f"slice_{reg_tool_name}_inverse_{reference_image_indx:03d}.hdf",
@@ -137,7 +147,7 @@ def register_slices(
             compression=True,
         )
 
-    prior_forward_transform_ref = prior_forward_transform
+    prior_fixed_to_moving_transform_ref = prior_fixed_to_moving_transform
 
     for step_i in [1, -1]:
         start_i = 0
@@ -149,7 +159,7 @@ def register_slices(
             start_i = reference_image_num + 1
             end_i = num_files
 
-        prior_forward_transform = prior_forward_transform_ref
+        prior_fixed_to_moving_transform = prior_fixed_to_moving_transform_ref
 
         if start_i != end_i:
             print(
@@ -163,8 +173,12 @@ def register_slices(
             # Try identity as initial transform
             print("     Trying init with identity.")
             results_init_identity = reg_tool.register(img)
-            inverse_tranform_init_identity = results_init_identity["inverse_transform"]
-            forward_transform_init_identity = results_init_identity["forward_transform"]
+            inverse_tranform_init_identity = results_init_identity[
+                "moving_to_fixed_transform"
+            ]
+            fixed_to_moving_transform_init_identity = results_init_identity[
+                "fixed_to_moving_transform"
+            ]
             loss_init_identity = results_init_identity["loss"]
             print("        Final loss:", results_init_identity["loss"])
 
@@ -172,27 +186,31 @@ def register_slices(
                 # Try with prior transform
                 print("     Trying with init prior.")
                 results_init_prior = reg_tool.register_from(
-                    prior_forward_transform, img
+                    prior_fixed_to_moving_transform, img
                 )
-                inverse_transform_init_prior = results_init_prior["inverse_transform"]
-                forward_transform_init_prior = results_init_prior["forward_transform"]
+                moving_to_fixed_transform_init_prior = results_init_prior[
+                    "moving_to_fixed_transform"
+                ]
+                fixed_to_moving_transform_init_prior = results_init_prior[
+                    "fixed_to_moving_transform"
+                ]
                 loss_init_prior = results_init_prior["loss"]
                 print("        Final loss:", results_init_prior["loss"])
 
                 if loss_init_identity < loss_init_prior:
                     print("     Using identity.")
-                    prior_forward_transform = identity_tfm
-                    inverse_transform = inverse_tranform_init_identity
-                    forward_transform = forward_transform_init_identity
+                    prior_fixed_to_moving_transform = identity_tfm
+                    moving_to_fixed_transform = inverse_tranform_init_identity
+                    fixed_to_moving_transform = fixed_to_moving_transform_init_identity
                 else:
                     print("     Using prior.")
-                    inverse_transform = inverse_transform_init_prior
-                    forward_transform = forward_transform_init_prior
+                    moving_to_fixed_transform = moving_to_fixed_transform_init_prior
+                    fixed_to_moving_transform = fixed_to_moving_transform_init_prior
 
-                prior_forward_transform = (
+                prior_fixed_to_moving_transform = (
                     tfm_tools.combine_displacement_field_transforms(
                         identity_tfm,
-                        forward_transform,
+                        fixed_to_moving_transform,
                         reference_image,
                         tfm1_weight=1.0,
                         tfm2_weight=portion_of_prior_to_use,
@@ -202,15 +220,15 @@ def register_slices(
                     )
                 )
             else:
-                inverse_transform = inverse_tranform_init_identity
-                forward_transform = forward_transform_init_identity
+                moving_to_fixed_transform = inverse_tranform_init_identity
+                fixed_to_moving_transform = fixed_to_moving_transform_init_identity
 
-            forward_transform_arr[img_indx] = forward_transform
-            inverse_transform_arr[img_indx] = inverse_transform
+            fixed_to_moving_transform_arr[img_indx] = fixed_to_moving_transform
+            moving_to_fixed_transform_arr[img_indx] = moving_to_fixed_transform
 
             if debug_mode:
                 reg_image = tfm_tools.transform_image(
-                    img, forward_transform, fixed_image
+                    img, fixed_to_moving_transform, fixed_image
                 )
                 out_file = os.path.join(
                     _RESULTS_DIR,
@@ -219,7 +237,7 @@ def register_slices(
                 itk.imwrite(reg_image, out_file, compression=True)
 
                 reg_image = tfm_tools.transform_image(
-                    fixed_image, inverse_transform, img
+                    fixed_image, moving_to_fixed_transform, img
                 )
                 out_file = os.path.join(
                     _RESULTS_DIR,
@@ -228,7 +246,7 @@ def register_slices(
                 itk.imwrite(reg_image, out_file, compression=True)
 
                 itk.transformwrite(
-                    forward_transform,
+                    fixed_to_moving_transform,
                     os.path.join(
                         _RESULTS_DIR,
                         f"slice_{reg_tool_name}_forward_{img_file_indx:03d}.hdf",
@@ -236,7 +254,7 @@ def register_slices(
                     compression=True,
                 )
                 itk.transformwrite(
-                    inverse_transform,
+                    moving_to_fixed_transform,
                     os.path.join(
                         _RESULTS_DIR,
                         f"slice_{reg_tool_name}_inverse_{img_file_indx:03d}.hdf",
@@ -245,14 +263,14 @@ def register_slices(
                 )
 
     return {
-        "forward_transforms": forward_transform_arr,
-        "inverse_transforms": inverse_transform_arr,
+        "fixed_to_moving_transforms": fixed_to_moving_transform_arr,
+        "moving_to_fixed_transforms": moving_to_fixed_transform_arr,
     }
 
 
 # %%
-forward_transform_arr = None
-inverse_transform_arr = None
+fixed_to_moving_transform_arr = None
+moving_to_fixed_transform_arr = None
 for reg_tool_name, reg_tool, num_iterations in reg_method_data:
     reg_tool.set_fixed_image(fixed_image)
     reg_tool.set_number_of_iterations(num_iterations)
@@ -266,8 +284,8 @@ for reg_tool_name, reg_tool, num_iterations in reg_method_data:
         reference_image_reg_use_identity,
         portion_of_prior_to_use=0.0,
     )
-    forward_transform_arr = results["forward_transforms"]
-    inverse_transform_arr = results["inverse_transforms"]
+    fixed_to_moving_transform_arr = results["fixed_to_moving_transforms"]
+    moving_to_fixed_transform_arr = results["moving_to_fixed_transforms"]
 
 # %%
 tfm_tool = TransformTools()
@@ -292,12 +310,12 @@ grid_image = tfm_tool.generate_grid_image(fixed_image, 30, 1)
 
 for i in range(num_files):
     print(files_indx[i])
-    inverse_transform = itk.transformread(
+    moving_to_fixed_transform = itk.transformread(
         os.path.join(_RESULTS_DIR, f"slice_ANTS_inverse_{files_indx[i]:03d}.hdf")
     )[0]
 
     inverse_image = tfm_tool.convert_transform_to_displacement_field(
-        inverse_transform,
+        moving_to_fixed_transform,
         fixed_image,
         np_component_type=np.float32,
     )
@@ -309,7 +327,7 @@ for i in range(num_files):
 
     inverse_grid_image = tfm_tool.transform_image(
         grid_image,
-        inverse_transform,
+        moving_to_fixed_transform,
         fixed_image,
     )
     itk.imwrite(

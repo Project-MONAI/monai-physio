@@ -207,12 +207,12 @@ class WorkflowConvertImageToUSD(MONAIPhysioBase):
                 compression=True,
             )
             itk.transformwrite(
-                reg_results["inverse_transform"],
+                reg_results["moving_to_fixed_transform"],
                 os.path.join(self.output_directory, f"{filename_prefix}_inverse.hdf"),
                 compression=True,
             )
             itk.transformwrite(
-                reg_results["forward_transform"],
+                reg_results["fixed_to_moving_transform"],
                 os.path.join(self.output_directory, f"{filename_prefix}_forward.hdf"),
                 compression=True,
             )
@@ -412,14 +412,14 @@ class WorkflowConvertImageToUSD(MONAIPhysioBase):
 
             for anatomy_type in anatomy_types:
                 # Get the forward transform for this anatomy type and frame
-                forward_transform = self.registration_results[i][anatomy_type][
-                    "forward_transform"
+                fixed_to_moving_transform = self.registration_results[i][anatomy_type][
+                    "fixed_to_moving_transform"
                 ]
 
                 # Transform the reference contours
                 transformed_anatomy_contours = self.contour_tools.transform_contours(
                     self.reference_contours[anatomy_type],
-                    forward_transform,
+                    fixed_to_moving_transform,
                     with_deformation_magnitude=True,
                 )
 

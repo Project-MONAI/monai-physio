@@ -108,7 +108,7 @@ def test_get_registered_image_fills_with_modality_background() -> None:
     registrar.set_modality("ct")
     registrar.set_fixed_image(_uniform_image(0.0, np.float32))
     registrar.moving_image = _uniform_image(100.0, np.float32)
-    registrar.forward_transform = _shift_transform()
+    registrar.fixed_to_moving_transform = _shift_transform()
 
     registered = registrar.get_registered_image()
 

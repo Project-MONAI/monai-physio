@@ -25,9 +25,9 @@ class RegisterModelsICPITK(MONAIPhysioBase):
         reference_image (itk.Image): Patient image providing coordinate frame and
             distance data
         transform_type: Rigid or Affine
-        forward_point_transform (itk.ComposeScaleSkewVersor3DTransform): Optimized
+        moving_to_fixed_transform (itk.ComposeScaleSkewVersor3DTransform): Optimized
             transformation
-        inverse_point_transform (itk.ComposeScaleSkewVersor3DTransform): Optimized
+        fixed_to_moving_transform (itk.ComposeScaleSkewVersor3DTransform): Optimized
             transformation
         registered_model (pv.PolyData): Final registered model
 
@@ -71,10 +71,10 @@ class RegisterModelsICPITK(MONAIPhysioBase):
         self.transform_type: str = "Affine"
 
         # outputs
-        self.forward_point_transform: Optional[
+        self.moving_to_fixed_transform: Optional[
             itk.ComposeScaleSkewVersor3DTransform
         ] = None
-        self.inverse_point_transform: Optional[
+        self.fixed_to_moving_transform: Optional[
             itk.ComposeScaleSkewVersor3DTransform
         ] = None
         self.registered_model: Optional[pv.PolyData] = None
@@ -382,7 +382,7 @@ class RegisterModelsICPITK(MONAIPhysioBase):
         )
 
         # Create optimized transform
-        self.forward_point_transform = itk.ComposeScaleSkewVersor3DTransform[
+        self.moving_to_fixed_transform = itk.ComposeScaleSkewVersor3DTransform[
             itk.D
         ].New()
         opt_itk_params = itk.OptimizerParameters[itk.D](12)
@@ -396,17 +396,17 @@ class RegisterModelsICPITK(MONAIPhysioBase):
         elif self.transform_type == "Affine":
             for i in range(12):
                 opt_itk_params[i] = result_affine.x[i]
-        self.forward_point_transform.SetParameters(opt_itk_params)
+        self.moving_to_fixed_transform.SetParameters(opt_itk_params)
 
-        self.inverse_point_transform = (
-            self.forward_point_transform.GetInverseTransform()
+        self.fixed_to_moving_transform = (
+            self.moving_to_fixed_transform.GetInverseTransform()
         )
 
         self.final_mean_distance = result_affine.fun
 
         self.registered_model = self._transform_tools.transform_pvcontour(
             self.moving_model,
-            self.forward_point_transform,
+            self.moving_to_fixed_transform,
             with_deformation_magnitude=False,
         )
 
@@ -416,7 +416,7 @@ class RegisterModelsICPITK(MONAIPhysioBase):
 
         return {
             "registered_model": self.registered_model,
-            "forward_point_transform": self.forward_point_transform,
-            "inverse_point_transform": self.inverse_point_transform,
+            "moving_to_fixed_transform": self.moving_to_fixed_transform,
+            "fixed_to_moving_transform": self.fixed_to_moving_transform,
             "mean_distance": self.final_mean_distance,
         }

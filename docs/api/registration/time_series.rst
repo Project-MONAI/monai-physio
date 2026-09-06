@@ -38,8 +38,8 @@ Basic Usage
        reference_frame=0,
        register_reference=False,
    )
-   forward_transforms = result["forward_transforms"]
-   inverse_transforms = result["inverse_transforms"]
+   fixed_to_moving_transforms = result["fixed_to_moving_transforms"]
+   moving_to_fixed_transforms = result["moving_to_fixed_transforms"]
 
 See Also
 ========

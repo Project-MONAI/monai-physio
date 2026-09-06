@@ -35,8 +35,8 @@ Basic Registration
 
    result = registrar.register(moving)
 
-   forward_transform = result["forward_transform"]
-   inverse_transform = result["inverse_transform"]
+   fixed_to_moving_transform = result["fixed_to_moving_transform"]
+   moving_to_fixed_transform = result["moving_to_fixed_transform"]
    loss = result["loss"]
    registered = registrar.get_registered_image()
 
@@ -45,8 +45,10 @@ Result Dictionary
 
 ``register()`` returns:
 
-* ``forward_transform``: transform from moving image space to fixed image space
-* ``inverse_transform``: transform from fixed image space to moving image space
+* ``fixed_to_moving_transform``: warps the moving image onto the fixed grid
+  (or maps a fixed-space point to moving space)
+* ``moving_to_fixed_transform``: warps the fixed image onto the moving grid
+  (or maps a moving-space point to fixed space)
 * ``loss``: registration loss value reported by the backend
 
 Configuration

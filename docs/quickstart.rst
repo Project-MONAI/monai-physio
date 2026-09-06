@@ -263,8 +263,12 @@ For standalone registration:
    results = registerer.register(moving_image)
 
    # Get transformation fields
-   inverse_transform = results["inverse_transform"]  # Fixed to moving space
-   forward_transform = results["forward_transform"]  # Moving to fixed space
+   # Warps the moving image onto the fixed grid (or maps a fixed-space
+   # point to moving space)
+   fixed_to_moving_transform = results["fixed_to_moving_transform"]
+   # Warps the fixed image onto the moving grid (or maps a moving-space
+   # point to fixed space)
+   moving_to_fixed_transform = results["moving_to_fixed_transform"]
 
 VTK to USD Conversion
 ---------------------
