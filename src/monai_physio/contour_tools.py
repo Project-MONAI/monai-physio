@@ -755,6 +755,98 @@ class ContourTools(MONAIPhysioBase):
             points = np.array(relaxed.points)
         return relaxed
 
+    def repair_inverted_tetrahedra(
+        self,
+        tetrahedra: pv.UnstructuredGrid,
+        max_iterations: int = 20,
+    ) -> pv.UnstructuredGrid:
+        """Relax the nodes of any inverted or degenerate tetrahedron.
+
+        :meth:`trim_tetrahedra_to_surface` holds every cell of the *template*
+        above a scaled Jacobian of 0.1, but warping that template onto a
+        specific subject -- a statistical-model fit, say -- carries no such
+        constraint, and can flip a handful of elements even though the
+        template it started from was clean. Only the nodes touching a bad
+        element are moved, each to the mean of its mesh neighbors, which
+        leaves geometry the fit got right alone.
+
+        Args:
+            tetrahedra: Volume mesh to repair; its cell and field data
+                survive.
+            max_iterations: Smoothing passes to attempt before giving up.
+
+        Returns:
+            The repaired mesh, or *tetrahedra* unchanged if every cell
+            already clears zero volume.
+
+        Raises:
+            ValueError: If *tetrahedra* has no TETRA cells, or if elements
+                are still inverted or degenerate after *max_iterations*
+                passes.
+        """
+        if np.uint8(pv.CellType.TETRA) not in tetrahedra.cells_dict:
+            raise ValueError(
+                "tetrahedra has no TETRA cells to repair; got cell types "
+                f"{sorted(tetrahedra.cells_dict)}."
+            )
+        connectivity = tetrahedra.cells_dict[np.uint8(pv.CellType.TETRA)]
+
+        def volumes(points: np.ndarray) -> np.ndarray:
+            corners = points[connectivity]
+            edges = corners[:, 1:, :] - corners[:, 0:1, :]
+            return cast(np.ndarray, np.linalg.det(edges) / 6.0)
+
+        points = np.array(tetrahedra.points)
+        n_inverted = int(np.sum(volumes(points) <= 0.0))
+        if n_inverted == 0:
+            return tetrahedra
+
+        edges = np.vstack(
+            [
+                connectivity[:, pair]
+                for pair in ((0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3))
+            ]
+        )
+        starts = np.concatenate([edges[:, 0], edges[:, 1]])
+        ends = np.concatenate([edges[:, 1], edges[:, 0]])
+        order = np.argsort(starts, kind="stable")
+        sorted_starts = starts[order]
+        sorted_ends = ends[order]
+        split_points = np.searchsorted(sorted_starts, np.arange(len(points) + 1))
+        neighbors = {
+            node: np.unique(sorted_ends[split_points[node] : split_points[node + 1]])
+            for node in np.unique(connectivity)
+        }
+
+        for _ in range(max_iterations):
+            bad = volumes(points) <= 0.0
+            if not np.any(bad):
+                break
+            snapshot = points.copy()
+            for node in np.unique(connectivity[bad]):
+                neighbor_points = snapshot[neighbors[node]]
+                if len(neighbor_points):
+                    points[node] = neighbor_points.mean(axis=0)
+
+        still_bad = int(np.sum(volumes(points) <= 0.0))
+        if still_bad:
+            raise ValueError(
+                f"{still_bad} of {len(connectivity)} tetrahedra are still "
+                f"inverted or degenerate after {max_iterations} repair "
+                "passes; the fitted mesh needs a real re-fit, not just "
+                "smoothing."
+            )
+
+        self.log_warning(
+            "%d of %d tetrahedra were inverted or degenerate; repaired by "
+            "relaxing their nodes onto their neighbors' mean.",
+            n_inverted,
+            len(connectivity),
+        )
+        repaired = tetrahedra.copy()
+        repaired.points = points
+        return repaired
+
     def remesh_and_smooth_surface(
         self,
         surface: pv.PolyData,

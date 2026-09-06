@@ -38,6 +38,7 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 import numpy as np
 import pyvista as pv
 
+from .contour_tools import ContourTools
 from .physicsnemo_tools import DistributedContext, PhaseSampleDataset
 from .monai_physio_base import MONAIPhysioBase
 from .train_physicsnemo_mgn import TrainPhysicsNeMoMGN
@@ -637,14 +638,27 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
         assert self._tets is not None
         self._reference_cache = {}
         device = context.device
+        contour_tools = ContourTools(log_level=self.log_level)
         for subject_id in sorted(set(self._sample_subjects)):
-            mesh = pv.read(str(self._reference_meshes[subject_id]))
-            points = np.asarray(mesh.points, dtype=np.float64)
-            if len(points) != n_points:
+            mesh = cast(
+                "pv.UnstructuredGrid", pv.read(str(self._reference_meshes[subject_id]))
+            )
+            if len(mesh.points) != n_points:
                 raise ValueError(
-                    f"{self._reference_meshes[subject_id]} has {len(points)} "
+                    f"{self._reference_meshes[subject_id]} has {len(mesh.points)} "
                     f"points, but the template has {n_points}."
                 )
+            # A per-subject fit carries no cell-quality constraint, so it can
+            # flip a handful of elements even though the template did not;
+            # repair here rather than only at fit time so meshes fitted before
+            # this check existed still load. Repair against self._tets, the
+            # connectivity tet_volumes() below actually uses, rather than
+            # whatever cells the file happens to store -- a mismatch there
+            # would repair the wrong topology and still leave the physics
+            # elements inverted.
+            tet_grid = pv.UnstructuredGrid({pv.CellType.TETRA: self._tets}, mesh.points)
+            repaired = contour_tools.repair_inverted_tetrahedra(tet_grid)
+            points = np.asarray(repaired.points, dtype=np.float64)
             _, nodal = tet_volumes(points, self._tets)
             reference = torch.from_numpy(points).to(device=device, dtype=torch.float32)
             volumes = torch.from_numpy(nodal).to(device=device, dtype=torch.float32)
