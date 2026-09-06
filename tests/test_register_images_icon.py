@@ -251,12 +251,10 @@ class TestRegisterImagesICON:
         )
 
         print("ICON registration complete without mask")
-        print(
-            f"  moving_to_fixed_transform type: {type(moving_to_fixed_transform).__name__}"
-        )
-        print(
-            f"  fixed_to_moving_transform type: {type(fixed_to_moving_transform).__name__}"
-        )
+        m2f_type = type(moving_to_fixed_transform).__name__
+        f2m_type = type(fixed_to_moving_transform).__name__
+        print(f"  moving_to_fixed_transform type: {m2f_type}")
+        print(f"  fixed_to_moving_transform type: {f2m_type}")
 
         # Save transforms
         itk.transformwrite(
@@ -567,20 +565,17 @@ class TestRegisterImagesICON:
         )
 
         # Check if it's either a DisplacementFieldTransform or CompositeTransform
-        valid_inverse = isinstance(
-            moving_to_fixed_transform,
-            (itk.DisplacementFieldTransform, itk.CompositeTransform),
-        )
-        valid_forward = isinstance(
-            fixed_to_moving_transform,
-            (itk.DisplacementFieldTransform, itk.CompositeTransform),
-        )
+        valid_transform_types = (itk.DisplacementFieldTransform, itk.CompositeTransform)
+        valid_m2f = isinstance(moving_to_fixed_transform, valid_transform_types)
+        valid_f2m = isinstance(fixed_to_moving_transform, valid_transform_types)
 
-        assert valid_inverse, (
-            f"moving_to_fixed_transform should be DisplacementFieldTransform or CompositeTransform, got {type(moving_to_fixed_transform)}"
+        assert valid_m2f, (
+            "moving_to_fixed_transform should be DisplacementFieldTransform or "
+            f"CompositeTransform, got {type(moving_to_fixed_transform)}"
         )
-        assert valid_forward, (
-            f"fixed_to_moving_transform should be DisplacementFieldTransform or CompositeTransform, got {type(fixed_to_moving_transform)}"
+        assert valid_f2m, (
+            "fixed_to_moving_transform should be DisplacementFieldTransform or "
+            f"CompositeTransform, got {type(fixed_to_moving_transform)}"
         )
 
         print("Transform types verified")

@@ -106,7 +106,9 @@ produced the value: `RegisterImages*`/`RegisterModelsDistanceMaps`/
 
 ## `WorkflowCreateStatisticalModel.inverse_transforms` - removed
 
-**Change:** the attribute is gone. `forward_transforms` is unaffected.
+**Change:** the attribute is gone. `forward_transforms` (the surviving
+attribute) was itself later renamed to `fixed_to_moving_transforms` by the
+registration transform naming change above.
 
 **Why:** it was populated but never read - not by the workflow, nor by any
 tutorial, test or CLI in the repository. Each entry held a `CompositeTransform`
@@ -117,8 +119,9 @@ OOM killer partway through building a shape model. Removing it roughly halves
 the workflow's peak memory and costs nothing, because the value had no consumer.
 
 Callers that genuinely need the inverse of a correspondence can invert the
-matching `forward_transforms` entry with `itk.Transform.GetInverse`, which
-computes it on demand rather than holding one per sample for the whole run.
+matching `fixed_to_moving_transforms` entry with `itk.Transform.GetInverse`,
+which computes it on demand rather than holding one per sample for the whole
+run.
 
 **Before**
 
@@ -132,7 +135,7 @@ inverse = workflow.inverse_transforms[index]
 ```python
 workflow.process()
 inverse = itk.CompositeTransform[itk.D, 3].New()
-if not workflow.forward_transforms[index].GetInverse(inverse):
+if not workflow.fixed_to_moving_transforms[index].GetInverse(inverse):
     raise RuntimeError(f"Correspondence transform {index} is not invertible")
 ```
 

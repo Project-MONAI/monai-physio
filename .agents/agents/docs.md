@@ -41,7 +41,8 @@ def register(self, moving_image: itk.Image) -> dict[str, Any]:
     -------
     dict
         Keys ``fixed_to_moving_transform`` and ``moving_to_fixed_transform``,
-        each a path to an ITK composite transform ``.hdf`` file.
+        each an ``itk.Transform`` (write with ``itk.transformwrite`` to
+        persist as an ``.hdf`` file).
     """
 ```
 

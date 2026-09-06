@@ -22,9 +22,12 @@ Every registration class -- image (:class:`monai_physio.RegisterImagesANTS`,
 :class:`monai_physio.RegisterTimeSeriesImages` returns the list-valued
 ``fixed_to_moving_transforms`` / ``moving_to_fixed_transforms``.
 
-Because the name states the direction literally, you do not need to remember
-which member of the pair to use for a given class or operation -- just pick
-the transform whose name matches the source and target space you have.
+Because the name states the direction literally, mapping a *point* needs no
+lookup table -- just pick the transform whose name matches the source and
+target point space you have. Warping an *image* is different:
+:func:`TransformTools.transform_image` samples whichever grid you are
+building the output on, so the transform is picked by output grid, not by
+source/target space (see below).
 
 Read this page before applying any transform to an image, mask, contour, or
 landmark.
