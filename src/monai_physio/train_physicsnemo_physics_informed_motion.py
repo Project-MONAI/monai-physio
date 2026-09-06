@@ -651,9 +651,14 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
             # A per-subject fit carries no cell-quality constraint, so it can
             # flip a handful of elements even though the template did not;
             # repair here rather than only at fit time so meshes fitted before
-            # this check existed still load.
-            mesh = contour_tools.repair_inverted_tetrahedra(mesh)
-            points = np.asarray(mesh.points, dtype=np.float64)
+            # this check existed still load. Repair against self._tets, the
+            # connectivity tet_volumes() below actually uses, rather than
+            # whatever cells the file happens to store -- a mismatch there
+            # would repair the wrong topology and still leave the physics
+            # elements inverted.
+            tet_grid = pv.UnstructuredGrid({pv.CellType.TETRA: self._tets}, mesh.points)
+            repaired = contour_tools.repair_inverted_tetrahedra(tet_grid)
+            points = np.asarray(repaired.points, dtype=np.float64)
             _, nodal = tet_volumes(points, self._tets)
             reference = torch.from_numpy(points).to(device=device, dtype=torch.float32)
             volumes = torch.from_numpy(nodal).to(device=device, dtype=torch.float32)

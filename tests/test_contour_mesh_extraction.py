@@ -407,5 +407,45 @@ class TestTrimTetrahedraToSurface:
         )
 
 
+class TestRepairInvertedTetrahedra:
+    """Node relaxation must fix a flippable mesh and give up on one that can't."""
+
+    @staticmethod
+    def _single_tetra(points: np.ndarray) -> pv.UnstructuredGrid:
+        """Build a one-cell tetrahedral mesh from four *points*."""
+        cells = np.array([4, 0, 1, 2, 3])
+        return pv.UnstructuredGrid(cells, [pv.CellType.TETRA], points)
+
+    def test_repairs_an_inverted_tetrahedron(self, contour_tools: ContourTools) -> None:
+        """Swapping two corners inverts the cell; relaxation must restore it."""
+        points = np.array(
+            [[0.0, 0.0, 0.0], [1.0, 1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]]
+        )
+        mesh = self._single_tetra(points)
+
+        repaired = contour_tools.repair_inverted_tetrahedra(mesh)
+
+        corners = repaired.points[repaired.cells_dict[np.uint8(pv.CellType.TETRA)]][0]
+        edges = corners[1:, :] - corners[0:1, :]
+        assert np.linalg.det(edges) / 6.0 > 0.0
+
+    def test_raises_when_unrecoverable(self, contour_tools: ContourTools) -> None:
+        """A degenerate cell with no neighbors to average toward can't be fixed."""
+        points = np.array(
+            [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [2.0, 0.0, 0.0], [3.0, 0.0, 0.0]]
+        )
+        mesh = self._single_tetra(points)
+
+        with pytest.raises(ValueError, match="still inverted or degenerate"):
+            contour_tools.repair_inverted_tetrahedra(mesh, max_iterations=2)
+
+    def test_raises_when_no_tetra_cells(self, contour_tools: ContourTools) -> None:
+        """A mesh without TETRA cells fails with a clear message, not a KeyError."""
+        mesh = pv.UnstructuredGrid()
+
+        with pytest.raises(ValueError, match="no TETRA cells"):
+            contour_tools.repair_inverted_tetrahedra(mesh)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "-s"])

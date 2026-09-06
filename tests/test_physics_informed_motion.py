@@ -498,3 +498,70 @@ def test_the_epoch_log_separates_the_two_loss_terms() -> None:
     assert "physics=0.000000" in messages[-1], (
         f"An epoch that accumulated nothing should report zero: {messages[-1]}"
     )
+
+
+def test_bind_reference_meshes_repairs_against_template_elements(tmp_path: Any) -> None:
+    """Repair must use ``self._tets``, not whatever cells the file stores.
+
+    A fitted reference file's own connectivity is never read back by
+    ``tet_volumes`` -- only ``self._tets`` is -- so repairing against the
+    file's cells instead would validate the wrong topology. Here the file
+    stores one degenerate, unrecoverable cell that touches only a single
+    node; repairing against it would raise, but ``self._tets`` names a
+    perfectly valid mesh, so binding must succeed unchanged.
+    """
+    import torch
+
+    from monai_physio.physicsnemo_tools import DistributedContext
+    from monai_physio.train_physicsnemo_physics_informed_motion import (
+        TrainPhysicsNeMoPhysicsInformedMotion,
+    )
+
+    points, tets = _grid_mesh(size=3)
+    mismatched = pv.UnstructuredGrid(
+        {pv.CellType.TETRA: np.array([[0, 0, 0, 0]])}, points
+    )
+    mesh_path = tmp_path / "reference.vtu"
+    mismatched.save(mesh_path)
+
+    method = TrainPhysicsNeMoPhysicsInformedMotion()
+    method._tets = tets
+    method._sample_subjects = ["subj0"]
+    method._reference_meshes = {"subj0": mesh_path}
+    context = DistributedContext(
+        device=torch.device("cpu"), rank=0, local_rank=0, world_size=1
+    )
+
+    method._bind_reference_meshes(context, n_points=len(points))
+
+    reference, volumes = method._reference_cache["subj0"]
+    assert np.allclose(reference.numpy(), points, atol=1e-5)
+    assert torch.all(volumes > 0)
+
+
+def test_bind_reference_meshes_tolerates_a_file_with_no_cells(tmp_path: Any) -> None:
+    """A reference file need not carry any cells at all; only its points do."""
+    import torch
+
+    from monai_physio.physicsnemo_tools import DistributedContext
+    from monai_physio.train_physicsnemo_physics_informed_motion import (
+        TrainPhysicsNeMoPhysicsInformedMotion,
+    )
+
+    points, tets = _grid_mesh(size=3)
+    mesh_path = tmp_path / "reference.vtp"
+    pv.PolyData(points).save(mesh_path)
+
+    method = TrainPhysicsNeMoPhysicsInformedMotion()
+    method._tets = tets
+    method._sample_subjects = ["subj0"]
+    method._reference_meshes = {"subj0": mesh_path}
+    context = DistributedContext(
+        device=torch.device("cpu"), rank=0, local_rank=0, world_size=1
+    )
+
+    method._bind_reference_meshes(context, n_points=len(points))
+
+    reference, volumes = method._reference_cache["subj0"]
+    assert np.allclose(reference.numpy(), points, atol=1e-5)
+    assert torch.all(volumes > 0)

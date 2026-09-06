@@ -780,9 +780,15 @@ class ContourTools(MONAIPhysioBase):
             already clears zero volume.
 
         Raises:
-            ValueError: If elements are still inverted or degenerate after
-                *max_iterations* passes.
+            ValueError: If *tetrahedra* has no TETRA cells, or if elements
+                are still inverted or degenerate after *max_iterations*
+                passes.
         """
+        if np.uint8(pv.CellType.TETRA) not in tetrahedra.cells_dict:
+            raise ValueError(
+                "tetrahedra has no TETRA cells to repair; got cell types "
+                f"{sorted(tetrahedra.cells_dict)}."
+            )
         connectivity = tetrahedra.cells_dict[np.uint8(pv.CellType.TETRA)]
 
         def volumes(points: np.ndarray) -> np.ndarray:
@@ -803,13 +809,22 @@ class ContourTools(MONAIPhysioBase):
         )
         starts = np.concatenate([edges[:, 0], edges[:, 1]])
         ends = np.concatenate([edges[:, 1], edges[:, 0]])
+        order = np.argsort(starts, kind="stable")
+        sorted_starts = starts[order]
+        sorted_ends = ends[order]
+        split_points = np.searchsorted(sorted_starts, np.arange(len(points) + 1))
+        neighbors = {
+            node: np.unique(sorted_ends[split_points[node] : split_points[node + 1]])
+            for node in np.unique(connectivity)
+        }
 
         for _ in range(max_iterations):
             bad = volumes(points) <= 0.0
             if not np.any(bad):
                 break
+            snapshot = points.copy()
             for node in np.unique(connectivity[bad]):
-                neighbor_points = points[ends[starts == node]]
+                neighbor_points = snapshot[neighbors[node]]
                 if len(neighbor_points):
                     points[node] = neighbor_points.mean(axis=0)
 
