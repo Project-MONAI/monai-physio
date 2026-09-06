@@ -523,7 +523,15 @@ if __name__ == "__main__":
             # The model is volumetric here, so "fitted_reference_model" (the
             # tetrahedral mesh) and "fitted_reference_mesh" (its boundary) are
             # different geometries.  The volume is what the network predicts on.
-            fit_result["fitted_reference_model"].save(str(fitted_reference_model_file))
+            #
+            # The fit warps the template per subject with no cell-quality
+            # constraint, so it can flip a handful of elements even though the
+            # template itself was checked; repair before saving so Tutorial 17
+            # never has to.
+            fitted_reference_model = contour_tools.repair_inverted_tetrahedra(
+                cast(pv.UnstructuredGrid, fit_result["fitted_reference_model"])
+            )
+            fitted_reference_model.save(str(fitted_reference_model_file))
             fit_result["fitted_reference_mesh"].save(
                 str(case_output_dir / f"{case_id}_ssm_surface.vtp")
             )
