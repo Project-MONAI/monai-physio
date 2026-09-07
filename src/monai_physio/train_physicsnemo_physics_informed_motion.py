@@ -656,7 +656,13 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
             # would repair the wrong topology and still leave the physics
             # elements inverted.
             tet_grid = pv.UnstructuredGrid({pv.CellType.TETRA: self._tets}, mesh.points)
-            repaired = contour_tools.repair_inverted_tetrahedra(tet_grid)
+            try:
+                repaired = contour_tools.repair_inverted_tetrahedra(tet_grid)
+            except ValueError as error:
+                raise ValueError(
+                    f"Subject {subject_id!r} "
+                    f"({self._reference_meshes[subject_id]}): {error}"
+                ) from error
             points = np.asarray(repaired.points, dtype=np.float64)
             _, nodal = tet_volumes(points, self._tets)
             reference = torch.from_numpy(points).to(device=device, dtype=torch.float32)

@@ -86,6 +86,35 @@ from monai_physio.train_physicsnemo_physics_informed_motion import (
 )
 
 
+def _report_reference_mesh_quality(
+    reference_meshes: dict[str, Path], tets: np.ndarray, logger: logging.Logger
+) -> None:
+    """Log which subjects' fitted reference meshes still have inverted or
+    degenerate tetrahedra, and which specific elements, before training
+    starts and before ``repair_inverted_tetrahedra`` gets a chance to fix
+    them -- so a stubborn case is visible even when repair succeeds.
+    """
+    for subject_id, mesh_path in sorted(reference_meshes.items()):
+        points = np.asarray(cast(pv.UnstructuredGrid, pv.read(str(mesh_path))).points)
+        corners = points[tets]
+        edges = corners[:, 1:, :] - corners[:, 0:1, :]
+        cell_volumes = np.linalg.det(edges) / 6.0
+        bad = np.nonzero(cell_volumes <= 0.0)[0]
+        if bad.size:
+            logger.warning(
+                "%s (%s): %d of %d tetrahedra inverted or degenerate before repair: %s",
+                subject_id,
+                mesh_path,
+                bad.size,
+                len(tets),
+                "; ".join(
+                    f"cell {cell_id} (nodes {tets[cell_id].tolist()}) "
+                    f"volume={cell_volumes[cell_id]:.3e}"
+                    for cell_id in bad
+                ),
+            )
+
+
 def _plot_losses(loss_curves: dict[str, list[float]], plot_file: Path) -> Path:
     """Plot each run's per-epoch loss and return the written path."""
     import matplotlib
@@ -225,6 +254,7 @@ if __name__ == "__main__":
         len(tets),
         template_mesh.n_points,
     )
+    _report_reference_mesh_quality(reference_meshes, tets, logger)
 
     import torch
 
