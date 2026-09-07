@@ -32,10 +32,10 @@ import itk
 import numpy as np
 import pyvista as pv
 
-from .contour_tools import ContourTools
 from .monai_physio_base import MONAIPhysioBase
 from .register_models_distance_maps import RegisterModelsDistanceMaps
 from .register_models_icp import RegisterModelsICP
+from .tools_for_contours import ToolsForContours
 
 
 class WorkflowCreateMeanSurface(MONAIPhysioBase):
@@ -79,7 +79,7 @@ class WorkflowCreateMeanSurface(MONAIPhysioBase):
         if len(surfaces) < 2:
             raise ValueError(f"At least 2 surfaces are required, got {len(surfaces)}")
 
-        self.contour_tools = ContourTools(log_level=log_level)
+        self.contour_tools = ToolsForContours(log_level=log_level)
         self.surfaces = [self.contour_tools.extract_surface(s) for s in surfaces]
         self.template_surface = (
             self.contour_tools.extract_surface(template_surface)

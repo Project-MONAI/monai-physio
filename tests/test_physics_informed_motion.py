@@ -51,7 +51,7 @@ def _deformation_gradient_of(
     translation: np.ndarray | None = None,
     points: np.ndarray = _REFERENCE_TET_POINTS,
     tets: np.ndarray = _REFERENCE_TET,
-) -> "torch.Tensor":
+) -> torch.Tensor:
     """Return F for the affine motion ``x -> linear_map @ x + translation``.
 
     A tetrahedron carries linear shape functions, so F comes back as exactly
@@ -72,7 +72,7 @@ def _oriented(points: np.ndarray, tets: np.ndarray) -> np.ndarray:
     """Return *tets* with every element positively oriented.
 
     A real template arrives pre-oriented from
-    ``ContourTools.trim_tetrahedra_to_surface``; a mesh built ad hoc for a test
+    ``ToolsForContours.trim_tetrahedra_to_surface``; a mesh built ad hoc for a test
     does not, so this stands in for that guarantee.
     """
     corners = points[tets]
@@ -343,7 +343,7 @@ def test_a_residual_on_the_wrong_device_is_refused() -> None:
     """
     import torch
 
-    from monai_physio.physicsnemo_tools import DistributedContext
+    from monai_physio.tools_for_physicsnemo import DistributedContext
     from monai_physio.train_physicsnemo_physics_informed_motion import (
         TrainPhysicsNeMoPhysicsInformedMotion,
     )
@@ -383,7 +383,7 @@ def test_the_device_check_runs_without_a_driver() -> None:
 
     import torch
 
-    from monai_physio.physicsnemo_tools import DistributedContext
+    from monai_physio.tools_for_physicsnemo import DistributedContext
     from monai_physio.train_physicsnemo_physics_informed_motion import (
         TrainPhysicsNeMoPhysicsInformedMotion,
         _resolved_device,
@@ -428,7 +428,7 @@ def test_a_residual_on_another_gpu_is_refused() -> None:
     """
     import torch
 
-    from monai_physio.physicsnemo_tools import DistributedContext
+    from monai_physio.tools_for_physicsnemo import DistributedContext
     from monai_physio.train_physicsnemo_physics_informed_motion import (
         TrainPhysicsNeMoPhysicsInformedMotion,
     )
@@ -436,12 +436,12 @@ def test_a_residual_on_another_gpu_is_refused() -> None:
     class _ResidualOn:
         """Stands in for a residual whose tensors live on one specific GPU."""
 
-        def __init__(self, device: "torch.device") -> None:
+        def __init__(self, device: torch.device) -> None:
             self.device = device
 
     method = TrainPhysicsNeMoPhysicsInformedMotion()
 
-    def context_on(device: "torch.device") -> DistributedContext:
+    def context_on(device: torch.device) -> DistributedContext:
         return DistributedContext(device=device, rank=0, local_rank=0, world_size=1)
 
     method._residual = cast(Any, _ResidualOn(torch.device("cuda", 0)))
@@ -463,7 +463,7 @@ def test_the_epoch_log_separates_the_two_loss_terms() -> None:
     """
     import torch
 
-    from monai_physio.physicsnemo_tools import DistributedContext
+    from monai_physio.tools_for_physicsnemo import DistributedContext
     from monai_physio.train_physicsnemo_physics_informed_motion import (
         TrainPhysicsNeMoPhysicsInformedMotion,
     )
@@ -512,7 +512,7 @@ def test_bind_reference_meshes_repairs_against_template_elements(tmp_path: Any) 
     """
     import torch
 
-    from monai_physio.physicsnemo_tools import DistributedContext
+    from monai_physio.tools_for_physicsnemo import DistributedContext
     from monai_physio.train_physicsnemo_physics_informed_motion import (
         TrainPhysicsNeMoPhysicsInformedMotion,
     )
@@ -543,7 +543,7 @@ def test_bind_reference_meshes_tolerates_a_file_with_no_cells(tmp_path: Any) -> 
     """A reference file need not carry any cells at all; only its points do."""
     import torch
 
-    from monai_physio.physicsnemo_tools import DistributedContext
+    from monai_physio.tools_for_physicsnemo import DistributedContext
     from monai_physio.train_physicsnemo_physics_informed_motion import (
         TrainPhysicsNeMoPhysicsInformedMotion,
     )

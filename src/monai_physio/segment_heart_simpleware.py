@@ -16,8 +16,8 @@ import tempfile
 import itk
 import numpy as np
 
-from .image_tools import ImageTools
 from .segment_anatomy_base import SegmentAnatomyBase
+from .tools_for_images import ToolsForImages
 
 
 class SegmentHeartSimpleware(SegmentAnatomyBase):
@@ -304,7 +304,7 @@ class SegmentHeartSimpleware(SegmentAnatomyBase):
             # Dilate the interior regions to simulate 3mm myocardium (heart)
             interior_image = itk.GetImageFromArray(interior_array.astype(np.uint8))
             interior_image.CopyInformation(preprocessed_image)
-            imMath = ImageTools()
+            imMath = ToolsForImages()
             spacing = interior_image.GetSpacing()
             exterior_image = imMath.binary_dilate_image(
                 interior_image, round(7 / spacing[0]), 1, 0

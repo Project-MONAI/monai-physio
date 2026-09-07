@@ -33,9 +33,12 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 import numpy as np
 import pyvista as pv
 
-from . import physicsnemo_tools as pnt
-from .physicsnemo_tools import DistributedContext, PhaseSampleDataset
 from .monai_physio_base import MONAIPhysioBase
+from .tools_for_physicsnemo import (
+    DistributedContext,
+    PhaseSampleDataset,
+    ToolsForPhysicsNeMo,
+)
 
 if TYPE_CHECKING:  # typed for mypy; imported lazily at runtime
     import torch
@@ -92,13 +95,13 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         self.learning_rate = learning_rate
 
     # ─────────────────────────── Network seams ─────────────────────────────
-    def build_model(self, in_features: int, out_features: int) -> "torch.nn.Module":
+    def build_model(self, in_features: int, out_features: int) -> torch.nn.Module:
         """Construct the (uncompiled) network. Implemented by subclasses."""
         raise NotImplementedError
 
     def setup_inputs(
         self,
-        device: "torch.device",
+        device: torch.device,
         template_mesh: pv.DataSet,
         template_coords: np.ndarray,
     ) -> None:
@@ -106,8 +109,8 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         raise NotImplementedError
 
     def forward(
-        self, model: "torch.nn.Module", node_feats: "torch.Tensor", batch_len: int
-    ) -> "torch.Tensor":
+        self, model: torch.nn.Module, node_feats: torch.Tensor, batch_len: int
+    ) -> torch.Tensor:
         """Run the network for a flattened ``(batch_len * n_points, F)`` batch."""
         raise NotImplementedError
 
@@ -126,12 +129,12 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
 
     def _compute_loss(
         self,
-        pred: "torch.Tensor",
-        tgt: "torch.Tensor",
+        pred: torch.Tensor,
+        tgt: torch.Tensor,
         batch_len: int,
         target_scale: float,
         indices: np.ndarray,
-    ) -> "torch.Tensor":
+    ) -> torch.Tensor:
         """Return the training loss for one flattened mini-batch.
 
         The base class scores displacement alone, so it needs only *pred* and
@@ -153,7 +156,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         term; a subclass whose loss sums terms in different units overrides this
         to report them apart, because a total alone cannot say how they balance.
         """
-        return None
+        return
 
     # ─────────────────────────── Training loop ─────────────────────────────
     def train(
@@ -167,7 +170,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         template_mesh: pv.DataSet,
         template_coords: np.ndarray,
         resume_from: Optional[Path] = None,
-    ) -> tuple["torch.nn.Module", list[float], list[dict]]:
+    ) -> tuple[torch.nn.Module, list[float], list[dict]]:
         """Train the network, returning the model and the loss / RMSE logs.
 
         Every rank runs this. Each steps over its own disjoint slice of the
@@ -205,7 +208,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         if resume_from is not None:
             ckpt = torch.load(str(resume_from), map_location=device, weights_only=True)
             state = ckpt.get("model_state_dict", ckpt)
-            model.load_state_dict(pnt.strip_compile_prefix(state))
+            model.load_state_dict(ToolsForPhysicsNeMo.strip_compile_prefix(state))
             self._log_main(context, "Loaded model weights from %s", resume_from)
 
         self.setup_inputs(device, template_mesh, template_coords)
@@ -285,7 +288,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
             # against the bare module: the RMSE describes the model, not how
             # the epoch happened to be split across ranks.
             if scored_epoch and context.is_main:
-                bare = pnt.unwrap_model(model)
+                bare = ToolsForPhysicsNeMo.unwrap_model(model)
                 train_rmse = self._evaluate_rmse(
                     bare, train_dataset, target_scale, device
                 )
@@ -321,7 +324,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         model.eval()
         return model, losses, rmse_log
 
-    def build_checkpoint(self, model: "torch.nn.Module", stats: dict) -> dict[str, Any]:
+    def build_checkpoint(self, model: torch.nn.Module, stats: dict) -> dict[str, Any]:
         """Assemble a self-describing checkpoint (weights + normalization stats).
 
         Both the periodic epoch checkpoints and the final model share this
@@ -329,7 +332,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         checkpoint, not just the final one.
         """
         checkpoint: dict[str, Any] = {
-            "model_state_dict": pnt.uncompiled_state_dict(model),
+            "model_state_dict": ToolsForPhysicsNeMo.uncompiled_state_dict(model),
             "architecture": self.architecture_name,
             "in_features": 3 + int(stats["pca_mean"].shape[0]) + 1,
             "n_pca": int(stats["pca_mean"].shape[0]),
@@ -412,7 +415,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
                 targets = targets[perm]
             yield node_feats, targets, len(idx), idx
 
-    def _autocast(self, device: "torch.device") -> Any:
+    def _autocast(self, device: torch.device) -> Any:
         """BF16 autocast on CUDA; a no-op context elsewhere."""
         import contextlib
 
@@ -424,10 +427,10 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
 
     def _evaluate_rmse(
         self,
-        model: "torch.nn.Module",
+        model: torch.nn.Module,
         dataset: PhaseSampleDataset,
         target_scale: float,
-        device: "torch.device",
+        device: torch.device,
     ) -> float:
         """Per-point RMSE over a dataset, in the units of the stored targets."""
         import torch

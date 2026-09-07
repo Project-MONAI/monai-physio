@@ -64,7 +64,7 @@ from parameters_duke_heart_physics_informed import DUKE_HEART_PHYSICS_INFORMED
 from monai_physio import (
     ConvertVTKToUSD,
     EvaluateMovementDukeHeart,
-    TestTools,
+    ToolsForTests,
     WorkflowEvaluateMovement,
     WorkflowInferMovement,
     WorkflowInferPhysicsNeMo,
@@ -129,7 +129,7 @@ def _stress_at_points(
 def _render_stress(surface: pv.DataSet, plot_file: Path) -> Path:
     """Render a surface colored by von Mises stress and return the written path.
 
-    ``TestTools.save_screenshot_mesh`` paints a mesh one flat color, so a scalar
+    ``ToolsForTests.save_screenshot_mesh`` paints a mesh one flat color, so a scalar
     field needs its own plotter.
     """
     xvfb_started = False
@@ -173,7 +173,7 @@ if __name__ == "__main__":
 
     class_name = "tutorial_18_duke_heart_physics_informed_motion_infer"
 
-    test_mode = TestTools.running_as_test()
+    test_mode = ToolsForTests.running_as_test()
     parameters = DUKE_HEART_PHYSICS_INFORMED
 
     # The case held out of every fit in this chain.
@@ -369,7 +369,7 @@ if __name__ == "__main__":
     logger.info("USD: %s", usd_file)
 
     # Testing
-    tt = TestTools(
+    tt = ToolsForTests(
         class_name=class_name,
         results_dir=output_dir,
         baselines_dir=baselines_dir,

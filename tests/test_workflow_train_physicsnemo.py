@@ -21,13 +21,13 @@ pytest.importorskip("torch")
 pytest.importorskip("physicsnemo")
 pytest.importorskip("torch_geometric")
 
-from monai_physio import (  # noqa: E402
+from monai_physio import (
     DistributedContext,
     TrainPhysicsNeMoMGN,
     WorkflowInferPhysicsNeMo,
     WorkflowTrainPhysicsNeMo,
 )
-from monai_physio.physicsnemo_tools import uncompiled_state_dict  # noqa: E402
+from monai_physio.tools_for_physicsnemo import ToolsForPhysicsNeMo
 
 _TARGET_ARRAY = "displacement"
 _STAGES = (0.0, 1.0)
@@ -252,7 +252,7 @@ def test_a_ddp_wrapped_model_checkpoints_without_its_prefix() -> None:
     inner = torch.nn.Linear(2, 2)
     wrapped = _FakeDDP(inner)
 
-    state = uncompiled_state_dict(wrapped)
+    state = ToolsForPhysicsNeMo.uncompiled_state_dict(wrapped)
 
     assert set(state) == set(inner.state_dict())
     assert not any(key.startswith("module.") for key in state)

@@ -5,7 +5,7 @@ import itk
 import numpy as np
 import pyvista as pv
 
-from monai_physio.contour_tools import ContourTools
+from monai_physio.tools_for_contours import ToolsForContours
 
 _HERE = Path(__file__).parent
 
@@ -18,7 +18,7 @@ output_dir = _HERE / "kcl-heart-model/pca_inputs"
 # Create output directory
 output_dir.mkdir(exist_ok=True)
 
-contour_tools = ContourTools()
+contour_tools = ToolsForContours()
 
 template_mesh = pv.read(_HERE / "kcl-heart-model/average_surface.vtp")
 

@@ -11,7 +11,7 @@ from typing import Any, Optional
 import pytest
 from pxr import Usd, UsdGeom
 
-from monai_physio import USDTools
+from monai_physio import ToolsForUSD
 
 
 def get_time_metadata(filepath: str) -> dict[str, Any]:
@@ -131,7 +131,7 @@ class TestUSDTimePreservation:
         output_dir: Path,
     ) -> None:
         """Test that merge_usd_files() preserves time metadata."""
-        usd_tools = USDTools()
+        usd_tools = ToolsForUSD()
         merged_file = output_dir / "test_time_copy.usd"
 
         usd_tools.merge_usd_files(
@@ -163,7 +163,7 @@ class TestUSDTimePreservation:
         output_dir: Path,
     ) -> None:
         """Test that merge_usd_files_flattened() preserves time metadata."""
-        usd_tools = USDTools()
+        usd_tools = ToolsForUSD()
         merged_file = output_dir / "test_time_flattened.usd"
 
         usd_tools.merge_usd_files_flattened(
@@ -198,7 +198,7 @@ class TestUSDTimePreservation:
         if source_time_samples is None:
             pytest.skip("Test mesh not found in source data")
 
-        usd_tools = USDTools()
+        usd_tools = ToolsForUSD()
         merged_file = output_dir / "test_samples_copy.usd"
 
         usd_tools.merge_usd_files(
@@ -239,7 +239,7 @@ class TestUSDTimePreservation:
         if source_time_samples is None:
             pytest.skip("Test mesh not found in source data")
 
-        usd_tools = USDTools()
+        usd_tools = ToolsForUSD()
         merged_file = output_dir / "test_samples_flattened.usd"
 
         usd_tools.merge_usd_files_flattened(
@@ -285,7 +285,7 @@ class TestUSDTimePreservation:
         if source_time_samples is None:
             pytest.skip("Test mesh not found in source data")
 
-        usd_tools = USDTools()
+        usd_tools = ToolsForUSD()
         merged_file = output_dir / "test_animation_range.usd"
 
         usd_tools.merge_usd_files_flattened(

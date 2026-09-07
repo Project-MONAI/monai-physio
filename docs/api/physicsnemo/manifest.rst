@@ -2,8 +2,8 @@
 The Per-Subject Manifest
 =========================
 
-.. module:: monai_physio.physicsnemo_tools
-.. currentmodule:: monai_physio.physicsnemo_tools
+.. module:: monai_physio.tools_for_physicsnemo
+.. currentmodule:: monai_physio.tools_for_physicsnemo
 
 The manifest is the contract between your data and the training stack. It is
 the only thing you must produce to train on your own subjects: one JSON file
@@ -45,12 +45,15 @@ decides which domain the model lives on.
 Reference
 =========
 
-These live in :mod:`monai_physio.physicsnemo_tools`, which is not re-exported
-from the top-level package - import it by module:
+:class:`ToolsForPhysicsNeMo` is re-exported from the top-level package;
+``SubjectManifest`` and ``PhaseEntry`` are not - import those by module:
 
 .. code-block:: python
 
-   from monai_physio.physicsnemo_tools import SubjectManifest, parse_manifest
+   from monai_physio import ToolsForPhysicsNeMo
+   from monai_physio.tools_for_physicsnemo import SubjectManifest
+
+   manifest = ToolsForPhysicsNeMo.parse_manifest(manifest_path)
 
 .. autoclass:: SubjectManifest
    :exclude-members: subject_id, fitted_reference_mesh, pca_coefficients, target_array, phases
@@ -58,20 +61,12 @@ from the top-level package - import it by module:
 .. autoclass:: PhaseEntry
    :exclude-members: mesh, stage
 
-.. autofunction:: parse_manifest
-
-.. autofunction:: load_target_array
-
-.. autofunction:: load_pca_coefficients
-
 Supporting helpers
 ==================
 
-.. autofunction:: build_node_features
-
-.. autofunction:: mesh_to_edge_index
-
-.. autofunction:: compute_edge_features
+.. autoclass:: ToolsForPhysicsNeMo
+   :members: parse_manifest, load_target_array, load_pca_coefficients,
+             build_node_features, mesh_to_edge_index, compute_edge_features
 
 .. autoclass:: PhaseSampleDataset
    :members:

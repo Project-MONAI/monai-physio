@@ -26,8 +26,8 @@ import pyvista as pv
 from parameters_heart_ct_kcl import HEART_CT_KCL
 
 from monai_physio import (
-    ContourTools,
-    TestTools,
+    ToolsForContours,
+    ToolsForTests,
     WorkflowCreateStatisticalModel,
 )
 
@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
     class_name = "tutorial_06_heart_create_statistical_model"
 
-    test_mode = TestTools.running_as_test()
+    test_mode = ToolsForTests.running_as_test()
 
     output_dir = HEART_CT_KCL.output_directory(test_mode) / "tutorial_06_heart"
     weights_dir = HEART_CT_KCL.weights_directory(test_mode)
@@ -107,7 +107,7 @@ if __name__ == "__main__":
             "See data/README.md for download instructions."
         )
 
-    contour_tools = ContourTools(log_level=log_level)
+    contour_tools = ToolsForContours(log_level=log_level)
 
     def read_model_surface(path: Path) -> pv.DataSet:
         """Read a mesh, reduced to ``model_points`` when a budget is set."""
@@ -172,7 +172,7 @@ if __name__ == "__main__":
     mean_surface.save(str(mean_surface_file))
 
     # Testing
-    tt = TestTools(
+    tt = ToolsForTests(
         class_name=class_name,
         results_dir=output_dir,
         baselines_dir=baselines_dir,

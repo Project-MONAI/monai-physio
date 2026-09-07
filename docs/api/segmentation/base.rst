@@ -7,7 +7,7 @@ Segmentation Base Class
 
 ``SegmentAnatomyBase`` defines the shared chest-anatomy segmentation contract
 used by MONAI Physio segmentation implementations. It owns an
-:class:`AnatomyTaxonomy` instance that subclasses populate to declare which
+:class:`ToolsForAnatomyTaxonomies` instance that subclasses populate to declare which
 anatomy groups (and which organ labels within each group) they produce.
 
 Class Reference
@@ -50,16 +50,16 @@ ASCardio module actually populates (``heart``, ``major_vessels``,
 Anatomy Taxonomy
 ================
 
-The group-to-organ mapping is held by :class:`AnatomyTaxonomy`, a small
+The group-to-organ mapping is held by :class:`ToolsForAnatomyTaxonomies`, a small
 data class shared between the segmenter and downstream renderers
-(:class:`USDAnatomyTools`, :class:`ConvertVTKToUSD`). It is independent of
+(:class:`ToolsForUSDAnatomy`, :class:`ConvertVTKToUSD`). It is independent of
 ITK and OpenUSD so segmentation code can be reasoned about without pulling
 in the rendering stack.
 
 .. autoclass:: AnatomyGroup
    :no-members:
 
-.. autoclass:: AnatomyTaxonomy
+.. autoclass:: ToolsForAnatomyTaxonomies
    :members:
 
 Typical usage from a subclass ``__init__``:
@@ -111,4 +111,4 @@ See Also
 * :doc:`simpleware`
 * :doc:`index`
 * :doc:`../../developer/segmentation`
-* :doc:`../usd/anatomy_tools` for the renderer side of the taxonomy
+* :doc:`../usd/tools_for_usd_anatomy` for the renderer side of the taxonomy

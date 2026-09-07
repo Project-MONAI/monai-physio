@@ -24,7 +24,7 @@ Current Segmentation Contract
 
 Segmentation outputs are dictionaries of ITK images. Access masks by key,
 not by positional unpacking. The exact key set depends on the segmenter's
-:class:`monai_physio.AnatomyTaxonomy` - see :doc:`../api/segmentation/base`
+:class:`monai_physio.ToolsForAnatomyTaxonomies` - see :doc:`../api/segmentation/base`
 for the per-segmenter key sets and the general contract.
 
 Implemented Segmenters
@@ -39,7 +39,7 @@ Adding a New Segmenter
 
 A new segmenter subclass declares which anatomy groups and organ labels it
 produces by populating ``self.taxonomy``. The base class owns the
-:class:`AnatomyTaxonomy` instance and contributes two default placeholders
+:class:`ToolsForAnatomyTaxonomies` instance and contributes two default placeholders
 (``contrast`` at id 135, ``soft_tissue`` at id 133).
 
 .. code-block:: python
@@ -86,7 +86,7 @@ USD renderer doesn't fall back to the generic ``"other"`` material:
 
 .. code-block:: python
 
-   from monai_physio.usd_anatomy_tools import DEFAULT_RENDER_PARAMS
+   from monai_physio.tools_for_usd_anatomy import DEFAULT_RENDER_PARAMS
 
    DEFAULT_RENDER_PARAMS["brain"] = {
        "name": "Brain",
@@ -111,6 +111,6 @@ See Also
 ========
 
 * :doc:`../api/segmentation/index`
-* :doc:`../api/segmentation/base` - full AnatomyTaxonomy reference
+* :doc:`../api/segmentation/base` - full ToolsForAnatomyTaxonomies reference
 * :doc:`workflows`
 * :doc:`usd_generation` - how the taxonomy drives USD output

@@ -24,7 +24,7 @@ Architecture Diagram
       +--------------+-------------+-------------+
                          |
                          v
-               ContourTools / TransformTools
+               ToolsForContours / ToolsForTransforms
                          |
                          v
               ConvertVTKToUSD / vtk_to_usd

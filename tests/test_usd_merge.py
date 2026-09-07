@@ -11,7 +11,7 @@ from typing import Any
 import pytest
 from pxr import Usd, UsdGeom, UsdShade
 
-from monai_physio import USDTools
+from monai_physio import ToolsForUSD
 
 
 def analyze_usd_file(filepath: str) -> dict[str, Any]:
@@ -111,7 +111,7 @@ class TestUSDMerge:
     ) -> None:
         """Test merge_usd_files() manual copy method."""
         # Merge files using manual copy method
-        usd_tools = USDTools()
+        usd_tools = ToolsForUSD()
         merged_file = output_dir / "test_merged_copy.usd"
 
         usd_tools.merge_usd_files(
@@ -172,7 +172,7 @@ class TestUSDMerge:
     ) -> None:
         """Test merge_usd_files_flattened() composition method."""
         # Merge files using flattened method
-        usd_tools = USDTools()
+        usd_tools = ToolsForUSD()
         merged_file = output_dir / "test_merged_flattened.usd"
 
         usd_tools.merge_usd_files_flattened(
@@ -229,7 +229,7 @@ class TestUSDMerge:
         self, test_data_files: dict[str, str], output_dir: Path
     ) -> None:
         """Verify both merge methods produce equivalent results."""
-        usd_tools = USDTools()
+        usd_tools = ToolsForUSD()
 
         # Merge with both methods
         copy_file = output_dir / "test_copy.usd"

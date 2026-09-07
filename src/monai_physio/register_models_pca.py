@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Self
 
 import itk
 import numpy as np
@@ -11,11 +11,10 @@ import pyvista as pv
 from scipy.ndimage import map_coordinates
 from scipy.optimize import minimize
 from scipy.spatial import cKDTree
-from typing_extensions import Self
 
-from .contour_tools import ContourTools
 from .monai_physio_base import MONAIPhysioBase
-from .transform_tools import TransformTools
+from .tools_for_contours import ToolsForContours
+from .tools_for_transforms import ToolsForTransforms
 
 
 class RegisterModelsPCA(MONAIPhysioBase):
@@ -181,7 +180,7 @@ class RegisterModelsPCA(MONAIPhysioBase):
 
         self.post_pca_transform = post_pca_transform
 
-        self._contour_tools = ContourTools()
+        self._contour_tools = ToolsForContours()
 
         self.fixed_model: Optional[pv.DataSet] = fixed_model
         self.fixed_distance_map = fixed_distance_map
@@ -1004,7 +1003,7 @@ class RegisterModelsPCA(MONAIPhysioBase):
             template_model_pca_deformation_field_image
         )
 
-        transform_tools = TransformTools()
+        transform_tools = ToolsForTransforms()
         self.fixed_to_moving_transform = (
             transform_tools.invert_displacement_field_transform(
                 self.moving_to_fixed_transform

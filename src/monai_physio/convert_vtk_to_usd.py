@@ -235,7 +235,7 @@ class ConvertVTKToUSD(MONAIPhysioBase):
         mask_ids: Optional[dict[int, str]] = None,
         segmenter: Optional[SegmentAnatomyBase] = None,
         log_level: int | str = logging.INFO,
-    ) -> "ConvertVTKToUSD":
+    ) -> ConvertVTKToUSD:
         """Create a converter by loading VTK files from disk.
 
         Accepts .vtk (legacy), .vtp (PolyData), and .vtu (UnstructuredGrid) files.
@@ -462,7 +462,7 @@ class ConvertVTKToUSD(MONAIPhysioBase):
         color_by_array: Optional[str] = None,
         colormap: str = "plasma",
         intensity_range: Optional[tuple[float, float]] = None,
-    ) -> "ConvertVTKToUSD":
+    ) -> ConvertVTKToUSD:
         """
         Configure colormap for visualization.
 
@@ -495,7 +495,7 @@ class ConvertVTKToUSD(MONAIPhysioBase):
         self,
         stress_array_name: str = "stress",
         output_name: str = "von_mises_stress",
-    ) -> "ConvertVTKToUSD":
+    ) -> ConvertVTKToUSD:
         """Add a scalar von Mises stress array derived from a 9-component
         stress tensor on every input mesh.
 
@@ -508,7 +508,7 @@ class ConvertVTKToUSD(MONAIPhysioBase):
         becomes a USD primvar at convert time (``vtk_cell_<output_name>`` or
         ``vtk_point_<output_name>``) and can be selected as the
         ``color_by_array`` for set_colormap or as the target primvar for
-        ``USDTools.apply_colormap_from_primvar``.
+        ``ToolsForUSD.apply_colormap_from_primvar``.
 
         Tensor layout (row-major)::
 
@@ -875,9 +875,9 @@ class ConvertVTKToUSD(MONAIPhysioBase):
 
         # Extract surface if needed
         if self.convert_to_surface and not isinstance(vtk_mesh, pv.PolyData):
-            if isinstance(vtk_mesh, pv.UnstructuredGrid):
-                vtk_mesh = vtk_mesh.extract_surface(algorithm="dataset_surface")
-            elif hasattr(vtk_mesh, "extract_surface"):
+            if isinstance(vtk_mesh, pv.UnstructuredGrid) or hasattr(
+                vtk_mesh, "extract_surface"
+            ):
                 vtk_mesh = vtk_mesh.extract_surface(algorithm="dataset_surface")
             elif hasattr(vtk_mesh, "extract_geometry"):
                 vtk_mesh = vtk_mesh.extract_geometry()
@@ -972,7 +972,7 @@ class ConvertVTKToUSD(MONAIPhysioBase):
             vtk_mesh = vtk_mesh.extract_surface(algorithm="dataset_surface")
 
         # Get per-cell label IDs. 'SegmentationLabelIds' is written by
-        # ContourTools.save_combined_surfaces when merging per-label surfaces;
+        # ToolsForContours.save_combined_surfaces when merging per-label surfaces;
         # 'boundary_labels' comes from contouring a multi-label labelmap.
         if "SegmentationLabelIds" in vtk_mesh.cell_data:
             label_array = vtk_mesh.cell_data["SegmentationLabelIds"]

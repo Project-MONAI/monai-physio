@@ -79,7 +79,7 @@ import numpy as np
 import pyvista as pv
 from parameters_duke_heart_physics_informed import DUKE_HEART_PHYSICS_INFORMED
 
-from monai_physio import TestTools, WorkflowTrainPhysicsNeMo
+from monai_physio import ToolsForTests, WorkflowTrainPhysicsNeMo
 from monai_physio.train_physicsnemo_physics_informed_motion import (
     PhysicsInformedMotion,
     TrainPhysicsNeMoPhysicsInformedMotion,
@@ -120,7 +120,7 @@ if __name__ == "__main__":
 
     class_name = "tutorial_17_duke_heart_physics_informed_motion_train"
 
-    test_mode = TestTools.running_as_test()
+    test_mode = ToolsForTests.running_as_test()
     parameters = DUKE_HEART_PHYSICS_INFORMED
 
     prep_dir = parameters.prep_directory(test_mode)
@@ -321,7 +321,7 @@ if __name__ == "__main__":
     logger.info("Physics-informed model: %s", physics_result["output_directory"])
 
     # Testing
-    tt = TestTools(
+    tt = ToolsForTests(
         class_name=class_name,
         results_dir=prep_dir,
         baselines_dir=baselines_dir,

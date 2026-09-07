@@ -24,9 +24,9 @@ import itk
 import numpy as np
 import pyvista as pv
 
-from . import physicsnemo_tools as pnt
 from .monai_physio_base import MONAIPhysioBase
-from .transform_tools import TransformTools
+from .tools_for_physicsnemo import ToolsForPhysicsNeMo
+from .tools_for_transforms import ToolsForTransforms
 from .workflow_convert_vtk_to_usd import WorkflowConvertVTKToUSD
 from .workflow_infer_physicsnemo import WorkflowInferPhysicsNeMo
 
@@ -106,8 +106,10 @@ class WorkflowInferMovement(MONAIPhysioBase):
             Dict with ``subject_id`` and ``predicted_surfaces`` (paths).
         """
         workflow = self.inference_workflow
-        manifest = pnt.parse_manifest(subject_manifest)
-        pca_coeffs = pnt.load_pca_coefficients(manifest.pca_coefficients)
+        manifest = ToolsForPhysicsNeMo.parse_manifest(subject_manifest)
+        pca_coeffs = ToolsForPhysicsNeMo.load_pca_coefficients(
+            manifest.pca_coefficients
+        )
         fitted_reference_mesh = cast(
             pv.DataSet, pv.read(str(manifest.fitted_reference_mesh))
         )
@@ -162,7 +164,7 @@ class WorkflowInferMovement(MONAIPhysioBase):
             Dict with ``predicted_surface`` (path) and ``predicted_points``.
         """
         workflow = self.inference_workflow
-        coeffs = pnt.load_pca_coefficients(shape_parameters)
+        coeffs = ToolsForPhysicsNeMo.load_pca_coefficients(shape_parameters)
         fitted_mesh = cast(pv.DataSet, pv.read(str(fitted_reference_mesh)))
         fitted_reference_points = self._fitted_reference_points(fitted_mesh)
         pred_points = fitted_reference_points + workflow.predict(coeffs, stage)
@@ -256,7 +258,7 @@ class WorkflowInferMovement(MONAIPhysioBase):
             raise ValueError("process_time_series needs at least one stage.")
 
         workflow = self.inference_workflow
-        coeffs = pnt.load_pca_coefficients(shape_parameters)
+        coeffs = ToolsForPhysicsNeMo.load_pca_coefficients(shape_parameters)
         fitted_mesh = cast(pv.DataSet, pv.read(str(fitted_reference_mesh)))
         fitted_reference_points = self._fitted_reference_points(fitted_mesh)
 
@@ -266,7 +268,7 @@ class WorkflowInferMovement(MONAIPhysioBase):
         suffix = ".vtp" if isinstance(fitted_mesh, pv.PolyData) else ".vtu"
         self.log_section("INFER MOVEMENT TIME SERIES [%s]", stem)
 
-        transform_tools = TransformTools(log_level=self.log_level)
+        transform_tools = ToolsForTransforms(log_level=self.log_level)
         stage_meshes: list[pv.DataSet] = []
         surfaces: list[Path] = []
         warped_images: list[Path] = []
@@ -391,12 +393,12 @@ class WorkflowInferMovement(MONAIPhysioBase):
             images), ``weight_image`` (the vertex count per voxel, which
             distinguishes an empty voxel from one whose displacement happens to
             be zero and is what
-            :meth:`TransformTools.smooth_deformation_field_transform` normalizes
+            :meth:`ToolsForTransforms.smooth_deformation_field_transform` normalizes
             by), ``deformed_surface`` (the stage mesh as ``pv.DataSet``) and,
             when written, their paths.
         """
         workflow = self.inference_workflow
-        coeffs = pnt.load_pca_coefficients(shape_parameters)
+        coeffs = ToolsForPhysicsNeMo.load_pca_coefficients(shape_parameters)
         fitted_mesh = cast(pv.DataSet, pv.read(str(fitted_reference_mesh)))
         fitted_reference_points = self._fitted_reference_points(fitted_mesh)
         disps = workflow.predict(coeffs, stage)

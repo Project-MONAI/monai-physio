@@ -1,5 +1,5 @@
 """
-Tests for LabelmapTools functionality.
+Tests for ToolsForLabelmaps functionality.
 
 Covers thresholding a multi-label labelmap into a binary registration mask,
 physically isotropic dilation that respects per-axis spacing, and forcing
@@ -12,18 +12,20 @@ import itk
 import numpy as np
 import pytest
 
-from monai_physio.labelmap_tools import LabelmapTools
+from monai_physio.tools_for_labelmaps import ToolsForLabelmaps
 
 
-class TestLabelmapTools:
-    """Test suite for LabelmapTools.convert_labelmap_to_mask."""
+class TestToolsForLabelmaps:
+    """Test suite for ToolsForLabelmaps.convert_labelmap_to_mask."""
 
     @pytest.fixture
-    def labelmap_tools(self) -> LabelmapTools:
-        """Create LabelmapTools instance."""
-        return LabelmapTools()
+    def labelmap_tools(self) -> ToolsForLabelmaps:
+        """Create ToolsForLabelmaps instance."""
+        return ToolsForLabelmaps()
 
-    def test_threshold_without_dilation(self, labelmap_tools: LabelmapTools) -> None:
+    def test_threshold_without_dilation(
+        self, labelmap_tools: ToolsForLabelmaps
+    ) -> None:
         """Every non-zero label becomes foreground; no dilation grows it."""
         arr = np.zeros((5, 5, 5), dtype=np.uint8)
         arr[2, 2, 2] = 3  # non-zero label id
@@ -37,7 +39,7 @@ class TestLabelmapTools:
         assert int(mask_arr.sum()) == 1
         assert mask_arr[2, 2, 2] == 1
 
-    def test_dilation_grows_mask(self, labelmap_tools: LabelmapTools) -> None:
+    def test_dilation_grows_mask(self, labelmap_tools: ToolsForLabelmaps) -> None:
         """Positive dilation_in_mm grows the mask but keeps the seed voxel."""
         arr = np.zeros((5, 5, 5), dtype=np.uint8)
         arr[2, 2, 2] = 3
@@ -52,7 +54,7 @@ class TestLabelmapTools:
         assert dilated_arr[2, 2, 2] == 1
 
     def test_dilation_respects_anisotropic_spacing(
-        self, labelmap_tools: LabelmapTools
+        self, labelmap_tools: ToolsForLabelmaps
     ) -> None:
         """A 5 mm radius covers more voxels along the finely spaced axis."""
         arr = np.zeros((11, 11, 11), dtype=np.uint8)
@@ -74,7 +76,9 @@ class TestLabelmapTools:
         assert dilated[5, 5, 0] == 0
         assert dilated[5, 5, 10] == 0
 
-    def test_exclude_labels_removes_voxels(self, labelmap_tools: LabelmapTools) -> None:
+    def test_exclude_labels_removes_voxels(
+        self, labelmap_tools: ToolsForLabelmaps
+    ) -> None:
         """Excluded labels become background before thresholding."""
         arr = np.zeros((5, 5, 5), dtype=np.uint8)
         arr[1, 1, 1] = 2  # kept
@@ -92,7 +96,9 @@ class TestLabelmapTools:
         assert mask_arr[3, 3, 3] == 0
         assert int(mask_arr.sum()) == 1
 
-    def test_preserves_image_information(self, labelmap_tools: LabelmapTools) -> None:
+    def test_preserves_image_information(
+        self, labelmap_tools: ToolsForLabelmaps
+    ) -> None:
         """Origin, spacing, and direction are copied from the labelmap."""
         arr = np.zeros((4, 4, 4), dtype=np.uint8)
         arr[2, 2, 2] = 1

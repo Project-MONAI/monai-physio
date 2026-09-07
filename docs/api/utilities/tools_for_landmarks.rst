@@ -13,16 +13,16 @@ reports and the DIR-Lab benchmark is scored on.
 Module Reference
 ================
 
-.. automodule:: monai_physio.landmark_tools
+.. automodule:: monai_physio.tools_for_landmarks
    :members:
    :undoc-members:
 
 See Also
 ========
 
-* :doc:`transform_tools`
+* :doc:`tools_for_transforms`
 * :doc:`../registration/index`
 
 .. rubric:: Navigation
 
-:doc:`transform_tools` | :doc:`index` | :doc:`contour_tools`
+:doc:`tools_for_transforms` | :doc:`index` | :doc:`tools_for_contours`

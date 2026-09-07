@@ -15,10 +15,8 @@ from typing import Any, Optional
 import itk
 import numpy as np
 import pytest
-
 from parameters_base import ParametersBase
-from monai_physio.contour_tools import ContourTools
-from monai_physio.data_download_tools import DataDownloadTools
+
 from monai_physio.register_images_ants import RegisterImagesANTS
 from monai_physio.register_images_greedy import RegisterImagesGreedy
 from monai_physio.register_images_icon import RegisterImagesICON
@@ -28,7 +26,9 @@ from monai_physio.segment_chest_total_segmentator_with_contrast import (
 )
 from monai_physio.segment_heart_simpleware import SegmentHeartSimpleware
 from monai_physio.segment_nv_segment_ct_mri import SegmentNVSegmentCTMRI
-from monai_physio.transform_tools import TransformTools
+from monai_physio.tools_for_contours import ToolsForContours
+from monai_physio.tools_for_data_downloads import ToolsForDataDownloads
+from monai_physio.tools_for_transforms import ToolsForTransforms
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +146,7 @@ def pytest_configure(config: pytest.Config) -> None:
     global _pytest_config
     _pytest_config = config
 
-    from monai_physio import test_tools as _test_tools
+    from monai_physio import tools_for_tests as _test_tools
 
     _test_tools.set_create_baseline_if_missing(
         config.getoption("--create-baselines", default=False)
@@ -436,12 +436,12 @@ def download_test_data(test_directories: dict[str, Path]) -> Path:
     data_dir = test_directories["slicer_heart_data"]
 
     try:
-        input_image_filename = DataDownloadTools.DownloadSlicerHeartCTData(data_dir)
+        input_image_filename = ToolsForDataDownloads.DownloadSlicerHeartCTData(data_dir)
     except OSError as e:
         msg = (
             f"Could not download test data: {e}. "
             "Please manually place "
-            f"{DataDownloadTools.SLICER_HEART_CT_FILENAME} in {data_dir}"
+            f"{ToolsForDataDownloads.SLICER_HEART_CT_FILENAME} in {data_dir}"
         )
         if os.environ.get("CI"):
             pytest.fail(msg)
@@ -457,7 +457,7 @@ def download_kcl_heart_model(test_directories: dict[str, Path]) -> Path:
     data_dir = test_directories["data"] / "KCL-Heart-Model"
 
     try:
-        data_dir = DataDownloadTools.DownloadKCLHeartModelData(data_dir)
+        data_dir = ToolsForDataDownloads.DownloadKCLHeartModelData(data_dir)
     except OSError as e:
         msg = (
             f"Could not download KCL-Heart-Model data: {e}. "
@@ -805,9 +805,9 @@ def segmenter_simpleware() -> SegmentHeartSimpleware:
 
 
 @pytest.fixture(scope="session")
-def contour_tools() -> ContourTools:
-    """Create a ContourTools instance."""
-    return ContourTools()
+def contour_tools() -> ToolsForContours:
+    """Create a ToolsForContours instance."""
+    return ToolsForContours()
 
 
 @pytest.fixture(scope="session")
@@ -829,9 +829,9 @@ def registrar_ICON() -> RegisterImagesICON:
 
 
 @pytest.fixture(scope="session")
-def transform_tools() -> TransformTools:
-    """Create a TransformTools instance."""
-    return TransformTools()
+def transform_tools() -> ToolsForTransforms:
+    """Create a ToolsForTransforms instance."""
+    return ToolsForTransforms()
 
 
 class KnownShiftCase:
@@ -853,7 +853,7 @@ class KnownShiftCase:
                 Use a different magnitude and sign per axis so an axis swap or a
                 sign flip cannot pass.
         """
-        self.transform_tools = TransformTools()
+        self.transform_tools = ToolsForTransforms()
         self.fixed = fixed_image
         self.shift_mm = shift_mm
         self.expected_displacement = np.array([-v for v in shift_mm])
@@ -945,7 +945,7 @@ class KnownAffineCase:
             origin_offset_mm: Placed the grid's origin here, moving the data in
                 world space. Use it to sit far from the world origin.
         """
-        self.transform_tools = TransformTools()
+        self.transform_tools = ToolsForTransforms()
 
         self.fixed = self._synthetic_volume(origin_offset_mm)
         self.origin_offset_mm = origin_offset_mm

@@ -20,9 +20,9 @@ import itk
 import numpy as np
 from numpy.typing import NDArray
 
-from .image_tools import ImageTools
 from .register_images_base import RegisterImagesBase
-from .transform_tools import TransformTools
+from .tools_for_images import ToolsForImages
+from .tools_for_transforms import ToolsForTransforms
 
 
 def _try_import_greedy() -> Any:
@@ -51,7 +51,7 @@ class RegisterImagesGreedy(RegisterImagesBase):
     - Deformable registration with multi-resolution (-n, -s)
     - Metrics: NMI, NCC, SSD (mapped from CC, Mattes, MeanSquares)
     - Optional mask support (-gm fixed, -mm moving when both provided)
-    - SimpleITK in-memory interface via ImageTools
+    - SimpleITK in-memory interface via ToolsForImages
 
     Inherits from RegisterImagesBase:
     - Fixed and moving image management
@@ -123,12 +123,12 @@ class RegisterImagesGreedy(RegisterImagesBase):
 
     def _itk_to_sitk(self, itk_image: itk.Image) -> Any:
         """Convert ITK image to SimpleITK (for Greedy)."""
-        image_tools = ImageTools()
+        image_tools = ToolsForImages()
         return image_tools.convert_itk_image_to_sitk(itk_image)
 
     def _sitk_to_itk(self, sitk_image: Any) -> itk.Image:
         """Convert SimpleITK image to ITK."""
-        image_tools = ImageTools()
+        image_tools = ToolsForImages()
         return image_tools.convert_sitk_image_to_itk(sitk_image)
 
     def _greedy_metric(self) -> str:
@@ -286,9 +286,9 @@ class RegisterImagesGreedy(RegisterImagesBase):
     ) -> itk.Transform:
         """Convert SimpleITK displacement field to ITK DisplacementFieldTransform."""
         field_itk = self._sitk_to_itk(warp_sitk)
-        from .image_tools import ImageTools
+        from .tools_for_images import ToolsForImages
 
-        image_tools = ImageTools()
+        image_tools = ToolsForImages()
         arr = itk.array_from_image(field_itk)
         disp_itk = image_tools.convert_array_to_image_of_vectors(
             arr, reference_image, itk.D
@@ -459,9 +459,9 @@ class RegisterImagesGreedy(RegisterImagesBase):
         # integer labelmap is piecewise-constant, so NCC sees zero local
         # variance and emits NaN gradients (a native crash). Encode each
         # labelmap as a continuous label-plus-boundary-distance field instead.
-        from .labelmap_tools import LabelmapTools
+        from .tools_for_labelmaps import ToolsForLabelmaps
 
-        labelmap_tools = LabelmapTools()
+        labelmap_tools = ToolsForLabelmaps()
         fixed_labelmap_sitk = None
         moving_labelmap_sitk = None
         if self.fixed_labelmap is not None:
@@ -555,9 +555,9 @@ class RegisterImagesGreedy(RegisterImagesBase):
                 )
             else:
                 # Assume numpy displacement field (z,y,x,3)
-                from .image_tools import ImageTools
+                from .tools_for_images import ToolsForImages
 
-                image_tools = ImageTools()
+                image_tools = ToolsForImages()
                 warp_arr = np.asarray(warp_sitk, dtype=np.float64)
                 ref = displacement_reference
                 disp_itk = image_tools.convert_array_to_image_of_vectors(
@@ -576,7 +576,9 @@ class RegisterImagesGreedy(RegisterImagesBase):
                 forward_composite.AddTransform(aff_tfm)
             forward_composite.AddTransform(disp_tfm)
             fixed_to_moving_transform = forward_composite
-            inv_disp = TransformTools().invert_displacement_field_transform(disp_tfm)
+            inv_disp = ToolsForTransforms().invert_displacement_field_transform(
+                disp_tfm
+            )
             inv_aff = itk.AffineTransform[itk.D, 3].New()
             if aff_tfm is not None:
                 aff_tfm.GetInverse(inv_aff)

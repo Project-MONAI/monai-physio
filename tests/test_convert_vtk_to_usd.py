@@ -15,7 +15,7 @@ import pyvista as pv
 from pxr import UsdGeom
 
 from monai_physio import ConvertVTKToUSD
-from monai_physio.contour_tools import ContourTools
+from monai_physio.tools_for_contours import ToolsForContours
 
 
 def _make_poly(label_ids: list[int] | None = None) -> pv.PolyData:
@@ -38,7 +38,7 @@ class TestConvertVTKToUSD:
     @pytest.fixture(scope="class")
     def contour_meshes(
         self,
-        contour_tools: ContourTools,
+        contour_tools: ToolsForContours,
         test_labelmaps: list[dict[str, Any]],
         test_directories: dict[str, Path],
     ) -> list[Any]:
@@ -168,7 +168,7 @@ class TestConvertVTKToUSD:
 
     def test_convert_with_deformation(
         self,
-        contour_tools: ContourTools,
+        contour_tools: ToolsForContours,
         test_labelmaps: list[dict[str, Any]],
         test_directories: dict[str, Path],
     ) -> None:
@@ -374,7 +374,7 @@ class TestConvertVTKToUSD:
 
     def test_batch_conversion(
         self,
-        contour_tools: ContourTools,
+        contour_tools: ToolsForContours,
         test_labelmaps: list[dict[str, Any]],
         test_directories: dict[str, Path],
     ) -> None:

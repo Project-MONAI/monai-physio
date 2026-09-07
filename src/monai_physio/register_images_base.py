@@ -21,9 +21,9 @@ from typing import Any, Optional, Union, cast
 import itk
 import numpy as np
 
-from .labelmap_tools import LabelmapTools
 from .monai_physio_base import MONAIPhysioBase
-from .transform_tools import TransformTools
+from .tools_for_labelmaps import ToolsForLabelmaps
+from .tools_for_transforms import ToolsForTransforms
 
 
 class RegisterImagesBase(MONAIPhysioBase):
@@ -92,7 +92,7 @@ class RegisterImagesBase(MONAIPhysioBase):
         """
         super().__init__(class_name=self.__class__.__name__, log_level=log_level)
 
-        self.labelmap_tools = LabelmapTools(log_level=log_level)
+        self.labelmap_tools = ToolsForLabelmaps(log_level=log_level)
 
         self.net: Any = None
 
@@ -487,7 +487,7 @@ class RegisterImagesBase(MONAIPhysioBase):
         if self.fixed_image is None:
             raise ValueError("Fixed image must be set before registration.")
 
-        transform_tools = TransformTools()
+        transform_tools = ToolsForTransforms()
         background_value = self._prewarp_background_value(moving_image)
         self.log_info(
             "Pre-warping moving data with the initial transform (background %.1f)...",
@@ -533,7 +533,7 @@ class RegisterImagesBase(MONAIPhysioBase):
             already pre-warped data -- not a loss for the composed transform,
             and not comparable to the loss of a stage that started from scratch.
         """
-        transform_tools = TransformTools()
+        transform_tools = ToolsForTransforms()
 
         # The registration measured the residual from the pre-warped position,
         # so the total is the initial transform followed by that residual. An
@@ -689,7 +689,7 @@ class RegisterImagesBase(MONAIPhysioBase):
             itk.Image: The registered image
         """
         if self.moving_image_registered is None:
-            TfmTools = TransformTools()
+            TfmTools = ToolsForTransforms()
             self.moving_image_registered = TfmTools.transform_image(
                 self.moving_image,
                 self.fixed_to_moving_transform,

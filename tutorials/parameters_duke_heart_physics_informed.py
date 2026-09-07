@@ -57,7 +57,7 @@ class ParametersDukeHeartPhysicsInformed(ParametersDukeHeartLabelmaps):
             sweep rather than a value to trust.
         number_of_epochs: Training epochs, matching Tutorial 9 so the two are
             comparable.
-        number_of_epochs_test: Same, under ``TestTools.running_as_test``.
+        number_of_epochs_test: Same, under ``ToolsForTests.running_as_test``.
         train_ablation_baseline: Whether Tutorial 17 also trains a second model
             with ``lambda_physics`` at zero.  That model sees exactly the same
             volumetric data, so it is the only comparison that isolates the

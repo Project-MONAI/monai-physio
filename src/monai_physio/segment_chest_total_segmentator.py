@@ -14,8 +14,8 @@ import itk
 import nibabel as nib
 import numpy as np
 
-from .image_tools import ImageTools
 from .segment_anatomy_base import SegmentAnatomyBase
+from .tools_for_images import ToolsForImages
 
 
 class SegmentChestTotalSegmentator(SegmentAnatomyBase):
@@ -34,7 +34,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
 
     Anatomy groups (heart, lung, bone, major_vessels, soft_tissue) are
     populated into :attr:`SegmentAnatomyBase.taxonomy` so downstream
-    consumers (``ConvertVTKToUSD``, ``USDAnatomyTools``) see a single,
+    consumers (``ConvertVTKToUSD``, ``ToolsForUSDAnatomy``) see a single,
     consistent group→organ mapping.
 
     For contrast-enhanced studies (CT with contrast-enhanced blood in the
@@ -243,7 +243,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
         and quietly produce different anatomy.  Wrongly degrading a valid
         licensed run is worse than the revoked-key case this misses.
         """
-        from totalsegmentator.libs import (  # noqa: PLC0415
+        from totalsegmentator.libs import (
             has_valid_license_offline,
         )
 
@@ -321,7 +321,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
             >>> labelmap = segmenter.segmentation_method(preprocessed_ct)
         """
         with tempfile.TemporaryDirectory() as tmp_dir:
-            from totalsegmentator.python_api import totalsegmentator  # noqa: PLC0415
+            from totalsegmentator.python_api import totalsegmentator
 
             # ITK and Nibabel use different coordinate systems (LPS vs RAS).
             # The safest conversion is via a temporary file. This approach
@@ -448,7 +448,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
                 interior_arr = interior_mask.astype(np.uint8)
                 interior_image = itk.GetImageFromArray(interior_arr)
                 interior_image.CopyInformation(preprocessed_image)
-                imMath = ImageTools()
+                imMath = ToolsForImages()
                 spacing = interior_image.GetSpacing()
                 exterior_image = imMath.binary_dilate_image(
                     interior_image, round(7 / spacing[0]), 1, 0

@@ -68,7 +68,7 @@ into per-phase 3-D volumes:
    data/Slicer-Heart-CT/slice_000.mha ... slice_020.mha
 
 The command uses
-:meth:`monai_physio.data_download_tools.DataDownloadTools.DownloadSlicerHeartCTData`,
+:meth:`monai_physio.tools_for_data_downloads.ToolsForDataDownloads.DownloadSlicerHeartCTData`,
 so repeated runs reuse the existing non-empty file and skip the split once
 the ``slice_???.mha`` files are present.
 
@@ -80,7 +80,7 @@ For ``KCL-Heart-Model``, the command downloads, extracts, and reuses:
    data/KCL-Heart-Model/input_meshes/01.vtk ... 20.vtk
 
 The command uses
-:meth:`monai_physio.data_download_tools.DataDownloadTools.DownloadKCLHeartModelData`,
+:meth:`monai_physio.tools_for_data_downloads.ToolsForDataDownloads.DownloadKCLHeartModelData`,
 which fetches each per-model ``.tar.gz`` archive from Zenodo, extracts its
 mesh, and skips archives whose target ``.vtk`` file is already present.
 
@@ -93,7 +93,7 @@ For ``CHOP-Valve4D``, the command downloads, extracts, and reuses:
    data/CHOP-Valve4D/CT/        (source CT volume and Simpleware segmentation)
 
 The command uses
-:meth:`monai_physio.data_download_tools.DataDownloadTools.DownloadCHOPValve4DData`,
+:meth:`monai_physio.tools_for_data_downloads.ToolsForDataDownloads.DownloadCHOPValve4DData`,
 which fetches each subdirectory's zip archive from the MONAI Physio GitHub
 release and skips a subdirectory once it has its expected extracted files
 (the CT volume or Simpleware segmentation for ``CT/``, ``.vtk`` meshes for
@@ -107,7 +107,7 @@ For ``Chest-CT``, the command downloads and reuses a single volume:
    data/Chest-CT/Chest-CT.mha
 
 The command uses
-:meth:`monai_physio.data_download_tools.DataDownloadTools.DownloadChestCTData`,
+:meth:`monai_physio.tools_for_data_downloads.ToolsForDataDownloads.DownloadChestCTData`,
 which fetches the volume from the MONAI Physio GitHub release and reuses an
 existing non-empty file, so re-running resumes an interrupted download.
 

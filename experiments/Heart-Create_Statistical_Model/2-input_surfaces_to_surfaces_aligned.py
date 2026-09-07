@@ -12,17 +12,16 @@
 #
 
 # %%
-import itk
-
 from pathlib import Path
 
+import itk
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pyvista as pv
 
-from monai_physio.contour_tools import ContourTools
 from monai_physio.register_models_icp import RegisterModelsICP
+from monai_physio.tools_for_contours import ToolsForContours
 
 _HERE = Path(__file__).parent
 
@@ -74,7 +73,7 @@ aligned_meshes = {}
 transforms_point_forward = {}  # Moving to Fixed point transforms (moving_to_fixed_transform)
 transforms_point_inverse = {}  # Fixed to Moving point transforms (fixed_to_moving_transform)
 
-contour_tools = ContourTools()
+contour_tools = ToolsForContours()
 
 # Process each mesh
 for mesh_file in mesh_files:

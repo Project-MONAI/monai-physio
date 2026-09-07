@@ -18,7 +18,7 @@ import numpy as np
 
 from .register_images_base import RegisterImagesBase
 from .register_images_greedy import RegisterImagesGreedy
-from .transform_tools import TransformTools
+from .tools_for_transforms import ToolsForTransforms
 
 
 class RegisterTimeSeriesImages(RegisterImagesBase):
@@ -38,7 +38,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
 
     Attributes:
         registrar (RegisterImagesBase): The registration backend in use.
-        transform_tools (TransformTools): Utility for transform operations.
+        transform_tools (ToolsForTransforms): Utility for transform operations.
 
     Example:
         >>> # Register a cardiac CT time series
@@ -93,7 +93,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             )
         self.registrar: RegisterImagesBase = registration_method
 
-        self.transform_tools: TransformTools = TransformTools()
+        self.transform_tools: ToolsForTransforms = ToolsForTransforms()
 
     def set_mask_dilation(self, mask_dilation_mm: float) -> None:
         """Set the dilation of the fixed and moving image masks.

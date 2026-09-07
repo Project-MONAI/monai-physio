@@ -262,7 +262,7 @@ segmenter.set_target_spacing(2.0)  # Use 2mm instead of 1mm
 2. **Use region of interest**:
 ```python
 # Crop image to heart region before segmentation
-from monai_physio.image_tools import crop_to_roi
+from monai_physio.tools_for_images import crop_to_roi
 cropped_image = crop_to_roi(input_image, roi_bounds)
 ```
 

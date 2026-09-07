@@ -47,8 +47,8 @@ import pyvista as pv
 from parameters_duke_heart_labelmaps import DUKE_HEART
 
 from monai_physio import (
-    ContourTools,
-    TestTools,
+    ToolsForContours,
+    ToolsForTests,
     WorkflowCreateMeanSurface,
     WorkflowCreateStatisticalModel,
 )
@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
     class_name = "tutorial_06_duke_heart_create_statistical_model"
 
-    test_mode = TestTools.running_as_test()
+    test_mode = ToolsForTests.running_as_test()
 
     output_dir = DUKE_HEART.output_directory(test_mode) / "tutorial_06_duke_heart"
     weights_dir = DUKE_HEART.weights_directory(test_mode)
@@ -97,7 +97,7 @@ if __name__ == "__main__":
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    contour_tools = ContourTools(log_level=log_level)
+    contour_tools = ToolsForContours(log_level=log_level)
 
     # One reference-frame surface per case, less the held-out one: Tutorial 7
     # fits this model to that case, so the model must not have seen it.
@@ -211,7 +211,7 @@ if __name__ == "__main__":
     mean_surface.save(str(mean_surface_file))
 
     # Testing
-    tt = TestTools(
+    tt = ToolsForTests(
         class_name=class_name,
         results_dir=output_dir,
         baselines_dir=baselines_dir,

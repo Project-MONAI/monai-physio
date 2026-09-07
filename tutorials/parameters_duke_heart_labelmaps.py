@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from parameters_base import ParametersBase
+
 from monai_physio import SegmentAnatomyBase, SegmentHeartSimplewareTrimmedBranches
 
 
@@ -55,10 +56,10 @@ class ParametersDukeHeartLabelmaps(ParametersBase):
             carry as one vector of ``3 * model_points``.
         number_of_pca_components: PCA components retained when building the
             heart statistical model, and used when fitting it to a patient.
-        number_of_pca_components_test: Same, under ``TestTools.running_as_test``.
+        number_of_pca_components_test: Same, under ``ToolsForTests.running_as_test``.
         number_of_iterations_greedy: Greedy coarse-to-fine iteration schedule.
         number_of_iterations_greedy_test: Same, under
-            ``TestTools.running_as_test``.
+            ``ToolsForTests.running_as_test``.
         segmenter_class: Segmenter that produced these labelmaps, so the
             tutorials name their labels the way it does.
         anatomy_group: Anatomy group name that segmenter registers for the heart.

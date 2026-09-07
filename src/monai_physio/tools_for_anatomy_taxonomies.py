@@ -1,12 +1,12 @@
 """Pure-data anatomy taxonomy shared by segmenters and USD renderers.
 
-This module defines :class:`AnatomyTaxonomy` and :class:`AnatomyGroup`, a
+This module defines :class:`ToolsForAnatomyTaxonomies` and :class:`AnatomyGroup`, a
 minimal data type that maps anatomical groups (``heart``, ``lung``, ``bone``,
 ...) to the organ labels they contain.
 
 The taxonomy is the single source of truth for the label hierarchy. Both
 :class:`monai_physio.SegmentAnatomyBase` (which populates one via its
-subclasses) and :class:`monai_physio.USDAnatomyTools` (which consumes one
+subclasses) and :class:`monai_physio.ToolsForUSDAnatomy` (which consumes one
 when applying materials) depend on this class. The two consumers do not
 depend on each other, which lets either side be used without the other.
 
@@ -35,14 +35,14 @@ class AnatomyGroup:
     organs: dict[int, str] = field(default_factory=dict)
 
 
-class AnatomyTaxonomy:
+class ToolsForAnatomyTaxonomies:
     """Mapping of anatomical groups to the organs each group contains.
 
     Groups are added in insertion order, which determines the order returned
     by :meth:`group_names` and the iteration order of :meth:`all_labels`.
 
     Example:
-        >>> tax = AnatomyTaxonomy()
+        >>> tax = ToolsForAnatomyTaxonomies()
         >>> tax.add_organ("heart", 51, "heart")
         >>> tax.add_organ("heart", 61, "atrial_appendage_left")
         >>> tax.add_organ("lung", 10, "lung_upper_lobe_left")

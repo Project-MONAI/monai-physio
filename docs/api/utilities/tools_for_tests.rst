@@ -10,11 +10,11 @@ pytest suite.
 Module Reference
 ================
 
-.. automodule:: monai_physio.test_tools
+.. automodule:: monai_physio.tools_for_tests
    :members:
    :undoc-members:
    :show-inheritance:
 
 .. rubric:: Navigation
 
-:doc:`image_conversion` | :doc:`index` | :doc:`data_download`
+:doc:`image_conversion` | :doc:`index` | :doc:`tools_for_data_downloads`

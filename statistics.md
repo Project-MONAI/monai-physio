@@ -55,16 +55,16 @@ tutorials are straightforward top-to-bottom scripts.
 
 | Module                                          | Lines | Purpose                                         |
 | ------------------------------------------------ | ----- | ----------------------------------------------- |
-| `usd_tools.py`                                   | 1,523 | USD file manipulation and inspection            |
-| `contour_tools.py`                               | 1,415 | Mesh extraction and contour manipulation        |
+| `tools_for_usd.py`                                   | 1,523 | USD file manipulation and inspection            |
+| `tools_for_contours.py`                               | 1,415 | Mesh extraction and contour manipulation        |
 | `register_models_pca.py`                         | 1,117 | PCA-based shape model registration              |
 | `convert_vtk_to_usd.py`                          | 1,071 | High-level VTK -> USD converter                 |
-| `transform_tools.py`                             | 1,065 | ITK transform utilities                         |
-| `usd_anatomy_tools.py`                           | 1,053 | OmniSurface materials for labeled anatomy       |
+| `tools_for_transforms.py`                             | 1,065 | ITK transform utilities                         |
+| `tools_for_usd_anatomy.py`                           | 1,053 | OmniSurface materials for labeled anatomy       |
 | `workflow_fit_statistical_model_to_patient.py`   | 1,049 | Model-to-patient registration workflow          |
 | `segment_nv_segment_ct_mri.py`                   | 695   | NVIDIA CT/MRI segmentation bundle bridge        |
 | `register_images_ants.py`                        | 691   | ANTs-based image registration                   |
-| `image_tools.py`                                 | 685   | Image I/O, resampling, preprocessing            |
+| `tools_for_images.py`                                 | 685   | Image I/O, resampling, preprocessing            |
 | `register_images_base.py`                        | 685   | Shared registration base class                  |
 | `workflow_infer_movement.py`                     | 625   | Predicted displacements back into geometry      |
 | `register_images_greedy.py`                      | 593   | Greedy classical deformable registration        |

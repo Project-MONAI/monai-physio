@@ -70,8 +70,8 @@ By Category
    * :class:`~monai_physio.RegisterModelsPCA` - PCA-based registration
 
 **USD Tools**
-   * :mod:`~monai_physio.usd_tools` - USD file utilities
-   * :mod:`~monai_physio.usd_anatomy_tools` - Anatomical structure tools
+   * :mod:`~monai_physio.tools_for_usd` - USD file utilities
+   * :mod:`~monai_physio.tools_for_usd_anatomy` - Anatomical structure tools
    * :class:`~monai_physio.ConvertVTKToUSD` - VTK to USD conversion
 
 Module Index

@@ -6,7 +6,8 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Optional, Sequence, cast
+from collections.abc import Sequence
+from typing import Optional, cast
 
 import itk
 import numpy as np
@@ -14,10 +15,10 @@ import pyacvd
 import pyvista as pv
 import trimesh
 
-from .image_tools import ImageTools
 from .monai_physio_base import MONAIPhysioBase
-from .transform_tools import TransformTools
-from .usd_anatomy_tools import USDAnatomyTools
+from .tools_for_images import ToolsForImages
+from .tools_for_transforms import ToolsForTransforms
+from .tools_for_usd_anatomy import ToolsForUSDAnatomy
 
 # VTK_VOXEL lists its eight corners in (i, j, k) raster order; VTK_HEXAHEDRON
 # wants the bottom quad wound consistently, then the matching top quad.
@@ -43,27 +44,27 @@ _LABEL_SURFACE_PAD = 3
 _CONTOUR_ANISOTROPY_LIMIT = 1.5
 
 
-class ContourTools(MONAIPhysioBase):
+class ToolsForContours(MONAIPhysioBase):
     """
     Tools for creating and manipulating contours.
     """
 
     def __init__(self, log_level: int | str = logging.INFO):
-        """Initialize ContourTools.
+        """Initialize ToolsForContours.
 
         Args:
             log_level: Logging level (default: logging.INFO)
         """
         super().__init__(class_name=self.__class__.__name__, log_level=log_level)
 
-        # USDAnatomyTools builds its color tables in __init__ without touching
+        # ToolsForUSDAnatomy builds its color tables in __init__ without touching
         # the stage, so stage=None is safe for these lookup-only uses.
-        self._anatomy_tools = USDAnatomyTools(stage=None, log_level=log_level)
+        self._anatomy_tools = ToolsForUSDAnatomy(stage=None, log_level=log_level)
 
     def apply_anatomy_color(
         self, mesh: pv.DataSet, anatomy_names: Sequence[str]
     ) -> None:
-        """Attach a structure's :class:`USDAnatomyTools` color **in-place**.
+        """Attach a structure's :class:`ToolsForUSDAnatomy` color **in-place**.
 
         Sets, as :meth:`WorkflowConvertImageToVTK._annotate` does, so geometry
         from here colors the same way in Paraview, PyVista, and the USD
@@ -75,7 +76,7 @@ class ContourTools(MONAIPhysioBase):
         Args:
             mesh: Surface or volume mesh to annotate.
             anatomy_names: Names tried in order, most specific first, e.g. an
-                organ name followed by its anatomy group.  ``USDAnatomyTools``
+                organ name followed by its anatomy group.  ``ToolsForUSDAnatomy``
                 carries overrides for some organs (``myocardium``) but not
                 others (``left_ventricle``), so a group name is the usual
                 second entry.  Falls back to ``'other'`` when none resolves.
@@ -959,7 +960,7 @@ class ContourTools(MONAIPhysioBase):
         Returns:
             pv.PolyData: The transformed contours with deformation magnitude
         """
-        new_contours = TransformTools().transform_pvcontour(
+        new_contours = ToolsForTransforms().transform_pvcontour(
             contours, tfm, with_deformation_magnitude=with_deformation_magnitude
         )
 
@@ -1412,7 +1413,7 @@ class ContourTools(MONAIPhysioBase):
             [deformation_field_x, deformation_field_y, deformation_field_z], axis=-1
         )
 
-        image_tools = ImageTools()
+        image_tools = ToolsForImages()
         deformation_field_img = image_tools.convert_array_to_image_of_vectors(
             deformation_field, reference_image, ptype=ptype
         )

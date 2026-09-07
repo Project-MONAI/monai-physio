@@ -17,22 +17,21 @@
 # - Mask-based approach focuses registration on the anatomical structures
 
 # %%
-import itk
+from pathlib import Path
 
+import itk
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pyvista as pv
 
-from pathlib import Path
-
-from monai_physio.contour_tools import ContourTools
 from monai_physio.register_models_distance_maps import RegisterModelsDistanceMaps
+from monai_physio.tools_for_contours import ToolsForContours
 
 _HERE = Path(__file__).parent
 
-# Initialize ContourTools
-contour_tools = ContourTools()
+# Initialize ToolsForContours
+contour_tools = ToolsForContours()
 
 # Setup paths
 input_dir = _HERE / "kcl-heart-model/surfaces_aligned"

@@ -69,7 +69,7 @@ from monai_physio import (
     WorkflowInferMovement,
     WorkflowInferPhysicsNeMo,
 )
-from monai_physio import physicsnemo_tools as pnt
+from monai_physio import tools_for_physicsnemo as pnt
 
 
 def _ensure_mgn_inference_assets(
@@ -109,9 +109,9 @@ def _ensure_mgn_inference_assets(
     edge_index_file = model_dir / "shared_edge_index.pt"
     edge_feats_file = model_dir / "shared_edge_features.pt"
     if not edge_index_file.exists() or not edge_feats_file.exists():
-        edge_index = pnt.mesh_to_edge_index(mean_surface)
+        edge_index = pnt.ToolsForPhysicsNeMo.mesh_to_edge_index(mean_surface)
         coords = np.asarray(mean_surface.points, dtype=np.float32)
-        edge_feats = pnt.compute_edge_features(coords, edge_index)
+        edge_feats = pnt.ToolsForPhysicsNeMo.compute_edge_features(coords, edge_index)
         torch.save(edge_index, str(edge_index_file))
         torch.save(edge_feats, str(edge_feats_file))
 

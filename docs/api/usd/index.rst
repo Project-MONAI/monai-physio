@@ -19,8 +19,8 @@ Quick Links
 ===========
 
 **USD Modules**:
-   * :doc:`tools` - Core USD utilities
-   * :doc:`anatomy_tools` - Anatomical structure tools
+   * :doc:`tools_for_usd` - Core USD utilities
+   * :doc:`tools_for_usd_anatomy` - Anatomical structure tools
    * :doc:`vtk_conversion` - VTK to USD conversion (preferred high-level API)
    * :doc:`vtk_to_usd_lib` - Low-level ``vtk_to_usd`` subpackage (advanced)
 
@@ -30,8 +30,8 @@ Module Documentation
 .. toctree::
    :maxdepth: 2
 
-   tools
-   anatomy_tools
+   tools_for_usd
+   tools_for_usd_anatomy
    vtk_conversion
    vtk_to_usd_lib
 
@@ -57,11 +57,11 @@ Create Anatomical Scene
 
 .. code-block:: python
 
-   from monai_physio import usd_anatomy_tools
-   
-   stage = usd_anatomy_tools.create_anatomical_stage()
-   usd_anatomy_tools.add_heart_model(stage, "heart.vtk")
-   usd_anatomy_tools.add_lungs_model(stage, "lungs.vtk")
+   from monai_physio import tools_for_usd_anatomy
+
+   stage = tools_for_usd_anatomy.create_anatomical_stage()
+   tools_for_usd_anatomy.add_heart_model(stage, "heart.vtk")
+   tools_for_usd_anatomy.add_lungs_model(stage, "lungs.vtk")
    stage.Save()
 
 See Also
@@ -72,4 +72,4 @@ See Also
 
 .. rubric:: Navigation
 
-:doc:`../model_registration/pca` | :doc:`../index` | :doc:`tools`
+:doc:`../model_registration/pca` | :doc:`../index` | :doc:`tools_for_usd`

@@ -1,7 +1,7 @@
 """
 Test utilities for comparing images in pytest.
 
-Provides TestTools for baseline vs results comparison with configurable
+Provides ToolsForTests for baseline vs results comparison with configurable
 tolerances. All image I/O uses ITK with .mha (compressed); 3D images are
 passed as itk.Image at the API level.
 """
@@ -21,7 +21,7 @@ import numpy as np
 
 from .monai_physio_base import MONAIPhysioBase
 
-# Repo root: src/monai_physio/test_tools.py -> parent.parent.parent
+# Repo root: src/monai_physio/tools_for_tests.py -> parent.parent.parent
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 # Set by tests/conftest.py from pytest --create-baselines; applies to entire run
@@ -97,7 +97,7 @@ def _read_metrics(path: Path) -> dict[str, Any]:
     raise ValueError(f"Unsupported metrics format (expected .json or .csv): {path}")
 
 
-class TestTools(MONAIPhysioBase):
+class ToolsForTests(MONAIPhysioBase):
     """
     Utilities for pytest image comparison: baseline directory, result directory,
     and comparison with configurable tolerances. Inherits from MONAIPhysioBase
@@ -623,7 +623,7 @@ class TestTools(MONAIPhysioBase):
     ) -> Path:
         """Render USD mesh geometry off-screen and save a PNG.
 
-        The scene is loaded through :meth:`USDTools.load_usd_as_vtk` into a
+        The scene is loaded through :meth:`ToolsForUSD.load_usd_as_vtk` into a
         PyVista mesh, rendered with a fixed isometric camera and fixed
         ``800 x 600`` window, and centered automatically by PyVista.
 
@@ -642,7 +642,7 @@ class TestTools(MONAIPhysioBase):
 
         import pyvista as pv
 
-        from .usd_tools import USDTools
+        from .tools_for_usd import ToolsForUSD
 
         # On headless Linux runners VTK needs an X server or off-screen GL
         # context. If DISPLAY is already provided (e.g. xvfb-run wrapping
@@ -656,7 +656,7 @@ class TestTools(MONAIPhysioBase):
 
         try:
             output_path = self._results_dir / filename
-            mesh = USDTools().load_usd_as_vtk(
+            mesh = ToolsForUSD().load_usd_as_vtk(
                 usd_file, prim_path=prim_path, time_code=time_code
             )
             plotter = pv.Plotter(off_screen=True, window_size=[800, 600])

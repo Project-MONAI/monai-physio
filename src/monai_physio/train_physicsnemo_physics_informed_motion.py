@@ -38,9 +38,9 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 import numpy as np
 import pyvista as pv
 
-from .contour_tools import ContourTools
-from .physicsnemo_tools import DistributedContext, PhaseSampleDataset
 from .monai_physio_base import MONAIPhysioBase
+from .tools_for_contours import ToolsForContours
+from .tools_for_physicsnemo import DistributedContext, PhaseSampleDataset
 from .train_physicsnemo_mgn import TrainPhysicsNeMoMGN
 
 if TYPE_CHECKING:  # typed for mypy; imported lazily at runtime
@@ -53,7 +53,7 @@ if TYPE_CHECKING:  # typed for mypy; imported lazily at runtime
 _MIN_JACOBIAN = 1.0e-6
 
 
-def _resolved_device(device: "torch.device") -> "torch.device":
+def _resolved_device(device: torch.device) -> torch.device:
     """Return *device* with its CUDA index filled in.
 
     ``torch.device("cuda")`` carries no index and compares unequal to
@@ -98,7 +98,7 @@ def tet_volumes(points: np.ndarray, tets: np.ndarray) -> tuple[np.ndarray, np.nd
 
     Raises:
         ValueError: If any element is inverted or degenerate.  Templates come
-            from :meth:`monai_physio.ContourTools.trim_tetrahedra_to_surface`,
+            from :meth:`monai_physio.ToolsForContours.trim_tetrahedra_to_surface`,
             which holds every cell above a scaled Jacobian of 0.1, so a
             violation here means the template is broken rather than merely
             tight.
@@ -127,18 +127,18 @@ def tet_edges(tets: np.ndarray) -> np.ndarray:
     return np.unique(np.sort(pairs, axis=1), axis=0)
 
 
-def edge_matrix(points: "torch.Tensor", tets: "torch.Tensor") -> "torch.Tensor":
+def edge_matrix(points: torch.Tensor, tets: torch.Tensor) -> torch.Tensor:
     """Return the ``(n_tet, 3, 3)`` matrix whose columns are an element's edges."""
     corners = points[tets]
     return (corners[:, 1:, :] - corners[:, 0:1, :]).transpose(-1, -2)
 
 
 def compute_deformation_gradient(
-    reference_points: "torch.Tensor",
-    displacement: "torch.Tensor",
-    tets: "torch.Tensor",
-    reference_inverse: Optional["torch.Tensor"] = None,
-) -> "torch.Tensor":
+    reference_points: torch.Tensor,
+    displacement: torch.Tensor,
+    tets: torch.Tensor,
+    reference_inverse: Optional[torch.Tensor] = None,
+) -> torch.Tensor:
     """Return the per-element deformation gradient ``F``.
 
     ``F = Ds @ Dm^-1``, with the columns of ``Dm`` the reference edge vectors of
@@ -195,7 +195,7 @@ class NeoHookeanResidual(MONAIPhysioBase):
         self.lambda_lame_kpa = lambda_lame_kpa
         # Accumulated on whatever device the gradients arrive on, so counting
         # costs no host synchronization; only the property below pays one.
-        self._inverted: Optional["torch.Tensor"] = None
+        self._inverted: Optional[torch.Tensor] = None
 
     @property
     def inverted_element_count(self) -> int:
@@ -209,7 +209,7 @@ class NeoHookeanResidual(MONAIPhysioBase):
             return 0
         return int(self._inverted.item())
 
-    def jacobian(self, deformation_gradient: "torch.Tensor") -> "torch.Tensor":
+    def jacobian(self, deformation_gradient: torch.Tensor) -> torch.Tensor:
         """Return ``det(F)`` clamped away from zero, counting any inversion."""
         import torch
 
@@ -220,7 +220,7 @@ class NeoHookeanResidual(MONAIPhysioBase):
         )
         return torch.clamp(jacobian, min=_MIN_JACOBIAN)
 
-    def strain_energy(self, deformation_gradient: "torch.Tensor") -> "torch.Tensor":
+    def strain_energy(self, deformation_gradient: torch.Tensor) -> torch.Tensor:
         """Return the per-element strain energy density, in kilopascals."""
         import torch
 
@@ -234,13 +234,13 @@ class NeoHookeanResidual(MONAIPhysioBase):
             + 0.5 * self.lambda_lame_kpa * log_jacobian**2
         )
 
-    def incompressibility(self, deformation_gradient: "torch.Tensor") -> "torch.Tensor":
+    def incompressibility(self, deformation_gradient: torch.Tensor) -> torch.Tensor:
         """Return ``(J - 1)^2``, the soft penalty on volume change."""
         import torch
 
         return cast("torch.Tensor", (torch.linalg.det(deformation_gradient) - 1.0) ** 2)
 
-    def cauchy_stress(self, deformation_gradient: "torch.Tensor") -> "torch.Tensor":
+    def cauchy_stress(self, deformation_gradient: torch.Tensor) -> torch.Tensor:
         """Return the ``(..., 3, 3)`` Cauchy stress tensor, in kilopascals."""
         import torch
 
@@ -340,12 +340,11 @@ class PhysicsInformedMotion(MONAIPhysioBase):
         n_points: int,
         mu_kpa: float = 10.0,
         lambda_lame_kpa: float = 100.0,
-        device: Optional["torch.device"] = None,
+        device: Optional[torch.device] = None,
         log_level: int | str = logging.INFO,
     ) -> None:
         super().__init__(class_name=self.__class__.__name__, log_level=log_level)
         import torch
-
         from physicsnemo.sym.eq.gradients import compute_connectivity_tensor
         from physicsnemo.sym.eq.phy_informer import PhysicsInformer
 
@@ -391,7 +390,7 @@ class PhysicsInformedMotion(MONAIPhysioBase):
         )
 
     @property
-    def device(self) -> "torch.device":
+    def device(self) -> torch.device:
         """Device this residual's connectivity and symbolic graph were built on.
 
         Fixed at construction: ``PhysicsInformer`` is given the device when its
@@ -416,10 +415,10 @@ class PhysicsInformedMotion(MONAIPhysioBase):
 
     def __call__(
         self,
-        reference_points: "torch.Tensor",
-        displacement_mm: "torch.Tensor",
-        nodal_volumes: "torch.Tensor",
-    ) -> tuple["torch.Tensor", "torch.Tensor"]:
+        reference_points: torch.Tensor,
+        displacement_mm: torch.Tensor,
+        nodal_volumes: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """Return the volume-weighted ``(strain energy, incompressibility)``.
 
         Args:
@@ -486,8 +485,8 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
         # Epoch bookkeeping, so the two loss terms can be reported apart.
         # Summed on the device and read once per logged epoch, so separating the
         # terms costs no per-batch synchronization.
-        self._epoch_data_loss: Optional["torch.Tensor"] = None
-        self._epoch_physics_loss: Optional["torch.Tensor"] = None
+        self._epoch_data_loss: Optional[torch.Tensor] = None
+        self._epoch_physics_loss: Optional[torch.Tensor] = None
         self._epoch_batches = 0
 
     def set_mechanics(
@@ -554,7 +553,7 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
         template_mesh: pv.DataSet,
         template_coords: np.ndarray,
         resume_from: Optional[Path] = None,
-    ) -> tuple["torch.nn.Module", list[float], list[dict]]:
+    ) -> tuple[torch.nn.Module, list[float], list[dict]]:
         """Bind each sample to its subject's reference geometry, then train."""
         assert not self._shuffle_points_within_batch, (
             "The physics residual indexes the template's elements, so it needs "
@@ -638,7 +637,7 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
         assert self._tets is not None
         self._reference_cache = {}
         device = context.device
-        contour_tools = ContourTools(log_level=self.log_level)
+        contour_tools = ToolsForContours(log_level=self.log_level)
         for subject_id in sorted(set(self._sample_subjects)):
             mesh = cast(
                 "pv.UnstructuredGrid", pv.read(str(self._reference_meshes[subject_id]))
@@ -671,12 +670,12 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
 
     def _compute_loss(
         self,
-        pred: "torch.Tensor",
-        tgt: "torch.Tensor",
+        pred: torch.Tensor,
+        tgt: torch.Tensor,
         batch_len: int,
         target_scale: float,
         indices: np.ndarray,
-    ) -> "torch.Tensor":
+    ) -> torch.Tensor:
         """Return the data loss plus the weighted neo-Hookean residual."""
         data_loss = super()._compute_loss(pred, tgt, batch_len, target_scale, indices)
         self._accumulate("_epoch_data_loss", data_loss)
@@ -712,7 +711,7 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
         self._accumulate("_epoch_physics_loss", physics_loss)
         return data_loss + self.lambda_physics * physics_loss
 
-    def _accumulate(self, name: str, value: "torch.Tensor") -> None:
+    def _accumulate(self, name: str, value: torch.Tensor) -> None:
         """Add *value* to the named epoch accumulator, on its own device."""
         running = getattr(self, name)
         detached = value.detach()

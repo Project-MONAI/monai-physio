@@ -98,8 +98,8 @@ Development Notes
 
 * Use masks when registration should focus on a specific anatomy.
 * Check transform direction before applying transforms to contours or images.
-* Use ``TransformTools.transform_image()`` for resampling images.
-* Use ``TransformTools.transform_pvcontour()`` for PyVista contours.
+* Use ``ToolsForTransforms.transform_image()`` for resampling images.
+* Use ``ToolsForTransforms.transform_pvcontour()`` for PyVista contours.
 
 See Also
 ========

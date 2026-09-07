@@ -1,4 +1,4 @@
-"""Unit tests for :class:`monai_physio.AnatomyTaxonomy`.
+"""Unit tests for :class:`monai_physio.ToolsForAnatomyTaxonomies`.
 
 These tests exercise the pure-data taxonomy in isolation - no ITK, no pxr,
 no GPU. They are fast and run unconditionally in the default test suite.
@@ -8,11 +8,11 @@ from __future__ import annotations
 
 import pytest
 
-from monai_physio import AnatomyGroup, AnatomyTaxonomy
+from monai_physio import AnatomyGroup, ToolsForAnatomyTaxonomies
 
 
 def test_add_organ_creates_group_lazily() -> None:
-    tax = AnatomyTaxonomy()
+    tax = ToolsForAnatomyTaxonomies()
     assert tax.group_names() == []
 
     tax.add_organ("heart", 51, "heart")
@@ -21,7 +21,7 @@ def test_add_organ_creates_group_lazily() -> None:
 
 
 def test_group_names_preserve_insertion_order() -> None:
-    tax = AnatomyTaxonomy()
+    tax = ToolsForAnatomyTaxonomies()
     tax.add_organ("lung", 10, "lung_upper_lobe_left")
     tax.add_organ("heart", 51, "heart")
     tax.add_organ("bone", 91, "skull")
@@ -29,14 +29,14 @@ def test_group_names_preserve_insertion_order() -> None:
 
 
 def test_labels_in_group_unknown_returns_empty_dict() -> None:
-    tax = AnatomyTaxonomy()
+    tax = ToolsForAnatomyTaxonomies()
     tax.add_organ("heart", 51, "heart")
     assert tax.labels_in_group("does_not_exist") == {}
 
 
 def test_labels_in_group_returns_copy_not_alias() -> None:
     """Caller mutation of the returned dict must not corrupt the taxonomy."""
-    tax = AnatomyTaxonomy()
+    tax = ToolsForAnatomyTaxonomies()
     tax.add_organ("heart", 51, "heart")
     snapshot = tax.labels_in_group("heart")
     snapshot[999] = "bogus"
@@ -44,7 +44,7 @@ def test_labels_in_group_returns_copy_not_alias() -> None:
 
 
 def test_all_labels_merges_every_group() -> None:
-    tax = AnatomyTaxonomy()
+    tax = ToolsForAnatomyTaxonomies()
     tax.add_organ("heart", 51, "heart")
     tax.add_organ("heart", 61, "atrial_appendage_left")
     tax.add_organ("lung", 10, "lung_upper_lobe_left")
@@ -56,7 +56,7 @@ def test_all_labels_merges_every_group() -> None:
 
 
 def test_group_for_label_finds_by_organ_name() -> None:
-    tax = AnatomyTaxonomy()
+    tax = ToolsForAnatomyTaxonomies()
     tax.add_organ("heart", 51, "heart")
     tax.add_organ("heart", 61, "atrial_appendage_left")
     tax.add_organ("lung", 10, "lung_upper_lobe_left")
@@ -65,13 +65,13 @@ def test_group_for_label_finds_by_organ_name() -> None:
 
 
 def test_group_for_label_unknown_falls_back_to_other() -> None:
-    tax = AnatomyTaxonomy()
+    tax = ToolsForAnatomyTaxonomies()
     tax.add_organ("heart", 51, "heart")
     assert tax.group_for_label("not_in_any_group") == "other"
 
 
 def test_group_for_id_finds_by_id() -> None:
-    tax = AnatomyTaxonomy()
+    tax = ToolsForAnatomyTaxonomies()
     tax.add_organ("heart", 51, "heart")
     tax.add_organ("lung", 10, "lung_upper_lobe_left")
     assert tax.group_for_id(51) == "heart"
@@ -80,7 +80,7 @@ def test_group_for_id_finds_by_id() -> None:
 
 
 def test_fill_other_group_only_claims_unassigned_ids() -> None:
-    tax = AnatomyTaxonomy()
+    tax = ToolsForAnatomyTaxonomies()
     tax.add_organ("heart", 51, "heart")
     tax.add_organ("lung", 10, "lung_upper_lobe_left")
     tax.fill_other_group(id_range=range(1, 12))
@@ -99,7 +99,7 @@ def test_fill_other_group_only_claims_unassigned_ids() -> None:
 
 def test_fill_other_group_idempotent_for_already_claimed_other() -> None:
     """Calling fill_other_group twice must not duplicate or overwrite."""
-    tax = AnatomyTaxonomy()
+    tax = ToolsForAnatomyTaxonomies()
     tax.add_organ("heart", 51, "heart")
     tax.fill_other_group(id_range=range(50, 53))
     snapshot = dict(tax.labels_in_group("other"))

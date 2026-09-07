@@ -22,7 +22,7 @@ from monai_physio import (
     RegisterImagesGreedyICON,
     RegisterImagesICON,
     RegisterTimeSeriesImages,
-    TransformTools,
+    ToolsForTransforms,
 )
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -128,7 +128,7 @@ for file in files:
 #
 
 # %%
-tfm_tools = TransformTools()
+tfm_tools = ToolsForTransforms()
 
 # Loop through each registration method
 for method_idx, registration_method_name in enumerate(registration_method_names):

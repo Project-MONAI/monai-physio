@@ -24,11 +24,11 @@ import pyvista as pv
 from parameters_heart_ct_kcl import HEART_CT_KCL
 
 from monai_physio import (
-    ContourTools,
     SegmentAnatomyBase,
     SegmentChestTotalSegmentatorWithContrast,
     SegmentHeartSimpleware,
-    TestTools,
+    ToolsForContours,
+    ToolsForTests,
     WorkflowConvertImageToVTK,
 )
 
@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
     class_name = "tutorial_04_heart_ct_to_vtk"
 
-    test_mode = TestTools.running_as_test()
+    test_mode = ToolsForTests.running_as_test()
 
     output_dir = HEART_CT_KCL.output_directory(test_mode) / "tutorial_04_heart"
 
@@ -120,24 +120,24 @@ if __name__ == "__main__":
         result["label_surfaces"] if save_label_surfaces else result["surfaces"]
     )
     surface_file = Path(
-        ContourTools.save_combined_surfaces(
+        ToolsForContours.save_combined_surfaces(
             combined_input,
             str(output_dir / "patient_surfaces.vtp"),
         )
     )
     if save_group_surfaces:
-        ContourTools.save_surfaces(
+        ToolsForContours.save_surfaces(
             result["surfaces"], str(output_dir), prefix="patient"
         )
     if save_label_surfaces:
-        ContourTools.save_surfaces(
+        ToolsForContours.save_surfaces(
             result["label_surfaces"], str(output_dir), prefix="patient"
         )
     labelmap_file = output_dir / "patient_labelmap.mha"
     itk.imwrite(result["labelmap"], str(labelmap_file), compression=True)
 
     # Testing
-    tt = TestTools(
+    tt = ToolsForTests(
         class_name=class_name,
         results_dir=output_dir,
         log_level=log_level,

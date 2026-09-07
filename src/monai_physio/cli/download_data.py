@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from ..data_download_tools import DataDownloadTools
+from ..tools_for_data_downloads import ToolsForDataDownloads
 
 SLICER_HEART_CT = "Slicer-Heart-CT"
 KCL_HEART_MODEL = "KCL-Heart-Model"
@@ -50,22 +50,22 @@ Examples:
     output_dir = Path(directory)
 
     if args.data_name == SLICER_HEART_CT:
-        data_file = DataDownloadTools.DownloadSlicerHeartCTData(output_dir)
+        data_file = ToolsForDataDownloads.DownloadSlicerHeartCTData(output_dir)
         print(f"Downloaded {SLICER_HEART_CT} to: {data_file}")
         return 0
 
     if args.data_name == KCL_HEART_MODEL:
-        data_dir = DataDownloadTools.DownloadKCLHeartModelData(output_dir)
+        data_dir = ToolsForDataDownloads.DownloadKCLHeartModelData(output_dir)
         print(f"Downloaded {KCL_HEART_MODEL} to: {data_dir}")
         return 0
 
     if args.data_name == CHOP_VALVE4D:
-        data_dir = DataDownloadTools.DownloadCHOPValve4DData(output_dir)
+        data_dir = ToolsForDataDownloads.DownloadCHOPValve4DData(output_dir)
         print(f"Downloaded {CHOP_VALVE4D} to: {data_dir}")
         return 0
 
     if args.data_name == CHEST_CT:
-        data_file = DataDownloadTools.DownloadChestCTData(output_dir)
+        data_file = ToolsForDataDownloads.DownloadChestCTData(output_dir)
         print(f"Downloaded {CHEST_CT} to: {data_file}")
         return 0
 

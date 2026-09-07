@@ -15,7 +15,7 @@ single 3D scan.
 
 Each stage's per-vertex displacements are rasterized onto the Chest-CT grid by
 ``WorkflowInferMovement.create_deformation_field`` and spread into a continuous
-deformation by ``TransformTools.smooth_deformation_field_transform``. The 100
+deformation by ``ToolsForTransforms.smooth_deformation_field_transform``. The 100
 combined frames are written as VTP surfaces and assembled into a single animated
 4D USD split by anatomy label, alongside the CT and labelmap warped by the same
 per-frame deformation.
@@ -88,7 +88,7 @@ unchanged through every warp (each frame is a deep copy with only its points
 moved; remeshing carries them over to the new cells when enabled).
 ``ConvertVTKToUSD``,
 given ``segmenter.taxonomy.all_labels()`` and the segmenter, splits each frame
-into per-organ prims, and ``USDAnatomyTools.enhance_meshes`` then binds the
+into per-organ prims, and ``ToolsForUSDAnatomy.enhance_meshes`` then binds the
 matching OmniSurface material (diffuse color, subsurface scattering, etc.).
 
 Prerequisites
@@ -140,14 +140,14 @@ from parameters_duke_heart_labelmaps import DUKE_HEART
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
 from monai_physio import (
-    ContourTools,
     ConvertVTKToUSD,
-    ImageTools,
     SegmentHeartSimplewareTrimmedBranches,
     SegmentNVSegmentCTMRI,
-    TestTools,
-    TransformTools,
-    USDAnatomyTools,
+    ToolsForContours,
+    ToolsForImages,
+    ToolsForTests,
+    ToolsForTransforms,
+    ToolsForUSDAnatomy,
     WorkflowConvertVTKToUSD,
     WorkflowFitStatisticalModelToPatient,
     WorkflowInferMovement,
@@ -168,7 +168,7 @@ if __name__ == "__main__":
     tutorials_dir = Path(__file__).resolve().parent
 
     # ---- Inputs ------------------------------------------------------------
-    test_mode = TestTools.running_as_test()
+    test_mode = ToolsForTests.running_as_test()
     # Keep a test run out of the directories a full run reads and writes.
     weights_dir = DUKE_HEART.weights_directory(test_mode)
 
@@ -249,7 +249,7 @@ if __name__ == "__main__":
     # full-resolution field of a 512x512x526 scan costs 1.6 GB and the frame loop
     # blends four of them at a time. Raise it toward 1.0 to sample them finer.
     deformation_field_scale = 0.3
-    # Pitch the animated surface is contoured at. ContourTools.extract_contours
+    # Pitch the animated surface is contoured at. ToolsForContours.extract_contours
     # works on an isotropic grid of the labelmap's finest pitch, which for this
     # scan is 0.6 mm and yields a 4.5-million-point thorax: a hundred frames of
     # it is 5.5 GB of warped points held at once and 135 MB per frame on disk.
@@ -294,9 +294,9 @@ if __name__ == "__main__":
                 f"Required input not found: {required}\nRun tutorials/{hint} first."
             )
 
-    contour_tools = ContourTools(log_level=log_level)
-    transform_tools = TransformTools(log_level=log_level)
-    image_tools = ImageTools(log_level=log_level)
+    contour_tools = ToolsForContours(log_level=log_level)
+    transform_tools = ToolsForTransforms(log_level=log_level)
+    image_tools = ToolsForImages(log_level=log_level)
 
     patient_image = itk.imread(str(patient_image_file))
 
@@ -711,7 +711,7 @@ if __name__ == "__main__":
     # ========================================================================
     # Labeled contour surface: each cell carries `boundary_labels`, which survive
     # the warps (deep copies) and let ConvertVTKToUSD split the USD by anatomy so
-    # USDAnatomyTools.enhance_meshes can bind per-organ OmniSurface materials.
+    # ToolsForUSDAnatomy.enhance_meshes can bind per-organ OmniSurface materials.
     # Contoured from a coarsened copy of the labelmap, so the animated surface
     # is sampled at surface_spacing_mm rather than at the scan's finest pitch.
     # Its heart cells come from the Simpleware segmentation merged in at Stage 0.
@@ -911,14 +911,14 @@ if __name__ == "__main__":
     )
     usd_file = output_dir / "heart_and_lung_motion.usd"
     stage = converter.convert(str(usd_file))
-    USDAnatomyTools(stage).enhance_meshes(segmenter)
+    ToolsForUSDAnatomy(stage).enhance_meshes(segmenter)
     stage.Save()
     logger.info("Wrote 4D USD with anatomy materials: %s", usd_file)
 
     # Testing: the first combined frame, as geometry and as the labelmap the
     # same frame rasterizes to.
     class_name = "tutorial_13_heart_and_lung_motion"
-    tt = TestTools(
+    tt = ToolsForTests(
         class_name=class_name,
         results_dir=output_dir,
         baselines_dir=tutorials_dir.parent / "tests" / "baselines" / class_name,

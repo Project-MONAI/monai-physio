@@ -20,7 +20,7 @@ the source of truth.
 ## Automatic Download
 
 `Slicer-Heart-CT`, `KCL-Heart-Model`, `CHOP-Valve4D`, and `Chest-CT` can be
-fetched with the `monai-physio-download-data` CLI or `DataDownloadTools`; see each
+fetched with the `monai-physio-download-data` CLI or `ToolsForDataDownloads`; see each
 dataset's README for the exact command. `DirLab-4DCT` has no automatic
 downloader - DIR-Lab distributes each case individually and may require
 registration, so it must be obtained manually; see

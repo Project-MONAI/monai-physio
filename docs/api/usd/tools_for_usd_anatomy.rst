@@ -1,18 +1,18 @@
 ====================================
-Contour Tools
+USD Anatomy Tools
 ====================================
 
 .. currentmodule:: monai_physio
 
-Contour extraction and processing utilities.
+Specialized tools for anatomical structure handling in USD.
 
 Module Reference
 ================
 
-.. automodule:: monai_physio.contour_tools
+.. automodule:: monai_physio.tools_for_usd_anatomy
    :members:
    :undoc-members:
 
 .. rubric:: Navigation
 
-:doc:`transform_tools` | :doc:`index` | :doc:`image_conversion`
+:doc:`tools_for_usd` | :doc:`index` | :doc:`vtk_conversion`

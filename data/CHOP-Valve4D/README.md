@@ -11,10 +11,10 @@ monai-physio-download-data CHOP-Valve4D --directory data/CHOP-Valve4D
 or from Python:
 
 ```python
-from monai_physio import DataDownloadTools
+from monai_physio import ToolsForDataDownloads
 
-DataDownloadTools.DownloadCHOPValve4DData("data/CHOP-Valve4D")
-assert DataDownloadTools.VerifyCHOPValve4DData("data/CHOP-Valve4D")
+ToolsForDataDownloads.DownloadCHOPValve4DData("data/CHOP-Valve4D")
+assert ToolsForDataDownloads.VerifyCHOPValve4DData("data/CHOP-Valve4D")
 ```
 
 This downloads and extracts three zip archives attached to the

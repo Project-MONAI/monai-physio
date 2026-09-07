@@ -191,6 +191,88 @@ uv pip install --torch-backend=auto monai-physio   # auto-detected PyTorch, no C
 not Python symbols; no code referenced `[physicsnemo]` or the other removed
 extras, so only install commands change.
 
+## Tools/taxonomy modules and classes - renamed to `tools_for_<object>` / `ToolsFor<Object>`
+
+**Change:** eleven modules and their classes are renamed, both the file and the
+symbol:
+
+| Old module | Old class | New module | New class |
+|---|---|---|---|
+| `image_tools.py` | `ImageTools` | `tools_for_images.py` | `ToolsForImages` |
+| `labelmap_tools.py` | `LabelmapTools` | `tools_for_labelmaps.py` | `ToolsForLabelmaps` |
+| `transform_tools.py` | `TransformTools` | `tools_for_transforms.py` | `ToolsForTransforms` |
+| `landmark_tools.py` | `LandmarkTools` | `tools_for_landmarks.py` | `ToolsForLandmarks` |
+| `contour_tools.py` | `ContourTools` | `tools_for_contours.py` | `ToolsForContours` |
+| `test_tools.py` | `TestTools` | `tools_for_tests.py` | `ToolsForTests` |
+| `data_download_tools.py` | `DataDownloadTools` | `tools_for_data_downloads.py` | `ToolsForDataDownloads` |
+| `physicsnemo_tools.py` | *(no single class)* | `tools_for_physicsnemo.py` | `ToolsForPhysicsNeMo` *(new)* |
+| `usd_anatomy_tools.py` | `USDAnatomyTools` | `tools_for_usd_anatomy.py` | `ToolsForUSDAnatomy` |
+| `usd_tools.py` | `USDTools` | `tools_for_usd.py` | `ToolsForUSD` |
+| `anatomy_taxonomy.py` | `AnatomyTaxonomy` | `tools_for_anatomy_taxonomies.py` | `ToolsForAnatomyTaxonomies` |
+
+`physicsnemo_tools.py` had no single `*Tools` class - it was free functions
+(`parse_manifest`, `load_target_array`, `build_node_features`,
+`mesh_to_edge_index`, `compute_edge_features`, `import_meshgraphnet`,
+`unwrap_model`, `uncompiled_state_dict`, `strip_compile_prefix`,
+`distributed_context`). Those are now `@staticmethod`s on the new
+`ToolsForPhysicsNeMo` class, so `parse_manifest(path)` becomes
+`ToolsForPhysicsNeMo.parse_manifest(path)`, etc. The top-level
+`from monai_physio import distributed_context` export is removed with it
+(`from monai_physio import ToolsForPhysicsNeMo` replaces it, and
+`ToolsForPhysicsNeMo.distributed_context()` replaces the call).
+`PhaseEntry`, `SubjectManifest`, `DistributedContext`, `PhaseSampleDataset` are
+unaffected other than living in the renamed file - `from monai_physio import
+DistributedContext` still works.
+
+Instance attributes and pytest fixtures that happen to share the old lowercase
+module name (`self.transform_tools`, `self.contour_tools`, the
+`contour_tools`/`transform_tools` pytest fixtures) are **not** renamed - only
+import paths and the PascalCase class names changed.
+
+**Why:** every other module in the project follows an action_object naming
+shape (`workflow_train_physicsnemo.py`, `register_images_ants.py`,
+`segment_chest_total_segmentator.py`); these eleven put the object first. The
+new `tools_for_<object>` prefix groups all eleven utility namespaces together
+alphabetically and keeps them visually distinct from the workflow/train/
+register/segment module families, matching the `*Tools` suffix these classes
+already carried. Renaming `test_tools.py`/`TestTools` specifically also removes
+a real footgun: a `Test*`-named class imported into a pytest-collected module
+is a pytest collection candidate, which can silently emit a
+`PytestCollectionWarning`.
+
+Also note: the Sphinx documentation pages for these modules moved with them
+(e.g. `docs/api/utilities/image_tools.rst` -> `tools_for_images.rst`), which
+changes their ReadTheDocs URL slugs.
+
+**Before**
+
+```python
+from monai_physio import ContourTools, ImageTools, TransformTools
+from monai_physio.physicsnemo_tools import parse_manifest, distributed_context
+
+tools = ContourTools()
+manifest = parse_manifest(manifest_path)
+context = distributed_context()
+```
+
+**After**
+
+```python
+from monai_physio import ToolsForContours, ToolsForImages, ToolsForTransforms
+from monai_physio.tools_for_physicsnemo import ToolsForPhysicsNeMo
+
+tools = ToolsForContours()
+manifest = ToolsForPhysicsNeMo.parse_manifest(manifest_path)
+context = ToolsForPhysicsNeMo.distributed_context()
+```
+
+**Automated conversion:** `utils/migrate_tools_for_names.py` - rewrites import
+statements, dotted `monai_physio.<module>` references, Sphinx cross-reference
+roles, and the PascalCase class names (including their `Test<Class>` pytest
+mirrors) tree-wide. It does not rewrite the physicsnemo free-function call
+sites (`parse_manifest(...)` -> `ToolsForPhysicsNeMo.parse_manifest(...)`) or
+bare lowercase attribute/fixture names, both of which need a manual pass.
+
 ## Entry template
 
 Append one section per breaking change, newest last, using this shape:

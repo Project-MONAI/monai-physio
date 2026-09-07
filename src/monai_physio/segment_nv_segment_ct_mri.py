@@ -48,7 +48,7 @@ class SegmentNVSegmentCTMRI(SegmentAnatomyBase):
     TotalSegmentator backend uses, so downstream consumers see the same group
     keys; ``brain_parcellation`` is new and renders with the grey-matter entry
     registered for it in
-    :data:`monai_physio.usd_anatomy_tools.DEFAULT_RENDER_PARAMS`, plus
+    :data:`monai_physio.tools_for_usd_anatomy.DEFAULT_RENDER_PARAMS`, plus
     organ-level overrides for the tissues that differ (white matter, CSF-filled
     ventricles, brainstem, cerebellum, pallidum).
 
@@ -564,7 +564,7 @@ class SegmentNVSegmentCTMRI(SegmentAnatomyBase):
             str: Local directory holding the downloaded bundle.
         """
         if self._snapshot_dir is None:
-            from huggingface_hub import snapshot_download  # noqa: PLC0415
+            from huggingface_hub import snapshot_download
 
             self.log_warning(self.license_warning)
             self.log_info("Downloading %s (cached after first use)", self.hf_repo_id)
@@ -595,10 +595,10 @@ class SegmentNVSegmentCTMRI(SegmentAnatomyBase):
             if snapshot_dir not in sys.path:
                 sys.path.insert(0, snapshot_dir)
 
-            import torch  # noqa: PLC0415
-            from vista3d_config import VISTA3DConfig  # noqa: PLC0415
-            from vista3d_model import VISTA3DModel  # noqa: PLC0415
-            from vista3d_pipeline import VISTA3DPipeline  # noqa: PLC0415
+            import torch
+            from vista3d_config import VISTA3DConfig
+            from vista3d_model import VISTA3DModel
+            from vista3d_pipeline import VISTA3DPipeline
 
             # The bundle's HuggingFacePipelineHelper builds the model through
             # PreTrainedModel.from_pretrained, which reads only

@@ -1,12 +1,12 @@
 # %%
 import os
 
-from monai_physio.usd_tools import USDTools
+from monai_physio.tools_for_usd import ToolsForUSD
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
 # %%
-usd_tools = USDTools()
+usd_tools = ToolsForUSD()
 
 _merged = os.path.join(_HERE, "results", "Slicer_CardiacGatedCT.merged_painted.usd")
 _dynamic = os.path.join(
