@@ -540,7 +540,6 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         )
 
         # Store results
-        # Note: Point transforms are in opposite direction from image transforms
         self.icp_moving_to_fixed_transform = icp_result["moving_to_fixed_transform"]
         self.icp_fixed_to_moving_transform = icp_result["fixed_to_moving_transform"]
         self.icp_template_model_surface = icp_result["registered_model"]
