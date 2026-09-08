@@ -74,6 +74,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         self.rmse_log_interval: int = 100
         self.loss_log_interval: int = 10
         self.seed: int = 42
+        self.grad_clip_norm: float = 1.0
 
     # ─────────────────────────── Tuning setters ────────────────────────────
     def set_epochs(self, epochs: int) -> None:
@@ -93,6 +94,23 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         if learning_rate <= 0.0:
             raise ValueError(f"learning_rate must be > 0, got {learning_rate}")
         self.learning_rate = learning_rate
+
+    def set_grad_clip_norm(self, grad_clip_norm: float) -> None:
+        """Set the max gradient norm clipped to before each optimizer step.
+
+        A cold-start network can produce a huge, fully finite gradient (an
+        energy-based residual like :class:`PhysicsInformedMotion` has terms
+        the Jacobian clamp does not cover), large enough to poison Adam's
+        moment estimates in a single step. Clipping bounds that step; it does
+        not catch a non-finite loss, which the training loop skips outright.
+
+        Args:
+            grad_clip_norm: Max L2 norm of the gradient, passed to
+                ``torch.nn.utils.clip_grad_norm_``.
+        """
+        if grad_clip_norm <= 0.0:
+            raise ValueError(f"grad_clip_norm must be > 0, got {grad_clip_norm}")
+        self.grad_clip_norm = grad_clip_norm
 
     # ─────────────────────────── Network seams ─────────────────────────────
     def build_model(self, in_features: int, out_features: int) -> torch.nn.Module:
@@ -272,7 +290,18 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
                     loss = self._compute_loss(
                         pred, tgt, batch_len, target_scale, indices
                     )
+                if not torch.isfinite(loss):
+                    # A non-finite loss has a non-finite gradient, and Adam's
+                    # moment estimates stay poisoned forever once one lands --
+                    # skip the step rather than let one bad batch kill the run.
+                    self.log_warning(
+                        "Epoch %d: non-finite loss (%s); skipping this batch.",
+                        epoch + 1,
+                        float(loss.detach()),
+                    )
+                    continue
                 loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), self.grad_clip_norm)
                 optimizer.step()
                 epoch_loss += float(loss.detach()) * len(nf)
                 n_rows += len(nf)

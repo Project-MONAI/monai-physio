@@ -376,6 +376,7 @@ class WorkflowReconstructHighres4DCT(MONAIPhysioBase):
         )
         if self.composite_reference_image is not None:
             composite_mode = "existing"
+            self.registrar.composite_reference_image = self.composite_reference_image
 
         # Reconstruct time series
         self.reconstructed_images = self.registrar.reconstruct_time_series(
