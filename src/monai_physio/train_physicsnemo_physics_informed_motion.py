@@ -227,7 +227,24 @@ class NeoHookeanResidual(MONAIPhysioBase):
         first_invariant = torch.einsum(
             "...ij,...ij->...", deformation_gradient, deformation_gradient
         )
+        if not torch.isfinite(first_invariant).all():
+            bad = (~torch.isfinite(first_invariant)).sum().item()
+            self.log_warning(
+                "first_invariant: %d/%d elements non-finite (max finite %.4g)",
+                bad,
+                first_invariant.numel(),
+                first_invariant[torch.isfinite(first_invariant)].max().item()
+                if bad < first_invariant.numel()
+                else float("nan"),
+            )
         log_jacobian = torch.log(self.jacobian(deformation_gradient))
+        if not torch.isfinite(log_jacobian).all():
+            bad = (~torch.isfinite(log_jacobian)).sum().item()
+            self.log_warning(
+                "log_jacobian: %d/%d elements non-finite",
+                bad,
+                log_jacobian.numel(),
+            )
         return (
             0.5 * self.mu_kpa * (first_invariant - 3.0)
             - self.mu_kpa * log_jacobian
