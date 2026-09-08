@@ -101,6 +101,10 @@ def _report_reference_mesh_quality(
         cell_volumes = np.linalg.det(edges) / 6.0
         bad = np.nonzero(cell_volumes <= 0.0)[0]
         if bad.size:
+            if bad.size > 100:
+                print_bad = bad[:100].tolist()
+            else:
+                print_bad = bad.tolist()
             logger.warning(
                 "%s (%s): %d of %d tetrahedra inverted or degenerate before repair: %s",
                 subject_id,
@@ -110,7 +114,7 @@ def _report_reference_mesh_quality(
                 "; ".join(
                     f"cell {cell_id} (nodes {tets[cell_id].tolist()}) "
                     f"volume={cell_volumes[cell_id]:.3e}"
-                    for cell_id in bad
+                    for cell_id in print_bad
                 ),
             )
 

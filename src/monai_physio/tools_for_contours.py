@@ -768,11 +768,15 @@ class ToolsForContours(MONAIPhysioBase):
         specific subject -- a statistical-model fit, say -- carries no such
         constraint, and can flip a handful of elements even though the
         template it started from was clean. Only the nodes touching a bad
-        element are moved, each toward the centroid of the opposite face of
-        every bad tetrahedron it belongs to -- skipping opposite-face nodes
-        that are themselves still bad, so two adjacent inverted tets don't
-        just pull each other back and forth -- which leaves geometry the fit
-        got right alone.
+        element are moved, each to the mean of its mesh neighbors -- skipping
+        neighbors that are themselves still bad, so two adjacent inverted
+        tets don't just pull each other back and forth -- which leaves
+        geometry the fit got right alone. Averaging over the full
+        edge-neighbor set (rather than, say, just one bad tet's opposite
+        face) keeps each step small: a node has far more good neighbors than
+        bad ones, so a bad tet's own pull is damped by the rest, and moving a
+        node to fix its bad tets doesn't invert its many other, previously
+        good ones.
 
         Args:
             tetrahedra: Volume mesh to repair; its cell and field data
@@ -805,23 +809,35 @@ class ToolsForContours(MONAIPhysioBase):
         if n_inverted == 0:
             return tetrahedra
 
+        edges = np.vstack(
+            [
+                connectivity[:, pair]
+                for pair in ((0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3))
+            ]
+        )
+        starts = np.concatenate([edges[:, 0], edges[:, 1]])
+        ends = np.concatenate([edges[:, 1], edges[:, 0]])
+        order = np.argsort(starts, kind="stable")
+        sorted_starts = starts[order]
+        sorted_ends = ends[order]
+        split_points = np.searchsorted(sorted_starts, np.arange(len(points) + 1))
+        neighbors = {
+            node: np.unique(sorted_ends[split_points[node] : split_points[node + 1]])
+            for node in np.unique(connectivity)
+        }
+
         for _ in range(max_iterations):
             bad = volumes(points) <= 0.0
             if not np.any(bad):
                 break
             snapshot = points.copy()
-            bad_cells = connectivity[bad]
-            bad_node_set = set(np.unique(bad_cells).tolist())
-            targets: dict[int, list[np.ndarray]] = {}
-            for cell in bad_cells:
-                for i in range(4):
-                    node = int(cell[i])
-                    opposite = np.delete(cell, i)
-                    good_opposite = [n for n in opposite if n not in bad_node_set]
-                    chosen = good_opposite if good_opposite else opposite
-                    targets.setdefault(node, []).append(snapshot[chosen].mean(axis=0))
-            for node, candidates in targets.items():
-                points[node] = np.mean(candidates, axis=0)
+            bad_node_set = set(np.unique(connectivity[bad]).tolist())
+            for node in bad_node_set:
+                neighbor_ids = neighbors[node]
+                good_ids = np.array([n for n in neighbor_ids if n not in bad_node_set])
+                chosen = good_ids if len(good_ids) else neighbor_ids
+                if len(chosen):
+                    points[node] = snapshot[chosen].mean(axis=0)
 
         final_volumes = volumes(points)
         still_bad_mask = final_volumes <= 0.0
