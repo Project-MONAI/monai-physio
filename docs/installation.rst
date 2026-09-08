@@ -307,7 +307,7 @@ Solution:
 
 1. Ensure NVIDIA Omniverse is installed
 2. Set the viewport renderer to RTX and switch to the scene's
-   ``/World/Camera``; see :doc:`viewing_usd`
+   ``/World/Camera``; see :doc:`viewing_meshes`
 3. Verify file paths are accessible to Omniverse
 
 Getting Help

@@ -54,16 +54,16 @@ class TestSegmentNVSegmentCTMRIConfiguration:
         """Test that SegmentNVSegmentCTMRI initializes correctly."""
         segmenter = segmenter_nv_segment_ct_mri
         assert segmenter.target_spacing == 1.5, "Target spacing not set correctly"
-        assert segmenter.labelmap_dtype is np.uint16, (
-            "Class index space exceeds 255 and requires uint16"
-        )
+        assert (
+            segmenter.labelmap_dtype is np.uint16
+        ), "Class index space exceeds 255 and requires uint16"
         assert segmenter.modality == "CT_BODY", "Default modality not set correctly"
 
         taxonomy = segmenter.taxonomy
         for group in EXPECTED_GROUPS:
-            assert len(taxonomy.labels_in_group(group)) > 0, (
-                f"{group} mask IDs not defined"
-            )
+            assert (
+                len(taxonomy.labels_in_group(group)) > 0
+            ), f"{group} mask IDs not defined"
 
         print("\nSegmenter initialized with correct parameters")
         for group in EXPECTED_GROUPS:
@@ -92,9 +92,9 @@ class TestSegmentNVSegmentCTMRIConfiguration:
     ) -> None:
         """_finalize_other_group must sweep ids above the uint8 ceiling."""
         labels = segmenter_nv_segment_ct_mri.taxonomy.all_labels()
-        assert set(labels.keys()) == set(range(1, 346)), (
-            "Taxonomy should cover the model's full [1, 346) index space"
-        )
+        assert set(labels.keys()) == set(
+            range(1, 346)
+        ), "Taxonomy should cover the model's full [1, 346) index space"
 
     def test_set_modality(
         self, segmenter_nv_segment_ct_mri: SegmentNVSegmentCTMRI
@@ -133,6 +133,25 @@ class TestSegmentNVSegmentCTMRIConfiguration:
         warnings = [r for r in collector.records if r.levelno == logging.WARNING]
         assert len(warnings) == 1, "License warning should fire once per instance"
         assert segmenter.license_warning in warnings[0].getMessage()
+
+    def test_offline_mode_uses_only_cached_model(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """HF_HUB_OFFLINE must prevent upstream model metadata requests."""
+        import huggingface_hub
+
+        arguments: dict[str, Any] = {}
+
+        def snapshot_download(**kwargs: Any) -> str:
+            arguments.update(kwargs)
+            return "/cached/model"
+
+        monkeypatch.setenv("HF_HUB_OFFLINE", "1")
+        monkeypatch.setattr(huggingface_hub, "snapshot_download", snapshot_download)
+
+        SegmentNVSegmentCTMRI()._ensure_model()
+
+        assert arguments["local_files_only"] is True
 
 
 @pytest.mark.requires_gpu
@@ -174,9 +193,9 @@ class TestSegmentNVSegmentCTMRI:
         )
 
         allowed = {0} | set(segmenter_nv_segment_ct_mri.taxonomy.all_labels().keys())
-        assert set(unique_labels.tolist()) <= allowed, (
-            "Labelmap contains ids outside the model's index space"
-        )
+        assert (
+            set(unique_labels.tolist()) <= allowed
+        ), "Labelmap contains ids outside the model's index space"
 
         print("Segmentation complete for time point 0")
         print(f"  Unique labels: {len(unique_labels)}")

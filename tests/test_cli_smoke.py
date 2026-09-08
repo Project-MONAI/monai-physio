@@ -5,7 +5,7 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 import sys
-from typing import Any
+from typing import Any, Optional
 
 import pytest
 
@@ -19,6 +19,7 @@ CLI_MODULES = [
     "monai_physio.cli.download_data",
     "monai_physio.cli.fit_statistical_model_to_patient",
     "monai_physio.cli.reconstruct_highres_4d_ct",
+    "monai_physio.cli.view_meshes",
     "monai_physio.cli.visualize_pca_modes",
 ]
 
@@ -111,3 +112,122 @@ def test_convert_image_to_usd_cli_passes_fps(
     assert captured_kwargs["time_series_images"] == [fake_image]
     assert captured_kwargs["reference_image"] is fake_image
     assert captured_kwargs["frames_per_second"] == 30.0
+
+
+def test_view_meshes_cli_forwards_server_options(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Mesh viewer CLI forwards the scene and web-server options."""
+    module = importlib.import_module("monai_physio.cli.view_meshes")
+    usd_file = tmp_path / "animated.usd"
+    usd_file.write_text("placeholder")
+    captured: dict[str, Any] = {}
+
+    class FakeMeshWebViewer:
+        def __init__(
+            self,
+            input_files: list[Path],
+            prim_path: str,
+            playback_fps: Optional[float],
+        ) -> None:
+            captured["input_files"] = input_files
+            captured["prim_path"] = prim_path
+            captured["playback_fps"] = playback_fps
+
+        def start(self, host: str, port: int, open_browser: bool) -> None:
+            captured["host"] = host
+            captured["port"] = port
+            captured["open_browser"] = open_browser
+
+    import monai_physio.mesh_web_viewer
+
+    monkeypatch.setattr(
+        monai_physio.mesh_web_viewer,
+        "MeshWebViewer",
+        FakeMeshWebViewer,
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "view_meshes",
+            str(usd_file),
+            "--prim-path",
+            "/Scene",
+            "--host",
+            "0.0.0.0",
+            "--port",
+            "9000",
+            "--fps",
+            "3",
+            "--no-browser",
+        ],
+    )
+
+    assert module.main() == 0
+    assert captured == {
+        "input_files": [usd_file],
+        "prim_path": "/Scene",
+        "playback_fps": 3.0,
+        "host": "0.0.0.0",
+        "port": 9000,
+        "open_browser": False,
+    }
+
+
+def test_view_meshes_cli_forwards_multiple_vtp_files(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Viewer CLI forwards all VTP surfaces in command-line order."""
+    module = importlib.import_module("monai_physio.cli.view_meshes")
+    patient_file = tmp_path / "patient.vtp"
+    fitted_file = tmp_path / "fitted.vtp"
+    patient_file.write_text("placeholder")
+    fitted_file.write_text("placeholder")
+    captured: dict[str, Any] = {}
+
+    class FakeMeshWebViewer:
+        def __init__(
+            self,
+            input_files: list[Path],
+            prim_path: str,
+            playback_fps: Optional[float],
+        ) -> None:
+            captured["input_files"] = input_files
+            captured["prim_path"] = prim_path
+            captured["playback_fps"] = playback_fps
+
+        def start(self, host: str, port: int, open_browser: bool) -> None:
+            captured["host"] = host
+            captured["port"] = port
+            captured["open_browser"] = open_browser
+
+    import monai_physio.mesh_web_viewer
+
+    monkeypatch.setattr(
+        monai_physio.mesh_web_viewer,
+        "MeshWebViewer",
+        FakeMeshWebViewer,
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "view_meshes",
+            str(patient_file),
+            str(fitted_file),
+            "--no-browser",
+        ],
+    )
+
+    assert module.main() == 0
+    assert captured == {
+        "input_files": [patient_file, fitted_file],
+        "prim_path": "/World",
+        "playback_fps": None,
+        "host": "127.0.0.1",
+        "port": 8080,
+        "open_browser": False,
+    }

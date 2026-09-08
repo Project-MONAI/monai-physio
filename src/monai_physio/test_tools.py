@@ -625,7 +625,9 @@ class TestTools(MONAIPhysioBase):
 
         The scene is loaded through :meth:`USDTools.load_usd_as_vtk` into a
         PyVista mesh, rendered with a fixed isometric camera and fixed
-        ``800 x 600`` window, and centered automatically by PyVista.
+        ``800 x 600`` window, and centered automatically by PyVista. A
+        configured VTK off-screen backend is used directly; older PyVista
+        versions can otherwise start Xvfb when no display is available.
 
         Args:
             usd_file: USD file to render.
@@ -644,14 +646,20 @@ class TestTools(MONAIPhysioBase):
 
         from .usd_tools import USDTools
 
-        # On headless Linux runners VTK needs an X server or off-screen GL
-        # context. If DISPLAY is already provided (e.g. xvfb-run wrapping
-        # pytest), trust it. Otherwise try pv.start_xvfb() and let failures
-        # surface - silently swallowing them previously caused VTK to
-        # segfault inside Plotter.screenshot() on GitHub Actions.
+        # On headless Linux, prefer an explicitly configured EGL/OSMesa backend.
+        # Older PyVista versions can start Xvfb as a fallback; PyVista 0.48
+        # removed that helper in favor of native off-screen backends.
         xvfb_started = False
-        if sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
-            pv.start_xvfb()
+        has_display = bool(os.environ.get("DISPLAY"))
+        has_vtk_backend = bool(os.environ.get("VTK_DEFAULT_OPENGL_WINDOW"))
+        start_xvfb = getattr(pv, "start_xvfb", None)
+        if (
+            sys.platform.startswith("linux")
+            and not has_display
+            and not has_vtk_backend
+            and callable(start_xvfb)
+        ):
+            start_xvfb()
             xvfb_started = True
 
         try:

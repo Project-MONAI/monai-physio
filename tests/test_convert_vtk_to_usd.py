@@ -16,6 +16,7 @@ from pxr import UsdGeom
 
 from monai_physio import ConvertVTKToUSD
 from monai_physio.contour_tools import ContourTools
+from utils.create_motion_comparison_usd import _load_sequence
 
 
 def _make_poly(label_ids: list[int] | None = None) -> pv.PolyData:
@@ -433,6 +434,27 @@ class TestSyntheticConversion:
     - Gap D: mask_ids / _convert_with_labels - per-label prims, time-code filtering
     - Gap E: static-merge prim naming uses data_basename
     """
+
+    def test_motion_sequence_rejects_changed_face_connectivity(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        """Equal point and cell counts do not establish fixed topology."""
+        points = np.array(
+            [
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [1.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0],
+            ]
+        )
+        first_path = tmp_path / "first.vtp"
+        second_path = tmp_path / "second.vtp"
+        pv.PolyData(points, faces=[3, 0, 1, 2, 3, 0, 2, 3]).save(first_path)
+        pv.PolyData(points, faces=[3, 0, 1, 3, 3, 1, 2, 3]).save(second_path)
+
+        with pytest.raises(ValueError, match="topology changes"):
+            _load_sequence([first_path, second_path], "Prediction")
 
     # ------------------------------------------------------------------
     # Gap C - single-part prim must carry explicit time sample

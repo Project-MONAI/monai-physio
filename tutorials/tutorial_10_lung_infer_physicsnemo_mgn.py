@@ -64,7 +64,7 @@ from monai_physio import (
 
 
 def _respiratory_stage_from_filename(surface_file: Path) -> float:
-    """Extract the normalized respiratory stage [0, 1] from a ``T{PP}`` filename stem."""
+    """Extract the normalized stage [0, 1] from a ``T{PP}`` filename stem."""
     for part in surface_file.stem.split("_"):
         if part.startswith("T") and part[1:].isdigit():
             return int(part[1:]) / 100.0

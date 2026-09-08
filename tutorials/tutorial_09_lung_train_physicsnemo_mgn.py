@@ -31,18 +31,31 @@ continuum: adjacent vertices co-vary smoothly. MeshGraphNet encodes that prior
 directly by passing messages along mesh edges, giving an explicit
 continuum-deformation inductive bias the MLP must infer from coordinates alone.
 
-Node features (per vertex):   [mean_shape_x, mean_shape_y, mean_shape_z, pca_c1 ... pca_cN, stage]
+Node features (per vertex):
+    [mean_shape_x, mean_shape_y, mean_shape_z, pca_c1 ... pca_cN, stage]
 Edge features (per edge):     [rel_x, rel_y, rel_z, distance]   (from the mean shape)
 Output (per vertex):          [dx, dy, dz]  (displacement in mm)
 
 Runtime
 -------
 Measured on the full 10-case DIR-Lab set with the Tutorial 6 lung template
-(179k points, 1.07M mesh-graph edges): one training step of ``batch_size`` 4
+(283k points, 1.70M directed mesh-graph edges): one training step of
+``batch_size`` 4
 takes ~430 ms and peaks near 43 GiB of GPU memory, giving ~9 s per epoch and
 roughly 4 hours for the 1500 epochs below. Lower ``batch_size``, or call
 ``training_method.set_num_processor_checkpoint_segments(...)`` to trade compute
 for memory, on a smaller card.
+
+The workshop uses the supplied converged checkpoint in Tutorial 10. Run this
+script only when intentionally training a replacement model::
+
+    python tutorials/tutorial_09_lung_train_physicsnemo_mgn.py
+
+Extra Install Required
+----------------------
+PhysicsNeMo and PyTorch Geometric must be installed::
+
+    pip install "monai-physio"
 
 Data Required
 -------------
@@ -103,7 +116,7 @@ TARGET_ARRAY = "displacement"
 
 
 def _respiratory_stage_from_filename(surface_file: Path) -> float:
-    """Extract the normalized respiratory stage [0, 1] from a ``T{PP}`` filename stem."""
+    """Extract normalized respiratory stage [0, 1] from a ``T{PP}`` filename."""
     for part in surface_file.stem.split("_"):
         if part.startswith("T") and part[1:].isdigit():
             return int(part[1:]) / 100.0
@@ -130,7 +143,7 @@ def _write_target_mesh(
 
 def _write_case_manifest(
     case_dir: Path, manifests_dir: Path, logger: logging.Logger
-) -> Optional[Path]:
+) -> Optional[Path]:  # noqa: UP045
     """Write a per-case manifest JSON; return its path (or None if incomplete).
 
     A case needs a reference SSM surface, a PCA coefficient file, and at least
@@ -201,7 +214,7 @@ if __name__ == "__main__":
     # Warm-start from a previous run's checkpoint; None trains from scratch. When
     # resuming, training writes to a fresh sibling of weights_dir, e.g.
     # network_weights/physicsnemo_mgn_lung_motion_1/mgn_stage_model_epoch_00200.pt
-    resume_from: Optional[Path] = None
+    resume_from: Optional[Path] = None  # noqa: UP045
 
     # Training hyperparameters
     epochs = 1500

@@ -335,7 +335,7 @@ Viewing Results
 3. Press Play to view the cardiac motion animation
 4. Adjust the timeline speed for the visualization you want
 
-:doc:`../viewing_usd` covers installing the viewer and what to look at once
+:doc:`../viewing_meshes` covers installing the viewer and what to look at once
 the scene is open.
 
 Next Steps

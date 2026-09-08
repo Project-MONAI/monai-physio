@@ -10,6 +10,7 @@ venv*
 build
 *.egg-info
 *.log
+.cache/physiotwin4d/
 __pycache__
 _version.py
 htmlcov

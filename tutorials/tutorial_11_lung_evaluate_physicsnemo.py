@@ -86,6 +86,7 @@ from monai_physio import (
 if __name__ == "__main__":
     # Data directory specification
     repo_root = Path(__file__).resolve().parent.parent
+    test_mode = TestTools.running_as_test()
 
     class_name = "tutorial_11_lung_evaluate_physicsnemo"
 
@@ -96,7 +97,6 @@ if __name__ == "__main__":
     reference_phase = "T70"
 
     # Fitted SSM surface and PCA coefficients written by Tutorial 8 (lung).
-    test_mode = TestTools.running_as_test()
     # Keep a test run out of the directories a full run reads and writes.
     case_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_08_lung" / case_id
     # Weights Tutorial 9 trained, and the checkpoint epoch Tutorial 10 infers

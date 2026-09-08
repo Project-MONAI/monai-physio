@@ -28,7 +28,7 @@ Do I need NVIDIA Omniverse?
 
 Omniverse is the recommended way to view the USD scenes: its RTX renderer is
 what evaluates the material properties assigned to each tissue. See
-:doc:`viewing_usd`. For the intermediate results you can also use:
+:doc:`viewing_meshes`. For the intermediate results you can also use:
 
 * PyVista, for the intermediate ``.vtp`` / ``.vtu`` meshes
 * ParaView, likewise for the VTK files
@@ -139,4 +139,3 @@ More Questions?
 * Check the :doc:`cli_scripts/heart_gated_ct`
 * Browse :doc:`tutorials`
 * Open an issue on `GitHub <https://github.com/Project-MONAI/monai-physio/issues>`_
-

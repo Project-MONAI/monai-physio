@@ -78,10 +78,12 @@ class USDTools(MONAIPhysioBase):
         """Load USD mesh geometry as a PyVista ``PolyData``.
 
         Evaluates mesh points at ``time_code``, applies each mesh prim's
-        local-to-world transform, and stores RGB colors in
-        ``point_data['openusd_rgb']``. Authored ``displayColor`` is used when
-        available; otherwise points are colored red. Coordinates are returned
-        in the USD stage coordinate system.
+        local-to-world transform, and stores RGB and RGBA colors in
+        ``point_data['openusd_rgb']`` and ``point_data['openusd_rgba']``.
+        Authored ``displayColor`` and ``displayOpacity`` are used when
+        available, followed by a bound material's diffuse color and opacity.
+        Points are opaque red when neither is available. Coordinates are
+        returned in the USD stage coordinate system.
 
         Args:
             usd_file: Path to a USD file.
@@ -169,7 +171,9 @@ class USDTools(MONAIPhysioBase):
 
             pv_mesh = pvtk.PolyData(points, np.asarray(faces, dtype=np.int64))
             rgb = self._usd_display_color(mesh, len(points), usd_time)
+            opacity = self._usd_display_opacity(mesh, len(points), usd_time)
             pv_mesh.point_data["openusd_rgb"] = rgb
+            pv_mesh.point_data["openusd_rgba"] = np.column_stack((rgb, opacity))
             meshes.append(pv_mesh)
 
         if not meshes:
@@ -188,21 +192,21 @@ class USDTools(MONAIPhysioBase):
         n_points: int,
         time_code: Usd.TimeCode,
     ) -> np.ndarray:
-        """Return point RGB colors from ``displayColor`` or the red fallback."""
+        """Return point RGB colors from display or bound material metadata."""
         fallback = np.tile(np.array([[255, 0, 0]], dtype=np.uint8), (n_points, 1))
         primvar = UsdGeom.PrimvarsAPI(mesh).GetPrimvar("displayColor")
         if not primvar:
-            return fallback
+            return USDTools._usd_material_color(mesh, n_points, time_code, fallback)
 
         color_value = primvar.Get(time_code)
         if color_value is None:
             color_value = primvar.Get()
         if color_value is None or len(color_value) == 0:
-            return fallback
+            return USDTools._usd_material_color(mesh, n_points, time_code, fallback)
 
         colors = np.asarray(color_value, dtype=np.float32)
         if colors.ndim != 2 or colors.shape[1] < 3:
-            return fallback
+            return cast(np.ndarray, fallback)
 
         colors = colors[:, :3]
         interpolation = primvar.GetInterpolation()
@@ -211,9 +215,109 @@ class USDTools(MONAIPhysioBase):
         elif len(colors) == 1:
             colors = np.tile(colors[0], (n_points, 1))
         elif len(colors) != n_points:
-            return fallback
+            return cast(np.ndarray, fallback)
 
         return np.asarray(np.clip(colors, 0.0, 1.0) * 255.0, dtype=np.uint8)
+
+    @staticmethod
+    def _usd_material_color(
+        mesh: UsdGeom.Mesh,
+        n_points: int,
+        time_code: Usd.TimeCode,
+        fallback: np.ndarray,
+    ) -> np.ndarray:
+        """Return a diffuse preview color from a bound USD material."""
+        bound_material = UsdShade.MaterialBindingAPI(
+            mesh.GetPrim()
+        ).ComputeBoundMaterial()[0]
+        if not bound_material or not bound_material.GetPrim().IsValid():
+            return fallback
+
+        for render_context in ("mdl", ""):
+            surface_output = bound_material.GetSurfaceOutput(render_context)
+            if not surface_output:
+                continue
+            source = surface_output.GetConnectedSource()
+            if source is None:
+                continue
+            shader = UsdShade.Shader(source[0].GetPrim())
+            for input_name in ("diffuse_reflection_color", "diffuseColor"):
+                shader_input = shader.GetInput(input_name)
+                if not shader_input:
+                    continue
+                color_value = shader_input.Get(time_code)
+                if color_value is None:
+                    color_value = shader_input.Get()
+                if color_value is None or len(color_value) < 3:
+                    continue
+                color = np.asarray(color_value, dtype=np.float32)[:3]
+                rgb = np.asarray(
+                    np.clip(color, 0.0, 1.0) * 255.0,
+                    dtype=np.uint8,
+                )
+                return cast(np.ndarray, np.tile(rgb, (n_points, 1)))
+        return fallback
+
+    @staticmethod
+    def _usd_display_opacity(
+        mesh: UsdGeom.Mesh,
+        n_points: int,
+        time_code: Usd.TimeCode,
+    ) -> np.ndarray:
+        """Return point opacity from display or bound material metadata."""
+        primvar = UsdGeom.PrimvarsAPI(mesh).GetPrimvar("displayOpacity")
+        if not primvar:
+            return USDTools._usd_material_opacity(mesh, n_points, time_code)
+
+        opacity_value = primvar.Get(time_code)
+        if opacity_value is None:
+            opacity_value = primvar.Get()
+        if opacity_value is None or len(opacity_value) == 0:
+            return USDTools._usd_material_opacity(mesh, n_points, time_code)
+
+        opacity = np.asarray(opacity_value, dtype=np.float32).reshape(-1)
+        interpolation = primvar.GetInterpolation()
+        if interpolation in (UsdGeom.Tokens.constant, "constant") or len(opacity) == 1:
+            opacity = np.full(n_points, opacity[0], dtype=np.float32)
+        elif len(opacity) != n_points:
+            return USDTools._usd_material_opacity(mesh, n_points, time_code)
+
+        return np.asarray(np.clip(opacity, 0.0, 1.0) * 255.0, dtype=np.uint8)
+
+    @staticmethod
+    def _usd_material_opacity(
+        mesh: UsdGeom.Mesh,
+        n_points: int,
+        time_code: Usd.TimeCode,
+    ) -> np.ndarray:
+        """Return opacity from a bound USD material, defaulting to opaque."""
+        opaque = np.full(n_points, 255, dtype=np.uint8)
+        bound_material = UsdShade.MaterialBindingAPI(
+            mesh.GetPrim()
+        ).ComputeBoundMaterial()[0]
+        if not bound_material or not bound_material.GetPrim().IsValid():
+            return opaque
+
+        for render_context in ("mdl", ""):
+            surface_output = bound_material.GetSurfaceOutput(render_context)
+            if not surface_output:
+                continue
+            source = surface_output.GetConnectedSource()
+            if source is None:
+                continue
+            shader = UsdShade.Shader(source[0].GetPrim())
+            for input_name in ("opacity", "opacity_constant"):
+                shader_input = shader.GetInput(input_name)
+                if not shader_input:
+                    continue
+                opacity_value = shader_input.Get(time_code)
+                if opacity_value is None:
+                    opacity_value = shader_input.Get()
+                if opacity_value is None:
+                    continue
+                opacity = int(float(np.clip(opacity_value, 0.0, 1.0)) * 255.0)
+                return np.full(n_points, opacity, dtype=np.uint8)
+        return opaque
 
     def get_subtree_bounding_box(
         self, prim: UsdGeom.Xform
