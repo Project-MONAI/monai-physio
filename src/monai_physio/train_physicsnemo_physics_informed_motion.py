@@ -548,6 +548,16 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
             )
         self._residual = residual
         self.lambda_physics = lambda_physics
+        # Confirmed by A/B run: with the physics residual active, Inductor
+        # silently corrupts PhysicsInformer's least-squares-gradient autograd
+        # into NaN on every element rather than raising -- the data-only
+        # ablation (lambda_physics=0) compiles and trains correctly, so the
+        # fallback to eager mode is scoped to only the physics-informed case.
+        self._compile_incompatible = (
+            "PhysicsInformer's autograd is not safely compilable"
+            if lambda_physics > 0.0
+            else None
+        )
 
     @property
     def inverted_element_count(self) -> int:

@@ -75,6 +75,10 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         self.loss_log_interval: int = 10
         self.seed: int = 42
         self.grad_clip_norm: float = 1.0
+        # Set by a subclass whose loss torch.compile cannot be trusted to
+        # compile correctly, so train() falls back to eager mode instead of
+        # trying and silently corrupting the forward/backward pass.
+        self._compile_incompatible: Optional[str] = None
 
     # ─────────────────────────── Tuning setters ────────────────────────────
     def set_epochs(self, epochs: int) -> None:
@@ -255,7 +259,11 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
                 context, "DistributedDataParallel over %d ranks.", context.world_size
             )
 
-        if sys.platform != "win32":
+        if self._compile_incompatible is not None:
+            self._log_main(
+                context, "torch.compile skipped (%s).", self._compile_incompatible
+            )
+        elif sys.platform != "win32":
             try:
                 # dynamic=False: batch size and node/edge counts vary between
                 # batches, and Inductor's dynamic-shape workspace-buffer sizing
