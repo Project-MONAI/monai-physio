@@ -93,6 +93,8 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             )
         self.registrar: RegisterImagesBase = registration_method
 
+        self.composite_reference_image: Optional[itk.Image] = None
+
         self.transform_tools: ToolsForTransforms = ToolsForTransforms()
 
     def set_mask_dilation(self, mask_dilation_mm: float) -> None:
@@ -329,7 +331,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         moving_to_fixed_transforms: list[itk.Transform],
         upsample_to_fixed_resolution: bool = False,
         fixed_to_moving_transforms: Optional[list[itk.Transform]] = None,
-        composite_mode: Literal["reference", "mean", "max"] = "reference",
+        composite_mode: Literal["reference", "mean", "max", "existing"] = "reference",
     ) -> list[itk.Image]:
         """Reconstruct time series images using moving_to_fixed_transforms.
 
@@ -346,6 +348,8 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         the fixed grid via fixed_to_moving_transforms -- and that composite is warped
         back to each time point instead. This lets anatomy or contrast only
         visible in some frames propagate into every reconstructed time point.
+        If composite_mode is "existing", the composite_reference_image previously
+        computed is used instead of building a new composite image.
 
         Args:
             moving_images (list[itk.Image]): List of moving images to reconstruct
@@ -360,10 +364,12 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
                 fixed-to-moving transforms (one per moving image), each used to
                 warp that moving image onto the fixed grid. Required when
                 composite_mode is "mean" or "max". Default: None
-            composite_mode (Literal["reference", "mean", "max"], optional):
+            composite_mode (Literal["reference", "mean", "max", "existing"], optional):
                 Which image to warp back to each time point. "reference" uses
                 the fixed image as-is (default). "mean"/"max" build a composite
-                of the fixed image and all registered moving images first.
+                of the fixed image and all registered moving images first. "existing"
+                uses the composite_reference_image previously computed.
+                Default: "reference"
 
         Returns:
             list[itk.Image]: List of reconstructed images in fixed image space
@@ -375,6 +381,8 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             ValueError: If composite_mode is "mean"/"max" and
                 fixed_to_moving_transforms is not provided or its length
                 doesn't match moving_images
+            ValueError: If composite_mode is "existing" and
+                composite_reference_image is not provided
 
         Example:
             >>> greedy = RegisterImagesGreedy()
@@ -405,7 +413,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             )
 
         if composite_mode == "reference":
-            source_image = self.fixed_image
+            self.composite_reference_image = self.fixed_image
         elif composite_mode in ("mean", "max"):
             if fixed_to_moving_transforms is None or len(
                 fixed_to_moving_transforms
@@ -415,12 +423,19 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
                     "moving_images length when composite_mode is "
                     f"{composite_mode!r}"
                 )
-            source_image = self._compute_composite_reference(
+            self.composite_reference_image = self.compute_composite_reference(
                 moving_images, fixed_to_moving_transforms, composite_mode
             )
+        elif composite_mode == "existing":
+            if self.composite_reference_image is None:
+                raise ValueError(
+                    "composite_reference_image must be provided when composite_mode is "
+                    f"{composite_mode!r}"
+                )
+            self.composite_reference_image = self.composite_reference_image
         else:
             raise ValueError(
-                "composite_mode must be 'reference', 'mean', or 'max', "
+                "composite_mode must be 'reference', 'mean', 'max', or 'existing', "
                 f"got {composite_mode!r}"
             )
 
@@ -439,20 +454,22 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
                 # Use the moving image's own grid as the output space
                 reference_image = moving_image
 
-            # Transform the source image to the reference space.  The source
+            # Transform the self.source image to the reference space.  The source
             # image is an intensity image, so voxels sampled outside it take the
             # modality's "no tissue" value, not 0.
             reconstructed = self.transform_tools.transform_image(
-                source_image,
+                self.composite_reference_image,
                 moving_to_fixed_transform,
                 reference_image,
-                background_value=self._prewarp_background_value(source_image),
+                background_value=self._prewarp_background_value(
+                    self.composite_reference_image
+                ),
             )
             reconstructed_images.append(reconstructed)
 
         return reconstructed_images
 
-    def _compute_composite_reference(
+    def compute_composite_reference(
         self,
         moving_images: list[itk.Image],
         fixed_to_moving_transforms: list[itk.Transform],

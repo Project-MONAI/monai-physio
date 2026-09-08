@@ -153,6 +153,8 @@ class WorkflowReconstructHighres4DCT(MONAIPhysioBase):
             register_reference_time_frame_to_reference_image
         )
 
+        self.composite_reference_image: Optional[itk.Image] = None
+
         # Initialize parameters with defaults
         self.upsample_to_fixed_resolution: bool = True
         self.composite_mode: Literal["reference", "mean", "max"] = "reference"
@@ -272,11 +274,36 @@ class WorkflowReconstructHighres4DCT(MONAIPhysioBase):
         self.log_info(f"  Min loss: {min(self.losses):.6f}")
         self.log_info(f"  Max loss: {max(self.losses):.6f}")
 
+        self.get_composite_reference_image()
+
         return {
             "fixed_to_moving_transforms": self.fixed_to_moving_transforms,
             "moving_to_fixed_transforms": self.moving_to_fixed_transforms,
             "losses": self.losses,
         }
+
+    def get_composite_reference_image(self) -> Optional[itk.Image]:
+        """Get the source image used for reconstruction.
+
+        Returns:
+            Optional[itk.Image]: The source image used for reconstruction
+        """
+        if self.fixed_to_moving_transforms is None:
+            raise ValueError(
+                "fixed_to_moving_transforms not set. Call register_time_series() first."
+            )
+        if self.moving_to_fixed_transforms is None:
+            raise ValueError(
+                "moving_to_fixed_transforms not set. Call register_time_series() first."
+            )
+        if self.composite_mode not in ("mean", "max"):
+            return None
+        self.composite_reference_image = self.registrar.compute_composite_reference(
+            self.time_series_images,
+            self.fixed_to_moving_transforms,
+            self.composite_mode,
+        )
+        return self.composite_reference_image
 
     def set_upsample_to_fixed_resolution(
         self, upsample_to_fixed_resolution: bool
@@ -313,6 +340,7 @@ class WorkflowReconstructHighres4DCT(MONAIPhysioBase):
                 f"got {composite_mode!r}"
             )
         self.composite_mode = composite_mode
+        self.composite_reference_image = None
 
     def reconstruct_time_series(self) -> dict:
         """Reconstruct high-resolution time series using inverse transforms.
@@ -343,13 +371,19 @@ class WorkflowReconstructHighres4DCT(MONAIPhysioBase):
         )
         self.log_info(f"Composite mode: {self.composite_mode}")
 
+        composite_mode: Literal["reference", "mean", "max", "existing"] = (
+            self.composite_mode
+        )
+        if self.composite_reference_image is not None:
+            composite_mode = "existing"
+
         # Reconstruct time series
         self.reconstructed_images = self.registrar.reconstruct_time_series(
             moving_images=self.time_series_images,
             moving_to_fixed_transforms=self.moving_to_fixed_transforms,
             upsample_to_fixed_resolution=self.upsample_to_fixed_resolution,
             fixed_to_moving_transforms=self.fixed_to_moving_transforms,
-            composite_mode=self.composite_mode,
+            composite_mode=composite_mode,
         )
 
         self.log_info("Stage 2 complete: Time series reconstruction finished.")
