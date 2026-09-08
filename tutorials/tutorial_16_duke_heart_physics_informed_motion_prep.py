@@ -334,8 +334,14 @@ if __name__ == "__main__":
 
     # Step 2: fill that surface with tetrahedra.  The mesh starts as a voxel
     # staircase and is then relaxed onto the surface, which holds every cell
-    # above a scaled Jacobian of 0.1 -- cutting at the surface instead would
+    # above a scaled Jacobian of 0.25 -- cutting at the surface instead would
     # shatter the boundary cells into slivers nothing downstream could repair.
+    # 0.25 (rather than trim_tetrahedra_to_surface's own 0.1 default) costs
+    # a still-modest amount of boundary fit accuracy but removes the
+    # population of near-floor slivers that a per-subject fit reliably tips
+    # into inverted or degenerate elements no amount of repair smoothing can
+    # undo; 0.2 fixed most of these but left a handful of subjects still
+    # pinned right at that floor.
     template_file = parameters.ssm_template_file(test_mode)
     if not template_file.exists():
         voxelization_grid = contour_tools.create_reference_image(
@@ -351,6 +357,7 @@ if __name__ == "__main__":
                 reference_mask, element_size_mm=ssm_element_size_mm
             ),
             reference_surface,
+            min_scaled_jacobian=0.25,
         )
         template_mesh.save(str(template_file))
     template_mesh = cast(pv.UnstructuredGrid, pv.read(str(template_file)))
@@ -527,10 +534,21 @@ if __name__ == "__main__":
             # The fit warps the template per subject with no cell-quality
             # constraint, so it can flip a handful of elements even though the
             # template itself was checked; repair before saving so Tutorial 17
-            # never has to.
-            fitted_reference_model = contour_tools.repair_inverted_tetrahedra(
-                cast(pv.UnstructuredGrid, fit_result["fitted_reference_model"])
-            )
+            # never has to. A subject whose fit folds badly enough that
+            # repair can't recover it needs a real re-fit, not a batch job
+            # that dies on it -- skip the subject and keep the population
+            # going rather than losing every case after it.
+            try:
+                fitted_reference_model = contour_tools.repair_inverted_tetrahedra(
+                    cast(pv.UnstructuredGrid, fit_result["fitted_reference_model"])
+                )
+            except ValueError as error:
+                logger.warning(
+                    "Skipping %s: fitted reference model could not be repaired: %s",
+                    case_id,
+                    error,
+                )
+                continue
             fitted_reference_model.save(str(fitted_reference_model_file))
             fit_result["fitted_reference_mesh"].save(
                 str(case_output_dir / f"{case_id}_ssm_surface.vtp")

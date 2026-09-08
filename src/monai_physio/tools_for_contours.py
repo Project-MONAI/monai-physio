@@ -759,7 +759,7 @@ class ToolsForContours(MONAIPhysioBase):
     def repair_inverted_tetrahedra(
         self,
         tetrahedra: pv.UnstructuredGrid,
-        max_iterations: int = 20,
+        max_iterations: int = 100,
     ) -> pv.UnstructuredGrid:
         """Relax the nodes of any inverted or degenerate tetrahedron.
 
@@ -768,15 +768,8 @@ class ToolsForContours(MONAIPhysioBase):
         specific subject -- a statistical-model fit, say -- carries no such
         constraint, and can flip a handful of elements even though the
         template it started from was clean. Only the nodes touching a bad
-        element are moved, each to the mean of its mesh neighbors -- skipping
-        neighbors that are themselves still bad, so two adjacent inverted
-        tets don't just pull each other back and forth -- which leaves
-        geometry the fit got right alone. Averaging over the full
-        edge-neighbor set (rather than, say, just one bad tet's opposite
-        face) keeps each step small: a node has far more good neighbors than
-        bad ones, so a bad tet's own pull is damped by the rest, and moving a
-        node to fix its bad tets doesn't invert its many other, previously
-        good ones.
+        element are moved, each to the mean of its mesh neighbors, which
+        leaves geometry the fit got right alone.
 
         Args:
             tetrahedra: Volume mesh to repair; its cell and field data
@@ -831,13 +824,10 @@ class ToolsForContours(MONAIPhysioBase):
             if not np.any(bad):
                 break
             snapshot = points.copy()
-            bad_node_set = set(np.unique(connectivity[bad]).tolist())
-            for node in bad_node_set:
-                neighbor_ids = neighbors[node]
-                good_ids = np.array([n for n in neighbor_ids if n not in bad_node_set])
-                chosen = good_ids if len(good_ids) else neighbor_ids
-                if len(chosen):
-                    points[node] = snapshot[chosen].mean(axis=0)
+            for node in np.unique(connectivity[bad]):
+                neighbor_points = snapshot[neighbors[node]]
+                if len(neighbor_points):
+                    points[node] = neighbor_points.mean(axis=0)
 
         final_volumes = volumes(points)
         still_bad_mask = final_volumes <= 0.0

@@ -261,6 +261,11 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         # Optional finetuned ICON checkpoint for the labelmap-to-labelmap stage
         self.l2l_icon_weights_path: Optional[str] = None
 
+        # Which engine runs the labelmap-to-labelmap stage's nonrigid step:
+        # 'icon' (Greedy affine + ICON deformable) or 'greedy' (Greedy's own
+        # affine + warp, no ICON at all)
+        self.l2l_deformable_engine: str = "icon"
+
         # Stage 1: ICP alignment results
         self.icp_registrar: Optional[RegisterModelsICP] = None
         self.icp_fixed_to_moving_transform: Optional[itk.Transform] = None
@@ -372,6 +377,23 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         if not Path(weights_path).exists():
             raise FileNotFoundError(f"ICON weights not found: {weights_path}")
         self.l2l_icon_weights_path = weights_path
+
+    def set_l2l_deformable_engine(self, deformable_engine: str) -> None:
+        """Set which engine runs the labelmap-to-labelmap stage's nonrigid step.
+
+        Args:
+            deformable_engine: 'icon' (Greedy affine + ICON deformable,
+                default) or 'greedy' (Greedy's own affine + warp, no ICON).
+
+        Raises:
+            ValueError: If deformable_engine is not 'icon' or 'greedy'.
+        """
+        if deformable_engine not in ("icon", "greedy"):
+            raise ValueError(
+                f"Invalid deformable_engine '{deformable_engine}'. "
+                "Must be 'icon' or 'greedy'."
+            )
+        self.l2l_deformable_engine = deformable_engine
 
     def set_use_pca_registration(
         self,
@@ -799,6 +821,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         # Run deformable registration
         l2l_result = labelmap_registrar.register(
             transform_type="Deformable",
+            deformable_engine=self.l2l_deformable_engine,
         )
 
         # Store results
