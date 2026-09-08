@@ -239,7 +239,13 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
 
         if sys.platform != "win32":
             try:
-                model = cast("torch.nn.Module", torch.compile(model))
+                # dynamic=False: batch size and node/edge counts vary between
+                # batches, and Inductor's dynamic-shape workspace-buffer sizing
+                # for this model's custom autograd backward has a symbolic-shape
+                # bug (a generated slice bound computed from the dynamic size
+                # variable itself), so let Dynamo specialize and recompile per
+                # shape instead of doing that arithmetic symbolically.
+                model = cast("torch.nn.Module", torch.compile(model, dynamic=False))
                 self._log_main(context, "torch.compile enabled.")
             except Exception as exc:  # pragma: no cover - platform dependent
                 self._log_main(context, "torch.compile skipped (%s).", exc)
