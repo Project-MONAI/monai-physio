@@ -485,10 +485,12 @@ def test_the_epoch_log_separates_the_two_loss_terms() -> None:
     assert messages, "The epoch hook should report something"
     reported = messages[-1]
     assert "data=1.000000" in reported, f"Data term should be the mean: {reported}"
-    assert "physics=4.000000" in reported, (
+    assert "physics=4.000000e+00" in reported, (
         f"Physics term should be the mean: {reported}"
     )
-    assert "1.000000)" in reported, f"Weighted physics term should appear: {reported}"
+    assert "1.000000e+00)" in reported, (
+        f"Weighted physics term should appear: {reported}"
+    )
 
     # The accumulators reset, or every epoch would report the previous ones too.
     method._log_epoch(context, epoch=1, epochs=2)

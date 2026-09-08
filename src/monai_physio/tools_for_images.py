@@ -42,8 +42,8 @@ class ToolsForImages(MONAIPhysioBase):
 
     def transform_image(
         self,
-        img: itk.image,
-        tfm: itk.Transform,
+        image: itk.image,
+        transform: itk.Transform,
         reference_image: itk.image,
         interpolation_method: str = "linear",
         background_value: float = 0.0,
@@ -54,8 +54,8 @@ class ToolsForImages(MONAIPhysioBase):
         locally since ``tools_for_transforms`` imports this module.
 
         Args:
-            img (itk.image): The input image to transform
-            tfm (itk.Transform): The ITK transform to apply
+            image (itk.image): The input image to transform
+            transform (itk.Transform): The ITK transform to apply
             reference_image (itk.image): Defines output spacing, size, origin,
                 and direction for the transformed image
             interpolation_method (str): Interpolation method. Options:
@@ -77,8 +77,8 @@ class ToolsForImages(MONAIPhysioBase):
         from .tools_for_transforms import ToolsForTransforms
 
         return ToolsForTransforms(log_level=self.log_level).transform_image(
-            img,
-            tfm,
+            image,
+            transform,
             reference_image,
             interpolation_method=interpolation_method,
             background_value=background_value,

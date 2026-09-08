@@ -478,8 +478,8 @@ class ToolsForTransforms(MONAIPhysioBase):
 
     def transform_image(
         self,
-        img: itk.image,
-        tfm: itk.Transform,
+        image: itk.image,
+        transform: itk.Transform,
         reference_image: itk.image,
         interpolation_method: str = "linear",
         background_value: float = 0.0,
@@ -493,11 +493,11 @@ class ToolsForTransforms(MONAIPhysioBase):
         quality requirements.
 
         Args:
-            img (itk.image): The input image to transform
-            tfm (itk.Transform): The ITK transform to apply
+            image (itk.image): The input image to transform
+            transform (itk.Transform): The ITK transform to apply
             reference_image (itk.image): Defines output spacing, size, origin,
                 and direction for the transformed image
-            tfm_type (str): Interpolation method. Options:
+            interpolation_method (str): Interpolation method. Options:
                 - "linear": Linear interpolation (default, good for CT/MR)
                 - "nearest": Nearest neighbor (preserves discrete values)
                 - "sinc": Sinc interpolation (highest quality, slower)
@@ -511,7 +511,7 @@ class ToolsForTransforms(MONAIPhysioBase):
             itk.image: The transformed image resampled to reference grid
 
         Raises:
-            ValueError: If tfm_type is not one of the supported options
+            ValueError: If interpolation_method is not one of the supported options
 
         Example:
             >>> # Transform CT image with linear interpolation
@@ -523,23 +523,23 @@ class ToolsForTransforms(MONAIPhysioBase):
             ...     labelmap, transform, reference, interpolation_method='nearest'
             ... )
         """
-        # Handle case where tfm is a list (e.g., from itk.transformread)
-        if isinstance(tfm, (list, tuple)):
-            if len(tfm) == 1:
-                tfm = tfm[0]
+        # Handle case where transform is a list (e.g., from itk.transformread)
+        if isinstance(transform, (list, tuple)):
+            if len(transform) == 1:
+                transform = transform[0]
             else:
                 raise ValueError(
                     "Expected single transform or list with one transform, got list"
-                    f"with {len(tfm)} transforms"
+                    f"with {len(transform)} transforms"
                 )
 
         interpolator = None
         if interpolation_method == "linear":
-            interpolator = itk.LinearInterpolateImageFunction.New(img)
+            interpolator = itk.LinearInterpolateImageFunction.New(image)
         elif interpolation_method == "nearest":
-            interpolator = itk.NearestNeighborInterpolateImageFunction.New(img)
+            interpolator = itk.NearestNeighborInterpolateImageFunction.New(image)
         elif interpolation_method == "sinc":
-            interpolator = itk.WindowedSincInterpolateImageFunction.New(img)
+            interpolator = itk.WindowedSincInterpolateImageFunction.New(image)
         else:
             raise ValueError(f"Invalid transform type: {interpolation_method}")
 
@@ -547,12 +547,12 @@ class ToolsForTransforms(MONAIPhysioBase):
         # the resample_image_filter will silently fail and apply the identity
         # transform instead of the one passed.
         dftfm = self.convert_transform_to_displacement_field_transform(
-            tfm, reference_image
+            transform, reference_image
         )
 
         # ITK's wrapping types DefaultPixelValue to the image's pixel type, and
         # rejects a Python float for a discrete image.
-        dtype = itk.GetArrayViewFromImage(img).dtype
+        dtype = itk.GetArrayViewFromImage(image).dtype
         default_pixel_value: Union[int, float]
         if np.issubdtype(dtype, np.integer) or np.issubdtype(dtype, np.bool_):
             default_pixel_value = int(round(background_value))
@@ -570,7 +570,7 @@ class ToolsForTransforms(MONAIPhysioBase):
             default_pixel_value = float(background_value)
 
         img_reg = itk.resample_image_filter(
-            Input=img,
+            Input=image,
             Transform=dftfm,
             Interpolator=interpolator,
             ReferenceImage=reference_image,

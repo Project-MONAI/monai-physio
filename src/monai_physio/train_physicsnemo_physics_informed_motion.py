@@ -796,7 +796,10 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
         physics_mean = physics_sum / divisor
         self._log_main(
             context,
-            "    data=%.6f  physics=%.6f  (weighted %.6f)  inverted=%d",
+            # physics/weighted in scientific notation: %f rounds anything
+            # under 5e-7 to 0.000000, which looks identical whether the
+            # residual has genuinely converged near zero or gone dead.
+            "    data=%.6f  physics=%.6e  (weighted %.6e)  inverted=%d",
             data_sum / divisor,
             physics_mean,
             self.lambda_physics * physics_mean,
