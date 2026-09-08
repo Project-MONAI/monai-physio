@@ -450,6 +450,8 @@ class PhysicsInformedMotion(MONAIPhysioBase):
         Returns:
             Two scalars, each a nodal-volume-weighted mean over the mesh.
         """
+        import torch
+
         residuals = self._informer.forward(
             {
                 "coordinates": reference_points,
@@ -459,6 +461,19 @@ class PhysicsInformedMotion(MONAIPhysioBase):
                 "w": displacement_mm[:, 2:3],
             }
         )
+        for key in ("neo_hookean_energy", "incompressibility", "jacobian"):
+            values = residuals[key]
+            if not torch.isfinite(values).all():
+                bad = (~torch.isfinite(values)).sum().item()
+                self.log_warning(
+                    "%s: %d/%d elements non-finite (max finite %.4g)",
+                    key,
+                    bad,
+                    values.numel(),
+                    values[torch.isfinite(values)].max().item()
+                    if bad < values.numel()
+                    else float("nan"),
+                )
         # Accumulated on the device; only the property pays a synchronization.
         self._inverted += (residuals["jacobian"] <= 0.0).sum().detach()
 
