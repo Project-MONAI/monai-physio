@@ -116,6 +116,22 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
             raise ValueError(f"grad_clip_norm must be > 0, got {grad_clip_norm}")
         self.grad_clip_norm = grad_clip_norm
 
+    def set_compile_incompatible(self, reason: Optional[str]) -> None:
+        """Override whether torch.compile is skipped, and why.
+
+        A subclass may set ``self._compile_incompatible`` automatically when
+        it knows a specific configuration corrupts under Inductor (see
+        :meth:`TrainPhysicsNeMoPhysicsInformedMotion.set_mechanics`). Call
+        this afterward to override that -- pass ``None`` to let
+        ``torch.compile`` run again, e.g. to re-test whether a newer
+        torch/CUDA build fixed the bug.
+
+        Args:
+            reason: Human-readable reason torch.compile is skipped, logged
+                in its place; ``None`` re-enables the normal compile attempt.
+        """
+        self._compile_incompatible = reason
+
     # ─────────────────────────── Network seams ─────────────────────────────
     def build_model(self, in_features: int, out_features: int) -> torch.nn.Module:
         """Construct the (uncompiled) network. Implemented by subclasses."""
