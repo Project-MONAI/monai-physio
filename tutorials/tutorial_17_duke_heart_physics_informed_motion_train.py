@@ -303,11 +303,6 @@ if __name__ == "__main__":
                 ),
                 lambda_physics=weight_of_physics,
             )
-            # Re-test: set_mechanics() auto-skips torch.compile here because
-            # it corrupted PhysicsInformer's autograd into NaN under torch
-            # 2.14.0+cu132. Remove this line if the non-finite warnings in
-            # PhysicsInformedMotion.__call__ fire again on the new build.
-            training_method.set_compile_incompatible(None)
         else:
             # No residual is built at all, so this run is the data-only
             # MeshGraphNet on exactly the same data.
@@ -321,7 +316,7 @@ if __name__ == "__main__":
             training_method=training_method,
             log_level=log_level,
         )
-        result = workflow.process()
+        result: dict[str, Any] = workflow.process()
         inverted = training_method.inverted_element_count
         if inverted:
             logger.warning(
