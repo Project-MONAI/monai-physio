@@ -38,9 +38,9 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 import numpy as np
 import pyvista as pv
 
+from .contour_tools import ContourTools
 from .monai_physio_base import MONAIPhysioBase
-from .tools_for_contours import ToolsForContours
-from .tools_for_physicsnemo import DistributedContext, PhaseSampleDataset
+from .physicsnemo_tools import DistributedContext, PhaseSampleDataset
 from .train_physicsnemo_mgn import TrainPhysicsNeMoMGN
 
 if TYPE_CHECKING:  # typed for mypy; imported lazily at runtime
@@ -98,7 +98,7 @@ def tet_volumes(points: np.ndarray, tets: np.ndarray) -> tuple[np.ndarray, np.nd
 
     Raises:
         ValueError: If any element is inverted or degenerate.  Templates come
-            from :meth:`monai_physio.ToolsForContours.trim_tetrahedra_to_surface`,
+            from :meth:`monai_physio.ContourTools.trim_tetrahedra_to_surface`,
             which holds every cell above a scaled Jacobian of 0.1, so a
             violation here means the template is broken rather than merely
             tight.
@@ -508,6 +508,8 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
         """
         super().__init__(log_level=log_level)
         self.lambda_physics: float = 0.1
+        self._lambda_physics_target: float = 0.1
+        self._lambda_physics_warmup_epochs: int = 0
         self._residual: Optional[PhysicsInformedMotion] = None
         self._reference_meshes: dict[str, Path] = {}
         self._tets: Optional[np.ndarray] = None
@@ -548,6 +550,7 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
             )
         self._residual = residual
         self.lambda_physics = lambda_physics
+        self._lambda_physics_target = lambda_physics
         # Confirmed by A/B run: with the physics residual active, Inductor
         # silently corrupts PhysicsInformer's least-squares-gradient autograd
         # into NaN on every element rather than raising -- the data-only
@@ -558,6 +561,42 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
             if lambda_physics > 0.0
             else None
         )
+
+    def set_lambda_physics_warmup(self, warmup_epochs: int) -> None:
+        """Ramp ``lambda_physics`` linearly from 0 up to its target value.
+
+        Cold-start weights make ``F`` far from ``I`` everywhere, so the
+        neo-Hookean energy starts huge relative to the data loss -- large
+        enough, at the default ``lambda_physics=0.1``, that its gradient
+        dominates the combined loss and pulls the network straight to the
+        energy's own global minimum: zero strain (``F=I``) everywhere,
+        i.e. a spatially uniform predicted displacement. That trivially
+        zeroes the physics term (and freezes ``inverted_element_count``,
+        since the Jacobian stops changing) but ignores the data term, and
+        because zero strain is a critical point of the energy, the physics
+        gradient vanishes there too -- there is nothing left pulling the
+        network back out. Warming up `lambda_physics` from 0 lets the data
+        term shape real, non-uniform motion first, before the physics term
+        is weighted heavily enough to matter.
+
+        Args:
+            warmup_epochs: Number of epochs to ramp over. ``0`` (default)
+                disables warmup: ``lambda_physics`` is held at the value
+                passed to :meth:`set_mechanics` for the whole run.
+
+        Raises:
+            ValueError: If *warmup_epochs* is negative.
+        """
+        if warmup_epochs < 0:
+            raise ValueError(f"warmup_epochs must be >= 0, got {warmup_epochs}")
+        self._lambda_physics_warmup_epochs = warmup_epochs
+
+    def _on_epoch_start(self, epoch: int, epochs: int) -> None:
+        """Ramp ``lambda_physics`` toward its target during warmup."""
+        if self._lambda_physics_warmup_epochs <= 0:
+            return
+        progress = min(1.0, (epoch + 1) / self._lambda_physics_warmup_epochs)
+        self.lambda_physics = self._lambda_physics_target * progress
 
     @property
     def inverted_element_count(self) -> int:
@@ -679,7 +718,7 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
         assert self._tets is not None
         self._reference_cache = {}
         device = context.device
-        contour_tools = ToolsForContours(log_level=self.log_level)
+        contour_tools = ContourTools(log_level=self.log_level)
         for subject_id in sorted(set(self._sample_subjects)):
             mesh = cast(
                 "pv.UnstructuredGrid", pv.read(str(self._reference_meshes[subject_id]))

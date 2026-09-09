@@ -15,7 +15,9 @@ import itk
 import numpy as np
 import pyvista as pv
 
+from .contour_tools import ContourTools
 from .convert_vtk_to_usd import ConvertVTKToUSD
+from .image_tools import ImageTools
 from .monai_physio_base import MONAIPhysioBase
 from .register_images_base import RegisterImagesBase
 from .register_images_greedy import RegisterImagesGreedy
@@ -23,10 +25,8 @@ from .segment_anatomy_base import SegmentAnatomyBase
 from .segment_chest_total_segmentator_with_contrast import (
     SegmentChestTotalSegmentatorWithContrast,
 )
-from .tools_for_contours import ToolsForContours
-from .tools_for_images import ToolsForImages
-from .tools_for_transforms import ToolsForTransforms
-from .tools_for_usd_anatomy import ToolsForUSDAnatomy
+from .transform_tools import TransformTools
+from .usd_anatomy_tools import USDAnatomyTools
 
 
 class WorkflowConvertImageToUSD(MONAIPhysioBase):
@@ -134,9 +134,9 @@ class WorkflowConvertImageToUSD(MONAIPhysioBase):
         os.makedirs(output_directory, exist_ok=True)
 
         # Initialize processing components
-        self.contour_tools = ToolsForContours()
-        self.image_tools = ToolsForImages()
-        self.transform_tools = ToolsForTransforms()
+        self.contour_tools = ContourTools()
+        self.image_tools = ImageTools()
+        self.transform_tools = TransformTools()
 
         # Data storage for processing pipeline
         self._num_time_points = len(time_series_images)
@@ -464,6 +464,6 @@ class WorkflowConvertImageToUSD(MONAIPhysioBase):
             )
             if os.path.exists(output_filename):
                 os.remove(output_filename)
-            painter = ToolsForUSDAnatomy(stage)
+            painter = USDAnatomyTools(stage)
             painter.enhance_meshes(self.segmenter)
             stage.Export(output_filename)

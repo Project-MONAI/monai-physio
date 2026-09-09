@@ -64,7 +64,7 @@ keys:
 * ``other``
 
 The dictionary should be accessed by key. Do not unpack it positionally.
-The exact key set is determined by the segmenter's :class:`ToolsForAnatomyTaxonomies`
+The exact key set is determined by the segmenter's :class:`AnatomyTaxonomy`
 and may differ from other segmenters (see :doc:`base`). For
 :class:`SegmentChestTotalSegmentator` specifically, all six groups plus
 ``labelmap`` are always present; downstream code that targets a different

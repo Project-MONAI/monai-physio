@@ -30,6 +30,9 @@ import itk
 import numpy as np
 import pyvista as pv
 
+from .contour_tools import ContourTools
+from .image_tools import ImageTools
+from .labelmap_tools import LabelmapTools
 from .monai_physio_base import MONAIPhysioBase
 from .register_images_greedy import RegisterImagesGreedy
 from .register_images_icon import RegisterImagesICON
@@ -40,10 +43,7 @@ from .segment_anatomy_base import SegmentAnatomyBase
 from .segment_heart_simpleware_trimmed_branches import (
     SegmentHeartSimplewareTrimmedBranches,
 )
-from .tools_for_contours import ToolsForContours
-from .tools_for_images import ToolsForImages
-from .tools_for_labelmaps import ToolsForLabelmaps
-from .tools_for_transforms import ToolsForTransforms
+from .transform_tools import TransformTools
 from .workflow_convert_image_to_vtk import WorkflowConvertImageToVTK
 
 
@@ -87,7 +87,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         distancemap_squared_max (Optional[float]): Saturation radius of the
             labelmap-to-labelmap distance maps, in squared millimeters. None
             means derive it from mask_dilation_mm as (1.25 * mask_dilation_mm)**2
-        transform_tools (ToolsForTransforms): Transform utilities
+        transform_tools (TransformTools): Transform utilities
         registrar_ICON (RegisterImagesICON): ICON registration instance
         registrar_Greedy (RegisterImagesGreedy): Greedy registration instance
         use_pca_registration (bool): Whether PCA registration is enabled (set via set_use_pca_registration)
@@ -217,16 +217,16 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         self.patient_labelmap = patient_labelmap
 
         # Utilities (needed for create_reference_image when patient_image is None)
-        self.transform_tools = ToolsForTransforms()
-        self.contour_tools = ToolsForContours()
-        self.labelmap_tools = ToolsForLabelmaps()
+        self.transform_tools = TransformTools()
+        self.contour_tools = ContourTools()
+        self.labelmap_tools = LabelmapTools()
 
         if patient_image is not None:
             self.patient_image = patient_image
             spacing = np.asarray(patient_image.GetSpacing(), dtype=np.float64)
             isotropic_spacing = bool(np.allclose(spacing, spacing[0]))
             if not isotropic_spacing:
-                self.patient_image = ToolsForImages().make_isotropic_image(
+                self.patient_image = ImageTools().make_isotropic_image(
                     self.patient_image
                 )
         else:
@@ -805,7 +805,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         margin_mm = 2.5 * self.mask_dilation_mm
         spacing = np.asarray(self.patient_image.GetSpacing(), dtype=np.float64)
         pad_voxels = np.maximum(1, np.ceil(margin_mm / spacing)).astype(int).tolist()
-        padded_patient_image = ToolsForImages().pad_image(
+        padded_patient_image = ImageTools().pad_image(
             self.patient_image, pad_voxels=pad_voxels, background_value=-1000
         )
         labelmap_registrar = RegisterModelsDistanceMaps(

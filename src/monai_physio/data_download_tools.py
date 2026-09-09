@@ -27,7 +27,7 @@ _DOWNLOAD_TIMEOUT_SECONDS = 60.0
 _logger = logging.getLogger(__name__)
 
 
-class ToolsForDataDownloads:
+class DataDownloadTools:
     """Download and verify optional MONAI Physio example datasets."""
 
     SLICER_HEART_CT_URL = (
@@ -57,13 +57,13 @@ class ToolsForDataDownloads:
         data_dir = Path(dirname)
         data_dir.mkdir(parents=True, exist_ok=True)
 
-        data_file = data_dir / ToolsForDataDownloads.SLICER_HEART_CT_FILENAME
+        data_file = data_dir / DataDownloadTools.SLICER_HEART_CT_FILENAME
         if not (data_file.exists() and data_file.stat().st_size > 0):
-            ToolsForDataDownloads._DownloadFile(
-                ToolsForDataDownloads.SLICER_HEART_CT_URL, data_file
+            DataDownloadTools._DownloadFile(
+                DataDownloadTools.SLICER_HEART_CT_URL, data_file
             )
 
-        slice_basename = ToolsForDataDownloads.SLICER_HEART_CT_SLICE_BASENAME
+        slice_basename = DataDownloadTools.SLICER_HEART_CT_SLICE_BASENAME
         if not any(data_dir.glob(f"{slice_basename}_???.mha")):
             # Convert into a temp directory first, then atomically move each
             # finished frame into data_dir, so a failed or interrupted
@@ -78,7 +78,7 @@ class ToolsForDataDownloads:
                     tmp_slice_file.replace(data_dir / tmp_slice_file.name)
             _logger.info(
                 "Converted %s to %s_???.mha frames",
-                ToolsForDataDownloads.SLICER_HEART_CT_FILENAME,
+                DataDownloadTools.SLICER_HEART_CT_FILENAME,
                 slice_basename,
             )
         return data_file
@@ -121,9 +121,7 @@ class ToolsForDataDownloads:
     @staticmethod
     def VerifySlicerHeartCTData(dirname: Union[str, Path]) -> bool:
         """Return True when Slicer-Heart-CT has the expected 4-D CT file."""
-        return (
-            Path(dirname) / ToolsForDataDownloads.SLICER_HEART_CT_FILENAME
-        ).is_file()
+        return (Path(dirname) / DataDownloadTools.SLICER_HEART_CT_FILENAME).is_file()
 
     KCL_HEART_MODEL_MESH_COUNT = 20
     KCL_HEART_MODEL_INDIVIDUAL_URL_TEMPLATE = (
@@ -153,27 +151,27 @@ class ToolsForDataDownloads:
         input_meshes_dir = data_dir / "input_meshes"
         input_meshes_dir.mkdir(parents=True, exist_ok=True)
 
-        for index in range(1, ToolsForDataDownloads.KCL_HEART_MODEL_MESH_COUNT + 1):
+        for index in range(1, DataDownloadTools.KCL_HEART_MODEL_MESH_COUNT + 1):
             target_file = input_meshes_dir / f"{index:02d}.vtk"
             if target_file.exists() and target_file.stat().st_size > 0:
                 continue
-            url = ToolsForDataDownloads.KCL_HEART_MODEL_INDIVIDUAL_URL_TEMPLATE.format(
+            url = DataDownloadTools.KCL_HEART_MODEL_INDIVIDUAL_URL_TEMPLATE.format(
                 index=index
             )
-            ToolsForDataDownloads._DownloadAndExtractTarMember(
+            DataDownloadTools._DownloadAndExtractTarMember(
                 url, member_name=f"{index:02d}.vtk", target_file=target_file
             )
             _logger.info(
                 "Downloaded %02d.vtk (%d/%d)",
                 index,
                 index,
-                ToolsForDataDownloads.KCL_HEART_MODEL_MESH_COUNT,
+                DataDownloadTools.KCL_HEART_MODEL_MESH_COUNT,
             )
 
         average_file = data_dir / "average_mesh.vtk"
         if not (average_file.exists() and average_file.stat().st_size > 0):
-            ToolsForDataDownloads._DownloadAndExtractTarMember(
-                ToolsForDataDownloads.KCL_HEART_MODEL_AVERAGE_URL,
+            DataDownloadTools._DownloadAndExtractTarMember(
+                DataDownloadTools.KCL_HEART_MODEL_AVERAGE_URL,
                 member_name="average.vtk",
                 target_file=average_file,
             )
@@ -252,12 +250,12 @@ class ToolsForDataDownloads:
         for (
             subdir_name,
             asset_name,
-        ) in ToolsForDataDownloads.CHOP_VALVE4D_ASSETS.items():
+        ) in DataDownloadTools.CHOP_VALVE4D_ASSETS.items():
             target_dir = data_dir / subdir_name
-            if ToolsForDataDownloads._CHOPValve4DSubdirIsPopulated(target_dir):
+            if DataDownloadTools._CHOPValve4DSubdirIsPopulated(target_dir):
                 continue
-            url = ToolsForDataDownloads.CHOP_VALVE4D_RELEASE_URL + asset_name
-            ToolsForDataDownloads._DownloadAndExtractZip(url, target_dir)
+            url = DataDownloadTools.CHOP_VALVE4D_RELEASE_URL + asset_name
+            DataDownloadTools._DownloadAndExtractZip(url, target_dir)
             _logger.info("Downloaded %s (%s)", subdir_name, asset_name)
         return data_dir
 
@@ -314,13 +312,11 @@ class ToolsForDataDownloads:
         experiments.
         """
         data_dir = Path(dirname)
-        has_ct = ToolsForDataDownloads._CHOPValve4DSubdirIsPopulated(data_dir / "CT")
-        has_alterra = ToolsForDataDownloads._CHOPValve4DSubdirIsPopulated(
+        has_ct = DataDownloadTools._CHOPValve4DSubdirIsPopulated(data_dir / "CT")
+        has_alterra = DataDownloadTools._CHOPValve4DSubdirIsPopulated(
             data_dir / "Alterra"
         )
-        has_tpv25 = ToolsForDataDownloads._CHOPValve4DSubdirIsPopulated(
-            data_dir / "TPV25"
-        )
+        has_tpv25 = DataDownloadTools._CHOPValve4DSubdirIsPopulated(data_dir / "TPV25")
         return has_ct or (has_alterra and has_tpv25)
 
     CHEST_CT_URL = (
@@ -347,17 +343,15 @@ class ToolsForDataDownloads:
         data_dir = Path(dirname)
         data_dir.mkdir(parents=True, exist_ok=True)
 
-        data_file = data_dir / ToolsForDataDownloads.CHEST_CT_FILENAME
+        data_file = data_dir / DataDownloadTools.CHEST_CT_FILENAME
         if not (data_file.exists() and data_file.stat().st_size > 0):
-            ToolsForDataDownloads._DownloadFile(
-                ToolsForDataDownloads.CHEST_CT_URL, data_file
-            )
+            DataDownloadTools._DownloadFile(DataDownloadTools.CHEST_CT_URL, data_file)
         return data_file
 
     @staticmethod
     def VerifyChestCTData(dirname: Union[str, Path]) -> bool:
         """Return True when Chest-CT has its expected CT volume."""
-        return (Path(dirname) / ToolsForDataDownloads.CHEST_CT_FILENAME).is_file()
+        return (Path(dirname) / DataDownloadTools.CHEST_CT_FILENAME).is_file()
 
     @staticmethod
     def _MetaImageHeaderHasBackingData(mhd_file: Path) -> bool:
@@ -393,13 +387,13 @@ class ToolsForDataDownloads:
         has_case_dir_layout = has_case_dir_layout or (
             case1_dir.is_dir()
             and any(
-                ToolsForDataDownloads._MetaImageHeaderHasBackingData(mhd_file)
+                DataDownloadTools._MetaImageHeaderHasBackingData(mhd_file)
                 for mhd_file in case1_dir.glob("*.mhd")
             )
         )
 
         has_pack_layout = any(data_dir.glob("Case1Pack_T*.mha")) or any(
-            ToolsForDataDownloads._MetaImageHeaderHasBackingData(mhd_file)
+            DataDownloadTools._MetaImageHeaderHasBackingData(mhd_file)
             for mhd_file in data_dir.glob("Case1Pack_T*.mhd")
         )
         return has_case_dir_layout or has_pack_layout
@@ -436,16 +430,13 @@ class ToolsForDataDownloads:
 
         output_files = []
         for mhd_file in sorted(Path(dirname).rglob("*.mhd")):
-            if not ToolsForDataDownloads._MetaImageHeaderHasBackingData(mhd_file):
+            if not DataDownloadTools._MetaImageHeaderHasBackingData(mhd_file):
                 continue
             image = itk.imread(str(mhd_file))
             image_arr = (
-                itk.array_from_image(image)
-                - ToolsForDataDownloads.DIRLAB_4DCT_HU_OFFSET
+                itk.array_from_image(image) - DataDownloadTools.DIRLAB_4DCT_HU_OFFSET
             )
-            image_arr = np.clip(
-                image_arr, *ToolsForDataDownloads.DIRLAB_4DCT_HU_CLIP_RANGE
-            )
+            image_arr = np.clip(image_arr, *DataDownloadTools.DIRLAB_4DCT_HU_CLIP_RANGE)
             fixed_image = itk.image_from_array(image_arr)
             fixed_image.CopyInformation(image)
             target_dir = output_dir if output_dir is not None else mhd_file.parent

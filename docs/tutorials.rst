@@ -450,7 +450,7 @@ Adapt to your data
    the phases - that is what the workflow is really designed for. Tune
    ``number_of_iterations_greedy`` down for a fast smoke test. The saved
    ``.hdf`` transforms are reusable:
-   :class:`~monai_physio.ToolsForTransforms` applies them to meshes and labelmaps.
+   :class:`~monai_physio.TransformTools` applies them to meshes and labelmaps.
 
 Tutorial 4: CT Segmentation to VTK Surfaces
 ===========================================
@@ -527,7 +527,7 @@ Adapt to your data
    ``surface_reduction_rate`` in the tutorial's parameter module toward ``1.0``
    for lighter meshes. Every
    segmenter declares its own labels through
-   :class:`~monai_physio.ToolsForAnatomyTaxonomies`, so downstream grouping and USD
+   :class:`~monai_physio.AnatomyTaxonomy`, so downstream grouping and USD
    materials follow automatically - see :doc:`api/segmentation/index`.
 
 Tutorial 5: VTK Surfaces to Animated USD
@@ -592,7 +592,7 @@ Adapt to your data
    in order, for an animated scene instead of a static one (drop
    ``static_merge``), and set ``frames_per_second`` to control playback.
    ``appearance="anatomy"`` binds per-organ materials through
-   :class:`~monai_physio.ToolsForUSDAnatomy`; set ``anatomy_type`` to force one
+   :class:`~monai_physio.USDAnatomyTools`; set ``anatomy_type`` to force one
    palette onto every object, or ``object_names`` to name the prims yourself.
    For file-in, file-out conversion without Python, see
    :doc:`cli_scripts/vtk_to_usd`.
@@ -1087,7 +1087,7 @@ Script
 
 Workflow
    :class:`~monai_physio.WorkflowConvertImageToVTK` (lung) or
-   :class:`~monai_physio.ToolsForContours` (heart),
+   :class:`~monai_physio.ContourTools` (heart),
    :class:`~monai_physio.WorkflowFitStatisticalModelToPatient`, then
    :meth:`~monai_physio.WorkflowInferMovement.process_time_series`.
 
@@ -1177,7 +1177,7 @@ Workflow
    :class:`~monai_physio.WorkflowInferMovement` over both Tutorial 9 networks,
    :class:`~monai_physio.WorkflowFitStatisticalModelToPatient` for the heart fit,
    and :class:`~monai_physio.ConvertVTKToUSD` with
-   :class:`~monai_physio.ToolsForUSDAnatomy` for the animation.
+   :class:`~monai_physio.USDAnatomyTools` for the animation.
 
 Dataset
    ``data/Chest-CT/Chest-CT.mha``, one ungated breath-hold scan, plus Tutorial 7
@@ -1222,7 +1222,7 @@ Inner API usage
           fitted_reference_mesh=lung_fitted_reference_mesh_file,
           direction="forward",
       )
-      transform = ToolsForTransforms().smooth_deformation_field_transform(
+      transform = TransformTools().smooth_deformation_field_transform(
           field["deformation_field"], 15.0, field["weight_image"]
       )
 
@@ -1410,8 +1410,8 @@ Script
 Workflow
    :class:`~monai_physio.WorkflowCreateStatisticalModel` with
    ``solve_for_surface_pca=False`` on a tetrahedral template built by
-   :meth:`~monai_physio.ToolsForContours.extract_tetrahedra` and
-   :meth:`~monai_physio.ToolsForContours.trim_tetrahedra_to_surface`, then
+   :meth:`~monai_physio.ContourTools.extract_tetrahedra` and
+   :meth:`~monai_physio.ContourTools.trim_tetrahedra_to_surface`, then
    :class:`~monai_physio.WorkflowFitStatisticalModelToPatient` per case and
    gated frame.
 

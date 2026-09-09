@@ -16,7 +16,7 @@ import numpy as np
 import pytest
 
 from monai_physio.register_images_ants import RegisterImagesANTS
-from monai_physio.tools_for_transforms import ToolsForTransforms
+from monai_physio.transform_tools import TransformTools
 
 from .conftest import KnownShiftCase
 
@@ -268,7 +268,7 @@ class TestRegisterImagesANTS:
         print("\nApplying transform to moving image...")
 
         # Apply transform
-        transform_tools = ToolsForTransforms()
+        transform_tools = TransformTools()
         registered_image = transform_tools.transform_image(
             moving_image,
             fixed_to_moving_transform,
@@ -429,7 +429,7 @@ class TestRegisterImagesANTS:
         threshold = float(np.percentile(fixed_arr, 70.0))
         foreground = fixed_arr > threshold
 
-        transform_tools = ToolsForTransforms()
+        transform_tools = TransformTools()
 
         def warp_score(fixed_to_moving_transform: Any) -> float:
             warped = transform_tools.transform_image(
@@ -533,7 +533,7 @@ class TestRegisterImagesANTS:
         registrar_ANTS.set_fixed_image(fixed_image)
         result = registrar_ANTS.register_from(translation, moving_image)
 
-        transform_tools = ToolsForTransforms()
+        transform_tools = TransformTools()
         warped = transform_tools.transform_image(
             moving_image,
             result["fixed_to_moving_transform"],
@@ -572,7 +572,7 @@ class TestRegisterImagesANTS:
             fixed_arr, itk.array_from_image(moving_image), foreground
         )
 
-        transform_tools = ToolsForTransforms()
+        transform_tools = TransformTools()
         for transform_type in ("Rigid", "Affine"):
             registrar = RegisterImagesANTS()
             registrar.set_modality("ct")
@@ -925,10 +925,10 @@ class TestRegisterImagesANTS:
         print("\nTesting displacement field transform conversion cycle...")
 
         # Create a simple displacement field with double precision
-        # Use ToolsForImages to create the correct type
-        from monai_physio.tools_for_images import ToolsForImages
+        # Use ImageTools to create the correct type
+        from monai_physio.image_tools import ImageTools
 
-        image_tools = ToolsForImages()
+        image_tools = ImageTools()
 
         # Create displacement array (small random displacements)
         ref_size = itk.size(reference_image)

@@ -33,7 +33,7 @@ Current Workflow Mapping
    * - ``monai-physio-convert-image-4d-to-3d``
      - :class:`monai_physio.ConvertImage4DTo3D` (a converter, not a workflow)
    * - ``monai-physio-download-data``
-     - :class:`monai_physio.ToolsForDataDownloads` (a utility, not a workflow)
+     - :class:`monai_physio.DataDownloadTools` (a utility, not a workflow)
    * - ``monai-physio-visualize-pca-modes``
      - Reads a ``pca_model.json`` directly; no workflow class
 

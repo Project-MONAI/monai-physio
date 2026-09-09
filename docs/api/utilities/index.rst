@@ -24,14 +24,14 @@ Quick Links
 ===========
 
 **Utility Modules**:
-   * :doc:`tools_for_images` - Image processing utilities
-   * :doc:`tools_for_labelmaps` - Labelmap to registration-mask conversion
-   * :doc:`tools_for_transforms` - Transform operations
-   * :doc:`tools_for_landmarks` - Landmark-based registration validation
-   * :doc:`tools_for_contours` - Contour processing
+   * :doc:`image_tools` - Image processing utilities
+   * :doc:`labelmap_tools` - Labelmap to registration-mask conversion
+   * :doc:`transform_tools` - Transform operations
+   * :doc:`landmark_tools` - Landmark-based registration validation
+   * :doc:`contour_tools` - Contour processing
    * :doc:`image_conversion` - 4D image to 3D time-series utilities
-   * :doc:`tools_for_tests` - Baseline / result comparison helpers
-   * :doc:`tools_for_data_downloads` - Optional dataset download helpers
+   * :doc:`test_tools` - Baseline / result comparison helpers
+   * :doc:`data_download` - Optional dataset download helpers
 
 Module Documentation
 ====================
@@ -39,14 +39,14 @@ Module Documentation
 .. toctree::
    :maxdepth: 2
 
-   tools_for_images
-   tools_for_labelmaps
-   tools_for_transforms
-   tools_for_landmarks
-   tools_for_contours
+   image_tools
+   labelmap_tools
+   transform_tools
+   landmark_tools
+   contour_tools
    image_conversion
-   tools_for_tests
-   tools_for_data_downloads
+   test_tools
+   data_download
 
 See Also
 ========
@@ -56,4 +56,4 @@ See Also
 
 .. rubric:: Navigation
 
-:doc:`../usd/vtk_conversion` | :doc:`../index` | :doc:`tools_for_images`
+:doc:`../usd/vtk_conversion` | :doc:`../index` | :doc:`image_tools`

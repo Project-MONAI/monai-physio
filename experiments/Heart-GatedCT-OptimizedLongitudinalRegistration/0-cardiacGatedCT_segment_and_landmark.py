@@ -24,7 +24,7 @@ from pathlib import Path
 import itk
 
 from monai_physio import SegmentHeartSimpleware
-from monai_physio.tools_for_landmarks import ToolsForLandmarks
+from monai_physio.landmark_tools import LandmarkTools
 
 # %%
 # Discover data (mirrors recon_4d.py)
@@ -98,7 +98,7 @@ def segment_images(
                 itk.imwrite(labelmap, str(labelmap_path), compression=True)
 
                 landmarks = segmenter.get_landmarks()
-                ToolsForLandmarks().write_landmarks_3dslicer(landmarks, landmark_path)
+                LandmarkTools().write_landmarks_3dslicer(landmarks, landmark_path)
 
             image_to_labelmap[os.path.join(src_dir, f)] = str(labelmap_path)
 

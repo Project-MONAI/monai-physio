@@ -15,7 +15,7 @@ This tutorial therefore builds the same model volumetrically:
 1. Build the unbiased mean surface of the population, exactly as Tutorial 6
    does.
 2. Fill that surface with tetrahedra
-   (``ToolsForContours.extract_tetrahedra`` then ``trim_tetrahedra_to_surface``).
+   (``ContourTools.extract_tetrahedra`` then ``trim_tetrahedra_to_surface``).
    Those cells become the elements the strain energy is summed over, and
    because every subject and phase inherits the template's topology, one set of
    element node ids stays valid across the whole cohort.
@@ -81,9 +81,9 @@ import pyvista as pv
 from parameters_duke_heart_physics_informed import DUKE_HEART_PHYSICS_INFORMED
 
 from monai_physio import (
+    ContourTools,
     RegisterModelsDistanceMaps,
-    ToolsForContours,
-    ToolsForTests,
+    TestTools,
     WorkflowCreateMeanSurface,
     WorkflowCreateStatisticalModel,
     WorkflowFitStatisticalModelToPatient,
@@ -187,7 +187,7 @@ if __name__ == "__main__":
 
     class_name = "tutorial_16_duke_heart_physics_informed_motion_prep"
 
-    test_mode = ToolsForTests.running_as_test()
+    test_mode = TestTools.running_as_test()
     parameters = DUKE_HEART_PHYSICS_INFORMED
 
     output_dir = parameters.prep_directory(test_mode)
@@ -261,7 +261,7 @@ if __name__ == "__main__":
         )
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    contour_tools = ToolsForContours(log_level=log_level)
+    contour_tools = ContourTools(log_level=log_level)
 
     tutorial_results: dict[str, Any] = {"cases": {}, "screenshots": []}
 
@@ -642,7 +642,7 @@ if __name__ == "__main__":
     logger.info("Wrote %d manifests under %s", len(manifests), manifests_dir)
 
     # Testing
-    tt = ToolsForTests(
+    tt = TestTools(
         class_name=class_name,
         results_dir=output_dir,
         baselines_dir=baselines_dir,

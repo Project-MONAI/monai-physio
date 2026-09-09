@@ -2,7 +2,7 @@
 import shutil
 from pathlib import Path
 
-from monai_physio.tools_for_data_downloads import ToolsForDataDownloads
+from monai_physio.data_download_tools import DataDownloadTools
 
 _HERE = Path(__file__).resolve().parent
 
@@ -13,7 +13,7 @@ output_dir = _HERE / "results"
 output_dir.mkdir(parents=True, exist_ok=True)
 
 # Downloads TruncalValve_4DCT.seq.nrrd and splits it into slice_???.mha.
-ToolsForDataDownloads.DownloadSlicerHeartCTData(data_dir)
+DataDownloadTools.DownloadSlicerHeartCTData(data_dir)
 
 # %%
 # Save the mid-stroke slice as the fixed/reference image

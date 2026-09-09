@@ -305,10 +305,10 @@ or from Python:
 
 .. code-block:: python
 
-   from monai_physio import ToolsForDataDownloads
+   from monai_physio import DataDownloadTools
 
-   data_file = ToolsForDataDownloads.DownloadSlicerHeartCTData("data/Slicer-Heart-CT")
-   assert ToolsForDataDownloads.VerifySlicerHeartCTData("data/Slicer-Heart-CT")
+   data_file = DataDownloadTools.DownloadSlicerHeartCTData("data/Slicer-Heart-CT")
+   assert DataDownloadTools.VerifySlicerHeartCTData("data/Slicer-Heart-CT")
 
 See :doc:`cli_scripts/download_data` for sizes, source URLs, and directory
 layouts for every dataset.

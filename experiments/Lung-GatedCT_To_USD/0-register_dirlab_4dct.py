@@ -6,10 +6,10 @@ import itk
 import numpy as np
 from data_dirlab_4d_ct import DataDirLab4DCT
 
+from monai_physio.image_tools import ImageTools
 from monai_physio.register_images_icon import RegisterImagesICON
 from monai_physio.segment_chest_total_segmentator import SegmentChestTotalSegmentator
-from monai_physio.tools_for_images import ToolsForImages
-from monai_physio.tools_for_transforms import ToolsForTransforms
+from monai_physio.transform_tools import TransformTools
 
 # nnUNetv2 (used by TotalSegmentator) spawns a multiprocessing.Pool. On Windows
 # the spawn start method re-imports this script in each child; without the
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     # %%
     def dilate_mask(mask: Optional[itk.image], dilation: int) -> Optional[itk.image]:
         if mask is not None:
-            return ToolsForImages().binary_dilate_image(mask, dilation, 1, 0)
+            return ImageTools().binary_dilate_image(mask, dilation, 1, 0)
         return None
 
     def register_image(
@@ -71,7 +71,7 @@ if __name__ == "__main__":
         moving_to_fixed_transform = results["moving_to_fixed_transform"]
         fixed_to_moving_transform = results["fixed_to_moving_transform"]
         print("Registering image...Done!")
-        moving_image_reg = ToolsForTransforms().transform_image(
+        moving_image_reg = TransformTools().transform_image(
             moving_image, fixed_to_moving_transform, fixed_image, "sinc"
         )  # Final resampling with sinc
         itk.imwrite(

@@ -4,7 +4,7 @@ import os
 import itk
 import pyvista as pv
 
-from monai_physio.tools_for_transforms import ToolsForTransforms
+from monai_physio.transform_tools import TransformTools
 
 # %%
 os.makedirs("results_CombineModels", exist_ok=True)
@@ -22,7 +22,7 @@ img_tfm_other_t00 = itk.transformread(
 )[0]
 
 # %%
-tfm_tools = ToolsForTransforms()
+tfm_tools = TransformTools()
 
 lung_mask_t00 = tfm_tools.transform_image(lung_mask_t30, img_tfm_lung_t00, all_mask_t00)
 other_mask_t00 = tfm_tools.transform_image(

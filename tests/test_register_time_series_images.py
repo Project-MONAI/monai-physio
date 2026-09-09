@@ -17,8 +17,8 @@ from monai_physio import (
     RegisterImagesGreedyICON,
     RegisterImagesICON,
     RegisterTimeSeriesImages,
-    ToolsForTests,
-    ToolsForTransforms,
+    TestTools,
+    TransformTools,
 )
 
 
@@ -185,7 +185,7 @@ class TestRegisterTimeSeriesImages:
         print(f"  Transforms generated: {len(fixed_to_moving_transforms)}")
         print(f"  Average loss: {np.mean(losses):.6f}")
 
-        transform_tools = ToolsForTransforms()
+        transform_tools = TransformTools()
         moving_image = transform_tools.transform_image(
             moving_images[0],
             fixed_to_moving_transforms[0],
@@ -193,7 +193,7 @@ class TestRegisterTimeSeriesImages:
             interpolation_method="linear",
         )
 
-        test_tools = ToolsForTests(
+        test_tools = TestTools(
             class_name=self._class_name,
             results_dir=test_directories["output"] / self._class_name,
             baselines_dir=test_directories["baselines"] / self._class_name,
@@ -239,7 +239,7 @@ class TestRegisterTimeSeriesImages:
         fixed_to_moving_transforms = result["fixed_to_moving_transforms"]
         losses = result["losses"]
 
-        transform_tools = ToolsForTransforms()
+        transform_tools = TransformTools()
         moving_image = transform_tools.transform_image(
             moving_images[0],
             fixed_to_moving_transforms[0],
@@ -256,7 +256,7 @@ class TestRegisterTimeSeriesImages:
         print("Time series registration from the middle frame complete")
         print(f"  Losses: {[f'{loss:.6f}' for loss in losses]}")
 
-        test_tools = ToolsForTests(
+        test_tools = TestTools(
             class_name=self._class_name,
             results_dir=test_directories["output"] / self._class_name,
             baselines_dir=test_directories["baselines"] / self._class_name,
@@ -390,7 +390,7 @@ class TestRegisterTimeSeriesImages:
         fixed_to_moving_transforms = result["fixed_to_moving_transforms"]
 
         # Apply transform to first moving image
-        transform_tools = ToolsForTransforms()
+        transform_tools = TransformTools()
         registered_image = transform_tools.transform_image(
             moving_images[0],
             fixed_to_moving_transforms[0],
@@ -405,7 +405,7 @@ class TestRegisterTimeSeriesImages:
         print(f"  Registered image size: {itk.size(registered_image)}")
 
         # Save registered image
-        test_tools = ToolsForTests(
+        test_tools = TestTools(
             class_name=self._class_name,
             results_dir=test_directories["output"] / self._class_name,
             baselines_dir=test_directories["baselines"] / self._class_name,
@@ -606,7 +606,7 @@ class TestReconstructTimeSeriesCompositeMode:
         registrar = RegisterTimeSeriesImages(registration_method=RegisterImagesGreedy())
         registrar.set_fixed_image(fixed_image)
 
-        composite = registrar._compute_composite_reference(
+        composite = registrar.compute_composite_reference(
             moving_images=[moving_image],
             fixed_to_moving_transforms=self._identity_transforms(1),
             mode="mean",
@@ -633,7 +633,7 @@ class TestReconstructTimeSeriesCompositeMode:
         registrar = RegisterTimeSeriesImages(registration_method=RegisterImagesGreedy())
         registrar.set_fixed_image(fixed_image)
 
-        composite = registrar._compute_composite_reference(
+        composite = registrar.compute_composite_reference(
             moving_images=[moving_image],
             fixed_to_moving_transforms=self._identity_transforms(1),
             mode="mean",

@@ -16,7 +16,7 @@ Data Flow
    4D CT / time-series CT
           |
           v
-   ConvertImage4DTo3D / ToolsForImages
+   ConvertImage4DTo3D / ImageTools
           |
           v
    RegisterTimeSeriesImages
@@ -30,7 +30,7 @@ Data Flow
    SegmentNVSegmentCTMRI (CT + MRI)
           |
           v
-   ToolsForContours + ToolsForTransforms
+   ContourTools + TransformTools
           |
           v
    WorkflowConvertImageToVTK / ConvertVTKToUSD / WorkflowConvertVTKToUSD
@@ -170,14 +170,14 @@ same segment/taxonomy interface, so new segmentation methods or anatomy groups
 slot in without touching the workflow layer.
 
 Deriving from a base class propagates capability, not just interface. Each
-``SegmentAnatomyBase`` subclass owns an :class:`ToolsForAnatomyTaxonomies` instance and
+``SegmentAnatomyBase`` subclass owns an :class:`AnatomyTaxonomy` instance and
 declares its own group→organ label map by calling
 ``self.taxonomy.add_organ(group_name, label_id, organ_name)`` for every label
 it produces - a new segmenter for a new organ or data type only has to
 declare that map once. Everything downstream reads it rather than
 special-casing the segmenter: ``ConvertVTKToUSD`` groups label-mode mesh
 prims under per-anatomy-group Xforms (``/World/{name}/{group}/{organ}``)
-straight from the taxonomy, and ``ToolsForUSDAnatomy`` looks up
+straight from the taxonomy, and ``USDAnatomyTools`` looks up
 :data:`DEFAULT_RENDER_PARAMS` by group name to assign the matching
 OmniSurface material. A group without a registered look still renders (via
 the ``"other"`` fallback), so a new segmentation class is usable end-to-end -

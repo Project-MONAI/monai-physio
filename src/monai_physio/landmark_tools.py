@@ -1,7 +1,7 @@
 """
 Tools for reading and writing anatomical landmarks.
 
-This module provides the :class:`ToolsForLandmarks` class with utilities for
+This module provides the :class:`LandmarkTools` class with utilities for
 reading and writing point landmarks in 3D Slicer's Markups JSON
 (``.mrk.json``) format and in a simple CSV format. Landmarks are kept in
 memory in LPS world coordinates (ITK's native frame, matching the rest of
@@ -25,7 +25,7 @@ _MRK_JSON_SCHEMA = (
 )
 
 
-class ToolsForLandmarks(MONAIPhysioBase):
+class LandmarkTools(MONAIPhysioBase):
     """
     Read and write anatomical landmarks in LPS world coordinates.
 
@@ -43,13 +43,13 @@ class ToolsForLandmarks(MONAIPhysioBase):
     outputs are always written in LPS.
 
     Example:
-        >>> tools = ToolsForLandmarks()
+        >>> tools = LandmarkTools()
         >>> landmarks = tools.read_landmarks_3dslicer('points.mrk.json')
         >>> tools.write_landmarks_csv(landmarks, 'points.csv')
     """
 
     def __init__(self, log_level: int | str = logging.INFO):
-        """Initialize the ToolsForLandmarks class.
+        """Initialize the LandmarkTools class.
 
         Args:
             log_level: Logging level (default: logging.INFO)

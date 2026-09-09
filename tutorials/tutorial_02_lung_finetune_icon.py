@@ -97,8 +97,8 @@ from monai_physio import (
     RegisterImagesGreedyICON,
     RegisterImagesICON,
     SegmentNVSegmentCTMRI,
-    ToolsForTests,
-    ToolsForTransforms,
+    TestTools,
+    TransformTools,
     WorkflowFinetuneICONRegistration,
 )
 
@@ -116,7 +116,7 @@ if __name__ == "__main__":
     # Only the shared directory roots are needed here; no dataset-specific
     # parameters module applies to this tutorial.
     tutorial_paths = ParametersBase()
-    test_mode = ToolsForTests.running_as_test()
+    test_mode = TestTools.running_as_test()
 
     output_dir = tutorial_paths.output_directory(test_mode) / "tutorial_02_lung"
     # The workflow writes its dataset JSON, YAML config, and checkpoint tree
@@ -243,7 +243,7 @@ if __name__ == "__main__":
     # Registration comparison
     fixed_image = itk.imread(str(fixed_file), pixel_type=itk.F)
     moving_image = itk.imread(str(moving_file), pixel_type=itk.F)
-    transform_tools = ToolsForTransforms()
+    transform_tools = TransformTools()
 
     def read_landmarks(landmark_file: Path, image: itk.Image) -> np.ndarray:
         """Read a DIR-Lab landmark file as an (N, 3) array of world points.
@@ -649,7 +649,7 @@ if __name__ == "__main__":
     reporter.log_info("Wrote summary: %s", summary_file)
 
     # Testing
-    tt = ToolsForTests(
+    tt = TestTools(
         class_name=class_name,
         results_dir=output_dir,
         baselines_dir=baselines_dir,

@@ -15,12 +15,12 @@ from typing import Optional
 import itk
 import numpy as np
 
+from monai_physio.labelmap_tools import LabelmapTools
+from monai_physio.landmark_tools import LandmarkTools
 from monai_physio.register_images_ants import RegisterImagesANTS
 from monai_physio.register_images_greedy import RegisterImagesGreedy
 from monai_physio.register_images_icon import RegisterImagesICON
-from monai_physio.tools_for_labelmaps import ToolsForLabelmaps
-from monai_physio.tools_for_landmarks import ToolsForLandmarks
-from monai_physio.tools_for_transforms import ToolsForTransforms
+from monai_physio.transform_tools import TransformTools
 
 # %%
 ref_data_dir = Path("d:/MONAI-Physio/duke_data/ref_images")
@@ -53,9 +53,9 @@ fixed_image_resolution_mm = 0.0
 
 debug_subjects = []  # ["pm0002", "pm0003", "pm0004"]
 
-labelmap_tools = ToolsForLabelmaps()
-landmark_tools = ToolsForLandmarks()
-transform_tools = ToolsForTransforms()
+labelmap_tools = LabelmapTools()
+landmark_tools = LandmarkTools()
+transform_tools = TransformTools()
 
 # %%
 ref_files = sorted(
@@ -151,7 +151,7 @@ def landmark_rms_errors(
 def load_or_derive_mask(labelmap: itk.Image, mask_path: Path) -> itk.Image:
     """Return the cached ``<stem>_labelmap_mask.nii.gz`` next to the
     labelmap, or derive it via
-    :meth:`ToolsForLabelmaps.convert_labelmap_to_mask` (threshold ``>0`` plus
+    :meth:`LabelmapTools.convert_labelmap_to_mask` (threshold ``>0`` plus
     3 mm physical-radius dilation) and write it out so subsequent runs and
     the ICON eval reuse the same mask.
     """

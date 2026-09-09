@@ -44,8 +44,8 @@ import pyvista as pv
 from parameters_duke_heart_labelmaps import DUKE_HEART
 
 from monai_physio import (
-    ToolsForContours,
-    ToolsForTests,
+    ContourTools,
+    TestTools,
     WorkflowFitStatisticalModelToPatient,
 )
 
@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
     project_name = "tutorial_07_duke_heart"
 
-    test_mode = ToolsForTests.running_as_test()
+    test_mode = TestTools.running_as_test()
 
     output_dir = DUKE_HEART.output_directory(test_mode) / project_name
     weights_dir = DUKE_HEART.weights_directory(test_mode)
@@ -99,7 +99,7 @@ if __name__ == "__main__":
 
     log_level = logging.INFO
 
-    contour_tools = ToolsForContours(log_level=log_level)
+    contour_tools = ContourTools(log_level=log_level)
 
     # Directory setup and data reading
 
@@ -217,7 +217,7 @@ if __name__ == "__main__":
     )
 
     # Testing
-    ToolsForTests(
+    TestTools(
         class_name=project_name,
         results_dir=output_dir,
         baselines_dir=baselines_dir,

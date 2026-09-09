@@ -19,8 +19,8 @@ import pyvista as pv
 from pxr import Gf, Usd, UsdGeom, UsdShade
 
 from monai_physio import ConvertVTKToUSD
-from monai_physio.tools_for_tests import ToolsForTests
-from monai_physio.tools_for_usd import ToolsForUSD
+from monai_physio.test_tools import TestTools
+from monai_physio.usd_tools import USDTools
 
 
 def get_data_dir() -> Path:
@@ -125,7 +125,7 @@ class TestFromFilesValidation:
         assert not stage.HasAuthoredTimeCodeRange()
 
     def test_openusd_screenshot_uses_vtk_loader(self, tmp_path: Path) -> None:
-        """Render a tiny OpenUSD mesh through ToolsForTests without USD imaging plugins."""
+        """Render a tiny OpenUSD mesh through TestTools without USD imaging plugins."""
         usd_path = tmp_path / "triangle.usd"
         stage = Usd.Stage.CreateNew(str(usd_path))
         world = stage.DefinePrim("/World", "Xform")
@@ -142,7 +142,7 @@ class TestFromFilesValidation:
         mesh.CreateFaceVertexIndicesAttr([0, 1, 2])
         stage.Save()
 
-        loaded = ToolsForUSD().load_usd_as_vtk(usd_path)
+        loaded = USDTools().load_usd_as_vtk(usd_path)
         assert loaded.n_points == 3
         assert "openusd_rgb" in loaded.point_data
         assert np.all(loaded.point_data["openusd_rgb"] == np.array([255, 0, 0]))
@@ -162,7 +162,7 @@ class TestFromFilesValidation:
         # it statically infers the `sys.platform == "win32"` branch above as
         # always-taken and flags this line as unreachable; on the Linux CI
         # runner (or any non-Windows dev machine) it is reachable.
-        tt = ToolsForTests(  # type: ignore[unreachable]
+        tt = TestTools(  # type: ignore[unreachable]
             class_name="openusd", results_dir=tmp_path
         )
         screenshot = tt.save_screenshot_openusd(usd_path, "triangle.png")

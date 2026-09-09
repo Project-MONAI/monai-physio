@@ -13,8 +13,8 @@ import pyvista as pv
 
 # Import from MONAI Physio package
 from monai_physio import (
+    ContourTools,
     SegmentChestTotalSegmentator,
-    ToolsForContours,
     WorkflowFitStatisticalModelToPatient,
 )
 
@@ -117,7 +117,7 @@ if __name__ == "__main__":
         )
 
     # %%
-    patient_model = ToolsForContours().extract_contours(patient_mask)
+    patient_model = ContourTools().extract_contours(patient_mask)
     patient_model.save(str(output_dir / "patient_mesh.vtp"))
     patient_model = pv.read(str(output_dir / "patient_mesh.vtp"))
 

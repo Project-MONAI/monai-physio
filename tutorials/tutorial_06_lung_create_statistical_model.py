@@ -43,9 +43,9 @@ import pyvista as pv
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
 from monai_physio import (
+    ContourTools,
     SegmentNVSegmentCTMRI,
-    ToolsForContours,
-    ToolsForTests,
+    TestTools,
     WorkflowConvertImageToVTK,
     WorkflowCreateMeanSurface,
     WorkflowCreateStatisticalModel,
@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
     class_name = "tutorial_06_lung_create_statistical_model"
 
-    test_mode = ToolsForTests.running_as_test()
+    test_mode = TestTools.running_as_test()
 
     output_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_06_lung"
     weights_dir = LUNG_CT_DIRLAB.weights_directory(test_mode)
@@ -110,7 +110,7 @@ if __name__ == "__main__":
         segmentation_method=segmentation_method, log_level=log_level
     )
 
-    contour_tools = ToolsForContours(log_level=log_level)
+    contour_tools = ContourTools(log_level=log_level)
 
     # Tutorial 7 fits this model to the held-out study, so the model must not
     # have seen it.  That study lives in another dataset, so this drops nothing
@@ -235,7 +235,7 @@ if __name__ == "__main__":
     mean_surface.save(str(mean_surface_file))
 
     # Testing
-    tt = ToolsForTests(
+    tt = TestTools(
         class_name=class_name,
         results_dir=output_dir,
         baselines_dir=baselines_dir,

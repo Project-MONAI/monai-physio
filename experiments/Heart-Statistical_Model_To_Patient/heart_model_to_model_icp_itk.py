@@ -24,11 +24,11 @@ import pyvista as pv
 
 # Import from MONAI Physio package
 from monai_physio import (
+    ContourTools,
     RegisterModelsICPITK,
-    ToolsForContours,
-    ToolsForTransforms,
+    TransformTools,
 )
-from monai_physio.tools_for_images import ToolsForImages
+from monai_physio.image_tools import ImageTools
 
 # %% [markdown]
 # ## Define File Paths
@@ -62,7 +62,7 @@ print(f"  Original spacing: {itk.spacing(patient_image)}")
 
 # Resample to 1mm isotropic spacing
 print("Resampling to isotropic...")
-patient_image = ToolsForImages().make_isotropic_image(patient_image)
+patient_image = ImageTools().make_isotropic_image(patient_image)
 
 print(f"  Resampled size: {itk.size(patient_image)}")
 print(f"  Resampled spacing: {itk.spacing(patient_image)}")
@@ -125,7 +125,7 @@ itk.imwrite(
 # ## Convert Segmentation Mask to a Surface
 
 # %%
-contour_tools = ToolsForContours()
+contour_tools = ContourTools()
 patient_heart_surface = contour_tools.extract_contours(patient_heart_mask)
 
 # %% [markdown]
@@ -177,7 +177,7 @@ print("  Saved ICP transform")
 # %%
 # Apply ICP transform to the full average mesh (not just surface)
 # This gets the volumetric mesh into patient space for PCA registration
-transform_tools = ToolsForTransforms()
+transform_tools = TransformTools()
 icp_registered_model = transform_tools.transform_pvcontour(
     template_model, icp_moving_to_fixed_transform
 )

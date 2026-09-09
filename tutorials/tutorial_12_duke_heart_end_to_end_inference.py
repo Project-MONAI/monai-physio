@@ -75,8 +75,8 @@ import pyvista as pv
 from parameters_duke_heart_labelmaps import DUKE_HEART
 
 from monai_physio import (
-    ToolsForContours,
-    ToolsForTests,
+    ContourTools,
+    TestTools,
     WorkflowFitStatisticalModelToPatient,
     WorkflowInferMovement,
     WorkflowInferPhysicsNeMo,
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     # Case to predict: the case held out of every fit in this chain.
     case_id = DUKE_HEART.hold_out_case
 
-    test_mode = ToolsForTests.running_as_test()
+    test_mode = TestTools.running_as_test()
     # Keep a test run out of the directories a full run reads and writes.
     weights_dir = DUKE_HEART.weights_directory(test_mode)
 
@@ -221,7 +221,7 @@ if __name__ == "__main__":
     # vessels the shape model leaves out, on the pitch Tutorial 4 contoured the
     # model's training surfaces at.
     heart_surface_file = output_dir / f"{case_id}_heart_surface.vtp"
-    contour_tools = ToolsForContours(log_level=log_level)
+    contour_tools = ContourTools(log_level=log_level)
     labels = itk.GetArrayViewFromImage(reference_labelmap)
     wall_ids = [
         int(value)
@@ -308,7 +308,7 @@ if __name__ == "__main__":
     tutorial_results["fitted_reference_mesh_file"] = fitted_reference_mesh_file
 
     # Testing: the fitted reference surface beside the first predicted stage.
-    tt = ToolsForTests(
+    tt = TestTools(
         class_name=class_name,
         results_dir=output_dir,
         baselines_dir=repo_root / "tests" / "baselines" / class_name,

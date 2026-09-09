@@ -7,7 +7,7 @@ from monai_physio.register_images_ants import RegisterImagesANTS
 from monai_physio.segment_chest_total_segmentator_with_contrast import (
     SegmentChestTotalSegmentatorWithContrast,
 )
-from monai_physio.tools_for_transforms import ToolsForTransforms
+from monai_physio.transform_tools import TransformTools
 
 # nnUNetv2 (used by TotalSegmentator) spawns a multiprocessing.Pool. On Windows
 # the spawn start method re-imports this script in each child; without the
@@ -103,7 +103,7 @@ if __name__ == "__main__":
         print(f"  Done registering whole image for slice {i:03d}.")
         moving_to_fixed_transform = results["moving_to_fixed_transform"]
         fixed_to_moving_transform = results["fixed_to_moving_transform"]
-        moving_image_reg = ToolsForTransforms().transform_image(
+        moving_image_reg = TransformTools().transform_image(
             moving_image, fixed_to_moving_transform, fixed_image, "sinc"
         )  # Final resampling with sinc
         itk.imwrite(
@@ -136,7 +136,7 @@ if __name__ == "__main__":
         print(f"  Done registering dynamic anatomy mask for slice {i:03d}.")
         moving_to_fixed_transform = results["moving_to_fixed_transform"]
         fixed_to_moving_transform = results["fixed_to_moving_transform"]
-        moving_image_reg_dynamic_anatomy = ToolsForTransforms().transform_image(
+        moving_image_reg_dynamic_anatomy = TransformTools().transform_image(
             moving_image, fixed_to_moving_transform, fixed_image, "sinc"
         )  # Final resampling with sinc
         itk.imwrite(
@@ -175,7 +175,7 @@ if __name__ == "__main__":
         print(f"  Done registering static anatomy mask for slice {i:03d}.")
         moving_to_fixed_transform = results["moving_to_fixed_transform"]
         fixed_to_moving_transform = results["fixed_to_moving_transform"]
-        moving_image_reg_static = ToolsForTransforms().transform_image(
+        moving_image_reg_static = TransformTools().transform_image(
             moving_image, fixed_to_moving_transform, fixed_image, "sinc"
         )  # Final resampling with sinc
         itk.imwrite(

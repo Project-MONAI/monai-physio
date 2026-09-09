@@ -107,12 +107,12 @@ import pyvista as pv
 from parameters_duke_heart_labelmaps import DUKE_HEART
 
 from monai_physio import (
+    ContourTools,
     DistributedContext,
     EvaluateMovementDukeHeart,
+    PhysicsNemoTools,
     RegisterModelsDistanceMaps,
-    ToolsForContours,
-    ToolsForPhysicsNeMo,
-    ToolsForTests,
+    TestTools,
     TrainPhysicsNeMoMGN,
     WorkflowCreateMeanSurface,
     WorkflowCreateStatisticalModel,
@@ -414,7 +414,7 @@ if __name__ == "__main__":
     # reported, and still below the thinnest wall of the heart.
     evaluation_spacing_mm = 1.0
 
-    test_mode = ToolsForTests.running_as_test()
+    test_mode = TestTools.running_as_test()
     # Keep a test run out of the directories a full run reads and writes.
     weights_dir = DUKE_HEART.weights_directory(test_mode)
 
@@ -428,7 +428,7 @@ if __name__ == "__main__":
     # Under torchrun / SLURM / mpirun this is one rank of many; started plainly
     # it reports a world of one and every branch below collapses to a single
     # process.
-    context = ToolsForPhysicsNeMo.distributed_context()
+    context = PhysicsNemoTools.distributed_context()
 
     data_dir = DUKE_HEART.hold_out_directory(test_mode)
     tutorial_04_dir = DUKE_HEART.input_directory(test_mode)
@@ -519,7 +519,7 @@ if __name__ == "__main__":
             icon_weights_path,
         )
 
-    contour_tools = ToolsForContours(log_level=log_level)
+    contour_tools = ContourTools(log_level=log_level)
 
     # The cohort names the structures every fold reports and, in Step 5, reads
     # each fold's ground truth: the acquired labelmaps and this fold's own fits.
@@ -872,7 +872,7 @@ if __name__ == "__main__":
         tutorial_results["rows"] = all_rows
 
         # Testing
-        tt = ToolsForTests(
+        tt = TestTools(
             class_name=class_name,
             results_dir=output_dir,
             baselines_dir=repo_root / "tests" / "baselines" / class_name,

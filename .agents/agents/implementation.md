@@ -19,7 +19,7 @@ tutorials may require a GPU.
 4D CT → Segmentation → Registration → Contour Extraction → USD Export
 
 Key modules: `monai_physio_base.py`, `segment_chest_*.py`, `register_images_*.py`,
-`register_models_*.py`, `tools_for_contours.py`, `convert_vtk_to_usd.py`, `vtk_to_usd/`,
+`register_models_*.py`, `contour_tools.py`, `convert_vtk_to_usd.py`, `vtk_to_usd/`,
 `workflow_*.py`. Use `graphify query "<question>"` to locate classes before
 searching manually.
 

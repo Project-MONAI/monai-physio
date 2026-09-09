@@ -14,7 +14,7 @@ import numpy as np
 import pytest
 
 from monai_physio.register_images_icon import RegisterImagesICON
-from monai_physio.tools_for_transforms import ToolsForTransforms
+from monai_physio.transform_tools import TransformTools
 
 from .conftest import KnownShiftCase
 
@@ -396,7 +396,7 @@ class TestRegisterImagesICON:
         print("\nApplying ICON transform to moving image...")
 
         # Apply transform
-        transform_tools = ToolsForTransforms()
+        transform_tools = TransformTools()
         registered_image = transform_tools.transform_image(
             moving_image,
             fixed_to_moving_transform,

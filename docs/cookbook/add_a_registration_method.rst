@@ -106,8 +106,8 @@ Notes
   multi-stage pipeline, and
   :class:`~monai_physio.RegisterTimeSeriesImages` will apply it across a whole
   4D series, without either class knowing about it.
-* Use ``ToolsForTransforms.transform_image()`` and
-  ``ToolsForTransforms.transform_pvcontour()`` to apply results - they encode the
+* Use ``TransformTools.transform_image()`` and
+  ``TransformTools.transform_pvcontour()`` to apply results - they encode the
   direction rules.
 * Registering *models* to patients is a different base class; see
   :doc:`/developer/registration_models`.

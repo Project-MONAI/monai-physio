@@ -25,7 +25,7 @@ Instructions:
    When using synthetic inputs anyway, keep volumes ≤64 voxels per side and
    say so in the docstring.
 5. **When a test produces an image or surface as output, compare against a
-   baseline** using the `tools_for_tests.py` utilities (e.g. `ToolsForTests`) rather
+   baseline** using the `test_tools.py` utilities (e.g. `TestTools`) rather
    than ad-hoc value assertions. Store baselines under `tests/baselines/`
    (Git LFS-tracked). Run with `--create-baselines` to materialize missing
    baselines on first use; afterward, regression compares to the stored

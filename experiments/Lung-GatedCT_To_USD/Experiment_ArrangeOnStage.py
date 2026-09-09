@@ -3,7 +3,7 @@ import os
 
 from data_dirlab_4d_ct import DataDirLab4DCT
 
-from monai_physio.tools_for_usd import ToolsForUSD
+from monai_physio.usd_tools import USDTools
 
 # %%
 os.makedirs("Results_ArrangeOnStage", exist_ok=True)
@@ -14,7 +14,7 @@ case_names = [
     DataDirLab4DCT().get_case_names()[1],
 ]
 
-usd_tools = ToolsForUSD()
+usd_tools = USDTools()
 
 for label in ["dynamic_anatomy", "static_anatomy"]:
     usd_file_names = [

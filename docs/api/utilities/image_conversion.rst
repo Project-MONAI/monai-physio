@@ -19,4 +19,4 @@ Module Reference
 
 .. rubric:: Navigation
 
-:doc:`tools_for_contours` | :doc:`index` | :doc:`../index`
+:doc:`contour_tools` | :doc:`index` | :doc:`../index`

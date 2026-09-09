@@ -67,7 +67,7 @@ for ``"other"``.
 
 .. code-block:: python
 
-   from monai_physio.tools_for_usd_anatomy import DEFAULT_RENDER_PARAMS
+   from monai_physio.usd_anatomy_tools import DEFAULT_RENDER_PARAMS
 
    DEFAULT_RENDER_PARAMS["brain"] = {
        "name": "Brain",
@@ -111,6 +111,6 @@ See Also
 ========
 
 * :doc:`/developer/segmentation` - the extended guide
-* :doc:`/api/segmentation/base` - ``ToolsForAnatomyTaxonomies`` reference
+* :doc:`/api/segmentation/base` - ``AnatomyTaxonomy`` reference
 * :doc:`/developer/usd_generation` - how the taxonomy drives USD materials
 * :doc:`add_a_registration_method`

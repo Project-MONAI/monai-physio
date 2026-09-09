@@ -94,7 +94,7 @@ surrogate at all.
 **Deformation fields.** :meth:`~WorkflowInferMovement.create_deformation_field`
 bins the per-vertex displacements and reference-surface normals onto a
 caller-supplied image grid, giving an ITK vector image you can apply to
-volumes and labelmaps with :class:`~monai_physio.ToolsForTransforms`.
+volumes and labelmaps with :class:`~monai_physio.TransformTools`.
 
 See Also
 ========

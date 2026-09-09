@@ -10,8 +10,8 @@ import logging
 import itk
 import numpy as np
 
+from .image_tools import ImageTools
 from .segment_heart_simpleware import SegmentHeartSimpleware
-from .tools_for_images import ToolsForImages
 
 
 class SegmentHeartSimplewareTrimmedBranches(SegmentHeartSimpleware):
@@ -85,7 +85,7 @@ class SegmentHeartSimplewareTrimmedBranches(SegmentHeartSimpleware):
         heart_arr[heart_arr == 6] = 0
         heart_arr[heart_arr == 5] = 0
 
-        image_tools = ToolsForImages()
+        image_tools = ImageTools()
         spacing = labelmap_image.GetSpacing()
 
         #  2) Erode then Dilate Left Atrium label to clip vessels

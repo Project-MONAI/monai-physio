@@ -13,9 +13,9 @@ Transform Tools
 
    import itk
 
-   from monai_physio import ToolsForTransforms
+   from monai_physio import TransformTools
 
-   tools = ToolsForTransforms()
+   tools = TransformTools()
    transform = itk.transformread("fixed_to_moving_transform.hdf")
    moving = itk.imread("moving.mha")
    reference = itk.imread("reference.mha")
@@ -29,12 +29,12 @@ For PyVista contours:
    import itk
    import pyvista as pv
 
-   from monai_physio import ToolsForTransforms
+   from monai_physio import TransformTools
 
    mesh = pv.read("heart_t0.vtp")
    transform = itk.transformread("fixed_to_moving_transform.hdf")
 
-   transformed = ToolsForTransforms().transform_pvcontour(mesh, transform)
+   transformed = TransformTools().transform_pvcontour(mesh, transform)
 
 Contour Tools
 =============
@@ -43,10 +43,10 @@ Contour Tools
 
    import itk
 
-   from monai_physio import ToolsForContours
+   from monai_physio import ContourTools
 
    mask = itk.imread("heart_mask.nrrd")
-   contour = ToolsForContours().extract_contours(mask)
+   contour = ContourTools().extract_contours(mask)
    contour.save("heart_surface.vtp")
 
 USD Tools
@@ -54,9 +54,9 @@ USD Tools
 
 .. code-block:: python
 
-   from monai_physio import ToolsForUSD
+   from monai_physio import USDTools
 
-   tools = ToolsForUSD()
+   tools = USDTools()
    tools.merge_usd_files(
        "combined.usd",
        ["heart.usd", "lung.usd", "vessels.usd"],
@@ -69,17 +69,17 @@ USD Anatomy Tools
 
    from pxr import Usd
 
-   from monai_physio import ToolsForUSDAnatomy
+   from monai_physio import USDAnatomyTools
 
    stage = Usd.Stage.Open("anatomy.usd")
-   painter = ToolsForUSDAnatomy(stage)
+   painter = USDAnatomyTools(stage)
    painter.apply_anatomy_material_to_mesh("/World/Heart", "heart")
    stage.Export("anatomy_painted.usd")
 
 Image Tools
 ===========
 
-``ToolsForImages`` contains conversion and small image helpers used internally by
+``ImageTools`` contains conversion and small image helpers used internally by
 registration and transform utilities. Prefer direct ITK I/O for ordinary
 example code:
 

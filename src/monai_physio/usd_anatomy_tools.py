@@ -1,5 +1,5 @@
 """
-This module contains the ToolsForUSDAnatomy class, which is used to enhance
+This module contains the USDAnatomyTools class, which is used to enhance
 the anatomy meshes in a USD file.
 
 Extensibility
@@ -9,16 +9,16 @@ module-level :data:`DEFAULT_RENDER_PARAMS` dict. A new segmenter that
 introduces a new group (e.g. ``"brain"``, ``"tumor"``) can register a
 matching look in one of three ways:
 
-1. **Globally**, before instantiating any ``ToolsForUSDAnatomy``::
+1. **Globally**, before instantiating any ``USDAnatomyTools``::
 
-       from monai_physio.tools_for_usd_anatomy import DEFAULT_RENDER_PARAMS
+       from monai_physio.usd_anatomy_tools import DEFAULT_RENDER_PARAMS
        DEFAULT_RENDER_PARAMS["brain"] = {"name": "Brain", ...}
 
-   Every subsequent ``ToolsForUSDAnatomy`` instance picks up the new entry.
+   Every subsequent ``USDAnatomyTools`` instance picks up the new entry.
 
 2. **Per-instance**, after construction::
 
-       tools = ToolsForUSDAnatomy(stage)
+       tools = USDAnatomyTools(stage)
        tools.render_params["brain"] = {"name": "Brain", ...}
 
 3. **By subclassing**, overriding ``__init__`` to populate
@@ -26,7 +26,7 @@ matching look in one of three ways:
 
 Group lookup falls back to ``render_params["other"]`` when a group has no
 registered entry, so any group present in the segmenter's
-:class:`monai_physio.ToolsForAnatomyTaxonomies` will still render *something*.
+:class:`monai_physio.AnatomyTaxonomy` will still render *something*.
 """
 
 import logging
@@ -78,7 +78,7 @@ _CSF_RENDER_PARAMS: dict[str, Any] = {
 }
 
 # Default OmniSurface render parameters keyed by group name (matching
-# :class:`monai_physio.ToolsForAnatomyTaxonomies.group_names`) and by organ-level
+# :class:`monai_physio.AnatomyTaxonomy.group_names`) and by organ-level
 # overrides (e.g. ``liver``, ``spleen``, ``kidney``). ``enhance_meshes``
 # consults the organ-level entries first (matching an override key when it is
 # a substring of the organ name, so ``kidney`` covers ``kidney_left`` and
@@ -768,9 +768,9 @@ DEFAULT_RENDER_PARAMS: dict[str, dict[str, Any]] = {
     },
 }
 
-# Canonical ToolsForAnatomyTaxonomies group names that carry a group-level entry in
+# Canonical AnatomyTaxonomy group names that carry a group-level entry in
 # DEFAULT_RENDER_PARAMS. Every other key is an organ-level override. Used by
-# :meth:`ToolsForUSDAnatomy._resolve_render_params` to mirror ``enhance_meshes``,
+# :meth:`USDAnatomyTools._resolve_render_params` to mirror ``enhance_meshes``,
 # where an organ override always beats the containing group on a substring
 # match (e.g. "lung_veins" -> the "vein" override, not the "lung" group).
 GROUP_RENDER_KEYS: frozenset[str] = frozenset(
@@ -787,7 +787,7 @@ GROUP_RENDER_KEYS: frozenset[str] = frozenset(
 )
 
 
-class ToolsForUSDAnatomy(MONAIPhysioBase):
+class USDAnatomyTools(MONAIPhysioBase):
     """Apply OmniSurface materials to anatomy mesh prims in a USD stage.
 
     The instance attribute :attr:`render_params` is initialized from the
@@ -797,7 +797,7 @@ class ToolsForUSDAnatomy(MONAIPhysioBase):
     """
 
     def __init__(self, stage: Any, log_level: int | str = logging.INFO) -> None:
-        """Initialize ToolsForUSDAnatomy.
+        """Initialize USDAnatomyTools.
 
         Args:
             stage: USD stage to work with. May be ``None`` when the instance
@@ -808,7 +808,7 @@ class ToolsForUSDAnatomy(MONAIPhysioBase):
         super().__init__(class_name=self.__class__.__name__, log_level=log_level)
         self.stage = stage
         # Per-instance copy so per-instance mutations don't leak into other
-        # ToolsForUSDAnatomy instances.
+        # USDAnatomyTools instances.
         self.render_params: dict[str, dict[str, Any]] = {
             key: dict(params) for key, params in DEFAULT_RENDER_PARAMS.items()
         }
@@ -993,7 +993,7 @@ class ToolsForUSDAnatomy(MONAIPhysioBase):
     def enhance_meshes(self, segmentator: Any) -> None:
         """Apply per-organ OmniSurface materials to every matching mesh prim.
 
-        Walks the segmenter's :class:`ToolsForAnatomyTaxonomies` and applies a material
+        Walks the segmenter's :class:`AnatomyTaxonomy` and applies a material
         to each mesh prim whose leaf name matches an organ name in any group.
         An organ-level entry in :attr:`render_params` (e.g. ``"liver"``,
         ``"spleen"``, ``"kidney"``) takes precedence over the entry for the

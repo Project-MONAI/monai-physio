@@ -113,7 +113,7 @@ from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
 from monai_physio import (
     EvaluateMovementLung,
-    ToolsForTests,
+    TestTools,
     WorkflowEvaluateMovement,
     WorkflowInferMovement,
     WorkflowInferPhysicsNeMo,
@@ -164,7 +164,7 @@ if __name__ == "__main__":
     reference_phase = "T70"
 
     # Fitted SSM surface and PCA coefficients written by Tutorial 8 (lung).
-    test_mode = ToolsForTests.running_as_test()
+    test_mode = TestTools.running_as_test()
     # Keep a test run out of the directories a full run reads and writes.
     case_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_08_lung" / case_id
     # Weights Tutorial 9 trained, and the checkpoint epoch to infer with; None
@@ -389,7 +389,7 @@ if __name__ == "__main__":
     baseline_index = int(np.argmin(grid_distances))
     extreme_index = int(np.argmax(grid_distances))
 
-    tt = ToolsForTests(
+    tt = TestTools(
         class_name=class_name,
         results_dir=output_dir,
         baselines_dir=repo_root / "tests" / "baselines" / class_name,

@@ -91,7 +91,7 @@ import pyvista as pv
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
 from monai_physio import (
-    ToolsForTests,
+    TestTools,
     TrainPhysicsNeMoMGN,
     WorkflowInferMovement,
     WorkflowInferPhysicsNeMo,
@@ -184,7 +184,7 @@ def _write_case_manifest(
 if __name__ == "__main__":
     # Data directory specification
     tutorials_dir = Path(__file__).resolve().parent
-    test_mode = ToolsForTests.running_as_test()
+    test_mode = TestTools.running_as_test()
     # Keep a test run out of the directories a full run reads and writes.
     # Fitted SSM surfaces and PCA coefficients written by Tutorial 8 (lung).
     data_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_08_lung"
@@ -315,7 +315,7 @@ if __name__ == "__main__":
         )
 
     # Testing: render the first predicted surface of the last held-out case.
-    tt = ToolsForTests(
+    tt = TestTools(
         class_name=class_name,
         results_dir=output_dir,
         baselines_dir=tutorials_dir.parent / "tests" / "baselines" / class_name,

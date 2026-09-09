@@ -5,9 +5,9 @@ import itk
 import pyvista as pv
 
 from monai_physio import ConvertVTKToUSD
+from monai_physio.contour_tools import ContourTools
 from monai_physio.segment_chest_total_segmentator import SegmentChestTotalSegmentator
-from monai_physio.tools_for_contours import ToolsForContours
-from monai_physio.tools_for_usd_anatomy import ToolsForUSDAnatomy
+from monai_physio.usd_anatomy_tools import USDAnatomyTools
 
 # Defensive: this script only reads `seg.all_mask_ids` today, but if anyone
 # ever adds a `seg.segment(...)` call it would trigger the nnUNet
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     def transform_contours(
         contours, transform_filenames, frame_indices, base_name, output_dir
     ):
-        con = ToolsForContours()
+        con = ContourTools()
         for i, transform_filename in zip(frame_indices, transform_filenames):
             fixed_to_moving_transform = itk.transformread(transform_filename)[0]
             print(f"Applying transform {transform_filename} to {base_name}")
@@ -75,7 +75,7 @@ if __name__ == "__main__":
             os.path.join(output_dir, f"{project_name}.{base_name}.usd"),
         )
 
-        painter = ToolsForUSDAnatomy(stage)
+        painter = USDAnatomyTools(stage)
         painter.enhance_meshes(seg)
         if os.path.exists(
             os.path.join(output_dir, f"{project_name}.{base_name}_painted.usd")

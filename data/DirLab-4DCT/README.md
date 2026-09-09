@@ -22,9 +22,9 @@ DIR-Lab distributes each case individually and may require registration.
 Once populated, check the layout with:
 
 ```python
-from monai_physio import ToolsForDataDownloads
+from monai_physio import DataDownloadTools
 
-assert ToolsForDataDownloads.VerifyDirLab4DCTData("data/DirLab-4DCT")
+assert DataDownloadTools.VerifyDirLab4DCTData("data/DirLab-4DCT")
 ```
 
 **Directory structure after download and fixing:**
@@ -75,7 +75,7 @@ you do not need to run it; the `.mhd` files are already committed.
 
 DIR-Lab's raw `.mhd`/`.img` volumes store intensities offset by +1024 from
 Hounsfield units, not real HU. `fix_downloaded_data.py` calls
-`ToolsForDataDownloads.FixDirLab4DCTData`, which subtracts 1024 and clips the
+`DataDownloadTools.FixDirLab4DCTData`, which subtracts 1024 and clips the
 result to `[-1024, 1024]` for every downloaded phase, writing one
 compressed `.mha` file per phase into `data/DirLab-4DCT/` (`.gitignore`d,
 like the raw data). Run it once after downloading; tutorials and

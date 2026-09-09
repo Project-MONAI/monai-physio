@@ -30,9 +30,9 @@ from monai_physio import (
     RegisterTimeSeriesImages,
     SegmentHeartSimpleware,
 )
-from monai_physio.tools_for_labelmaps import ToolsForLabelmaps
-from monai_physio.tools_for_landmarks import ToolsForLandmarks
-from monai_physio.tools_for_transforms import ToolsForTransforms
+from monai_physio.labelmap_tools import LabelmapTools
+from monai_physio.landmark_tools import LandmarkTools
+from monai_physio.transform_tools import TransformTools
 
 
 def _build_registrar(
@@ -172,17 +172,17 @@ print("All test subjects have exactly one ref.nii.gz")
 # %% [markdown]
 # ## 3. Reader instance used in the per-frame inner loop
 #
-# Landmarks are read with :meth:`ToolsForLandmarks.read_landmarks_3dslicer` -
+# Landmarks are read with :meth:`LandmarkTools.read_landmarks_3dslicer` -
 # they were written as ``<stem>_landmark.mrk.json`` (3D Slicer Markups JSON,
 # LPS) by ``0-cardiacGatedCT_segment_and_landmark.py``.  Binary registration
-# masks come from :meth:`ToolsForLabelmaps.convert_labelmap_to_mask` (``>0``
+# masks come from :meth:`LabelmapTools.convert_labelmap_to_mask` (``>0``
 # threshold plus 5 mm dilation), matching the loss-function masks used
 # during finetuning in ``1-finetune_icon.py``.
 
 # %%
-landmark_tools = ToolsForLandmarks()
-labelmap_tools = ToolsForLabelmaps()
-transform_tools = ToolsForTransforms()
+landmark_tools = LandmarkTools()
+labelmap_tools = LabelmapTools()
+transform_tools = TransformTools()
 segmenter = SegmentHeartSimpleware()
 
 

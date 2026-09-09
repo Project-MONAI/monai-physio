@@ -21,7 +21,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .register_images_base import RegisterImagesBase
-from .tools_for_transforms import ToolsForTransforms
+from .transform_tools import TransformTools
 
 if TYPE_CHECKING:  # typed for mypy; never imported at runtime
     # antspyx re-exports these at the top level in some releases and not in
@@ -305,10 +305,10 @@ class RegisterImagesANTS(RegisterImagesBase):
         disp_field_itk_raw = self._ants_to_itk_image(disp_field_ANTS)
 
         # Convert to the correct Image[Vector[D, 3], 3] type for DisplacementFieldTransform
-        # Use ToolsForImages helper to convert array to vector image with correct type
-        from .tools_for_images import ToolsForImages
+        # Use ImageTools helper to convert array to vector image with correct type
+        from .image_tools import ImageTools
 
-        image_tools = ToolsForImages()
+        image_tools = ImageTools()
 
         disp_array = itk.array_from_image(disp_field_itk_raw)
         disp_field_itk = image_tools.convert_array_to_image_of_vectors(
@@ -427,7 +427,7 @@ class RegisterImagesANTS(RegisterImagesBase):
         ants.registration() or ants.label_image_registration().
 
         The conversion process:
-        1. Uses ToolsForTransforms to convert the ITK transform to a displacement field
+        1. Uses TransformTools to convert the ITK transform to a displacement field
         2. Converts the displacement field image from ITK to ANTs format
         3. Creates an ANTsPy transform object from the displacement field
         4. Writes the ANTs transform to a file
@@ -460,7 +460,7 @@ class RegisterImagesANTS(RegisterImagesBase):
         if isinstance(itk_tfm, itk.DisplacementFieldTransform) or isinstance(
             itk_tfm, itk.CompositeTransform
         ):
-            transform_tools = ToolsForTransforms()
+            transform_tools = TransformTools()
             disp_field_itk = transform_tools.convert_transform_to_displacement_field(
                 tfm=itk_tfm,
                 reference_image=reference_image,

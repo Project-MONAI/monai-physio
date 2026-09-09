@@ -34,9 +34,9 @@ current working directory.
 | 3 | [tutorial_03_lung_reconstruct_highres_4d_ct.py](tutorial_03_lung_reconstruct_highres_4d_ct.py) | `WorkflowReconstructHighres4DCT` | DirLab-4DCT (manual) |
 | 4 | [tutorial_04_heart_ct_to_vtk.py](tutorial_04_heart_ct_to_vtk.py) | `WorkflowConvertImageToVTK` | Slicer-Heart-CT (prepare first) |
 | 4 | [tutorial_04_lung_ct_to_vtk.py](tutorial_04_lung_ct_to_vtk.py) | `WorkflowConvertImageToVTK` | Lung gated 4D CT (prepare first) |
-| 4 | [duke heart labelmap variant](tutorial_04_duke_heart_labelmap_to_vtk.py) | `ToolsForContours.extract_label_surfaces`, `ToolsForContours.extract_tetrahedra` | Duke-Heart-4DLabelmaps (releasing soon) |
+| 4 | [duke heart labelmap variant](tutorial_04_duke_heart_labelmap_to_vtk.py) | `ContourTools.extract_label_surfaces`, `ContourTools.extract_tetrahedra` | Duke-Heart-4DLabelmaps (releasing soon) |
 | 5 | [tutorial_05_heart_vtk_to_usd.py](tutorial_05_heart_vtk_to_usd.py) | `WorkflowConvertVTKToUSD` | Output of tutorial 4 |
-| 5 | [duke heart variant](tutorial_05_duke_heart_vtk_to_usd.py) | `ConvertVTKToUSD`, `ToolsForUSDAnatomy` | Output of tutorial 4 (duke heart labelmap) |
+| 5 | [duke heart variant](tutorial_05_duke_heart_vtk_to_usd.py) | `ConvertVTKToUSD`, `USDAnatomyTools` | Output of tutorial 4 (duke heart labelmap) |
 | 6 | [tutorial_06_heart_create_statistical_model.py](tutorial_06_heart_create_statistical_model.py) | `WorkflowCreateStatisticalModel` | KCL-Heart-Model |
 | 6 | [tutorial_06_lung_create_statistical_model.py](tutorial_06_lung_create_statistical_model.py) | `WorkflowCreateMeanSurface`, `WorkflowCreateStatisticalModel` | DirLab-4DCT `Case*T70.mha`, which it segments itself |
 | 6 | [duke heart variant](tutorial_06_duke_heart_create_statistical_model.py) | `WorkflowCreateMeanSurface`, `WorkflowCreateStatisticalModel` | Reference-frame heart surfaces from Tutorial 4 (duke heart labelmap) |
@@ -52,13 +52,13 @@ current working directory.
 | 11 | [tutorial_11_lung_evaluate_physicsnemo.py](tutorial_11_lung_evaluate_physicsnemo.py) | `WorkflowEvaluateMovement`, `SegmentNVSegmentCTMRI` | DirLab-4DCT plus Tutorial 8 and 9 (lung) output |
 | 11 | [duke heart variant](tutorial_11_duke_heart_evaluate_physicsnemo.py) | `WorkflowEvaluateMovement` | Duke-Heart-4DLabelmaps plus Tutorial 8 and 9 (duke heart) output |
 | 12 | [tutorial_12_lung_end_to_end_inference.py](tutorial_12_lung_end_to_end_inference.py) | `WorkflowConvertImageToVTK`, `WorkflowFitStatisticalModelToPatient`, `WorkflowInferMovement` | DirLab-4DCT plus Tutorial 6 and 9 (lung) output |
-| 12 | [duke heart variant](tutorial_12_duke_heart_end_to_end_inference.py) | `ToolsForContours`, `WorkflowFitStatisticalModelToPatient`, `WorkflowInferMovement` | Duke-Heart-4DLabelmaps plus Tutorial 6 and 9 (duke heart) output |
+| 12 | [duke heart variant](tutorial_12_duke_heart_end_to_end_inference.py) | `ContourTools`, `WorkflowFitStatisticalModelToPatient`, `WorkflowInferMovement` | Duke-Heart-4DLabelmaps plus Tutorial 6 and 9 (duke heart) output |
 | 13 | [tutorial_13_heart_and_lung_motion.py](tutorial_13_heart_and_lung_motion.py) | `WorkflowInferMovement`, `WorkflowFitStatisticalModelToPatient`, `ConvertVTKToUSD` (requires Simpleware Medical) | Chest-CT plus Tutorial 7 (lung) and Tutorial 9 (lung and duke heart) output |
 | 14 | [tutorial_14_lung_shape_parameter_sweep.py](tutorial_14_lung_shape_parameter_sweep.py) | `WorkflowEvaluateMovement`, `SegmentNVSegmentCTMRI` | DirLab-4DCT plus Tutorial 8 and 9 (lung) output |
 | 14 | [duke heart variant](tutorial_14_duke_heart_shape_parameter_sweep.py) | `WorkflowEvaluateMovement` | Duke-Heart-4DLabelmaps plus Tutorial 8 and 9 (duke heart) output |
 | 15 | [tutorial_15_lung_leave_one_out.py](tutorial_15_lung_leave_one_out.py) | `WorkflowCreateStatisticalModel`, `WorkflowFitStatisticalModelToPatient`, `WorkflowTrainPhysicsNeMo`, `WorkflowEvaluateMovement` | DirLab-4DCT |
 | 15 | [duke heart variant](tutorial_15_duke_heart_leave_one_out.py) | `WorkflowCreateStatisticalModel`, `WorkflowFitStatisticalModelToPatient`, `WorkflowTrainPhysicsNeMo`, `WorkflowEvaluateMovement` | Duke-Heart-4DLabelmaps |
-| 16 | [tutorial_16_duke_heart_physics_informed_motion_prep.py](tutorial_16_duke_heart_physics_informed_motion_prep.py) | `ToolsForContours.extract_tetrahedra`, `WorkflowCreateStatisticalModel`, `WorkflowFitStatisticalModelToPatient` | Duke-Heart-4DLabelmaps plus Tutorial 4 (duke heart) output |
+| 16 | [tutorial_16_duke_heart_physics_informed_motion_prep.py](tutorial_16_duke_heart_physics_informed_motion_prep.py) | `ContourTools.extract_tetrahedra`, `WorkflowCreateStatisticalModel`, `WorkflowFitStatisticalModelToPatient` | Duke-Heart-4DLabelmaps plus Tutorial 4 (duke heart) output |
 | 17 | [tutorial_17_duke_heart_physics_informed_motion_train.py](tutorial_17_duke_heart_physics_informed_motion_train.py) | `TrainPhysicsNeMoPhysicsInformedMotion`, `WorkflowTrainPhysicsNeMo` | Tutorial 16 output |
 | 18 | [tutorial_18_duke_heart_physics_informed_motion_infer.py](tutorial_18_duke_heart_physics_informed_motion_infer.py) | `WorkflowEvaluateMovement`, `ConvertVTKToUSD` | Tutorial 16 and 17 output |
 

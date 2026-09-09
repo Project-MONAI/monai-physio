@@ -57,13 +57,13 @@ import numpy as np
 from parameters_duke_heart_labelmaps import DUKE_HEART
 
 from monai_physio import (
+    ContourTools,
     MONAIPhysioBase,
     RegisterImagesBase,
     RegisterImagesGreedy,
     RegisterImagesICON,
-    ToolsForContours,
-    ToolsForTests,
-    ToolsForTransforms,
+    TestTools,
+    TransformTools,
     WorkflowFinetuneICONRegistration,
 )
 
@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
     class_name = "tutorial_02_duke_heart_distancemap_finetune_icon"
 
-    test_mode = ToolsForTests.running_as_test()
+    test_mode = TestTools.running_as_test()
 
     output_dir = (
         DUKE_HEART.output_directory(test_mode) / "tutorial_02_heart_distancemap"
@@ -116,8 +116,8 @@ if __name__ == "__main__":
 
     derived_dir.mkdir(parents=True, exist_ok=True)
 
-    contour_tools = ToolsForContours(log_level=log_level)
-    transform_tools = ToolsForTransforms()
+    contour_tools = ContourTools(log_level=log_level)
+    transform_tools = TransformTools()
 
     # Labels left out of the surface a distance map is measured to; see the
     # parameters module.
@@ -473,7 +473,7 @@ if __name__ == "__main__":
         )
 
     # Testing
-    tt = ToolsForTests(
+    tt = TestTools(
         class_name=class_name,
         results_dir=output_dir,
         baselines_dir=baselines_dir,

@@ -81,15 +81,15 @@ import pyvista as pv
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
 from monai_physio import (
+    ContourTools,
     MONAIPhysioBase,
     RegisterImagesBase,
     RegisterImagesGreedy,
     RegisterImagesGreedyICON,
     RegisterImagesICON,
     SegmentNVSegmentCTMRI,
-    ToolsForContours,
-    ToolsForTests,
-    ToolsForTransforms,
+    TestTools,
+    TransformTools,
     WorkflowConvertImageToVTK,
     WorkflowFinetuneICONRegistration,
 )
@@ -106,7 +106,7 @@ if __name__ == "__main__":
 
     class_name = "tutorial_02_lung_distancemap_finetune_icon"
 
-    test_mode = ToolsForTests.running_as_test()
+    test_mode = TestTools.running_as_test()
 
     output_dir = (
         LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_02_lung_distancemap"
@@ -182,8 +182,8 @@ if __name__ == "__main__":
     lung_label_ids = np.array(
         sorted(segmenter.taxonomy.labels_in_group("lung")), dtype=np.uint16
     )
-    contour_tools = ToolsForContours(log_level=log_level)
-    transform_tools = ToolsForTransforms()
+    contour_tools = ContourTools(log_level=log_level)
+    transform_tools = TransformTools()
 
     def segment_phase(image_file: Path) -> tuple[Path, Path]:
         """Segment one phase's lungs and rasterize their distance map.
@@ -588,7 +588,7 @@ if __name__ == "__main__":
     reporter.log_info("Wrote summary: %s", summary_file)
 
     # Testing
-    tt = ToolsForTests(
+    tt = TestTools(
         class_name=class_name,
         results_dir=output_dir,
         baselines_dir=baselines_dir,

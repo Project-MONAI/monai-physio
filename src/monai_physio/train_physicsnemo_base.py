@@ -34,10 +34,10 @@ import numpy as np
 import pyvista as pv
 
 from .monai_physio_base import MONAIPhysioBase
-from .tools_for_physicsnemo import (
+from .physicsnemo_tools import (
     DistributedContext,
     PhaseSampleDataset,
-    ToolsForPhysicsNeMo,
+    PhysicsNemoTools,
 )
 
 if TYPE_CHECKING:  # typed for mypy; imported lazily at runtime
@@ -196,6 +196,16 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         """
         return
 
+    def _on_epoch_start(self, epoch: int, epochs: int) -> None:
+        """Adjust any epoch-dependent hyperparameter before the epoch runs.
+
+        Called once per epoch, before its batches. The base class has nothing
+        epoch-dependent to adjust; a subclass overrides this to ramp a
+        hyperparameter (for example a loss weight) over the course of
+        training.
+        """
+        return
+
     # ─────────────────────────── Training loop ─────────────────────────────
     def train(
         self,
@@ -246,7 +256,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         if resume_from is not None:
             ckpt = torch.load(str(resume_from), map_location=device, weights_only=True)
             state = ckpt.get("model_state_dict", ckpt)
-            model.load_state_dict(ToolsForPhysicsNeMo.strip_compile_prefix(state))
+            model.load_state_dict(PhysicsNemoTools.strip_compile_prefix(state))
             self._log_main(context, "Loaded model weights from %s", resume_from)
 
         self.setup_inputs(device, template_mesh, template_coords)
@@ -300,6 +310,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         losses: list[float] = []
         rmse_log: list[dict] = []
         for epoch in range(epochs):
+            self._on_epoch_start(epoch, epochs)
             model.train()
             epoch_loss = 0.0
             n_rows = 0
@@ -347,7 +358,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
             # against the bare module: the RMSE describes the model, not how
             # the epoch happened to be split across ranks.
             if scored_epoch and context.is_main:
-                bare = ToolsForPhysicsNeMo.unwrap_model(model)
+                bare = PhysicsNemoTools.unwrap_model(model)
                 train_rmse = self._evaluate_rmse(
                     bare, train_dataset, target_scale, device
                 )
@@ -391,7 +402,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         checkpoint, not just the final one.
         """
         checkpoint: dict[str, Any] = {
-            "model_state_dict": ToolsForPhysicsNeMo.uncompiled_state_dict(model),
+            "model_state_dict": PhysicsNemoTools.uncompiled_state_dict(model),
             "architecture": self.architecture_name,
             "in_features": 3 + int(stats["pca_mean"].shape[0]) + 1,
             "n_pca": int(stats["pca_mean"].shape[0]),

@@ -18,4 +18,4 @@ Class Reference
 
 .. rubric:: Navigation
 
-:doc:`tools_for_usd_anatomy` | :doc:`index`
+:doc:`anatomy_tools` | :doc:`index`

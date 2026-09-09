@@ -1,18 +1,18 @@
 ====================================
-Contour Tools
+Transform Tools
 ====================================
 
 .. currentmodule:: monai_physio
 
-Contour extraction and processing utilities.
+Coordinate transformation and image warping utilities.
 
 Module Reference
 ================
 
-.. automodule:: monai_physio.tools_for_contours
+.. automodule:: monai_physio.transform_tools
    :members:
    :undoc-members:
 
 .. rubric:: Navigation
 
-:doc:`tools_for_transforms` | :doc:`index` | :doc:`image_conversion`
+:doc:`image_tools` | :doc:`index` | :doc:`contour_tools`

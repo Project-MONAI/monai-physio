@@ -1,18 +1,18 @@
 ====================================
-USD Tools
+USD Anatomy Tools
 ====================================
 
 .. currentmodule:: monai_physio
 
-Core utilities for USD file creation and manipulation.
+Specialized tools for anatomical structure handling in USD.
 
 Module Reference
 ================
 
-.. automodule:: monai_physio.tools_for_usd
+.. automodule:: monai_physio.usd_anatomy_tools
    :members:
    :undoc-members:
 
 .. rubric:: Navigation
 
-:doc:`index` | :doc:`tools_for_usd_anatomy` | :doc:`vtk_conversion`
+:doc:`tools` | :doc:`index` | :doc:`vtk_conversion`

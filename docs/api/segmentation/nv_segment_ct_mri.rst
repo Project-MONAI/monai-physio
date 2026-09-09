@@ -86,7 +86,7 @@ Rendering
 
 ``brain_parcellation`` is a group name this segmenter introduces. Its
 group-level entry in
-:data:`monai_physio.tools_for_usd_anatomy.DEFAULT_RENDER_PARAMS` is a grey-matter
+:data:`monai_physio.usd_anatomy_tools.DEFAULT_RENDER_PARAMS` is a grey-matter
 look, which is the right default because most of its labels are cortical gyri
 or deep grey nuclei (caudate, putamen, thalamus, amygdala, hippocampus).
 

@@ -74,7 +74,7 @@ import itk
 import numpy as np
 import pyvista as pv
 
-from monai_physio import ToolsForImages, ToolsForTransforms, WorkflowConvertVTKToUSD
+from monai_physio import ImageTools, TransformTools, WorkflowConvertVTKToUSD
 
 # Gaussian sigma (mm) used to smooth the sparse cardiac deformation fields.
 SMOOTHING_SIGMA_MM = 10.0
@@ -86,7 +86,7 @@ SURFACE_DECIMATION_REDUCTION = 0.0
 # Taubin (non-shrinking) smoothing iterations (0 = no smoothing).
 SURFACE_SMOOTHING_ITERATIONS = 0
 
-_transform_tools = ToolsForTransforms()
+_transform_tools = TransformTools()
 
 
 def _condition_surface(
@@ -118,7 +118,7 @@ def _smoothed_cardiac_transform(
     and Gaussian-smoothed by ``sigma_mm`` (in physical millimeters).
     """
     field = itk.imread(str(field_file))
-    field_double = ToolsForImages().convert_array_to_image_of_vectors(
+    field_double = ImageTools().convert_array_to_image_of_vectors(
         itk.array_from_image(field), reference_image=field, ptype=itk.D
     )
     field_transform = itk.DisplacementFieldTransform[itk.D, 3].New()

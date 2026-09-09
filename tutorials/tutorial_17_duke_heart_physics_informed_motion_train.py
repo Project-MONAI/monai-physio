@@ -79,7 +79,7 @@ import numpy as np
 import pyvista as pv
 from parameters_duke_heart_physics_informed import DUKE_HEART_PHYSICS_INFORMED
 
-from monai_physio import ToolsForTests, WorkflowTrainPhysicsNeMo
+from monai_physio import TestTools, WorkflowTrainPhysicsNeMo
 from monai_physio.train_physicsnemo_physics_informed_motion import (
     PhysicsInformedMotion,
     TrainPhysicsNeMoPhysicsInformedMotion,
@@ -153,7 +153,7 @@ if __name__ == "__main__":
 
     class_name = "tutorial_17_duke_heart_physics_informed_motion_train"
 
-    test_mode = ToolsForTests.running_as_test()
+    test_mode = TestTools.running_as_test()
     parameters = DUKE_HEART_PHYSICS_INFORMED
 
     prep_dir = parameters.prep_directory(test_mode)
@@ -173,6 +173,7 @@ if __name__ == "__main__":
     # kilopascals -- so treat this as a value to sweep, not one to trust.  The
     # two terms are logged separately for exactly that reason.
     lambda_physics = parameters.lambda_physics
+    lambda_physics_warmup_epochs = parameters.lambda_physics_warmup_epochs
 
     # Whether to also train the lambda_physics = 0 comparison model.
     train_ablation_baseline = parameters.train_ablation_baseline
@@ -303,6 +304,7 @@ if __name__ == "__main__":
                 ),
                 lambda_physics=weight_of_physics,
             )
+            training_method.set_lambda_physics_warmup(lambda_physics_warmup_epochs)
         else:
             # No residual is built at all, so this run is the data-only
             # MeshGraphNet on exactly the same data.
@@ -355,7 +357,7 @@ if __name__ == "__main__":
     logger.info("Physics-informed model: %s", physics_result["output_directory"])
 
     # Testing
-    tt = ToolsForTests(
+    tt = TestTools(
         class_name=class_name,
         results_dir=prep_dir,
         baselines_dir=baselines_dir,

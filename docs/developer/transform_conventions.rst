@@ -25,7 +25,7 @@ Every registration class -- image (:class:`monai_physio.RegisterImagesANTS`,
 Because the name states the direction literally, mapping a *point* needs no
 lookup table -- just pick the transform whose name matches the source and
 target point space you have. Warping an *image* is different:
-:func:`ToolsForTransforms.transform_image` samples whichever grid you are
+:func:`TransformTools.transform_image` samples whichever grid you are
 building the output on, so the transform is picked by output grid, not by
 source/target space (see below).
 
@@ -36,15 +36,15 @@ Image warping vs. point warping use opposite transforms
 ========================================================
 
 ITK resampling is a *pull-back* operation. To build the warped image on the
-fixed grid, :func:`ToolsForTransforms.transform_image` (an ``itk.ResampleImageFilter``)
+fixed grid, :func:`TransformTools.transform_image` (an ``itk.ResampleImageFilter``)
 visits every fixed-grid sample ``q`` and looks up the moving image at
 ``transform.TransformPoint(q)``. The transform it needs therefore maps
 **fixed-space coordinates to moving-space coordinates** --
 ``fixed_to_moving_transform``.
 
 Warping a *point* (landmark, contour vertex, mesh node) is a *push-forward*
-operation: :func:`ToolsForTransforms.transform_pvcontour` /
-:func:`ToolsForTransforms.transform_dataset` apply ``transform.TransformPoint(p)``
+operation: :func:`TransformTools.transform_pvcontour` /
+:func:`TransformTools.transform_dataset` apply ``transform.TransformPoint(p)``
 directly to each input point. To move a moving-space landmark to its location
 in the fixed image, the transform must map **moving-space coordinates to
 fixed-space coordinates** -- ``moving_to_fixed_transform``.
@@ -58,16 +58,16 @@ fixed-space coordinates** -- ``moving_to_fixed_transform``.
      - Helper
    * - Warp the **moving image** into fixed space (onto the fixed grid)
      - ``fixed_to_moving_transform``
-     - :func:`ToolsForTransforms.transform_image`
+     - :func:`TransformTools.transform_image`
    * - Warp **moving points / contours / landmarks** into fixed space
      - ``moving_to_fixed_transform``
-     - :func:`ToolsForTransforms.transform_pvcontour`
+     - :func:`TransformTools.transform_pvcontour`
    * - Warp the **fixed image** into moving space (e.g. time-series reconstruction)
      - ``moving_to_fixed_transform``
-     - :func:`ToolsForTransforms.transform_image`
+     - :func:`TransformTools.transform_image`
    * - Warp **fixed points / contours / landmarks** into moving space
      - ``fixed_to_moving_transform``
-     - :func:`ToolsForTransforms.transform_pvcontour`
+     - :func:`TransformTools.transform_pvcontour`
 
 .. note::
 

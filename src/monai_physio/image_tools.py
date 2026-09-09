@@ -16,7 +16,7 @@ from numpy.typing import NDArray
 from .monai_physio_base import MONAIPhysioBase
 
 
-class ToolsForImages(MONAIPhysioBase):
+class ImageTools(MONAIPhysioBase):
     """
     Utilities for medical image format conversions and processing.
 
@@ -25,7 +25,7 @@ class ToolsForImages(MONAIPhysioBase):
     pixel type). Supports both scalar and vector (multi-component) images.
 
     Example:
-        >>> tools = ToolsForImages()
+        >>> tools = ImageTools()
         >>> # Convert ITK to SimpleITK
         >>> sitk_image = tools.convert_itk_image_to_sitk(itk_image)
         >>> # Convert back to ITK
@@ -33,7 +33,7 @@ class ToolsForImages(MONAIPhysioBase):
     """
 
     def __init__(self, log_level: int | str = logging.INFO) -> None:
-        """Initialize ToolsForImages.
+        """Initialize ImageTools.
 
         Args:
             log_level: Logging level (default: logging.INFO)
@@ -50,8 +50,8 @@ class ToolsForImages(MONAIPhysioBase):
     ) -> itk.image:
         """Transform an ITK image using a specified transform and interpolation.
 
-        Delegates to :meth:`ToolsForTransforms.transform_image`; imported
-        locally since ``tools_for_transforms`` imports this module.
+        Delegates to :meth:`TransformTools.transform_image`; imported
+        locally since ``transform_tools`` imports this module.
 
         Args:
             image (itk.image): The input image to transform
@@ -74,9 +74,9 @@ class ToolsForImages(MONAIPhysioBase):
         Raises:
             ValueError: If interpolation_method is not one of the supported options
         """
-        from .tools_for_transforms import ToolsForTransforms
+        from .transform_tools import TransformTools
 
-        return ToolsForTransforms(log_level=self.log_level).transform_image(
+        return TransformTools(log_level=self.log_level).transform_image(
             image,
             transform,
             reference_image,
@@ -98,7 +98,7 @@ class ToolsForImages(MONAIPhysioBase):
             itk.Image[itk.Vector[itk.D,3],3]: Vector image with double precision
 
         Example:
-            >>> displacement_field = ToolsForImages().imreadVD3('deformation.mha')
+            >>> displacement_field = ImageTools().imreadVD3('deformation.mha')
         """
         # Read as float precision vector image
         image = itk.imread(filename)
@@ -122,7 +122,7 @@ class ToolsForImages(MONAIPhysioBase):
             compression (bool): Whether to use compression (default: True)
 
         Example:
-            >>> ToolsForImages().imwriteVD3(displacement_field, 'deformation.mha')
+            >>> ImageTools().imwriteVD3(displacement_field, 'deformation.mha')
         """
         # Convert to float precision for writing
         if "VD" not in str(type(image)):
@@ -149,7 +149,7 @@ class ToolsForImages(MONAIPhysioBase):
             SimpleITK image with identical data and metadata
 
         Example:
-            >>> tools = ToolsForImages()
+            >>> tools = ImageTools()
             >>> itk_image = itk.imread('image.nii.gz')
             >>> sitk_image = tools.convert_itk_image_to_sitk(itk_image)
         """
@@ -198,7 +198,7 @@ class ToolsForImages(MONAIPhysioBase):
             ITK image with identical data and metadata
 
         Example:
-            >>> tools = ToolsForImages()
+            >>> tools = ImageTools()
             >>> sitk_image = sitk.ReadImage('image.nii.gz')
             >>> itk_image = tools.convert_sitk_image_to_itk(sitk_image)
         """
@@ -375,7 +375,7 @@ class ToolsForImages(MONAIPhysioBase):
 
     @staticmethod
     def _per_axis_values(
-        value: Union[float, list, tuple, NDArray[Any]],
+        value: Union[float, int, list, tuple, NDArray[Any]],
         dimension: int,
         name: str,
     ) -> list[float]:

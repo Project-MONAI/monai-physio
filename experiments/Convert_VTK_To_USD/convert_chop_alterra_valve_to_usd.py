@@ -30,8 +30,8 @@ from pathlib import Path
 
 from monai_physio import ConvertVTKToUSD
 
-# Import ToolsForUSD for post-processing colormap
-from monai_physio.tools_for_usd import ToolsForUSD
+# Import USDTools for post-processing colormap
+from monai_physio.usd_tools import USDTools
 
 # %% [markdown]
 # ## 1. Discover and Organize Time-Series Files
@@ -146,7 +146,7 @@ stage = (
 )
 
 # %%
-usd_tools = ToolsForUSD()
+usd_tools = USDTools()
 # ConvertVTKToUSD places prims at /World/{basename}/{part_name}.
 vessel_paths = usd_tools.list_mesh_paths_under(stage, parent_path="/World/AlterraValve")
 if separate_by == "connectivity":

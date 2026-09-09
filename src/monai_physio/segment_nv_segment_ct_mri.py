@@ -48,7 +48,7 @@ class SegmentNVSegmentCTMRI(SegmentAnatomyBase):
     TotalSegmentator backend uses, so downstream consumers see the same group
     keys; ``brain_parcellation`` is new and renders with the grey-matter entry
     registered for it in
-    :data:`monai_physio.tools_for_usd_anatomy.DEFAULT_RENDER_PARAMS`, plus
+    :data:`monai_physio.usd_anatomy_tools.DEFAULT_RENDER_PARAMS`, plus
     organ-level overrides for the tissues that differ (white matter, CSF-filled
     ventricles, brainstem, cerebellum, pallidum).
 

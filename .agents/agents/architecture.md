@@ -22,10 +22,10 @@ src/monai_physio/
   segment_chest_*.py          - TotalSegmentator, VISTA-3D, NIM, Ensemble
   register_images_*.py        - ICON, ANTs, Greedy, time-series wrappers
   register_models_*.py        - ICP, PCA, distance-map registerers
-  tools_for_contours.py            - surface extraction from ITK masks
+  contour_tools.py            - surface extraction from ITK masks
   convert_vtk_to_usd.py       - high-level VTK→USD (in-memory, PyVista)
   vtk_to_usd/                 - file-based VTK→USD subpackage
-  tools_for_usd.py / tools_for_usd_anatomy.py - USD stage utilities
+  usd_tools.py / usd_anatomy_tools.py - USD stage utilities
   workflow_*.py               - top-level orchestration
 ```
 

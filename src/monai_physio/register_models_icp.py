@@ -48,7 +48,7 @@ import pyvista as pv
 import vtk
 
 from .monai_physio_base import MONAIPhysioBase
-from .tools_for_transforms import ToolsForTransforms
+from .transform_tools import TransformTools
 
 
 class RegisterModelsICP(MONAIPhysioBase):
@@ -71,7 +71,7 @@ class RegisterModelsICP(MONAIPhysioBase):
 
     **Transform Convention:**
         These are POINT transforms, applied with TransformPoint (e.g. via
-        ToolsForTransforms.transform_pvcontour); see
+        TransformTools.transform_pvcontour); see
         docs/developer/transform_conventions:
 
         - moving_to_fixed_transform: maps moving points -> fixed points; use it to
@@ -81,7 +81,7 @@ class RegisterModelsICP(MONAIPhysioBase):
     Attributes:
         moving_model (pv.PolyData): Surface model to be aligned
         fixed_model (pv.PolyData): Target surface model
-        transform_tools (ToolsForTransforms): Transform utility instance
+        transform_tools (TransformTools): Transform utility instance
         moving_to_fixed_transform (itk.AffineTransform): Optimized moving-to-fixed transform
         fixed_to_moving_transform (itk.AffineTransform): Optimized fixed-to-moving transform
         registered_model (pv.PolyData): Aligned moving model
@@ -132,7 +132,7 @@ class RegisterModelsICP(MONAIPhysioBase):
         self.transform_type = "Affine"
 
         # Transform utilities
-        self.transform_tools = ToolsForTransforms()
+        self.transform_tools = TransformTools()
 
         # Registration results
         self.moving_to_fixed_transform: Optional[itk.AffineTransform] = None

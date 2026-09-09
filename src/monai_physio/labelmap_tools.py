@@ -1,7 +1,7 @@
 """
 Labelmap Tools for MONAI Physio
 
-This module provides the :class:`ToolsForLabelmaps` class with the definitive
+This module provides the :class:`LabelmapTools` class with the definitive
 utility for turning a multi-label (or binary) segmentation labelmap into a
 binary registration mask, optionally excluding specific labels and dilating
 the result by a physical radius in millimeters.
@@ -16,7 +16,7 @@ import numpy as np
 from .monai_physio_base import MONAIPhysioBase
 
 
-class ToolsForLabelmaps(MONAIPhysioBase):
+class LabelmapTools(MONAIPhysioBase):
     """
     Utilities for converting segmentation labelmaps into registration masks.
 
@@ -28,7 +28,7 @@ class ToolsForLabelmaps(MONAIPhysioBase):
     identically everywhere in the platform.
 
     Example:
-        >>> tools = ToolsForLabelmaps()
+        >>> tools = LabelmapTools()
         >>> # Binary mask of every labeled voxel, dilated 5 mm
         >>> mask = tools.convert_labelmap_to_mask(labelmap, dilation_in_mm=5.0)
         >>> # Exclude the table/background labels 8 and 9 before masking
@@ -38,7 +38,7 @@ class ToolsForLabelmaps(MONAIPhysioBase):
     """
 
     def __init__(self, log_level: int | str = logging.INFO) -> None:
-        """Initialize ToolsForLabelmaps.
+        """Initialize LabelmapTools.
 
         Args:
             log_level: Logging level (default: logging.INFO)

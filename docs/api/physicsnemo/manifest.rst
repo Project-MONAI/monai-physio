@@ -2,8 +2,8 @@
 The Per-Subject Manifest
 =========================
 
-.. module:: monai_physio.tools_for_physicsnemo
-.. currentmodule:: monai_physio.tools_for_physicsnemo
+.. module:: monai_physio.physicsnemo_tools
+.. currentmodule:: monai_physio.physicsnemo_tools
 
 The manifest is the contract between your data and the training stack. It is
 the only thing you must produce to train on your own subjects: one JSON file
@@ -45,15 +45,15 @@ decides which domain the model lives on.
 Reference
 =========
 
-:class:`ToolsForPhysicsNeMo` is re-exported from the top-level package;
+:class:`PhysicsNemoTools` is re-exported from the top-level package;
 ``SubjectManifest`` and ``PhaseEntry`` are not - import those by module:
 
 .. code-block:: python
 
-   from monai_physio import ToolsForPhysicsNeMo
-   from monai_physio.tools_for_physicsnemo import SubjectManifest
+   from monai_physio import PhysicsNemoTools
+   from monai_physio.physicsnemo_tools import SubjectManifest
 
-   manifest = ToolsForPhysicsNeMo.parse_manifest(manifest_path)
+   manifest = PhysicsNemoTools.parse_manifest(manifest_path)
 
 .. autoclass:: SubjectManifest
    :exclude-members: subject_id, fitted_reference_mesh, pca_coefficients, target_array, phases
@@ -64,7 +64,7 @@ Reference
 Supporting helpers
 ==================
 
-.. autoclass:: ToolsForPhysicsNeMo
+.. autoclass:: PhysicsNemoTools
    :members: parse_manifest, load_target_array, load_pca_coefficients,
              build_node_features, mesh_to_edge_index, compute_edge_features
 

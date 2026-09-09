@@ -29,7 +29,7 @@ import pyvista as pv
 from .infer_physicsnemo_base import InferPhysicsNeMoBase
 from .infer_physicsnemo_mgn import InferPhysicsNeMoMGN
 from .monai_physio_base import MONAIPhysioBase
-from .tools_for_physicsnemo import ToolsForPhysicsNeMo
+from .physicsnemo_tools import PhysicsNemoTools
 
 
 class WorkflowInferPhysicsNeMo(MONAIPhysioBase):
@@ -124,7 +124,7 @@ class WorkflowInferPhysicsNeMo(MONAIPhysioBase):
             self.model_directory, len(self._template_coords), self._device
         )
         state = self._load_weights(epoch)
-        model.load_state_dict(ToolsForPhysicsNeMo.strip_compile_prefix(state))
+        model.load_state_dict(PhysicsNemoTools.strip_compile_prefix(state))
         model.eval()
         self.inference_method.set_model(model, self._device)
 
@@ -163,7 +163,7 @@ class WorkflowInferPhysicsNeMo(MONAIPhysioBase):
     def predict(self, pca_coeffs: np.ndarray, stage: float) -> np.ndarray:
         """Predict ``(n_points, n_target)`` targets for a subject at a stage."""
         pca_norm = (pca_coeffs - self.pca_mean) / self.pca_scale
-        node_feats = ToolsForPhysicsNeMo.build_node_features(
+        node_feats = PhysicsNemoTools.build_node_features(
             self._mean_coords_norm, pca_norm, stage
         )
         return self.inference_method.predict(node_feats) * self.target_scale
@@ -195,10 +195,8 @@ class WorkflowInferPhysicsNeMo(MONAIPhysioBase):
         Returns:
             Dict with ``subject_id`` and ``predicted_meshes`` (paths).
         """
-        manifest = ToolsForPhysicsNeMo.parse_manifest(subject_manifest)
-        pca_coeffs = ToolsForPhysicsNeMo.load_pca_coefficients(
-            manifest.pca_coefficients
-        )
+        manifest = PhysicsNemoTools.parse_manifest(subject_manifest)
+        pca_coeffs = PhysicsNemoTools.load_pca_coefficients(manifest.pca_coefficients)
 
         out_dir = (
             Path(output_directory)

@@ -336,8 +336,19 @@ def _trained_model_directory(tmp_path: Path) -> Path:
     return model_directory
 
 
+@pytest.mark.requires_gpu
 def test_every_stage_and_structure_reaches_the_report(tmp_path: Path) -> None:
-    """One row per stage and structure, with the run's provenance on it."""
+    """One row per stage and structure, with the run's provenance on it.
+
+    Trains a MeshGraphNet the same way as
+    ``test_workflow_train_physicsnemo.test_first_checkpoint_has_its_companions``,
+    and fails the same way: ``CUBLAS_STATUS_NOT_INITIALIZED`` under pytest
+    specifically, not as a standalone script with identical code -- cov,
+    timeout, output capture, faulthandler, import order and env vars were
+    all ruled out as the cause. Likely a pytest-harness / very-new-GPU
+    (Blackwell, sm_120) / CUDA-13.2-driver-combo interaction rather than a
+    code bug; real (non-pytest) training runs are unaffected.
+    """
     pytest.importorskip("torch")
     pytest.importorskip("physicsnemo")
     pytest.importorskip("torch_geometric")

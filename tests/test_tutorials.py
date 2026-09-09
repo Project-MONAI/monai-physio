@@ -17,10 +17,10 @@ environment variable, so a runner can keep them off the checkout.
 Output is compared two ways, because neither catches what the other does:
 
 1. Screenshots.  Each tutorial saves PNGs to its output directory, which
-   ``ToolsForTests.compare_result_to_baseline_image`` compares against a stored
+   ``TestTools.compare_result_to_baseline_image`` compares against a stored
    baseline with tolerances loose enough to survive a driver change.
 2. Metrics.  The JSON and CSV of numbers each tutorial already reports, which
-   ``ToolsForTests.compare_result_to_baseline_metrics`` compares within tolerance.
+   ``TestTools.compare_result_to_baseline_metrics`` compares within tolerance.
    Two renderings can agree pixel for pixel while the numbers behind them move,
    and only this catches that.  Wall-clock files (``*_runtimes.csv``) are left
    out, being a property of the host rather than of the result.
@@ -48,7 +48,7 @@ import pytest
 import pyvista as pv
 from parameters_base import ParametersBase
 
-from monai_physio.tools_for_tests import ToolsForTests
+from monai_physio.test_tools import TestTools
 
 from .conftest import skip_or_fail_missing_data, tutorial_data_is_required
 
@@ -75,13 +75,13 @@ _TUTORIAL_WEIGHTS = _TUTORIAL_PATHS.weights_directory(test_mode=True)
 
 @pytest.fixture(autouse=True)
 def _enable_tutorial_test_mode(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Run tutorials against repo data/test through ToolsForTests mode switching."""
+    """Run tutorials against repo data/test through TestTools mode switching."""
     monkeypatch.setenv("MONAI_PHYSIO_RUNNING_AS_TEST", "1")
 
 
 def _compare_screenshots(
     screenshots: list[Path],
-    tt: ToolsForTests,
+    tt: TestTools,
 ) -> None:
     """Read each PNG as itk.Image and compare against baseline."""
     if not screenshots:
@@ -98,7 +98,7 @@ def _compare_screenshots(
         ), f"Screenshot baseline mismatch: {png_path.name}"
 
 
-def _compare_metrics(tt: ToolsForTests, filenames: list[str]) -> None:
+def _compare_metrics(tt: TestTools, filenames: list[str]) -> None:
     """Compare each reported metrics file against its baseline.
 
     Screenshots catch what a rendering shows; these catch the accuracy drift
@@ -142,11 +142,9 @@ def _require_files(directory: Path, pattern: str, reason: str) -> None:
         skip_or_fail_missing_data(f"No {pattern} under {directory}. {reason}")
 
 
-def _baseline_tools(
-    class_name: str, out_dir: Path, baselines_root: Path
-) -> ToolsForTests:
-    """ToolsForTests reading the tutorial's own output directory."""
-    return ToolsForTests(
+def _baseline_tools(class_name: str, out_dir: Path, baselines_root: Path) -> TestTools:
+    """TestTools reading the tutorial's own output directory."""
+    return TestTools(
         class_name=class_name,
         results_dir=out_dir,
         baselines_dir=baselines_root / class_name,
@@ -167,7 +165,7 @@ class TestTutorial01HeartGatedCTToUSD:
         assert Path(results["usd_file"]).exists(), "USD file should exist"
         assert results["screenshots"], "Tutorial 1 should produce screenshots"
 
-        tt = ToolsForTests(
+        tt = TestTools(
             class_name=self._class_name,
             results_dir=out_dir,
             baselines_dir=test_directories["baselines"] / self._class_name,
@@ -326,7 +324,7 @@ class TestTutorial03HeartReconstructHighres4DCT:
         for f in results["reconstructed_files"]:
             assert f.exists(), f"Reconstructed frame missing: {f}"
 
-        tt = ToolsForTests(
+        tt = TestTools(
             class_name=self._class_name,
             results_dir=out_dir,
             baselines_dir=test_directories["baselines"] / self._class_name,
@@ -363,7 +361,7 @@ class TestTutorial03LungReconstructHighres4DCT:
         for f in results["reconstructed_files"]:
             assert f.exists(), f"Reconstructed frame missing: {f}"
 
-        tt = ToolsForTests(
+        tt = TestTools(
             class_name=self._class_name,
             results_dir=out_dir,
             baselines_dir=test_directories["baselines"] / self._class_name,
@@ -390,7 +388,7 @@ class TestTutorial04HeartCTToVTK:
         results = _run_tutorial_script("tutorial_04_heart_ct_to_vtk.py")
         assert results["surface_file"].exists(), "Combined VTP surface should exist"
 
-        tt = ToolsForTests(
+        tt = TestTools(
             class_name=self._class_name,
             results_dir=out_dir,
             baselines_dir=test_directories["baselines"] / self._class_name,
@@ -432,7 +430,7 @@ class TestTutorial04DukeHeartLabelmapToVTK:
 class TestTutorial04LungCTToVTK:
     """End-to-end test for tutorial_04_lung_ct_to_vtk.py."""
 
-    _class_name = "tutorial_04_lung"  # the script's project_name, its ToolsForTests key
+    _class_name = "tutorial_04_lung"  # the script's project_name, its TestTools key
 
     def test_run(
         self,
@@ -488,7 +486,7 @@ class TestTutorial05HeartVTKToUSD:
             "Per-structure surfaces expected, so that each becomes its own prim"
         )
 
-        tt = ToolsForTests(
+        tt = TestTools(
             class_name=self._class_name,
             results_dir=out_dir,
             baselines_dir=test_directories["baselines"] / self._class_name,
@@ -553,7 +551,7 @@ class TestTutorial06CreateStatisticalModel:
         assert results["model_file"].exists(), "pca_model.json should exist"
         assert results["mean_surface_file"].exists(), "Mean surface VTP should exist"
 
-        tt = ToolsForTests(
+        tt = TestTools(
             class_name=self._class_name,
             results_dir=out_dir,
             baselines_dir=test_directories["baselines"] / self._class_name,
@@ -659,7 +657,7 @@ class TestTutorial07FitStatisticalModelToPatient:
         )
         assert registered_surface_file.exists(), "Registered surface VTP should exist"
 
-        tt = ToolsForTests(
+        tt = TestTools(
             class_name=self._class_name,
             results_dir=out_dir,
             baselines_dir=test_directories["baselines"] / self._class_name,
@@ -916,7 +914,7 @@ class TestTutorial09LungTrainPhysicsNeMoMGN:
 
         # The model goes to the shared weights directory; the manifests, the
         # evaluation and the screenshots stay under the tutorial's output.
-        tt = ToolsForTests(
+        tt = TestTools(
             class_name=self._class_name,
             results_dir=_TUTORIAL_OUTPUT / "tutorial_09_lung_mgn",
             baselines_dir=test_directories["baselines"] / self._class_name,
@@ -983,7 +981,7 @@ class TestTutorial10LungInferPhysicsNeMoMGN:
         assert Path(results["usd_file"]).exists(), "USD file should exist"
 
         out_dir = _TUTORIAL_OUTPUT / "tutorial_10_lung_mgn" / "Case1Pack"
-        tt = ToolsForTests(
+        tt = TestTools(
             class_name=self._class_name,
             results_dir=out_dir,
             baselines_dir=test_directories["baselines"] / self._class_name,
@@ -1404,7 +1402,7 @@ class TestTutorial14LungShapeParameterSweep:
 
 
 # Both Tutorial 15 variants clamp themselves to this many folds under
-# ToolsForTests.running_as_test, which the autouse fixture above turns on.
+# TestTools.running_as_test, which the autouse fixture above turns on.
 _TUTORIAL_15_TEST_MODE_FOLDS = 2
 
 

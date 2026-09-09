@@ -11,7 +11,7 @@ payload - lives in the training method it drives
 Design highlights:
 
 - **Data is a list of per-subject manifest files** (see
-  :func:`monai_physio.tools_for_physicsnemo.parse_manifest`). The caller chooses the
+  :func:`monai_physio.physicsnemo_tools.parse_manifest`). The caller chooses the
   train / validation / held-out-test split externally; the workflow receives the
   training manifests and validation manifest(s) and the training method reports
   validation RMSE intermittently as training proceeds.
@@ -20,7 +20,7 @@ Design highlights:
   displacement model is just the case where the caller stored three columns of
   ``phase.points - reference.points``.
 - **The dataset streams lazily** through
-  :class:`monai_physio.tools_for_physicsnemo.PhaseSampleDataset` with a bounded RAM
+  :class:`monai_physio.physicsnemo_tools.PhaseSampleDataset` with a bounded RAM
   cache, so the training set need not fit in memory.
 - **Coordinates are always the PCA template mesh** (shared across subjects), a
   surface or a volume; the subject is described by its PCA parameters and the
@@ -40,11 +40,11 @@ import numpy as np
 import pyvista as pv
 
 from .monai_physio_base import MONAIPhysioBase
-from .tools_for_physicsnemo import (
+from .physicsnemo_tools import (
     DistributedContext,
     PhaseSampleDataset,
+    PhysicsNemoTools,
     SubjectManifest,
-    ToolsForPhysicsNeMo,
     _Sample,
 )
 from .train_physicsnemo_base import TrainPhysicsNeMoBase
@@ -176,7 +176,7 @@ class WorkflowTrainPhysicsNeMo(MONAIPhysioBase):
 
         # Picks up torchrun, SLURM or OpenMPI, and reports one rank of one when
         # the process was started without any of them.
-        context = ToolsForPhysicsNeMo.distributed_context()
+        context = PhysicsNemoTools.distributed_context()
 
         output_dir = self._resolve_output_dir(context)
         if context.is_main:
@@ -263,7 +263,7 @@ class WorkflowTrainPhysicsNeMo(MONAIPhysioBase):
 
         def _load(paths: list[Path], split: str) -> None:
             for manifest_path in paths:
-                manifest: SubjectManifest = ToolsForPhysicsNeMo.parse_manifest(
+                manifest: SubjectManifest = PhysicsNemoTools.parse_manifest(
                     manifest_path
                 )
                 if manifest.subject_id in subjects:
@@ -281,7 +281,7 @@ class WorkflowTrainPhysicsNeMo(MONAIPhysioBase):
                     )
                 subjects[manifest.subject_id] = {
                     "split": split,
-                    "pca_coeffs": ToolsForPhysicsNeMo.load_pca_coefficients(
+                    "pca_coeffs": PhysicsNemoTools.load_pca_coefficients(
                         manifest.pca_coefficients
                     ),
                     "target_array": manifest.target_array,
@@ -376,7 +376,7 @@ class WorkflowTrainPhysicsNeMo(MONAIPhysioBase):
             if data["split"] != "train":
                 continue
             for phase in data["phases"]:
-                values = ToolsForPhysicsNeMo.load_target_array(
+                values = PhysicsNemoTools.load_target_array(
                     phase.mesh, data["target_array"]
                 )
                 if values.shape[0] != n_points:

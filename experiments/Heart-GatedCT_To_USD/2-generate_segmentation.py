@@ -5,10 +5,10 @@ import itk
 import numpy as np
 import pyvista as pv
 
+from monai_physio.contour_tools import ContourTools
 from monai_physio.segment_chest_total_segmentator_with_contrast import (
     SegmentChestTotalSegmentatorWithContrast,
 )
-from monai_physio.tools_for_contours import ToolsForContours
 
 # nnUNetv2 (used by TotalSegmentator) spawns a multiprocessing.Pool. On Windows
 # the spawn start method re-imports this script in each child; without the
@@ -90,7 +90,7 @@ if __name__ == "__main__":
     contrast_mask = result["contrast"]
 
     # %%
-    con = ToolsForContours()
+    con = ContourTools()
     all_contours = con.extract_contours(labelmap_image)
     all_contours.save(os.path.join(output_dir, f"{outname}.all_mask.vtp"))
 

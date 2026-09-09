@@ -38,11 +38,11 @@ import itk
 import numpy as np
 import pyvista as pv
 
+from .contour_tools import ContourTools
 from .evaluate_movement_base import EvaluateMovementBase, MovementGroundTruth
 from .monai_physio_base import MONAIPhysioBase
+from .physicsnemo_tools import PhysicsNemoTools
 from .report_evaluate_movement import ReportEvaluateMovement
-from .tools_for_contours import ToolsForContours
-from .tools_for_physicsnemo import ToolsForPhysicsNeMo
 from .workflow_infer_movement import WorkflowInferMovement
 
 
@@ -87,7 +87,7 @@ class WorkflowEvaluateMovement(MONAIPhysioBase):
     )
 
     # Per-cell structure ids a shape model may carry, written by
-    # ``ToolsForContours.save_combined_surfaces``.
+    # ``ContourTools.save_combined_surfaces``.
     _MESH_LABEL_ARRAY = "SegmentationLabelIds"
 
     def __init__(
@@ -110,7 +110,7 @@ class WorkflowEvaluateMovement(MONAIPhysioBase):
             if label_names is not None
             else cast(EvaluateMovementBase, cohort).label_names()
         )
-        self.contour_tools = ToolsForContours(log_level=log_level)
+        self.contour_tools = ContourTools(log_level=log_level)
         self.displacement_data_file: Optional[Path] = None
         self.report_tools = ReportEvaluateMovement(log_level=log_level)
 
@@ -640,7 +640,7 @@ class WorkflowEvaluateMovement(MONAIPhysioBase):
         that. A mesh that does not --- the heart is one surface, its chambers
         being cavities the model excludes --- is partitioned by nearest label
         surface instead, the same nearest-label rule
-        :meth:`ToolsForContours.extract_label_surfaces` already scores the labelmap
+        :meth:`ContourTools.extract_label_surfaces` already scores the labelmap
         metrics under. A chamber is then scored on the piece of wall bounding
         it. Either way a point belongs to at most one structure, and the
         partition is decided once, at the reference frame.
@@ -757,7 +757,7 @@ class WorkflowEvaluateMovement(MONAIPhysioBase):
         inference = self.movement_workflow.inference_workflow
         checkpoint = Path(inference.checkpoint_file)
         info = checkpoint.stat()
-        coefficients = ToolsForPhysicsNeMo.load_pca_coefficients(shape_parameters)
+        coefficients = PhysicsNemoTools.load_pca_coefficients(shape_parameters)
         provenance: dict[str, Any] = {
             "case_id": case_id,
             "shape_parameters_file": str(shape_parameters),

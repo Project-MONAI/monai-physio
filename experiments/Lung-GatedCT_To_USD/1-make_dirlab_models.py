@@ -7,8 +7,8 @@ import pyvista as pv
 from data_dirlab_4d_ct import DataDirLab4DCT
 
 from monai_physio import ConvertVTKToUSD
+from monai_physio.contour_tools import ContourTools
 from monai_physio.segment_chest_total_segmentator import SegmentChestTotalSegmentator
-from monai_physio.tools_for_contours import ToolsForContours
 
 # Defensive: today this script only reads `seg.all_mask_ids`, but if anyone
 # adds a `seg.segment(...)` call it would trigger the nnUNet
@@ -29,7 +29,7 @@ if __name__ == "__main__":
         """
         Transform a list of contours to a list of transformed contours.
         """
-        con_tools = ToolsForContours()
+        con_tools = ContourTools()
         new_contours = []
         for i in range(10):
             moving_to_fixed_transform = itk.transformread(
@@ -96,7 +96,7 @@ if __name__ == "__main__":
         )
 
     # %%
-    con_tools = ToolsForContours()
+    con_tools = ContourTools()
 
     seg = SegmentChestTotalSegmentator()
     for case_name in case_names:

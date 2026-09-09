@@ -5,7 +5,7 @@ data for the DirLab 4DCT dataset.
 
 DirLab-4DCT's raw ``.mhd``/``.img`` volumes are not in Hounsfield units; run
 ``data/DirLab-4DCT/fix_downloaded_data.py`` (backed by
-``ToolsForDataDownloads.FixDirLab4DCTData``) once to write corrected ``.mha``
+``DataDownloadTools.FixDirLab4DCTData``) once to write corrected ``.mha``
 volumes before using this dataset. That script's output is what this
 directory's ``case_names`` are meant to be read from.
 """

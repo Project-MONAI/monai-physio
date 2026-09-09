@@ -25,13 +25,13 @@ import numpy as np
 import pandas as pd
 import pyvista as pv
 
+from monai_physio.contour_tools import ContourTools
 from monai_physio.register_models_distance_maps import RegisterModelsDistanceMaps
-from monai_physio.tools_for_contours import ToolsForContours
 
 _HERE = Path(__file__).parent
 
-# Initialize ToolsForContours
-contour_tools = ToolsForContours()
+# Initialize ContourTools
+contour_tools = ContourTools()
 
 # Setup paths
 input_dir = _HERE / "kcl-heart-model/surfaces_aligned"

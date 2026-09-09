@@ -14,8 +14,8 @@ import itk
 import nibabel as nib
 import numpy as np
 
+from .image_tools import ImageTools
 from .segment_anatomy_base import SegmentAnatomyBase
-from .tools_for_images import ToolsForImages
 
 
 class SegmentChestTotalSegmentator(SegmentAnatomyBase):
@@ -34,7 +34,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
 
     Anatomy groups (heart, lung, bone, major_vessels, soft_tissue) are
     populated into :attr:`SegmentAnatomyBase.taxonomy` so downstream
-    consumers (``ConvertVTKToUSD``, ``ToolsForUSDAnatomy``) see a single,
+    consumers (``ConvertVTKToUSD``, ``USDAnatomyTools``) see a single,
     consistent group→organ mapping.
 
     For contrast-enhanced studies (CT with contrast-enhanced blood in the
@@ -448,7 +448,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
                 interior_arr = interior_mask.astype(np.uint8)
                 interior_image = itk.GetImageFromArray(interior_arr)
                 interior_image.CopyInformation(preprocessed_image)
-                imMath = ToolsForImages()
+                imMath = ImageTools()
                 spacing = interior_image.GetSpacing()
                 exterior_image = imMath.binary_dilate_image(
                     interior_image, round(7 / spacing[0]), 1, 0

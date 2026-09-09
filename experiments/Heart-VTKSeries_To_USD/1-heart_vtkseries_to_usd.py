@@ -19,14 +19,14 @@ if __name__ == "__main__":
         # Segment chest from CT images to generate vtk files
         import itk
 
+        from monai_physio.contour_tools import ContourTools
         from monai_physio.segment_chest_total_segmentator_with_contrast import (
             SegmentChestTotalSegmentatorWithContrast,
         )
-        from monai_physio.tools_for_contours import ToolsForContours
 
         input_images = sorted(glob.glob(os.path.join(_DATA_DIR, "slice_*.mha")))
         seg = SegmentChestTotalSegmentatorWithContrast()
-        con = ToolsForContours()
+        con = ContourTools()
         for i, img_path in enumerate(input_images):
             print(f"Segmenting {img_path}...")
             img = itk.imread(img_path)

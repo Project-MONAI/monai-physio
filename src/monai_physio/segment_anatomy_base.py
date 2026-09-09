@@ -11,8 +11,8 @@ from typing import Any
 import itk
 import numpy as np
 
+from .anatomy_taxonomy import AnatomyTaxonomy
 from .monai_physio_base import MONAIPhysioBase
-from .tools_for_anatomy_taxonomies import ToolsForAnatomyTaxonomies
 
 
 class SegmentAnatomyBase(MONAIPhysioBase):
@@ -21,7 +21,7 @@ class SegmentAnatomyBase(MONAIPhysioBase):
 
     This class implements preprocessing, postprocessing, and mask creation
     methods that are shared across different anatomy segmentation
-    implementations. It owns an :class:`ToolsForAnatomyTaxonomies` instance that
+    implementations. It owns an :class:`AnatomyTaxonomy` instance that
     captures the group→organ structure (e.g. ``heart`` contains
     ``atrial_appendage_left`` at id 61); subclasses populate it via
     ``self.taxonomy.add_organ(...)`` and call
@@ -34,7 +34,7 @@ class SegmentAnatomyBase(MONAIPhysioBase):
     ``self.taxonomy.add_organ(group_name, label_id, organ_name)`` for each
     organ; the group is created lazily on first use. To assign a custom
     OmniSurface look to a new group, register it in
-    :data:`monai_physio.tools_for_usd_anatomy.DEFAULT_RENDER_PARAMS` (see that
+    :data:`monai_physio.usd_anatomy_tools.DEFAULT_RENDER_PARAMS` (see that
     module's docstring). Groups without a registered look fall back to the
     ``"other"`` entry, so they still render.
 
@@ -48,8 +48,8 @@ class SegmentAnatomyBase(MONAIPhysioBase):
             :meth:`segment`. Defaults to ``np.uint8``; subclasses whose class
             index space exceeds 255 (e.g.
             :class:`monai_physio.SegmentNVSegmentCTMRI`) set ``np.uint16``.
-        taxonomy (ToolsForAnatomyTaxonomies): Group→organ mapping shared with
-            :class:`monai_physio.ToolsForUSDAnatomy`.
+        taxonomy (AnatomyTaxonomy): Group→organ mapping shared with
+            :class:`monai_physio.USDAnatomyTools`.
     """
 
     def __init__(self, log_level: int | str = logging.INFO):
@@ -75,8 +75,8 @@ class SegmentAnatomyBase(MONAIPhysioBase):
         self.labelmap_dtype: type = np.uint8
 
         # Single source of truth for the anatomy hierarchy. Subclasses
-        # populate this; ToolsForUSDAnatomy and ConvertVTKToUSD consume it.
-        self.taxonomy = ToolsForAnatomyTaxonomies()
+        # populate this; USDAnatomyTools and ConvertVTKToUSD consume it.
+        self.taxonomy = AnatomyTaxonomy()
 
     def _finalize_other_group(self, id_range: range = range(1, 256)) -> None:
         """Fill the ``other`` group with any unclaimed ids in *id_range*.
@@ -393,7 +393,7 @@ class SegmentAnatomyBase(MONAIPhysioBase):
 
         labelmaps: dict[str, itk.image] = {}
         for group_name in self.taxonomy.group_names():
-            if group_name == ToolsForAnatomyTaxonomies.OTHER_GROUP:
+            if group_name == AnatomyTaxonomy.OTHER_GROUP:
                 continue
             group_ids = list(self.taxonomy.labels_in_group(group_name).keys())
             group_labelmap_arr = np.where(
@@ -406,7 +406,7 @@ class SegmentAnatomyBase(MONAIPhysioBase):
 
         other_labelmap = itk.GetImageFromArray(other_labelmap_arr)
         other_labelmap.CopyInformation(labelmap_image)
-        labelmaps[ToolsForAnatomyTaxonomies.OTHER_GROUP] = other_labelmap
+        labelmaps[AnatomyTaxonomy.OTHER_GROUP] = other_labelmap
 
         return labelmaps
 
