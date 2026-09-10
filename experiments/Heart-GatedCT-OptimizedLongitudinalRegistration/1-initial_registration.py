@@ -136,7 +136,7 @@ def landmark_rms_errors(
     landmarks, in sorted-name order.
     """
     errors: list[tuple[str, float]] = []
-    for name in fixed_landmarks.keys():
+    for name in fixed_landmarks:
         if name not in warped_landmarks:
             errors.append((name, float("nan")))
             continue

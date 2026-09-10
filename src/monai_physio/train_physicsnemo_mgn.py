@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 import numpy as np
 import pyvista as pv
 
-from . import physicsnemo_tools as pnt
+from .physicsnemo_tools import PhysicsNemoTools
 from .train_physicsnemo_base import TrainPhysicsNeMoBase
 
 if TYPE_CHECKING:  # typed for mypy; imported lazily at runtime
@@ -42,7 +42,7 @@ class TrainPhysicsNeMoMGN(TrainPhysicsNeMoBase):
         self.num_layers: int = 2
         self.num_processor_checkpoint_segments: int = 0
         # Runtime MGN state (set in setup_inputs).
-        self._device: Optional["torch.device"] = None
+        self._device: Optional[torch.device] = None
         self._shared_graph: Any = None
         self._shared_edge_index: Any = None
         self._shared_edge_feats: Any = None
@@ -82,8 +82,8 @@ class TrainPhysicsNeMoMGN(TrainPhysicsNeMoBase):
             raise ValueError(f"num_segments must be >= 0, got {num_segments}")
         self.num_processor_checkpoint_segments = num_segments
 
-    def build_model(self, in_features: int, out_features: int) -> "torch.nn.Module":
-        MeshGraphNet = pnt.import_meshgraphnet()
+    def build_model(self, in_features: int, out_features: int) -> torch.nn.Module:
+        MeshGraphNet = PhysicsNemoTools.import_meshgraphnet()
 
         model = MeshGraphNet(
             input_dim_nodes=in_features,
@@ -106,15 +106,15 @@ class TrainPhysicsNeMoMGN(TrainPhysicsNeMoBase):
 
     def setup_inputs(
         self,
-        device: "torch.device",
+        device: torch.device,
         template_mesh: pv.DataSet,
         template_coords: np.ndarray,
     ) -> None:
         from torch_geometric.data import Data
 
         self._device = device
-        self._shared_edge_index = pnt.mesh_to_edge_index(template_mesh)
-        self._shared_edge_feats = pnt.compute_edge_features(
+        self._shared_edge_index = PhysicsNemoTools.mesh_to_edge_index(template_mesh)
+        self._shared_edge_feats = PhysicsNemoTools.compute_edge_features(
             template_coords, self._shared_edge_index
         )
         self._shared_graph = Data(
@@ -124,8 +124,8 @@ class TrainPhysicsNeMoMGN(TrainPhysicsNeMoBase):
         self._batched_graph_cache = {}
 
     def forward(
-        self, model: "torch.nn.Module", node_feats: "torch.Tensor", batch_len: int
-    ) -> "torch.Tensor":
+        self, model: torch.nn.Module, node_feats: torch.Tensor, batch_len: int
+    ) -> torch.Tensor:
         graph, edge_feats = self._batched_graph(batch_len)
         return cast("torch.Tensor", model(node_feats, edge_feats, graph))
 

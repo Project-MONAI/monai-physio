@@ -44,10 +44,10 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-import pyvista as pv
 import pytest
-
+import pyvista as pv
 from parameters_base import ParametersBase
+
 from monai_physio.test_tools import TestTools
 
 from .conftest import skip_or_fail_missing_data, tutorial_data_is_required

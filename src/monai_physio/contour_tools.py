@@ -6,7 +6,8 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Optional, Sequence, cast
+from collections.abc import Sequence
+from typing import Optional, cast
 
 import itk
 import numpy as np
@@ -689,7 +690,7 @@ class ContourTools(MONAIPhysioBase):
             self.log_warning("Trimming against the surface removed every cell")
             return relaxed
 
-        connectivity = relaxed.cells_dict[np.uint8(pv.CellType.TETRA)]
+        connectivity = cast(np.ndarray, relaxed.cells_dict[np.uint8(pv.CellType.TETRA)])
         # Both directions of every tetrahedron edge, so a point's neighbors are
         # the second column of the rows its id occupies in the first.
         edges = np.vstack(
@@ -758,7 +759,7 @@ class ContourTools(MONAIPhysioBase):
     def repair_inverted_tetrahedra(
         self,
         tetrahedra: pv.UnstructuredGrid,
-        max_iterations: int = 20,
+        max_iterations: int = 100,
     ) -> pv.UnstructuredGrid:
         """Relax the nodes of any inverted or degenerate tetrahedron.
 
@@ -789,7 +790,9 @@ class ContourTools(MONAIPhysioBase):
                 "tetrahedra has no TETRA cells to repair; got cell types "
                 f"{sorted(tetrahedra.cells_dict)}."
             )
-        connectivity = tetrahedra.cells_dict[np.uint8(pv.CellType.TETRA)]
+        connectivity = cast(
+            np.ndarray, tetrahedra.cells_dict[np.uint8(pv.CellType.TETRA)]
+        )
 
         def volumes(points: np.ndarray) -> np.ndarray:
             corners = points[connectivity]
@@ -828,13 +831,24 @@ class ContourTools(MONAIPhysioBase):
                 if len(neighbor_points):
                     points[node] = neighbor_points.mean(axis=0)
 
-        still_bad = int(np.sum(volumes(points) <= 0.0))
+        final_volumes = volumes(points)
+        still_bad_mask = final_volumes <= 0.0
+        still_bad = int(np.sum(still_bad_mask))
         if still_bad:
+            _MAX_LISTED = 20
+            bad_cell_ids = np.nonzero(still_bad_mask)[0]
+            details = "; ".join(
+                f"cell {cell_id} (nodes {connectivity[cell_id].tolist()}): "
+                f"volume={final_volumes[cell_id]:.3e}"
+                for cell_id in bad_cell_ids[:_MAX_LISTED]
+            )
+            if len(bad_cell_ids) > _MAX_LISTED:
+                details += f"; ... and {len(bad_cell_ids) - _MAX_LISTED} more"
             raise ValueError(
                 f"{still_bad} of {len(connectivity)} tetrahedra are still "
                 f"inverted or degenerate after {max_iterations} repair "
-                "passes; the fitted mesh needs a real re-fit, not just "
-                "smoothing."
+                f"passes ({details}); the fitted mesh needs a real re-fit, "
+                "not just smoothing."
             )
 
         self.log_warning(

@@ -51,7 +51,7 @@ def _deformation_gradient_of(
     translation: np.ndarray | None = None,
     points: np.ndarray = _REFERENCE_TET_POINTS,
     tets: np.ndarray = _REFERENCE_TET,
-) -> "torch.Tensor":
+) -> torch.Tensor:
     """Return F for the affine motion ``x -> linear_map @ x + translation``.
 
     A tetrahedron carries linear shape functions, so F comes back as exactly
@@ -436,12 +436,12 @@ def test_a_residual_on_another_gpu_is_refused() -> None:
     class _ResidualOn:
         """Stands in for a residual whose tensors live on one specific GPU."""
 
-        def __init__(self, device: "torch.device") -> None:
+        def __init__(self, device: torch.device) -> None:
             self.device = device
 
     method = TrainPhysicsNeMoPhysicsInformedMotion()
 
-    def context_on(device: "torch.device") -> DistributedContext:
+    def context_on(device: torch.device) -> DistributedContext:
         return DistributedContext(device=device, rank=0, local_rank=0, world_size=1)
 
     method._residual = cast(Any, _ResidualOn(torch.device("cuda", 0)))
@@ -485,10 +485,12 @@ def test_the_epoch_log_separates_the_two_loss_terms() -> None:
     assert messages, "The epoch hook should report something"
     reported = messages[-1]
     assert "data=1.000000" in reported, f"Data term should be the mean: {reported}"
-    assert "physics=4.000000" in reported, (
+    assert "physics=4.000000e+00" in reported, (
         f"Physics term should be the mean: {reported}"
     )
-    assert "1.000000)" in reported, f"Weighted physics term should appear: {reported}"
+    assert "1.000000e+00)" in reported, (
+        f"Weighted physics term should appear: {reported}"
+    )
 
     # The accumulators reset, or every epoch would report the previous ones too.
     method._log_epoch(context, epoch=1, epochs=2)

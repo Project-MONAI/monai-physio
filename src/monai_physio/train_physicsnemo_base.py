@@ -33,9 +33,12 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 import numpy as np
 import pyvista as pv
 
-from . import physicsnemo_tools as pnt
-from .physicsnemo_tools import DistributedContext, PhaseSampleDataset
 from .monai_physio_base import MONAIPhysioBase
+from .physicsnemo_tools import (
+    DistributedContext,
+    PhaseSampleDataset,
+    PhysicsNemoTools,
+)
 
 if TYPE_CHECKING:  # typed for mypy; imported lazily at runtime
     import torch
@@ -71,6 +74,11 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         self.rmse_log_interval: int = 100
         self.loss_log_interval: int = 10
         self.seed: int = 42
+        self.grad_clip_norm: float = 1.0
+        # Set by a subclass whose loss torch.compile cannot be trusted to
+        # compile correctly, so train() falls back to eager mode instead of
+        # trying and silently corrupting the forward/backward pass.
+        self._compile_incompatible: Optional[str] = None
 
     # ─────────────────────────── Tuning setters ────────────────────────────
     def set_epochs(self, epochs: int) -> None:
@@ -91,14 +99,47 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
             raise ValueError(f"learning_rate must be > 0, got {learning_rate}")
         self.learning_rate = learning_rate
 
+    def set_grad_clip_norm(self, grad_clip_norm: float) -> None:
+        """Set the max gradient norm clipped to before each optimizer step.
+
+        A cold-start network can produce a huge, fully finite gradient (an
+        energy-based residual like :class:`PhysicsInformedMotion` has terms
+        the Jacobian clamp does not cover), large enough to poison Adam's
+        moment estimates in a single step. Clipping bounds that step; it does
+        not catch a non-finite loss, which the training loop skips outright.
+
+        Args:
+            grad_clip_norm: Max L2 norm of the gradient, passed to
+                ``torch.nn.utils.clip_grad_norm_``.
+        """
+        if grad_clip_norm <= 0.0:
+            raise ValueError(f"grad_clip_norm must be > 0, got {grad_clip_norm}")
+        self.grad_clip_norm = grad_clip_norm
+
+    def set_compile_incompatible(self, reason: Optional[str]) -> None:
+        """Override whether torch.compile is skipped, and why.
+
+        A subclass may set ``self._compile_incompatible`` automatically when
+        it knows a specific configuration corrupts under Inductor (see
+        :meth:`TrainPhysicsNeMoPhysicsInformedMotion.set_mechanics`). Call
+        this afterward to override that -- pass ``None`` to let
+        ``torch.compile`` run again, e.g. to re-test whether a newer
+        torch/CUDA build fixed the bug.
+
+        Args:
+            reason: Human-readable reason torch.compile is skipped, logged
+                in its place; ``None`` re-enables the normal compile attempt.
+        """
+        self._compile_incompatible = reason
+
     # ─────────────────────────── Network seams ─────────────────────────────
-    def build_model(self, in_features: int, out_features: int) -> "torch.nn.Module":
+    def build_model(self, in_features: int, out_features: int) -> torch.nn.Module:
         """Construct the (uncompiled) network. Implemented by subclasses."""
         raise NotImplementedError
 
     def setup_inputs(
         self,
-        device: "torch.device",
+        device: torch.device,
         template_mesh: pv.DataSet,
         template_coords: np.ndarray,
     ) -> None:
@@ -106,8 +147,8 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         raise NotImplementedError
 
     def forward(
-        self, model: "torch.nn.Module", node_feats: "torch.Tensor", batch_len: int
-    ) -> "torch.Tensor":
+        self, model: torch.nn.Module, node_feats: torch.Tensor, batch_len: int
+    ) -> torch.Tensor:
         """Run the network for a flattened ``(batch_len * n_points, F)`` batch."""
         raise NotImplementedError
 
@@ -126,12 +167,12 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
 
     def _compute_loss(
         self,
-        pred: "torch.Tensor",
-        tgt: "torch.Tensor",
+        pred: torch.Tensor,
+        tgt: torch.Tensor,
         batch_len: int,
         target_scale: float,
         indices: np.ndarray,
-    ) -> "torch.Tensor":
+    ) -> torch.Tensor:
         """Return the training loss for one flattened mini-batch.
 
         The base class scores displacement alone, so it needs only *pred* and
@@ -153,7 +194,17 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         term; a subclass whose loss sums terms in different units overrides this
         to report them apart, because a total alone cannot say how they balance.
         """
-        return None
+        return
+
+    def _on_epoch_start(self, epoch: int, epochs: int) -> None:
+        """Adjust any epoch-dependent hyperparameter before the epoch runs.
+
+        Called once per epoch, before its batches. The base class has nothing
+        epoch-dependent to adjust; a subclass overrides this to ramp a
+        hyperparameter (for example a loss weight) over the course of
+        training.
+        """
+        return
 
     # ─────────────────────────── Training loop ─────────────────────────────
     def train(
@@ -167,7 +218,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         template_mesh: pv.DataSet,
         template_coords: np.ndarray,
         resume_from: Optional[Path] = None,
-    ) -> tuple["torch.nn.Module", list[float], list[dict]]:
+    ) -> tuple[torch.nn.Module, list[float], list[dict]]:
         """Train the network, returning the model and the loss / RMSE logs.
 
         Every rank runs this. Each steps over its own disjoint slice of the
@@ -205,7 +256,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         if resume_from is not None:
             ckpt = torch.load(str(resume_from), map_location=device, weights_only=True)
             state = ckpt.get("model_state_dict", ckpt)
-            model.load_state_dict(pnt.strip_compile_prefix(state))
+            model.load_state_dict(PhysicsNemoTools.strip_compile_prefix(state))
             self._log_main(context, "Loaded model weights from %s", resume_from)
 
         self.setup_inputs(device, template_mesh, template_coords)
@@ -234,9 +285,19 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
                 context, "DistributedDataParallel over %d ranks.", context.world_size
             )
 
-        if sys.platform != "win32":
+        if self._compile_incompatible is not None:
+            self._log_main(
+                context, "torch.compile skipped (%s).", self._compile_incompatible
+            )
+        elif sys.platform != "win32":
             try:
-                model = cast("torch.nn.Module", torch.compile(model))
+                # dynamic=False: batch size and node/edge counts vary between
+                # batches, and Inductor's dynamic-shape workspace-buffer sizing
+                # for this model's custom autograd backward has a symbolic-shape
+                # bug (a generated slice bound computed from the dynamic size
+                # variable itself), so let Dynamo specialize and recompile per
+                # shape instead of doing that arithmetic symbolically.
+                model = cast("torch.nn.Module", torch.compile(model, dynamic=False))
                 self._log_main(context, "torch.compile enabled.")
             except Exception as exc:  # pragma: no cover - platform dependent
                 self._log_main(context, "torch.compile skipped (%s).", exc)
@@ -249,6 +310,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         losses: list[float] = []
         rmse_log: list[dict] = []
         for epoch in range(epochs):
+            self._on_epoch_start(epoch, epochs)
             model.train()
             epoch_loss = 0.0
             n_rows = 0
@@ -263,14 +325,39 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
                     loss = self._compute_loss(
                         pred, tgt, batch_len, target_scale, indices
                     )
+                this_rank_non_finite = not torch.isfinite(loss)
+                if self._sync_skip_batch(context, this_rank_non_finite):
+                    # A non-finite loss has a non-finite gradient, and Adam's
+                    # moment estimates stay poisoned forever once one lands --
+                    # skip the step rather than let one bad batch kill the run.
+                    # The skip has to be unanimous: backward() is a collective
+                    # all-reduce under DDP, so one rank skipping it while
+                    # another calls it would hang the caller forever.
+                    self.log_warning(
+                        "Epoch %d: non-finite loss (%s); skipping this batch.",
+                        epoch + 1,
+                        float(loss.detach())
+                        if this_rank_non_finite
+                        else "non-finite on another rank",
+                    )
+                    continue
                 loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), self.grad_clip_norm)
                 optimizer.step()
                 epoch_loss += float(loss.detach()) * len(nf)
                 n_rows += len(nf)
             # Every rank saw a disjoint slice, so the epoch mean is only the
             # mean over the whole epoch once the two sums are pooled.
             epoch_loss, n_rows = self._reduce_sums(context, epoch_loss, n_rows)
-            losses.append(epoch_loss / max(n_rows, 1))
+            if n_rows == 0:
+                # Every batch was skipped (non-finite loss) or none were
+                # yielded at all -- recording epoch_loss / 1 here would log a
+                # fake 0.0 that looks identical to genuine convergence.
+                raise RuntimeError(
+                    f"Epoch {epoch + 1}: no batch contributed a finite loss; "
+                    "every batch was skipped or the dataset yielded none."
+                )
+            losses.append(epoch_loss / n_rows)
 
             if (epoch + 1) % self.loss_log_interval == 0 or epoch + 1 == epochs:
                 self._log_main(
@@ -285,7 +372,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
             # against the bare module: the RMSE describes the model, not how
             # the epoch happened to be split across ranks.
             if scored_epoch and context.is_main:
-                bare = pnt.unwrap_model(model)
+                bare = PhysicsNemoTools.unwrap_model(model)
                 train_rmse = self._evaluate_rmse(
                     bare, train_dataset, target_scale, device
                 )
@@ -321,7 +408,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         model.eval()
         return model, losses, rmse_log
 
-    def build_checkpoint(self, model: "torch.nn.Module", stats: dict) -> dict[str, Any]:
+    def build_checkpoint(self, model: torch.nn.Module, stats: dict) -> dict[str, Any]:
         """Assemble a self-describing checkpoint (weights + normalization stats).
 
         Both the periodic epoch checkpoints and the final model share this
@@ -329,7 +416,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         checkpoint, not just the final one.
         """
         checkpoint: dict[str, Any] = {
-            "model_state_dict": pnt.uncompiled_state_dict(model),
+            "model_state_dict": PhysicsNemoTools.uncompiled_state_dict(model),
             "architecture": self.architecture_name,
             "in_features": 3 + int(stats["pca_mean"].shape[0]) + 1,
             "n_pca": int(stats["pca_mean"].shape[0]),
@@ -363,6 +450,25 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         )
         torch.distributed.all_reduce(totals, op=torch.distributed.ReduceOp.SUM)
         return float(totals[0].item()), int(totals[1].item())
+
+    @staticmethod
+    def _sync_skip_batch(
+        context: DistributedContext, this_rank_non_finite: bool
+    ) -> bool:
+        """Return whether every rank should skip this batch's step.
+
+        A skip has to be unanimous under DDP: ``backward()`` is a collective
+        all-reduce over the gradient buckets, so a rank that took the skip
+        branch while its peers called ``backward()`` would leave them waiting
+        on a rank that never arrives.
+        """
+        if not context.is_distributed:
+            return this_rank_non_finite
+        import torch
+
+        flag = torch.tensor(1.0 if this_rank_non_finite else 0.0, device=context.device)
+        torch.distributed.all_reduce(flag, op=torch.distributed.ReduceOp.MAX)
+        return bool(flag.item() > 0.0)
 
     def _iter_batches(
         self,
@@ -412,7 +518,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
                 targets = targets[perm]
             yield node_feats, targets, len(idx), idx
 
-    def _autocast(self, device: "torch.device") -> Any:
+    def _autocast(self, device: torch.device) -> Any:
         """BF16 autocast on CUDA; a no-op context elsewhere."""
         import contextlib
 
@@ -424,10 +530,10 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
 
     def _evaluate_rmse(
         self,
-        model: "torch.nn.Module",
+        model: torch.nn.Module,
         dataset: PhaseSampleDataset,
         target_scale: float,
-        device: "torch.device",
+        device: torch.device,
     ) -> float:
         """Per-point RMSE over a dataset, in the units of the stored targets."""
         import torch

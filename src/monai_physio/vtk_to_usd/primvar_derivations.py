@@ -31,7 +31,7 @@ letters sort before lowercase in ASCII, so ``stress_VonMises`` is selected over
 from __future__ import annotations
 
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 from numpy.typing import NDArray

@@ -75,7 +75,6 @@ from monai_physio import (
     WorkflowInferPhysicsNeMo,
 )
 
-
 # Only run if this script is not imported as a module
 
 # PhysicsNeMo and torch spawn worker processes. On Windows the spawn start

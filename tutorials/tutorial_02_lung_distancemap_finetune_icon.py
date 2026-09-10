@@ -78,7 +78,6 @@ from typing import Any, Optional, cast
 import itk
 import numpy as np
 import pyvista as pv
-
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
 from monai_physio import (

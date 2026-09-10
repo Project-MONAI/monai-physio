@@ -197,7 +197,10 @@ class TestDownloadHeartData:
             return archive_path
 
         urls_to_archives = {}
-        for subdir_name, asset_name in DataDownloadTools.CHOP_VALVE4D_ASSETS.items():
+        for (
+            subdir_name,
+            asset_name,
+        ) in DataDownloadTools.CHOP_VALVE4D_ASSETS.items():
             url = DataDownloadTools.CHOP_VALVE4D_RELEASE_URL + asset_name
             urls_to_archives[url] = make_archive(
                 subdir_name,
@@ -274,7 +277,10 @@ class TestDownloadHeartData:
             return archive_path
 
         urls_to_archives = {}
-        for subdir_name, asset_name in DataDownloadTools.CHOP_VALVE4D_ASSETS.items():
+        for (
+            subdir_name,
+            asset_name,
+        ) in DataDownloadTools.CHOP_VALVE4D_ASSETS.items():
             url = DataDownloadTools.CHOP_VALVE4D_RELEASE_URL + asset_name
             leaf = "RVOT28-Dias.mha" if subdir_name == "CT" else "frame_0000.vtk"
             urls_to_archives[url] = make_archive(

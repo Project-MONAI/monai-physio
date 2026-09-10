@@ -15,8 +15,8 @@ from typing import Any, Optional
 import itk
 import numpy as np
 import pytest
-
 from parameters_base import ParametersBase
+
 from monai_physio.contour_tools import ContourTools
 from monai_physio.data_download_tools import DataDownloadTools
 from monai_physio.register_images_ants import RegisterImagesANTS

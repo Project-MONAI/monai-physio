@@ -6,8 +6,8 @@ import numpy as np
 import pyvista as pv
 from data_dirlab_4d_ct import DataDirLab4DCT
 
-from monai_physio.contour_tools import ContourTools
 from monai_physio import ConvertVTKToUSD
+from monai_physio.contour_tools import ContourTools
 from monai_physio.segment_chest_total_segmentator import SegmentChestTotalSegmentator
 
 # Defensive: today this script only reads `seg.all_mask_ids`, but if anyone

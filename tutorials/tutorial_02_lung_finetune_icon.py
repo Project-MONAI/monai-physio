@@ -88,8 +88,8 @@ from typing import Any, Optional
 
 import itk
 import numpy as np
-
 from parameters_base import ParametersBase
+
 from monai_physio import (
     MONAIPhysioBase,
     RegisterImagesBase,

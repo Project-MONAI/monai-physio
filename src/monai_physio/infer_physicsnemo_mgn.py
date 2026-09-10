@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, cast
 
 import numpy as np
 
-from . import physicsnemo_tools as pnt
 from .infer_physicsnemo_base import InferPhysicsNeMoBase
+from .physicsnemo_tools import PhysicsNemoTools
 
 if TYPE_CHECKING:  # typed for mypy; imported lazily at runtime
     import torch
@@ -23,8 +23,8 @@ class InferPhysicsNeMoMGN(InferPhysicsNeMoBase):
 
     model_tag = "mgn"
 
-    def build_model(self, meta: dict) -> "torch.nn.Module":
-        MeshGraphNet = pnt.import_meshgraphnet()
+    def build_model(self, meta: dict) -> torch.nn.Module:
+        MeshGraphNet = PhysicsNemoTools.import_meshgraphnet()
 
         num_layers = int(meta.get("num_layers", 2))
         hidden_dim = int(meta["hidden_dim"])
@@ -50,7 +50,7 @@ class InferPhysicsNeMoMGN(InferPhysicsNeMoBase):
         return cast("torch.nn.Module", model)
 
     def load_artifacts(
-        self, model_directory: Path, n_points: int, device: "torch.device"
+        self, model_directory: Path, n_points: int, device: torch.device
     ) -> None:
         import torch
         from torch_geometric.data import Data

@@ -52,10 +52,9 @@ if _installer is not None and _installer.strip() == "pip":
         stacklevel=2,
     )
 
+# Data processing utilities
 from .anatomy_taxonomy import AnatomyGroup, AnatomyTaxonomy
 from .contour_tools import ContourTools
-
-# Data processing utilities
 from .convert_image_4d_to_3d import ConvertImage4DTo3D
 from .convert_vtk_to_usd import ConvertVTKToUSD
 from .data_download_tools import DataDownloadTools
@@ -73,7 +72,7 @@ from .landmark_tools import LandmarkTools
 
 # Base classes
 from .monai_physio_base import MONAIPhysioBase
-from .physicsnemo_tools import DistributedContext, distributed_context
+from .physicsnemo_tools import DistributedContext, PhysicsNemoTools, distributed_context
 from .register_images_ants import RegisterImagesANTS
 
 # Registration classes
@@ -152,6 +151,7 @@ __all__ = [
     # Base classes
     "MONAIPhysioBase",
     "MovementGroundTruth",
+    "PhysicsNemoTools",
     "RegisterImagesANTS",
     # Registration classes
     "RegisterImagesBase",

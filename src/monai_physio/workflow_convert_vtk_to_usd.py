@@ -9,8 +9,9 @@ or colormap from a primvar with auto or specified intensity range).
 
 import logging
 import re
+from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any, Literal, Mapping, Optional, Sequence, Union
+from typing import Any, Literal, Optional, Union
 
 import numpy as np
 import pyvista as pv

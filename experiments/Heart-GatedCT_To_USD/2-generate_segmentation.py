@@ -40,7 +40,7 @@ if __name__ == "__main__":
         arr = itk.array_from_image(image)
         print(arr.shape)
         arr = np.where(arr == 0, -1000, arr)
-        for i in range(0, 21):
+        for i in range(21):
             print(f"Processing slice {i:03d}...")
             tmp_arr = itk.array_from_image(
                 itk.imread(

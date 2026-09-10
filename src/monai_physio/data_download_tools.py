@@ -39,7 +39,7 @@ class DataDownloadTools:
     SLICER_HEART_CT_SLICE_BASENAME = "slice"
 
     @staticmethod
-    def DownloadSlicerHeartCTData(dirname: Union[str, Path]) -> Path:  # noqa: N802
+    def DownloadSlicerHeartCTData(dirname: Union[str, Path]) -> Path:
         """Download the Slicer-Heart-CT 4-D CT sample into ``dirname``.
 
         Also splits the downloaded 4-D sequence into per-frame
@@ -84,7 +84,7 @@ class DataDownloadTools:
         return data_file
 
     @staticmethod
-    def _DownloadFile(url: str, target_file: Path) -> None:  # noqa: N802
+    def _DownloadFile(url: str, target_file: Path) -> None:
         """Stream-download ``url`` and atomically replace ``target_file``.
 
         Streams to a unique temp file in the target's directory with an
@@ -102,7 +102,7 @@ class DataDownloadTools:
         tmp_file = Path(tmp_handle.name)
         try:
             with (
-                urllib.request.urlopen(  # noqa: S310
+                urllib.request.urlopen(
                     url, timeout=_DOWNLOAD_TIMEOUT_SECONDS
                 ) as response,
                 tmp_handle as out,
@@ -119,7 +119,7 @@ class DataDownloadTools:
             raise
 
     @staticmethod
-    def VerifySlicerHeartCTData(dirname: Union[str, Path]) -> bool:  # noqa: N802
+    def VerifySlicerHeartCTData(dirname: Union[str, Path]) -> bool:
         """Return True when Slicer-Heart-CT has the expected 4-D CT file."""
         return (Path(dirname) / DataDownloadTools.SLICER_HEART_CT_FILENAME).is_file()
 
@@ -132,7 +132,7 @@ class DataDownloadTools:
     )
 
     @staticmethod
-    def DownloadKCLHeartModelData(dirname: Union[str, Path]) -> Path:  # noqa: N802
+    def DownloadKCLHeartModelData(dirname: Union[str, Path]) -> Path:
         """Download the KCL-Heart-Model dataset into ``dirname``.
 
         Downloads and extracts the 20 individual four-chamber heart meshes
@@ -180,7 +180,7 @@ class DataDownloadTools:
         return data_dir
 
     @staticmethod
-    def _DownloadAndExtractTarMember(  # noqa: N802
+    def _DownloadAndExtractTarMember(
         url: str, member_name: str, target_file: Path
     ) -> None:
         """Download a ``.tar.gz`` archive and extract one member to ``target_file``."""
@@ -189,7 +189,7 @@ class DataDownloadTools:
             tmp_dir = Path(tmp_dir_name)
             archive_file = tmp_dir / "archive.tar.gz"
             with (
-                urllib.request.urlopen(  # noqa: S310
+                urllib.request.urlopen(
                     url, timeout=_DOWNLOAD_TIMEOUT_SECONDS
                 ) as response,
                 open(archive_file, "wb") as out,
@@ -225,7 +225,7 @@ class DataDownloadTools:
     }
 
     @staticmethod
-    def DownloadCHOPValve4DData(dirname: Union[str, Path]) -> Path:  # noqa: N802
+    def DownloadCHOPValve4DData(dirname: Union[str, Path]) -> Path:
         """Download the CHOP-Valve4D convenience release into ``dirname``.
 
         Downloads the three zip archives attached to the MONAI Physio
@@ -247,7 +247,10 @@ class DataDownloadTools:
             Path to ``dirname``.
         """
         data_dir = Path(dirname)
-        for subdir_name, asset_name in DataDownloadTools.CHOP_VALVE4D_ASSETS.items():
+        for (
+            subdir_name,
+            asset_name,
+        ) in DataDownloadTools.CHOP_VALVE4D_ASSETS.items():
             target_dir = data_dir / subdir_name
             if DataDownloadTools._CHOPValve4DSubdirIsPopulated(target_dir):
                 continue
@@ -257,7 +260,7 @@ class DataDownloadTools:
         return data_dir
 
     @staticmethod
-    def _CHOPValve4DSubdirIsPopulated(  # noqa: N802
+    def _CHOPValve4DSubdirIsPopulated(
         target_dir: Path,
     ) -> bool:
         """Return True when ``target_dir`` already has subdir_name's expected files.
@@ -282,13 +285,13 @@ class DataDownloadTools:
         return any(target_dir.glob("*.vtk"))
 
     @staticmethod
-    def _DownloadAndExtractZip(url: str, target_dir: Path) -> None:  # noqa: N802
+    def _DownloadAndExtractZip(url: str, target_dir: Path) -> None:
         """Stream-download a ``.zip`` archive and extract it into ``target_dir``."""
         target_dir.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=str(target_dir.parent)) as tmp_dir_name:
             archive_file = Path(tmp_dir_name) / "archive.zip"
             with (
-                urllib.request.urlopen(  # noqa: S310
+                urllib.request.urlopen(
                     url, timeout=_DOWNLOAD_TIMEOUT_SECONDS
                 ) as response,
                 open(archive_file, "wb") as out,
@@ -301,7 +304,7 @@ class DataDownloadTools:
                 archive.extractall(target_dir.parent)
 
     @staticmethod
-    def VerifyCHOPValve4DData(dirname: Union[str, Path]) -> bool:  # noqa: N802
+    def VerifyCHOPValve4DData(dirname: Union[str, Path]) -> bool:
         """Return True when CHOP-Valve4D files referenced by the repo exist.
 
         Accepted layouts are the CT volume used by Simpleware/model-to-patient
@@ -323,7 +326,7 @@ class DataDownloadTools:
     CHEST_CT_FILENAME = "Chest-CT.mha"
 
     @staticmethod
-    def DownloadChestCTData(dirname: Union[str, Path]) -> Path:  # noqa: N802
+    def DownloadChestCTData(dirname: Union[str, Path]) -> Path:
         """Download the Chest-CT sample volume into ``dirname``.
 
         Fetches ``Chest-CT.mha`` - an ungated 3-D chest CT - from the
@@ -346,12 +349,12 @@ class DataDownloadTools:
         return data_file
 
     @staticmethod
-    def VerifyChestCTData(dirname: Union[str, Path]) -> bool:  # noqa: N802
+    def VerifyChestCTData(dirname: Union[str, Path]) -> bool:
         """Return True when Chest-CT has its expected CT volume."""
         return (Path(dirname) / DataDownloadTools.CHEST_CT_FILENAME).is_file()
 
     @staticmethod
-    def _MetaImageHeaderHasBackingData(mhd_file: Path) -> bool:  # noqa: N802
+    def _MetaImageHeaderHasBackingData(mhd_file: Path) -> bool:
         """Return True when a MetaImage ``.mhd`` header's pixel data exists.
 
         Committed ``.mhd`` headers are tiny text files (a few hundred
@@ -376,7 +379,7 @@ class DataDownloadTools:
         return False
 
     @staticmethod
-    def VerifyDirLab4DCTData(dirname: Union[str, Path]) -> bool:  # noqa: N802
+    def VerifyDirLab4DCTData(dirname: Union[str, Path]) -> bool:
         """Return True when a supported DirLab-4DCT case layout exists."""
         data_dir = Path(dirname)
         case1_dir = data_dir / "Case1"
@@ -399,7 +402,7 @@ class DataDownloadTools:
     DIRLAB_4DCT_HU_CLIP_RANGE = (-1024, 1024)
 
     @staticmethod
-    def FixDirLab4DCTData(  # noqa: N802
+    def FixDirLab4DCTData(
         dirname: Union[str, Path],
         output_dirname: Optional[Union[str, Path]] = None,
     ) -> list[Path]:
@@ -444,7 +447,7 @@ class DataDownloadTools:
         return output_files
 
     @staticmethod
-    def VerifyKCLHeartModelData(dirname: Union[str, Path]) -> bool:  # noqa: N802
+    def VerifyKCLHeartModelData(dirname: Union[str, Path]) -> bool:
         """Return True when KCL-Heart-Model has its expected mesh inputs."""
         data_dir = Path(dirname)
         input_meshes_dir = data_dir / "input_meshes"
