@@ -349,7 +349,15 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
             # Every rank saw a disjoint slice, so the epoch mean is only the
             # mean over the whole epoch once the two sums are pooled.
             epoch_loss, n_rows = self._reduce_sums(context, epoch_loss, n_rows)
-            losses.append(epoch_loss / max(n_rows, 1))
+            if n_rows == 0:
+                # Every batch was skipped (non-finite loss) or none were
+                # yielded at all -- recording epoch_loss / 1 here would log a
+                # fake 0.0 that looks identical to genuine convergence.
+                raise RuntimeError(
+                    f"Epoch {epoch + 1}: no batch contributed a finite loss; "
+                    "every batch was skipped or the dataset yielded none."
+                )
+            losses.append(epoch_loss / n_rows)
 
             if (epoch + 1) % self.loss_log_interval == 0 or epoch + 1 == epochs:
                 self._log_main(
