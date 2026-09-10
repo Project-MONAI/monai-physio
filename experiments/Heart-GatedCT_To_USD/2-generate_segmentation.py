@@ -5,7 +5,7 @@ import itk
 import numpy as np
 import pyvista as pv
 
-from monai_physio.contour_tools import ContourTools
+from monai_physio.process_contours import ProcessContours
 from monai_physio.segment_chest_total_segmentator_with_contrast import (
     SegmentChestTotalSegmentatorWithContrast,
 )
@@ -90,7 +90,7 @@ if __name__ == "__main__":
     contrast_mask = result["contrast"]
 
     # %%
-    con = ContourTools()
+    con = ProcessContours()
     all_contours = con.extract_contours(labelmap_image)
     all_contours.save(os.path.join(output_dir, f"{outname}.all_mask.vtp"))
 

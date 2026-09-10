@@ -10,11 +10,11 @@ tutorials and experiments.
 Module Reference
 ================
 
-.. automodule:: monai_physio.data_download_tools
+.. automodule:: monai_physio.download_data
    :members:
    :undoc-members:
    :show-inheritance:
 
 .. rubric:: Navigation
 
-:doc:`test_tools` | :doc:`index`
+:doc:`process_tests` | :doc:`index`

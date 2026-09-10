@@ -11,10 +11,10 @@ monai-physio-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
 or from Python:
 
 ```python
-from monai_physio import DataDownloadTools
+from monai_physio import DownloadData
 
-data_file = DataDownloadTools.DownloadSlicerHeartCTData("data/Slicer-Heart-CT")
-assert DataDownloadTools.VerifySlicerHeartCTData("data/Slicer-Heart-CT")
+data_file = DownloadData.DownloadSlicerHeartCTData("data/Slicer-Heart-CT")
+assert DownloadData.VerifySlicerHeartCTData("data/Slicer-Heart-CT")
 ```
 
 This fetches a single ~1.2 GB file from
@@ -58,7 +58,7 @@ Philadelphia):
 - Primary dataset for `experiments/Heart-GatedCT_To_USD/` and
   `experiments/Heart-VTKSeries_To_USD/`, whose
   `0-download_and_convert_4d_to_3d.py` scripts call
-  `DataDownloadTools.DownloadSlicerHeartCTData`, which downloads this
+  `DownloadData.DownloadSlicerHeartCTData`, which downloads this
   sequence and splits it into per-phase 3D `.mha` slices
 - Used in the test suite (`tests/test_download_heart_data.py`)
 - Example data for cardiac motion visualization in NVIDIA Omniverse

@@ -6,9 +6,9 @@ import numpy as np
 import pyvista as pv
 from scipy.optimize import minimize
 
-from .contour_tools import ContourTools
 from .monai_physio_base import MONAIPhysioBase
-from .transform_tools import TransformTools
+from .process_contours import ProcessContours
+from .process_transforms import ProcessTransforms
 
 
 class RegisterModelsICPITK(MONAIPhysioBase):
@@ -81,8 +81,8 @@ class RegisterModelsICPITK(MONAIPhysioBase):
         self.final_mean_distance = 0
 
         # Transform utilities
-        self._contour_tools = ContourTools()
-        self._transform_tools = TransformTools()
+        self._contour_tools = ProcessContours()
+        self._transform_tools = ProcessTransforms()
 
         # Image interpolator (created when needed)
         self.fixed_distance_map: Optional[itk.Image] = None

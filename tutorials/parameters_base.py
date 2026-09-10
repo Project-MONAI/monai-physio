@@ -20,7 +20,7 @@ Variable                             Default
 ===================================  =====================================
 
 Every root has a ``test`` subdirectory holding the small, fast counterpart used
-when a tutorial runs under ``TestTools.running_as_test``. Keeping the test data,
+when a tutorial runs under ``ProcessTests.running_as_test``. Keeping the test data,
 the test results and the test checkpoints in their own subtree is what stops a
 test run from reading or overwriting the datasets, results and trained networks
 of a full run.

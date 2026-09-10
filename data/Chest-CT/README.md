@@ -11,10 +11,10 @@ monai-physio-download-data Chest-CT --directory data/Chest-CT
 or from Python:
 
 ```python
-from monai_physio import DataDownloadTools
+from monai_physio import DownloadData
 
-data_file = DataDownloadTools.DownloadChestCTData("data/Chest-CT")
-assert DataDownloadTools.VerifyChestCTData("data/Chest-CT")
+data_file = DownloadData.DownloadChestCTData("data/Chest-CT")
+assert DownloadData.VerifyChestCTData("data/Chest-CT")
 ```
 
 This fetches a single ~200 MB file from the MONAI Physio GitHub release

@@ -12,7 +12,7 @@ from typing import Optional
 import itk
 import numpy as np
 
-from .image_tools import ImageTools
+from .process_images import ProcessImages
 from .segment_chest_total_segmentator import SegmentChestTotalSegmentator
 
 
@@ -159,7 +159,7 @@ class SegmentChestTotalSegmentatorWithContrast(SegmentChestTotalSegmentator):
             InsideValue=1,
             OutsideValue=0,
         )
-        image_tools = ImageTools()
+        image_tools = ProcessImages()
         connected_component_image = image_tools.binary_dilate_image(
             connected_component_image, hole_fill, 1, 0
         )

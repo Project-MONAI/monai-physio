@@ -111,15 +111,15 @@ import pyvista as pv
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
 from monai_physio import (
-    ContourTools,
     DistributedContext,
     EvaluateMovementLung,
-    PhysicsNemoTools,
+    ProcessContours,
+    ProcessPhysicsNemo,
+    ProcessTests,
+    ProcessTransforms,
     RegisterImagesGreedy,
     SegmentNVSegmentCTMRI,
-    TestTools,
     TrainPhysicsNeMoMGN,
-    TransformTools,
     WorkflowConvertImageToVTK,
     WorkflowCreateMeanSurface,
     WorkflowCreateStatisticalModel,
@@ -415,7 +415,7 @@ if __name__ == "__main__":
     # that a lobe boundary is not quantized away.
     evaluation_spacing_mm = 2.0
 
-    test_mode = TestTools.running_as_test()
+    test_mode = ProcessTests.running_as_test()
     # Keep a test run out of the directories a full run reads and writes.
     weights_dir = LUNG_CT_DIRLAB.weights_directory(test_mode)
 
@@ -429,7 +429,7 @@ if __name__ == "__main__":
     # Under torchrun / SLURM / mpirun this is one rank of many; started plainly
     # it reports a world of one and every branch below collapses to a single
     # process.
-    context = PhysicsNemoTools.distributed_context()
+    context = ProcessPhysicsNemo.distributed_context()
 
     data_dir = LUNG_CT_DIRLAB.input_directory(test_mode)
     number_of_pca_components = LUNG_CT_DIRLAB.pca_components(test_mode)
@@ -505,8 +505,8 @@ if __name__ == "__main__":
     segmentation_workflow = WorkflowConvertImageToVTK(
         segmentation_method=segmentation_method, log_level=log_level
     )
-    contour_tools = ContourTools(log_level=log_level)
-    transform_tools = TransformTools(log_level=log_level)
+    contour_tools = ProcessContours(log_level=log_level)
+    transform_tools = ProcessTransforms(log_level=log_level)
 
     # The cohort names the structures every fold reports and, in Step 5, reads
     # each fold's ground truth back out of the shared cache below.
@@ -893,7 +893,7 @@ if __name__ == "__main__":
         tutorial_results["rows"] = all_rows
 
         # Testing
-        tt = TestTools(
+        tt = ProcessTests(
             class_name=class_name,
             results_dir=output_dir,
             baselines_dir=repo_root / "tests" / "baselines" / class_name,

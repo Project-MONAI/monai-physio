@@ -6,7 +6,6 @@
 
 # %%
 import os
-
 from glob import glob
 from pathlib import Path
 
@@ -48,7 +47,7 @@ for vtk_file in vtk_files:
         print(f"    Surface mesh: {surface.n_cells} cells, {surface.n_points} points")
 
     except Exception as e:
-        print(f"  Error processing {vtk_file}: {str(e)}")
+        print(f"  Error processing {vtk_file}: {e!s}")
 
 print("\n" + "=" * 50)
 print("Processing complete!")

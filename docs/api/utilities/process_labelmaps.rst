@@ -10,10 +10,10 @@ label exclusion and physically isotropic dilation.
 Module Reference
 ================
 
-.. automodule:: monai_physio.labelmap_tools
+.. automodule:: monai_physio.process_labelmaps
    :members:
    :undoc-members:
 
 .. rubric:: Navigation
 
-:doc:`index` | :doc:`image_tools` | :doc:`transform_tools`
+:doc:`index` | :doc:`process_images` | :doc:`process_transforms`

@@ -38,9 +38,9 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 import numpy as np
 import pyvista as pv
 
-from .contour_tools import ContourTools
 from .monai_physio_base import MONAIPhysioBase
-from .physicsnemo_tools import DistributedContext, PhaseSampleDataset
+from .process_contours import ProcessContours
+from .process_physicsnemo import DistributedContext, PhaseSampleDataset
 from .train_physicsnemo_mgn import TrainPhysicsNeMoMGN
 
 if TYPE_CHECKING:  # typed for mypy; imported lazily at runtime
@@ -98,7 +98,7 @@ def tet_volumes(points: np.ndarray, tets: np.ndarray) -> tuple[np.ndarray, np.nd
 
     Raises:
         ValueError: If any element is inverted or degenerate.  Templates come
-            from :meth:`monai_physio.ContourTools.trim_tetrahedra_to_surface`,
+            from :meth:`monai_physio.ProcessContours.trim_tetrahedra_to_surface`,
             which holds every cell above a scaled Jacobian of 0.1, so a
             violation here means the template is broken rather than merely
             tight.
@@ -718,7 +718,7 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
         assert self._tets is not None
         self._reference_cache = {}
         device = context.device
-        contour_tools = ContourTools(log_level=self.log_level)
+        contour_tools = ProcessContours(log_level=self.log_level)
         for subject_id in sorted(set(self._sample_subjects)):
             mesh = cast(
                 "pv.UnstructuredGrid", pv.read(str(self._reference_meshes[subject_id]))

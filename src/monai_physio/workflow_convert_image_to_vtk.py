@@ -2,7 +2,7 @@
 
 The workflow segments a 3D CT image using a chosen backend, then extracts one
 VTP surface per non-empty anatomy group.  Each output surface carries anatomy
-metadata and solid color from :class:`USDAnatomyTools` as field and cell data
+metadata and solid color from :class:`ProcessUSDAnatomy` as field and cell data
 so that downstream tools (PyVista, Paraview, USD pipeline) can use them
 directly.
 
@@ -20,14 +20,14 @@ Typical usage::
     result = workflow.process(ct, surface_reduction_rate=0.5)
 
     # Combined single-file output (default)
-    ContourTools.save_combined_surfaces(result["surfaces"], "./out/patient.vtp")
+    ProcessContours.save_combined_surfaces(result["surfaces"], "./out/patient.vtp")
 
     # Per-group split output
-    ContourTools.save_surfaces(result["surfaces"], "./out", prefix="patient")
+    ProcessContours.save_surfaces(result["surfaces"], "./out", prefix="patient")
 
     # Per-label split output (one VTP per individual anatomical structure)
     result = workflow.process(ct, extract_label_surfaces=True)
-    ContourTools.save_surfaces(result["label_surfaces"], "./out", prefix="patient")
+    ProcessContours.save_surfaces(result["label_surfaces"], "./out", prefix="patient")
 """
 
 import logging
@@ -37,13 +37,13 @@ import itk
 import numpy as np
 import pyvista as pv
 
-from .contour_tools import ContourTools
 from .monai_physio_base import MONAIPhysioBase
+from .process_contours import ProcessContours
+from .process_usd_anatomy import ProcessUSDAnatomy
 from .segment_anatomy_base import SegmentAnatomyBase
 from .segment_chest_total_segmentator_with_contrast import (
     SegmentChestTotalSegmentatorWithContrast,
 )
-from .usd_anatomy_tools import USDAnatomyTools
 
 
 class WorkflowConvertImageToVTK(MONAIPhysioBase):
@@ -74,15 +74,15 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
     - ``field_data['SegmentationLabelNames']`` - individual structure names within the
       group (e.g. ``['left_ventricle', 'right_ventricle', ...]``).
     - ``field_data['SegmentationLabelIds']`` - corresponding integer label IDs.
-    - ``field_data['AnatomyColor']`` - RGB float color from :class:`USDAnatomyTools`.
+    - ``field_data['AnatomyColor']`` - RGB float color from :class:`ProcessUSDAnatomy`.
     - ``cell_data['Color']`` - RGBA uint8 array (n_cells x 4) for direct VTK rendering.
 
     **I/O contract**
 
     :meth:`process` performs *no* file I/O.  Use
-    :class:`ContourTools`'s static helpers
-    :meth:`ContourTools.save_surfaces` and
-    :meth:`ContourTools.save_combined_surfaces` - or the CLI
+    :class:`ProcessContours`'s static helpers
+    :meth:`ProcessContours.save_surfaces` and
+    :meth:`ProcessContours.save_combined_surfaces` - or the CLI
     ``monai-physio-convert-image-to-vtk`` - to write results to disk.
     """
 
@@ -113,7 +113,7 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
                 "segmentation_method must be a SegmentAnatomyBase instance or None"
             )
         self._segmenter: SegmentAnatomyBase = segmentation_method
-        self._contour_tools: ContourTools = ContourTools(log_level=log_level)
+        self._contour_tools: ProcessContours = ProcessContours(log_level=log_level)
 
         #: Anatomy group names registered by the active segmenter's taxonomy,
         #: in the order they were first added.
@@ -121,10 +121,10 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
             self._segmenter.taxonomy.group_names()
         )
 
-        # Build anatomy-group → RGB color from USDAnatomyTools.
-        # USDAnatomyTools sets up its color dicts entirely in __init__ without
+        # Build anatomy-group → RGB color from ProcessUSDAnatomy.
+        # ProcessUSDAnatomy sets up its color dicts entirely in __init__ without
         # accessing the stage, so stage=None is safe for this lookup-only use.
-        _anatomy_tools = USDAnatomyTools(stage=None, log_level=log_level)
+        _anatomy_tools = ProcessUSDAnatomy(stage=None, log_level=log_level)
         supported_types = set(_anatomy_tools.get_anatomy_types())
         self._anatomy_color_map: dict[str, tuple[float, float, float]] = {
             group: _anatomy_tools.get_anatomy_diffuse_color(group)
@@ -177,7 +177,7 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
     def _extract_surface(self, mask_image: Any) -> Optional[pv.PolyData]:
         """Extract a smoothed triangulated surface (VTP) from a binary mask image.
 
-        Delegates to :meth:`ContourTools.extract_contours`.
+        Delegates to :meth:`ProcessContours.extract_contours`.
 
         Returns:
             Smoothed :class:`pyvista.PolyData`, or ``None`` if the mask is empty.
@@ -193,7 +193,7 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
         """Extract a smoothed triangulated surface for one individual label.
 
         Isolates *label_id* out of *labelmap_arr* into its own binary mask
-        before delegating to :meth:`ContourTools.extract_contours`.
+        before delegating to :meth:`ProcessContours.extract_contours`.
 
         Args:
             labelmap_image: Source image, used only for ``CopyInformation``

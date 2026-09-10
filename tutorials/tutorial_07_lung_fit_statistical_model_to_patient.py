@@ -34,9 +34,9 @@ import pyvista as pv
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
 from monai_physio import (
-    ContourTools,
+    ProcessContours,
+    ProcessTests,
     SegmentNVSegmentCTMRI,
-    TestTools,
     WorkflowConvertImageToVTK,
     WorkflowFitStatisticalModelToPatient,
 )
@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
     project_name = "tutorial_07_lung"
 
-    test_mode = TestTools.running_as_test()
+    test_mode = ProcessTests.running_as_test()
 
     output_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / project_name
     weights_dir = LUNG_CT_DIRLAB.weights_directory(test_mode)
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     segmentation_workflow = WorkflowConvertImageToVTK(
         segmentation_method=segmentation_method, log_level=log_level
     )
-    contour_tools = ContourTools(log_level=log_level)
+    contour_tools = ProcessContours(log_level=log_level)
 
     # Directory setup and data reading
 
@@ -204,7 +204,7 @@ if __name__ == "__main__":
     )
 
     # Testing
-    TestTools(
+    ProcessTests(
         class_name=project_name,
         results_dir=output_dir,
         baselines_dir=baselines_dir,

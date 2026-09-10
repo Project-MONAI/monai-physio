@@ -50,7 +50,7 @@ class TrainPhysicsNeMoMLP(TrainPhysicsNeMoBase):
             raise ValueError(f"num_layers must be >= 1, got {num_layers}")
         self.num_layers = num_layers
 
-    def build_model(self, in_features: int, out_features: int) -> "torch.nn.Module":
+    def build_model(self, in_features: int, out_features: int) -> torch.nn.Module:
         try:
             from physicsnemo.models.mlp import FullyConnected
         except ImportError as exc:  # pragma: no cover - broken environment
@@ -72,7 +72,7 @@ class TrainPhysicsNeMoMLP(TrainPhysicsNeMoBase):
 
     def setup_inputs(
         self,
-        device: "torch.device",
+        device: torch.device,
         template_mesh: pv.DataSet,
         template_coords: np.ndarray,
     ) -> None:
@@ -80,8 +80,8 @@ class TrainPhysicsNeMoMLP(TrainPhysicsNeMoBase):
         return None
 
     def forward(
-        self, model: "torch.nn.Module", node_feats: "torch.Tensor", batch_len: int
-    ) -> "torch.Tensor":
+        self, model: torch.nn.Module, node_feats: torch.Tensor, batch_len: int
+    ) -> torch.Tensor:
         return cast("torch.Tensor", model(node_feats))
 
     def checkpoint_fields(self) -> dict:

@@ -69,7 +69,7 @@ from parameters_duke_heart_labelmaps import DUKE_HEART
 
 from monai_physio import (
     EvaluateMovementDukeHeart,
-    TestTools,
+    ProcessTests,
     WorkflowEvaluateMovement,
     WorkflowInferMovement,
     WorkflowInferPhysicsNeMo,
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     case_id = DUKE_HEART.hold_out_case
 
     # Fitted SSM surface and PCA coefficients written by Tutorial 8 (Duke Heart).
-    test_mode = TestTools.running_as_test()
+    test_mode = ProcessTests.running_as_test()
     # Keep a test run out of the directories a full run reads and writes.
     case_dir = (
         DUKE_HEART.output_directory(test_mode) / "tutorial_08_duke_heart" / case_id
@@ -193,7 +193,7 @@ if __name__ == "__main__":
     tutorial_results: dict[str, Any] = dict(result)
 
     # Testing
-    tt = TestTools(
+    tt = ProcessTests(
         class_name=class_name,
         results_dir=output_dir,
         baselines_dir=repo_root / "tests" / "baselines" / class_name,

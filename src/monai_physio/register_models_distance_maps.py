@@ -48,12 +48,12 @@ from typing import Optional
 import itk
 import pyvista as pv
 
-from .contour_tools import ContourTools
-from .labelmap_tools import LabelmapTools
 from .monai_physio_base import MONAIPhysioBase
+from .process_contours import ProcessContours
+from .process_labelmaps import ProcessLabelmaps
+from .process_transforms import ProcessTransforms
 from .register_images_greedy import RegisterImagesGreedy
 from .register_images_icon import RegisterImagesICON
-from .transform_tools import TransformTools
 
 
 class RegisterModelsDistanceMaps(MONAIPhysioBase):
@@ -87,8 +87,8 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
         reference_image (itk.Image): Reference image for coordinate frame
         mask_dilation_mm (float): Dilation amount in mm for binary registration masks
         distance_squared_max (float): Maximum squared distance for distance map normalization
-        transform_tools (TransformTools): Transform utility instance
-        contour_tools (ContourTools): Model utility instance
+        transform_tools (ProcessTransforms): Transform utility instance
+        contour_tools (ProcessContours): Model utility instance
         registrar_Greedy (RegisterImagesGreedy): Greedy registration instance
         registrar_ICON (RegisterImagesICON): ICON registration instance
         fixed_to_moving_transform (itk.CompositeTransform): Optimized fixed-to-moving transform
@@ -155,9 +155,9 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
         self.mask_dilation_mm = mask_dilation_mm
 
         # Utilities
-        self.transform_tools = TransformTools()
-        self.contour_tools = ContourTools()
-        self.labelmap_tools = LabelmapTools(log_level=log_level)
+        self.transform_tools = ProcessTransforms()
+        self.contour_tools = ProcessContours()
+        self.labelmap_tools = ProcessLabelmaps(log_level=log_level)
 
         # Registration instances
         self.registrar_Greedy = RegisterImagesGreedy(log_level=log_level)

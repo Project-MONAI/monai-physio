@@ -197,20 +197,24 @@ Tests should be marked appropriately:
 ```python
 import pytest
 
+
 @pytest.mark.unit
 def test_simple_function():
     """Fast unit test"""
     pass
+
 
 @pytest.mark.integration
 def test_full_pipeline():
     """Integration test"""
     pass
 
+
 @pytest.mark.slow
 def test_long_running():
     """Long-running test"""
     pass
+
 
 @pytest.mark.requires_gpu
 def test_gpu_function():

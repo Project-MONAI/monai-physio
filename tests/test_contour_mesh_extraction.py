@@ -1,4 +1,4 @@
-"""Tests for ContourTools' per-label surface and tetrahedral mesh extraction.
+"""Tests for ProcessContours' per-label surface and tetrahedral mesh extraction.
 
 These use ``data/test/slicer_heart_small``, whose direction matrix is
 right-handed, plus a synthetic left-handed image for the cases that only a
@@ -14,7 +14,7 @@ import numpy as np
 import pytest
 import pyvista as pv
 
-from monai_physio.contour_tools import ContourTools
+from monai_physio.process_contours import ProcessContours
 
 #: A label that reaches the volume border, so its surface only closes if the
 #: mask is padded first.
@@ -105,7 +105,7 @@ class TestExtractContours:
     """The multi-label contour must be smooth and keep its labels in contact."""
 
     def test_smoothing_takes_the_voxel_blocks_out(
-        self, contour_tools: ContourTools
+        self, contour_tools: ProcessContours
     ) -> None:
         """Taubin smoothing leaves the surface markedly less faceted.
 
@@ -119,7 +119,7 @@ class TestExtractContours:
         assert _roughness(smooth) < 0.75 * _roughness(blocky)
 
     def test_smoothing_keeps_every_cell_and_its_labels(
-        self, contour_tools: ContourTools
+        self, contour_tools: ProcessContours
     ) -> None:
         """Smoothing only moves points, so the label of each cell survives.
 
@@ -133,7 +133,7 @@ class TestExtractContours:
         assert smooth.n_points == blocky.n_points
         assert _label_pairs(smooth) == _label_pairs(blocky)
 
-    def test_labels_stay_in_contact(self, contour_tools: ContourTools) -> None:
+    def test_labels_stay_in_contact(self, contour_tools: ProcessContours) -> None:
         """The wall between the labels is not torn open by smoothing.
 
         Regression guard for ``non_manifold_smoothing``: the surface net shares
@@ -157,7 +157,7 @@ class TestExtractContours:
         assert open_edges(smooth) == open_edges(blocky)
 
     def test_anisotropic_labelmap_is_contoured_isotropically(
-        self, contour_tools: ContourTools
+        self, contour_tools: ProcessContours
     ) -> None:
         """Boundaries land between the slices rather than terracing at them.
 
@@ -178,7 +178,7 @@ class TestExtractLabelSurfaces:
     """Labels extracted together must stay closed and stay in contact."""
 
     def test_surfaces_are_watertight_and_outward(
-        self, contour_tools: ContourTools
+        self, contour_tools: ProcessContours
     ) -> None:
         """Every label closes and encloses a positive volume."""
         surfaces = contour_tools.extract_label_surfaces(_touching_boxes())
@@ -191,7 +191,7 @@ class TestExtractLabelSurfaces:
             assert surface.volume > 0.0, f"label {label_id} must face outward"
 
     def test_neighbors_share_the_wall_between_them(
-        self, contour_tools: ContourTools
+        self, contour_tools: ProcessContours
     ) -> None:
         """The two surfaces meet on identical vertices, smoothing included.
 
@@ -210,7 +210,7 @@ class TestExtractLabelSurfaces:
         ).point_data["implicit_distance"]
         assert np.count_nonzero(np.abs(distances) < 1e-9) == len(shared)
 
-    def test_volume_matches_the_labelmap(self, contour_tools: ContourTools) -> None:
+    def test_volume_matches_the_labelmap(self, contour_tools: ProcessContours) -> None:
         """Neither label is thinned or fattened by the smoothing.
 
         Not to the voxel exactly: the distance map is zero at the outermost
@@ -232,7 +232,7 @@ class TestExtractWatertightSurface:
     """The per-label surface must be closed and outward-oriented."""
 
     def test_border_label_surface_is_watertight(
-        self, contour_tools: ContourTools, heart_labelmap: itk.Image
+        self, contour_tools: ProcessContours, heart_labelmap: itk.Image
     ) -> None:
         """A label touching the volume border still closes.
 
@@ -248,7 +248,7 @@ class TestExtractWatertightSurface:
             "every edge must be shared by exactly two faces"
         )
 
-    def test_normals_point_outward(self, contour_tools: ContourTools) -> None:
+    def test_normals_point_outward(self, contour_tools: ProcessContours) -> None:
         """A left-handed direction still yields a positive enclosed volume.
 
         Regression guard for ``auto_orient_normals``: VTK winds faces for a
@@ -263,12 +263,14 @@ class TestExtractWatertightSurface:
         )
         assert surface.volume > 0.0, "enclosed volume must be positive"
 
-    def test_empty_surface_is_not_watertight(self, contour_tools: ContourTools) -> None:
+    def test_empty_surface_is_not_watertight(
+        self, contour_tools: ProcessContours
+    ) -> None:
         """A surface with no face fails the test rather than passing it vacuously."""
         assert not contour_tools.is_watertight(pv.PolyData())
 
     def test_decimation_reduces_triangle_count(
-        self, contour_tools: ContourTools, heart_labelmap: itk.Image
+        self, contour_tools: ProcessContours, heart_labelmap: itk.Image
     ) -> None:
         """surface_reduction_rate removes roughly that fraction of triangles."""
         mask = _label_mask(heart_labelmap, BORDER_LABEL)
@@ -284,7 +286,7 @@ class TestExtractTetrahedra:
     """The per-label volume mesh must be tetrahedral and positively oriented."""
 
     def test_cells_are_tetrahedra(
-        self, contour_tools: ContourTools, heart_labelmap: itk.Image
+        self, contour_tools: ProcessContours, heart_labelmap: itk.Image
     ) -> None:
         """Every cell is a tetrahedron, six per labeled voxel."""
         mask = _label_mask(heart_labelmap, BORDER_LABEL)
@@ -295,7 +297,7 @@ class TestExtractTetrahedra:
         assert mesh.n_cells == 6 * voxels
 
     def test_left_handed_direction_yields_positive_volumes(
-        self, contour_tools: ContourTools
+        self, contour_tools: ProcessContours
     ) -> None:
         """No tetrahedron is inverted when the direction determinant is negative.
 
@@ -310,7 +312,7 @@ class TestExtractTetrahedra:
         assert float(np.sum(volumes)) == pytest.approx(4 * 4 * 4 * 6.0)
 
     def test_volume_survives_coarsening(
-        self, contour_tools: ContourTools, heart_labelmap: itk.Image
+        self, contour_tools: ProcessContours, heart_labelmap: itk.Image
     ) -> None:
         """Elements twice the voxel keep the volume while shedding cells cubically."""
         mask = _label_mask(heart_labelmap, BORDER_LABEL)
@@ -323,13 +325,15 @@ class TestExtractTetrahedra:
         assert coarse_volume == pytest.approx(full_volume, rel=0.1)
         assert coarse.n_cells == pytest.approx(full.n_cells * 0.125, rel=0.3)
 
-    def test_empty_mask_yields_an_empty_mesh(self, contour_tools: ContourTools) -> None:
+    def test_empty_mask_yields_an_empty_mesh(
+        self, contour_tools: ProcessContours
+    ) -> None:
         """A mask with nothing in it has no bounding box to mesh."""
         empty = itk.GetImageFromArray(np.zeros((4, 4, 4), dtype=np.uint8))
 
         assert contour_tools.extract_tetrahedra(empty).n_cells == 0
 
-    def test_elements_are_isotropic(self, contour_tools: ContourTools) -> None:
+    def test_elements_are_isotropic(self, contour_tools: ProcessContours) -> None:
         """The requested element size is what the mesh is built on.
 
         Regression guard for the anisotropic default: meshing a mask's own
@@ -356,7 +360,7 @@ class TestTrimTetrahedraToSurface:
         return float(np.abs(distance).mean())
 
     def test_boundary_lands_on_the_surface(
-        self, contour_tools: ContourTools, heart_labelmap: itk.Image
+        self, contour_tools: ProcessContours, heart_labelmap: itk.Image
     ) -> None:
         """The voxel staircase is relaxed onto the surface, not merely clipped.
 
@@ -374,7 +378,7 @@ class TestTrimTetrahedraToSurface:
         assert self._boundary_gap(relaxed, surface) < 0.25 * before
 
     def test_cells_are_kept_whole_and_well_shaped(
-        self, contour_tools: ContourTools, heart_labelmap: itk.Image
+        self, contour_tools: ProcessContours, heart_labelmap: itk.Image
     ) -> None:
         """Cells are only dropped, never cut into slivers.
 
@@ -394,7 +398,7 @@ class TestTrimTetrahedraToSurface:
         )
         assert np.min(quality) >= 0.1, "no tetrahedron may be left a sliver"
 
-    def test_anatomy_color_survives(self, contour_tools: ContourTools) -> None:
+    def test_anatomy_color_survives(self, contour_tools: ProcessContours) -> None:
         """Cell and field data attached at extraction are carried through."""
         mask = _left_handed_box()
         surface = contour_tools.extract_label_surfaces(mask)[1]
@@ -416,7 +420,9 @@ class TestRepairInvertedTetrahedra:
         cells = np.array([4, 0, 1, 2, 3])
         return pv.UnstructuredGrid(cells, [pv.CellType.TETRA], points)
 
-    def test_repairs_an_inverted_tetrahedron(self, contour_tools: ContourTools) -> None:
+    def test_repairs_an_inverted_tetrahedron(
+        self, contour_tools: ProcessContours
+    ) -> None:
         """Swapping two corners inverts the cell; relaxation must restore it."""
         points = np.array(
             [[0.0, 0.0, 0.0], [1.0, 1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]]
@@ -429,7 +435,7 @@ class TestRepairInvertedTetrahedra:
         edges = corners[1:, :] - corners[0:1, :]
         assert np.linalg.det(edges) / 6.0 > 0.0
 
-    def test_raises_when_unrecoverable(self, contour_tools: ContourTools) -> None:
+    def test_raises_when_unrecoverable(self, contour_tools: ProcessContours) -> None:
         """A degenerate cell with no neighbors to average toward can't be fixed."""
         points = np.array(
             [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [2.0, 0.0, 0.0], [3.0, 0.0, 0.0]]
@@ -439,7 +445,7 @@ class TestRepairInvertedTetrahedra:
         with pytest.raises(ValueError, match="still inverted or degenerate"):
             contour_tools.repair_inverted_tetrahedra(mesh, max_iterations=2)
 
-    def test_raises_when_no_tetra_cells(self, contour_tools: ContourTools) -> None:
+    def test_raises_when_no_tetra_cells(self, contour_tools: ProcessContours) -> None:
         """A mesh without TETRA cells fails with a clear message, not a KeyError."""
         mesh = pv.UnstructuredGrid()
 

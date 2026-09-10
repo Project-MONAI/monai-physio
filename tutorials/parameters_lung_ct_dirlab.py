@@ -48,13 +48,13 @@ class ParametersLungCTDirLab(ParametersBase):
             tetrahedron count falls by roughly ``(1 - rate) ** 3``.
         model_points: Points kept per surface when building the shape model.
             ``0`` keeps every point, which is what a full run does.
-        model_points_test: Same, under ``TestTools.running_as_test``.
+        model_points_test: Same, under ``ProcessTests.running_as_test``.
         number_of_pca_components: PCA components retained when building the
             lung statistical model, and used when fitting it to a patient.
-        number_of_pca_components_test: Same, under ``TestTools.running_as_test``.
+        number_of_pca_components_test: Same, under ``ProcessTests.running_as_test``.
         number_of_iterations_greedy: Greedy coarse-to-fine iteration schedule.
         number_of_iterations_greedy_test: Same, under
-            ``TestTools.running_as_test``.
+            ``ProcessTests.running_as_test``.
         segmenter_class: Segmenter every lung tutorial instantiates, so the
             surfaces they compare share a definition of "lung".
         anatomy_group: Anatomy group name that segmenter registers for lungs.

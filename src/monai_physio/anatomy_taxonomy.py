@@ -6,7 +6,7 @@ minimal data type that maps anatomical groups (``heart``, ``lung``, ``bone``,
 
 The taxonomy is the single source of truth for the label hierarchy. Both
 :class:`monai_physio.SegmentAnatomyBase` (which populates one via its
-subclasses) and :class:`monai_physio.USDAnatomyTools` (which consumes one
+subclasses) and :class:`monai_physio.ProcessUSDAnatomy` (which consumes one
 when applying materials) depend on this class. The two consumers do not
 depend on each other, which lets either side be used without the other.
 

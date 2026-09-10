@@ -154,7 +154,6 @@ class UsdMeshConverter:
         elif self.settings.compute_normals:
             logger.debug("Computing normals for mesh")
             # Normals will be computed by renderer or in post-process
-            pass
 
         # Handle vertex colors
         if mesh_data.colors is not None:

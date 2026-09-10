@@ -71,9 +71,9 @@ import pyvista as pv
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
 from monai_physio import (
-    ContourTools,
+    ProcessContours,
+    ProcessTests,
     SegmentNVSegmentCTMRI,
-    TestTools,
     WorkflowConvertImageToVTK,
     WorkflowFitStatisticalModelToPatient,
     WorkflowInferMovement,
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     # phase, so the network's reference frame is this one.
     reference_phase = "T70"
 
-    test_mode = TestTools.running_as_test()
+    test_mode = ProcessTests.running_as_test()
     # Keep a test run out of the directories a full run reads and writes.
     weights_dir = LUNG_CT_DIRLAB.weights_directory(test_mode)
 
@@ -217,7 +217,7 @@ if __name__ == "__main__":
     lung_surface_file = output_dir / f"{reference_file.stem}.vtp"
     lung_labelmap_file = output_dir / f"{reference_file.stem}_labelmap.nii.gz"
     logger.info("Segmenting the reference phase %s", reference_file.name)
-    contour_tools = ContourTools(log_level=log_level)
+    contour_tools = ProcessContours(log_level=log_level)
     segmentation_result = WorkflowConvertImageToVTK(
         segmentation_method=SegmentNVSegmentCTMRI(log_level=log_level),
         log_level=log_level,
@@ -305,7 +305,7 @@ if __name__ == "__main__":
     tutorial_results["fitted_reference_mesh_file"] = fitted_reference_mesh_file
 
     # Testing: the fitted reference surface beside the first predicted stage.
-    tt = TestTools(
+    tt = ProcessTests(
         class_name=class_name,
         results_dir=output_dir,
         baselines_dir=repo_root / "tests" / "baselines" / class_name,

@@ -1,5 +1,5 @@
 """
-Tests for ImageTools functionality.
+Tests for ProcessImages functionality.
 
 Tests conversion between ITK and SimpleITK image formats for both
 scalar and vector images.
@@ -15,18 +15,18 @@ import numpy as np
 import pytest
 import SimpleITK as sitk
 
-from monai_physio.image_tools import ImageTools
+from monai_physio.process_images import ProcessImages
 
 
-class TestImageTools:
-    """Test suite for ImageTools conversions."""
+class TestProcessImages:
+    """Test suite for ProcessImages conversions."""
 
     @pytest.fixture
-    def image_tools(self) -> ImageTools:
-        """Create ImageTools instance."""
-        return ImageTools()
+    def image_tools(self) -> ProcessImages:
+        """Create ProcessImages instance."""
+        return ProcessImages()
 
-    def test_itk_to_sitk_scalar_image(self, image_tools: ImageTools) -> None:
+    def test_itk_to_sitk_scalar_image(self, image_tools: ProcessImages) -> None:
         """Test conversion of scalar ITK image to SimpleITK."""
         # Create a simple 3D scalar ITK image
         size = [10, 20, 30]
@@ -61,7 +61,7 @@ class TestImageTools:
 
         print("ITK to SimpleITK scalar conversion successful")
 
-    def test_sitk_to_itk_scalar_image(self, image_tools: ImageTools) -> None:
+    def test_sitk_to_itk_scalar_image(self, image_tools: ProcessImages) -> None:
         """Test conversion of scalar SimpleITK image to ITK."""
         # Create a simple 3D scalar SimpleITK image
         size = [10, 20, 30]
@@ -93,7 +93,7 @@ class TestImageTools:
 
         print("SimpleITK to ITK scalar conversion successful")
 
-    def test_roundtrip_scalar_image(self, image_tools: ImageTools) -> None:
+    def test_roundtrip_scalar_image(self, image_tools: ProcessImages) -> None:
         """Test roundtrip conversion: ITK -> SimpleITK -> ITK."""
         # Create ITK image
         size = [15, 25, 35]
@@ -129,7 +129,7 @@ class TestImageTools:
 
         print("Roundtrip scalar conversion successful")
 
-    def test_itk_to_sitk_vector_image(self, image_tools: ImageTools) -> None:
+    def test_itk_to_sitk_vector_image(self, image_tools: ProcessImages) -> None:
         """Test conversion of vector ITK image to SimpleITK."""
         # Create a 3D vector ITK image (like a displacement field)
         size = [8, 12, 16]
@@ -167,7 +167,7 @@ class TestImageTools:
 
         print("ITK to SimpleITK vector conversion successful")
 
-    def test_sitk_to_itk_vector_image(self, image_tools: ImageTools) -> None:
+    def test_sitk_to_itk_vector_image(self, image_tools: ProcessImages) -> None:
         """Test conversion of vector SimpleITK image to ITK."""
         # Create a 3D vector SimpleITK image
         size = [8, 12, 16]
@@ -198,7 +198,7 @@ class TestImageTools:
 
         print("SimpleITK to ITK vector conversion successful")
 
-    def test_roundtrip_vector_image(self, image_tools: ImageTools) -> None:
+    def test_roundtrip_vector_image(self, image_tools: ProcessImages) -> None:
         """Test roundtrip conversion for vector images: ITK -> SimpleITK -> ITK."""
         # Create ITK vector image
         size = [10, 15, 20]
@@ -238,13 +238,13 @@ class TestImageTools:
     @pytest.mark.slow
     def test_imwrite_imread_vd3(
         self,
-        image_tools: ImageTools,
+        image_tools: ProcessImages,
         test_transforms: dict[str, Any],
         test_images: list[Any],
         test_directories: dict[str, Path],
     ) -> None:
         """Test reading and writing double precision vector images."""
-        from monai_physio.transform_tools import TransformTools
+        from monai_physio.process_transforms import ProcessTransforms
 
         output_dir = test_directories["output"]
         img_output_dir = output_dir / "image_tools"
@@ -255,8 +255,8 @@ class TestImageTools:
 
         print("\nTesting imwriteVD3 and imreadVD3...")
 
-        # Generate a deformation field using TransformTools
-        transform_tools = TransformTools()
+        # Generate a deformation field using ProcessTransforms
+        transform_tools = ProcessTransforms()
         deformation_field = transform_tools.convert_transform_to_displacement_field(
             fixed_to_moving_transform, fixed_image
         )
@@ -330,13 +330,15 @@ def _make_synthetic_itk_image(
 
 
 class TestFlipImage:
-    """Unit tests for ImageTools.flip_image (axis flips and direction reset)."""
+    """Unit tests for ProcessImages.flip_image (axis flips and direction reset)."""
 
     @pytest.fixture
-    def image_tools(self) -> ImageTools:
-        return ImageTools()
+    def image_tools(self) -> ProcessImages:
+        return ProcessImages()
 
-    def test_flip_x_flips_along_last_array_axis(self, image_tools: ImageTools) -> None:
+    def test_flip_x_flips_along_last_array_axis(
+        self, image_tools: ProcessImages
+    ) -> None:
         """flip_x flips the image along the x (last) array dimension."""
         # Small image: ITK size (nx, ny, nz) = (3, 2, 2) -> array shape (2, 2, 3)
         shape_xyz = (3, 2, 2)
@@ -350,7 +352,7 @@ class TestFlipImage:
         )
 
     def test_flip_y_flips_along_middle_array_axis(
-        self, image_tools: ImageTools
+        self, image_tools: ProcessImages
     ) -> None:
         """flip_y flips the image along the y (middle) array dimension."""
         shape_xyz = (3, 2, 2)
@@ -363,7 +365,9 @@ class TestFlipImage:
             "flip_y should match np.flip(..., axis=1)"
         )
 
-    def test_flip_z_flips_along_first_array_axis(self, image_tools: ImageTools) -> None:
+    def test_flip_z_flips_along_first_array_axis(
+        self, image_tools: ProcessImages
+    ) -> None:
         """flip_z flips the image along the z (first) array dimension."""
         shape_xyz = (3, 2, 2)
         arr = np.arange(12, dtype=np.float32).reshape(2, 2, 3)
@@ -375,7 +379,7 @@ class TestFlipImage:
             "flip_z should match np.flip(..., axis=0)"
         )
 
-    def test_flip_xy_combines_flips(self, image_tools: ImageTools) -> None:
+    def test_flip_xy_combines_flips(self, image_tools: ProcessImages) -> None:
         """flip_x and flip_y together flip both axes."""
         shape_xyz = (3, 2, 2)
         arr = np.arange(12, dtype=np.float32).reshape(2, 2, 3)
@@ -385,7 +389,7 @@ class TestFlipImage:
         expected = np.flip(np.flip(arr, axis=2), axis=1)
         assert np.allclose(out_arr, expected)
 
-    def test_no_flip_returns_same_image(self, image_tools: ImageTools) -> None:
+    def test_no_flip_returns_same_image(self, image_tools: ProcessImages) -> None:
         """With no flip flags, image is returned unchanged."""
         shape_xyz = (2, 2, 2)
         arr = np.arange(8, dtype=np.float32).reshape(2, 2, 2)
@@ -396,7 +400,9 @@ class TestFlipImage:
         out_arr = itk.array_from_image(out)
         assert np.allclose(out_arr, arr)
 
-    def test_mask_flipped_in_lockstep_with_image(self, image_tools: ImageTools) -> None:
+    def test_mask_flipped_in_lockstep_with_image(
+        self, image_tools: ProcessImages
+    ) -> None:
         """When a mask is provided, it is flipped with the same axes as the image."""
         shape_xyz = (3, 2, 2)
         arr = np.arange(12, dtype=np.float32).reshape(2, 2, 3)
@@ -418,7 +424,7 @@ class TestFlipImage:
         assert np.allclose(out_msk_arr, (out_img_arr % 2 == 0).astype(np.float32))
 
     def test_flip_and_make_identity_sets_direction_to_identity(
-        self, image_tools: ImageTools
+        self, image_tools: ProcessImages
     ) -> None:
         """flip_and_make_identity flips as needed and sets direction matrix to identity."""
         shape_xyz = (2, 2, 2)
@@ -434,7 +440,7 @@ class TestFlipImage:
         )
 
     def test_flip_and_make_identity_with_mask_sets_both_directions_to_identity(
-        self, image_tools: ImageTools
+        self, image_tools: ProcessImages
     ) -> None:
         """With mask and flip_and_make_identity, both image and mask get identity direction."""
         shape_xyz = (2, 2, 2)
@@ -455,7 +461,7 @@ class TestFlipImage:
             )
 
     def test_keep_largest_connected_component_keeps_largest_blob(
-        self, image_tools: ImageTools
+        self, image_tools: ProcessImages
     ) -> None:
         """Pure connected-component unit test on a synthetic 10x10x10 mask
         with two disjoint blobs (shape (X, Y, Z) = (10, 10, 10))."""
@@ -471,7 +477,7 @@ class TestFlipImage:
         assert result_arr[5:9, 5:9, 5:9].sum() == arr[5:9, 5:9, 5:9].sum()
 
     def test_keep_largest_connected_component_no_foreground_returns_empty(
-        self, image_tools: ImageTools
+        self, image_tools: ProcessImages
     ) -> None:
         """An all-background mask (shape (X, Y, Z) = (8, 8, 8)) returns
         an all-background result."""
@@ -485,15 +491,15 @@ class TestFlipImage:
 
 
 class TestResampleImageByScale:
-    """Unit tests for ImageTools.resample_image_by_scale."""
+    """Unit tests for ProcessImages.resample_image_by_scale."""
 
     @pytest.fixture
-    def image_tools(self) -> ImageTools:
-        return ImageTools()
+    def image_tools(self) -> ProcessImages:
+        return ProcessImages()
 
     @pytest.mark.parametrize("scale", [0.5, 0.25, 2.0])
     def test_physical_extent_is_preserved(
-        self, image_tools: ImageTools, scale: float
+        self, image_tools: ProcessImages, scale: float
     ) -> None:
         """Voxel count scales while the physical extent stays put."""
         itk_image = _make_synthetic_itk_image((8, 6, 4))
@@ -509,7 +515,7 @@ class TestResampleImageByScale:
             size * np.asarray(itk_image.GetSpacing()),
         ), "resampling must not change the physical extent"
 
-    def test_direction_is_unchanged(self, image_tools: ImageTools) -> None:
+    def test_direction_is_unchanged(self, image_tools: ProcessImages) -> None:
         """A left-handed direction survives resampling untouched."""
         direction = np.diag([1.0, 1.0, -1.0])
         itk_image = _make_synthetic_itk_image((8, 6, 4), direction=direction)
@@ -518,7 +524,9 @@ class TestResampleImageByScale:
 
         assert np.allclose(itk.array_from_matrix(out.GetDirection()), direction)
 
-    def test_nearest_neighbor_keeps_input_values(self, image_tools: ImageTools) -> None:
+    def test_nearest_neighbor_keeps_input_values(
+        self, image_tools: ProcessImages
+    ) -> None:
         """Nearest-neighbor resampling introduces no new intensities."""
         arr = np.zeros((4, 4, 4), dtype=np.float32)
         arr[1:3, 1:3, 1:3] = 7.0
@@ -532,7 +540,7 @@ class TestResampleImageByScale:
 
     @pytest.mark.parametrize("scale", [0.0, -1.0])
     def test_non_positive_scale_raises(
-        self, image_tools: ImageTools, scale: float
+        self, image_tools: ProcessImages, scale: float
     ) -> None:
         """A scale of zero or less is rejected."""
         itk_image = _make_synthetic_itk_image((4, 4, 4))

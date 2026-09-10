@@ -12,21 +12,21 @@ from pathlib import Path
 
 import pytest
 
-from monai_physio.data_download_tools import DataDownloadTools
+from monai_physio.download_data import DownloadData
 
 
-class TestDataDownloadTools:
+class TestDownloadData:
     """Synthetic tests for dataset verification helpers."""
 
     def test_verify_slicer_heart_ct_data(self, tmp_path: Path) -> None:
         """Verify Slicer data by expected `TruncalValve_4DCT.seq.nrrd` filename."""
-        data_file = tmp_path / DataDownloadTools.SLICER_HEART_CT_FILENAME
+        data_file = tmp_path / DownloadData.SLICER_HEART_CT_FILENAME
 
-        assert not DataDownloadTools.VerifySlicerHeartCTData(tmp_path)
+        assert not DownloadData.VerifySlicerHeartCTData(tmp_path)
 
         data_file.write_bytes(b"nrrd")
 
-        assert DataDownloadTools.VerifySlicerHeartCTData(tmp_path)
+        assert DownloadData.VerifySlicerHeartCTData(tmp_path)
 
     def test_verify_kcl_heart_model_data(self, tmp_path: Path) -> None:
         """Verify KCL data by expected average mesh and input mesh filenames."""
@@ -34,29 +34,29 @@ class TestDataDownloadTools:
         input_meshes = tmp_path / "input_meshes"
         input_meshes.mkdir()
 
-        assert not DataDownloadTools.VerifyKCLHeartModelData(tmp_path)
+        assert not DownloadData.VerifyKCLHeartModelData(tmp_path)
 
         (input_meshes / "01.vtk").write_text("# vtk\n")
 
-        assert DataDownloadTools.VerifyKCLHeartModelData(tmp_path)
+        assert DownloadData.VerifyKCLHeartModelData(tmp_path)
 
     def test_verify_dirlab_4dct_data(self, tmp_path: Path) -> None:
         """Verify DirLab data requires both the header and its backing data."""
         case1_dir = tmp_path / "Case1"
         case1_dir.mkdir()
 
-        assert not DataDownloadTools.VerifyDirLab4DCTData(tmp_path)
+        assert not DownloadData.VerifyDirLab4DCTData(tmp_path)
 
         # A header alone (as committed to the repo) must not verify --
         # the raw pixel data it points to has not been downloaded yet.
         (case1_dir / "case1_T00.mhd").write_text(
             "ObjectType = Image\nElementDataFile = case1_T00.img\n"
         )
-        assert not DataDownloadTools.VerifyDirLab4DCTData(tmp_path)
+        assert not DownloadData.VerifyDirLab4DCTData(tmp_path)
 
         # Once the backing pixel data the header points to exists, it verifies.
         (case1_dir / "case1_T00.img").write_bytes(b"raw")
-        assert DataDownloadTools.VerifyDirLab4DCTData(tmp_path)
+        assert DownloadData.VerifyDirLab4DCTData(tmp_path)
 
     def test_verify_dirlab_4dct_pack_layout_requires_backing_data(
         self, tmp_path: Path
@@ -71,22 +71,22 @@ class TestDataDownloadTools:
         mhd_file.write_text(
             "ObjectType = Image\nElementDataFile = Case1Pack/Images/case1_T00_s.img\n"
         )
-        assert not DataDownloadTools.VerifyDirLab4DCTData(tmp_path)
+        assert not DownloadData.VerifyDirLab4DCTData(tmp_path)
 
         backing_file = tmp_path / "Case1Pack" / "Images" / "case1_T00_s.img"
         backing_file.parent.mkdir(parents=True)
         backing_file.write_bytes(b"raw")
-        assert DataDownloadTools.VerifyDirLab4DCTData(tmp_path)
+        assert DownloadData.VerifyDirLab4DCTData(tmp_path)
 
     def test_verify_chop_valve_4d_data(self, tmp_path: Path) -> None:
         """Verify CHOP data by expected CT or valve time-series paths."""
-        assert not DataDownloadTools.VerifyCHOPValve4DData(tmp_path)
+        assert not DownloadData.VerifyCHOPValve4DData(tmp_path)
 
         ct_dir = tmp_path / "CT"
         ct_dir.mkdir()
         (ct_dir / "RVOT28-Dias.nii.gz").write_bytes(b"nii")
 
-        assert DataDownloadTools.VerifyCHOPValve4DData(tmp_path)
+        assert DownloadData.VerifyCHOPValve4DData(tmp_path)
 
 
 class TestDownloadHeartData:
@@ -124,7 +124,7 @@ class TestDownloadHeartData:
         """Test that the TruncalValve 4D CT data file is downloaded."""
         data_file = download_test_data
 
-        assert DataDownloadTools.VerifySlicerHeartCTData(
+        assert DownloadData.VerifySlicerHeartCTData(
             test_directories["slicer_heart_data"]
         )
         assert data_file.exists(), f"Data file not found: {data_file}"
@@ -155,14 +155,14 @@ class TestDownloadHeartData:
             return archive_path
 
         urls_to_archives = {}
-        for index in range(1, DataDownloadTools.KCL_HEART_MODEL_MESH_COUNT + 1):
-            url = DataDownloadTools.KCL_HEART_MODEL_INDIVIDUAL_URL_TEMPLATE.format(
+        for index in range(1, DownloadData.KCL_HEART_MODEL_MESH_COUNT + 1):
+            url = DownloadData.KCL_HEART_MODEL_INDIVIDUAL_URL_TEMPLATE.format(
                 index=index
             )
             urls_to_archives[url] = make_archive(
                 f"{index:02d}.vtk", f"# vtk {index}\n".encode()
             )
-        urls_to_archives[DataDownloadTools.KCL_HEART_MODEL_AVERAGE_URL] = make_archive(
+        urls_to_archives[DownloadData.KCL_HEART_MODEL_AVERAGE_URL] = make_archive(
             "average.vtk", b"# vtk average\n"
         )
 
@@ -170,18 +170,18 @@ class TestDownloadHeartData:
             return open(urls_to_archives[url], "rb")
 
         monkeypatch.setattr(
-            "monai_physio.data_download_tools.urllib.request.urlopen", fake_urlopen
+            "monai_physio.download_data.urllib.request.urlopen", fake_urlopen
         )
 
         output_dir = tmp_path / "KCL-Heart-Model"
-        result_dir = DataDownloadTools.DownloadKCLHeartModelData(output_dir)
+        result_dir = DownloadData.DownloadKCLHeartModelData(output_dir)
 
         assert result_dir == output_dir
         assert (output_dir / "average_mesh.vtk").read_text() == "# vtk average\n"
-        for index in range(1, DataDownloadTools.KCL_HEART_MODEL_MESH_COUNT + 1):
+        for index in range(1, DownloadData.KCL_HEART_MODEL_MESH_COUNT + 1):
             mesh_file = output_dir / "input_meshes" / f"{index:02d}.vtk"
             assert mesh_file.read_text() == f"# vtk {index}\n"
-        assert DataDownloadTools.VerifyKCLHeartModelData(output_dir)
+        assert DownloadData.VerifyKCLHeartModelData(output_dir)
 
     def test_download_chop_valve4d_data(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -200,8 +200,8 @@ class TestDownloadHeartData:
         for (
             subdir_name,
             asset_name,
-        ) in DataDownloadTools.CHOP_VALVE4D_ASSETS.items():
-            url = DataDownloadTools.CHOP_VALVE4D_RELEASE_URL + asset_name
+        ) in DownloadData.CHOP_VALVE4D_ASSETS.items():
+            url = DownloadData.CHOP_VALVE4D_RELEASE_URL + asset_name
             urls_to_archives[url] = make_archive(
                 subdir_name,
                 f"{subdir_name}/{subdir_name}.txt",
@@ -212,14 +212,14 @@ class TestDownloadHeartData:
             return open(urls_to_archives[url], "rb")
 
         monkeypatch.setattr(
-            "monai_physio.data_download_tools.urllib.request.urlopen", fake_urlopen
+            "monai_physio.download_data.urllib.request.urlopen", fake_urlopen
         )
 
         output_dir = tmp_path / "CHOP-Valve4D"
-        result_dir = DataDownloadTools.DownloadCHOPValve4DData(output_dir)
+        result_dir = DownloadData.DownloadCHOPValve4DData(output_dir)
 
         assert result_dir == output_dir
-        for subdir_name in DataDownloadTools.CHOP_VALVE4D_ASSETS:
+        for subdir_name in DownloadData.CHOP_VALVE4D_ASSETS:
             extracted_file = output_dir / subdir_name / f"{subdir_name}.txt"
             assert extracted_file.read_text() == f"# {subdir_name}\n"
 
@@ -237,7 +237,7 @@ class TestDownloadHeartData:
     ) -> None:
         """Subdirectories with their expected marker files are not re-downloaded."""
         output_dir = tmp_path / "CHOP-Valve4D"
-        for subdir_name in DataDownloadTools.CHOP_VALVE4D_ASSETS:
+        for subdir_name in DownloadData.CHOP_VALVE4D_ASSETS:
             self._write_chop_valve4d_expected_marker(
                 output_dir / subdir_name, subdir_name
             )
@@ -246,10 +246,10 @@ class TestDownloadHeartData:
             raise AssertionError(f"Should not download populated subdir: {url}")
 
         monkeypatch.setattr(
-            "monai_physio.data_download_tools.urllib.request.urlopen", fake_urlopen
+            "monai_physio.download_data.urllib.request.urlopen", fake_urlopen
         )
 
-        result_dir = DataDownloadTools.DownloadCHOPValve4DData(output_dir)
+        result_dir = DownloadData.DownloadCHOPValve4DData(output_dir)
 
         assert result_dir == output_dir
 
@@ -280,8 +280,8 @@ class TestDownloadHeartData:
         for (
             subdir_name,
             asset_name,
-        ) in DataDownloadTools.CHOP_VALVE4D_ASSETS.items():
-            url = DataDownloadTools.CHOP_VALVE4D_RELEASE_URL + asset_name
+        ) in DownloadData.CHOP_VALVE4D_ASSETS.items():
+            url = DownloadData.CHOP_VALVE4D_RELEASE_URL + asset_name
             leaf = "RVOT28-Dias.mha" if subdir_name == "CT" else "frame_0000.vtk"
             urls_to_archives[url] = make_archive(
                 subdir_name, f"{subdir_name}/{leaf}", f"# {subdir_name}\n".encode()
@@ -291,10 +291,10 @@ class TestDownloadHeartData:
             return open(urls_to_archives[url], "rb")
 
         monkeypatch.setattr(
-            "monai_physio.data_download_tools.urllib.request.urlopen", fake_urlopen
+            "monai_physio.download_data.urllib.request.urlopen", fake_urlopen
         )
 
-        DataDownloadTools.DownloadCHOPValve4DData(output_dir)
+        DownloadData.DownloadCHOPValve4DData(output_dir)
 
         # The stray leftover file did not prevent Alterra from re-downloading.
         assert (partial_dir / "frame_0000.vtk").read_text() == "# Alterra\n"

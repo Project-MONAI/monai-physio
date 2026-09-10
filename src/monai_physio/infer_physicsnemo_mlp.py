@@ -19,7 +19,7 @@ class InferPhysicsNeMoMLP(InferPhysicsNeMoBase):
     model_tag = "mlp"
     _INFER_CHUNK = 262144
 
-    def build_model(self, meta: dict) -> "torch.nn.Module":
+    def build_model(self, meta: dict) -> torch.nn.Module:
         try:
             from physicsnemo.models.mlp import FullyConnected
         except ImportError as exc:  # pragma: no cover - broken environment
@@ -40,7 +40,7 @@ class InferPhysicsNeMoMLP(InferPhysicsNeMoBase):
         return cast("torch.nn.Module", model)
 
     def load_artifacts(
-        self, model_directory: Path, n_points: int, device: "torch.device"
+        self, model_directory: Path, n_points: int, device: torch.device
     ) -> None:
         # The MLP has no shared graph artifacts.
         return None

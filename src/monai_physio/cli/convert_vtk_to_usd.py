@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pyvista as pv
 
-from ..usd_anatomy_tools import DEFAULT_RENDER_PARAMS
+from ..process_usd_anatomy import DEFAULT_RENDER_PARAMS
 
 # Anatomy types accepted by --anatomy-type, sourced from the renderer's
 # registered defaults so that new groups/organs registered in

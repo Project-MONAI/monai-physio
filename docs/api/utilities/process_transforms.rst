@@ -1,18 +1,18 @@
 ====================================
-USD Tools
+Transform Tools
 ====================================
 
 .. currentmodule:: monai_physio
 
-Core utilities for USD file creation and manipulation.
+Coordinate transformation and image warping utilities.
 
 Module Reference
 ================
 
-.. automodule:: monai_physio.usd_tools
+.. automodule:: monai_physio.process_transforms
    :members:
    :undoc-members:
 
 .. rubric:: Navigation
 
-:doc:`index` | :doc:`anatomy_tools` | :doc:`vtk_conversion`
+:doc:`process_images` | :doc:`index` | :doc:`process_contours`

@@ -34,7 +34,7 @@ class SegmentAnatomyBase(MONAIPhysioBase):
     ``self.taxonomy.add_organ(group_name, label_id, organ_name)`` for each
     organ; the group is created lazily on first use. To assign a custom
     OmniSurface look to a new group, register it in
-    :data:`monai_physio.usd_anatomy_tools.DEFAULT_RENDER_PARAMS` (see that
+    :data:`monai_physio.process_usd_anatomy.DEFAULT_RENDER_PARAMS` (see that
     module's docstring). Groups without a registered look fall back to the
     ``"other"`` entry, so they still render.
 
@@ -49,7 +49,7 @@ class SegmentAnatomyBase(MONAIPhysioBase):
             index space exceeds 255 (e.g.
             :class:`monai_physio.SegmentNVSegmentCTMRI`) set ``np.uint16``.
         taxonomy (AnatomyTaxonomy): Group→organ mapping shared with
-            :class:`monai_physio.USDAnatomyTools`.
+            :class:`monai_physio.ProcessUSDAnatomy`.
     """
 
     def __init__(self, log_level: int | str = logging.INFO):
@@ -75,7 +75,7 @@ class SegmentAnatomyBase(MONAIPhysioBase):
         self.labelmap_dtype: type = np.uint8
 
         # Single source of truth for the anatomy hierarchy. Subclasses
-        # populate this; USDAnatomyTools and ConvertVTKToUSD consume it.
+        # populate this; ProcessUSDAnatomy and ConvertVTKToUSD consume it.
         self.taxonomy = AnatomyTaxonomy()
 
     def _finalize_other_group(self, id_range: range = range(1, 256)) -> None:

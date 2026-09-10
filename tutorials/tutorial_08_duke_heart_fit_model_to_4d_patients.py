@@ -67,9 +67,9 @@ import pyvista as pv
 from parameters_duke_heart_labelmaps import DUKE_HEART
 
 from monai_physio import (
-    ContourTools,
+    ProcessContours,
+    ProcessTests,
     RegisterModelsDistanceMaps,
-    TestTools,
     WorkflowFitStatisticalModelToPatient,
 )
 
@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
     class_name = "tutorial_08_duke_heart_fit_model_to_4d_patients"
 
-    test_mode = TestTools.running_as_test()
+    test_mode = ProcessTests.running_as_test()
 
     output_dir = DUKE_HEART.output_directory(test_mode) / "tutorial_08_duke_heart"
     weights_dir = DUKE_HEART.weights_directory(test_mode)
@@ -177,7 +177,7 @@ if __name__ == "__main__":
             "See data/Duke-Heart-4DLabelmaps/README.md."
         )
 
-    contour_tools = ContourTools(log_level=log_level)
+    contour_tools = ProcessContours(log_level=log_level)
 
     def heart_surface_for(labelmap_file: Path, case_output_dir: Path) -> pv.PolyData:
         """Return one frame's whole heart, minus its chamber cavities.
@@ -335,7 +335,7 @@ if __name__ == "__main__":
         )
 
     # Testing
-    tt = TestTools(
+    tt = ProcessTests(
         class_name=class_name,
         results_dir=output_dir,
         baselines_dir=baselines_dir,

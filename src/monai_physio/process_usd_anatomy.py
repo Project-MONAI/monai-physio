@@ -1,5 +1,5 @@
 """
-This module contains the USDAnatomyTools class, which is used to enhance
+This module contains the ProcessUSDAnatomy class, which is used to enhance
 the anatomy meshes in a USD file.
 
 Extensibility
@@ -9,16 +9,16 @@ module-level :data:`DEFAULT_RENDER_PARAMS` dict. A new segmenter that
 introduces a new group (e.g. ``"brain"``, ``"tumor"``) can register a
 matching look in one of three ways:
 
-1. **Globally**, before instantiating any ``USDAnatomyTools``::
+1. **Globally**, before instantiating any ``ProcessUSDAnatomy``::
 
-       from monai_physio.usd_anatomy_tools import DEFAULT_RENDER_PARAMS
+       from monai_physio.process_usd_anatomy import DEFAULT_RENDER_PARAMS
        DEFAULT_RENDER_PARAMS["brain"] = {"name": "Brain", ...}
 
-   Every subsequent ``USDAnatomyTools`` instance picks up the new entry.
+   Every subsequent ``ProcessUSDAnatomy`` instance picks up the new entry.
 
 2. **Per-instance**, after construction::
 
-       tools = USDAnatomyTools(stage)
+       tools = ProcessUSDAnatomy(stage)
        tools.render_params["brain"] = {"name": "Brain", ...}
 
 3. **By subclassing**, overriding ``__init__`` to populate
@@ -770,7 +770,7 @@ DEFAULT_RENDER_PARAMS: dict[str, dict[str, Any]] = {
 
 # Canonical AnatomyTaxonomy group names that carry a group-level entry in
 # DEFAULT_RENDER_PARAMS. Every other key is an organ-level override. Used by
-# :meth:`USDAnatomyTools._resolve_render_params` to mirror ``enhance_meshes``,
+# :meth:`ProcessUSDAnatomy._resolve_render_params` to mirror ``enhance_meshes``,
 # where an organ override always beats the containing group on a substring
 # match (e.g. "lung_veins" -> the "vein" override, not the "lung" group).
 GROUP_RENDER_KEYS: frozenset[str] = frozenset(
@@ -787,7 +787,7 @@ GROUP_RENDER_KEYS: frozenset[str] = frozenset(
 )
 
 
-class USDAnatomyTools(MONAIPhysioBase):
+class ProcessUSDAnatomy(MONAIPhysioBase):
     """Apply OmniSurface materials to anatomy mesh prims in a USD stage.
 
     The instance attribute :attr:`render_params` is initialized from the
@@ -797,7 +797,7 @@ class USDAnatomyTools(MONAIPhysioBase):
     """
 
     def __init__(self, stage: Any, log_level: int | str = logging.INFO) -> None:
-        """Initialize USDAnatomyTools.
+        """Initialize ProcessUSDAnatomy.
 
         Args:
             stage: USD stage to work with. May be ``None`` when the instance
@@ -808,7 +808,7 @@ class USDAnatomyTools(MONAIPhysioBase):
         super().__init__(class_name=self.__class__.__name__, log_level=log_level)
         self.stage = stage
         # Per-instance copy so per-instance mutations don't leak into other
-        # USDAnatomyTools instances.
+        # ProcessUSDAnatomy instances.
         self.render_params: dict[str, dict[str, Any]] = {
             key: dict(params) for key, params in DEFAULT_RENDER_PARAMS.items()
         }

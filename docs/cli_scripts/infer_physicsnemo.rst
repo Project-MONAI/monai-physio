@@ -68,7 +68,7 @@ and the reference-surface normals onto that image's voxel grid:
 
 This writes ``deformation_field.mha`` and ``surface_normal_field.mha`` -
 apply them to volumes and labelmaps with
-:class:`~monai_physio.TransformTools`.
+:class:`~monai_physio.ProcessTransforms`.
 
 Options
 =======

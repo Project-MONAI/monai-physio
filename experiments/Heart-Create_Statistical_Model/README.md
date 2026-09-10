@@ -158,7 +158,7 @@ workflow = WorkflowFitStatisticalModelToPatient(
     fixed_meshes=patient_surfaces,
     fixed_image=patient_ct,
     pca_json="pca_model.json",  # From this experiment
-    pca_number_of_modes=10
+    pca_number_of_modes=10,
 )
 
 registered_mesh = workflow.process()["registered_template_model_surface"]

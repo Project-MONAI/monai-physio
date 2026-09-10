@@ -15,10 +15,10 @@ from pathlib import Path
 
 import itk
 
+from monai_physio.process_transforms import ProcessTransforms
 from monai_physio.register_images_ants import RegisterImagesANTS
 from monai_physio.register_images_greedy import RegisterImagesGreedy
 from monai_physio.register_images_icon import RegisterImagesICON
-from monai_physio.transform_tools import TransformTools
 
 # %% [markdown]
 # ## 1. Configuration and hard-coded paths
@@ -99,7 +99,7 @@ print(f"{method} registration done in {elapsed:.1f} s, loss={loss:.4f}")
 # three backends (ANTS, ICON, Greedy).
 
 # %%
-transform_tools = TransformTools()
+transform_tools = ProcessTransforms()
 warp_t_start = time.perf_counter()
 warped_image = transform_tools.transform_image(
     moving_image,

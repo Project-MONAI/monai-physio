@@ -67,7 +67,7 @@ for ``"other"``.
 
 .. code-block:: python
 
-   from monai_physio.usd_anatomy_tools import DEFAULT_RENDER_PARAMS
+   from monai_physio.process_usd_anatomy import DEFAULT_RENDER_PARAMS
 
    DEFAULT_RENDER_PARAMS["brain"] = {
        "name": "Brain",

@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 import numpy as np
 import pyvista as pv
 
-from .physicsnemo_tools import PhysicsNemoTools
+from .process_physicsnemo import ProcessPhysicsNemo
 from .train_physicsnemo_base import TrainPhysicsNeMoBase
 
 if TYPE_CHECKING:  # typed for mypy; imported lazily at runtime
@@ -83,7 +83,7 @@ class TrainPhysicsNeMoMGN(TrainPhysicsNeMoBase):
         self.num_processor_checkpoint_segments = num_segments
 
     def build_model(self, in_features: int, out_features: int) -> torch.nn.Module:
-        MeshGraphNet = PhysicsNemoTools.import_meshgraphnet()
+        MeshGraphNet = ProcessPhysicsNemo.import_meshgraphnet()
 
         model = MeshGraphNet(
             input_dim_nodes=in_features,
@@ -113,8 +113,8 @@ class TrainPhysicsNeMoMGN(TrainPhysicsNeMoBase):
         from torch_geometric.data import Data
 
         self._device = device
-        self._shared_edge_index = PhysicsNemoTools.mesh_to_edge_index(template_mesh)
-        self._shared_edge_feats = PhysicsNemoTools.compute_edge_features(
+        self._shared_edge_index = ProcessPhysicsNemo.mesh_to_edge_index(template_mesh)
+        self._shared_edge_feats = ProcessPhysicsNemo.compute_edge_features(
             template_coords, self._shared_edge_index
         )
         self._shared_graph = Data(

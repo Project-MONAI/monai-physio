@@ -32,9 +32,8 @@ from __future__ import annotations
 import argparse
 import json
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Parsers
@@ -54,7 +53,7 @@ def parse_junit(xml_path: Path) -> dict:
         }
 
     try:
-        tree = ET.parse(xml_path)  # noqa: S314
+        tree = ET.parse(xml_path)
         root = tree.getroot()
 
         suites = root.findall("testsuite") if root.tag == "testsuites" else [root]
@@ -401,9 +400,7 @@ def main() -> None:
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    timestamp = args.timestamp or datetime.now(timezone.utc).strftime(
-        "%Y-%m-%dT%H:%M:%SZ"
-    )
+    timestamp = args.timestamp or datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     data = {
         "junit": parse_junit_dir(results_dir),

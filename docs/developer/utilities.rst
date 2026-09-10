@@ -13,9 +13,9 @@ Transform Tools
 
    import itk
 
-   from monai_physio import TransformTools
+   from monai_physio import ProcessTransforms
 
-   tools = TransformTools()
+   tools = ProcessTransforms()
    transform = itk.transformread("fixed_to_moving_transform.hdf")
    moving = itk.imread("moving.mha")
    reference = itk.imread("reference.mha")
@@ -29,12 +29,12 @@ For PyVista contours:
    import itk
    import pyvista as pv
 
-   from monai_physio import TransformTools
+   from monai_physio import ProcessTransforms
 
    mesh = pv.read("heart_t0.vtp")
    transform = itk.transformread("fixed_to_moving_transform.hdf")
 
-   transformed = TransformTools().transform_pvcontour(mesh, transform)
+   transformed = ProcessTransforms().transform_pvcontour(mesh, transform)
 
 Contour Tools
 =============
@@ -43,10 +43,10 @@ Contour Tools
 
    import itk
 
-   from monai_physio import ContourTools
+   from monai_physio import ProcessContours
 
    mask = itk.imread("heart_mask.nrrd")
-   contour = ContourTools().extract_contours(mask)
+   contour = ProcessContours().extract_contours(mask)
    contour.save("heart_surface.vtp")
 
 USD Tools
@@ -54,9 +54,9 @@ USD Tools
 
 .. code-block:: python
 
-   from monai_physio import USDTools
+   from monai_physio import ProcessUSD
 
-   tools = USDTools()
+   tools = ProcessUSD()
    tools.merge_usd_files(
        "combined.usd",
        ["heart.usd", "lung.usd", "vessels.usd"],
@@ -69,17 +69,17 @@ USD Anatomy Tools
 
    from pxr import Usd
 
-   from monai_physio import USDAnatomyTools
+   from monai_physio import ProcessUSDAnatomy
 
    stage = Usd.Stage.Open("anatomy.usd")
-   painter = USDAnatomyTools(stage)
+   painter = ProcessUSDAnatomy(stage)
    painter.apply_anatomy_material_to_mesh("/World/Heart", "heart")
    stage.Export("anatomy_painted.usd")
 
 Image Tools
 ===========
 
-``ImageTools`` contains conversion and small image helpers used internally by
+``ProcessImages`` contains conversion and small image helpers used internally by
 registration and transform utilities. Prefer direct ITK I/O for ordinary
 example code:
 

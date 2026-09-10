@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import importlib
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Any
 
 import pytest
-
 
 CLI_MODULES = [
     "monai_physio.cli.convert_image_to_vtk",

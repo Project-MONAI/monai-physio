@@ -9,10 +9,10 @@ Contour extraction and processing utilities.
 Module Reference
 ================
 
-.. automodule:: monai_physio.contour_tools
+.. automodule:: monai_physio.process_contours
    :members:
    :undoc-members:
 
 .. rubric:: Navigation
 
-:doc:`transform_tools` | :doc:`index` | :doc:`image_conversion`
+:doc:`process_transforms` | :doc:`index` | :doc:`image_conversion`

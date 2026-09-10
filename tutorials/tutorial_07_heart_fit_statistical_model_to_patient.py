@@ -26,11 +26,11 @@ import pyvista as pv
 from parameters_heart_ct_kcl import HEART_CT_KCL
 
 from monai_physio import (
-    ContourTools,
-    SegmentChestTotalSegmentator,
+    ProcessContours,
     # SegmentHeartSimplewareTrimmedBranches,
     # SegmentChestTotalSegmentatorWithContrast,
-    TestTools,
+    ProcessTests,
+    SegmentChestTotalSegmentator,
     WorkflowFitStatisticalModelToPatient,
 )
 
@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
     project_name = "tutorial_07_heart"
 
-    test_mode = TestTools.running_as_test()
+    test_mode = ProcessTests.running_as_test()
 
     output_dir = HEART_CT_KCL.output_directory(test_mode) / project_name
     weights_dir = HEART_CT_KCL.weights_directory(test_mode)
@@ -129,7 +129,7 @@ if __name__ == "__main__":
             compression=True,
         )
 
-        contour_tools = ContourTools()
+        contour_tools = ProcessContours()
         heart_surface = contour_tools.extract_contours(
             labelmap_image=heart_labelmap,
             surface_reduction_rate=HEART_CT_KCL.surface_reduction_rate,
@@ -217,7 +217,7 @@ if __name__ == "__main__":
     )
 
     # Testing
-    TestTools(
+    ProcessTests(
         class_name=project_name,
         results_dir=output_dir,
         baselines_dir=baselines_dir,

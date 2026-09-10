@@ -34,10 +34,10 @@ import numpy as np
 import pyvista as pv
 
 from .monai_physio_base import MONAIPhysioBase
-from .physicsnemo_tools import (
+from .process_physicsnemo import (
     DistributedContext,
     PhaseSampleDataset,
-    PhysicsNemoTools,
+    ProcessPhysicsNemo,
 )
 
 if TYPE_CHECKING:  # typed for mypy; imported lazily at runtime
@@ -256,7 +256,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         if resume_from is not None:
             ckpt = torch.load(str(resume_from), map_location=device, weights_only=True)
             state = ckpt.get("model_state_dict", ckpt)
-            model.load_state_dict(PhysicsNemoTools.strip_compile_prefix(state))
+            model.load_state_dict(ProcessPhysicsNemo.strip_compile_prefix(state))
             self._log_main(context, "Loaded model weights from %s", resume_from)
 
         self.setup_inputs(device, template_mesh, template_coords)
@@ -372,7 +372,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
             # against the bare module: the RMSE describes the model, not how
             # the epoch happened to be split across ranks.
             if scored_epoch and context.is_main:
-                bare = PhysicsNemoTools.unwrap_model(model)
+                bare = ProcessPhysicsNemo.unwrap_model(model)
                 train_rmse = self._evaluate_rmse(
                     bare, train_dataset, target_scale, device
                 )
@@ -416,7 +416,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
         checkpoint, not just the final one.
         """
         checkpoint: dict[str, Any] = {
-            "model_state_dict": PhysicsNemoTools.uncompiled_state_dict(model),
+            "model_state_dict": ProcessPhysicsNemo.uncompiled_state_dict(model),
             "architecture": self.architecture_name,
             "in_features": 3 + int(stats["pca_mean"].shape[0]) + 1,
             "n_pca": int(stats["pca_mean"].shape[0]),

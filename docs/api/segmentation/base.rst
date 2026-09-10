@@ -52,7 +52,7 @@ Anatomy Taxonomy
 
 The group-to-organ mapping is held by :class:`AnatomyTaxonomy`, a small
 data class shared between the segmenter and downstream renderers
-(:class:`USDAnatomyTools`, :class:`ConvertVTKToUSD`). It is independent of
+(:class:`ProcessUSDAnatomy`, :class:`ConvertVTKToUSD`). It is independent of
 ITK and OpenUSD so segmentation code can be reasoned about without pulling
 in the rendering stack.
 
@@ -111,4 +111,4 @@ See Also
 * :doc:`simpleware`
 * :doc:`index`
 * :doc:`../../developer/segmentation`
-* :doc:`../usd/anatomy_tools` for the renderer side of the taxonomy
+* :doc:`../usd/process_usd_anatomy` for the renderer side of the taxonomy

@@ -24,7 +24,6 @@ from monai_physio.workflow_finetune_icon_registration import (
     WorkflowFinetuneICONRegistration,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------

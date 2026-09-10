@@ -2,26 +2,26 @@
 
 This module holds the pieces common to the MeshGraphNet (MGN) and fully
 connected (MLP) PhysicsNeMo workflows so the workflow classes stay focused on
-orchestration. :class:`PhysicsNemoTools` provides:
+orchestration. :class:`ProcessPhysicsNemo` provides:
 
-- :meth:`PhysicsNemoTools.import_meshgraphnet` - import PhysicsNeMo's
+- :meth:`ProcessPhysicsNemo.import_meshgraphnet` - import PhysicsNeMo's
   ``MeshGraphNet``, reporting install faults clearly.
-- :class:`SubjectManifest` / :meth:`PhysicsNemoTools.parse_manifest` - the
+- :class:`SubjectManifest` / :meth:`ProcessPhysicsNemo.parse_manifest` - the
   per-subject JSON manifest that lists a fitted reference mesh, a PCA
   shape-parameter file, the name of the point-data array holding the training
   targets, and the phase meshes that carry that array with their stages.
-- :meth:`PhysicsNemoTools.load_target_array` - read one phase's
+- :meth:`ProcessPhysicsNemo.load_target_array` - read one phase's
   ``(n_points, n_target)`` target values out of a mesh's point data.
-- :meth:`PhysicsNemoTools.build_node_features` - the shared per-vertex
+- :meth:`ProcessPhysicsNemo.build_node_features` - the shared per-vertex
   feature layout ``[mean_coords_norm, pca_norm (tiled), stage]`` used by both
   networks.
-- :meth:`PhysicsNemoTools.mesh_to_edge_index` /
-  :meth:`PhysicsNemoTools.compute_edge_features` - MGN mesh-graph
+- :meth:`ProcessPhysicsNemo.mesh_to_edge_index` /
+  :meth:`ProcessPhysicsNemo.compute_edge_features` - MGN mesh-graph
   construction from the shared template mesh (surface or volumetric).
-- :meth:`PhysicsNemoTools.uncompiled_state_dict` /
-  :meth:`PhysicsNemoTools.strip_compile_prefix` - checkpoint I/O that is
+- :meth:`ProcessPhysicsNemo.uncompiled_state_dict` /
+  :meth:`ProcessPhysicsNemo.strip_compile_prefix` - checkpoint I/O that is
   robust to ``torch.compile`` and ``DistributedDataParallel`` wrapping.
-- :class:`DistributedContext` / :meth:`PhysicsNemoTools.distributed_context`
+- :class:`DistributedContext` / :meth:`ProcessPhysicsNemo.distributed_context`
   - the rank, device and world size of the current process, from PhysicsNeMo's
   ``DistributedManager``.  A run started without a launcher gets world size 1,
   so single-process callers need no distributed-specific code.
@@ -145,7 +145,7 @@ def _launched_world_size() -> int:
     return max(sizes, default=1)
 
 
-class PhysicsNemoTools:
+class ProcessPhysicsNemo:
     """Namespace of stateless helpers shared by the PhysicsNeMo workflows.
 
     Every member is a ``@staticmethod``: there is no instance state, so this
@@ -439,7 +439,7 @@ class PhysicsNemoTools:
     @staticmethod
     def uncompiled_state_dict(model: Any) -> dict[str, Any]:
         """Return a model's state dict, unwrapping ``torch.compile`` and DDP."""
-        return cast(dict[str, Any], PhysicsNemoTools.unwrap_model(model).state_dict())
+        return cast(dict[str, Any], ProcessPhysicsNemo.unwrap_model(model).state_dict())
 
     @staticmethod
     def strip_compile_prefix(state: dict) -> dict:
@@ -451,8 +451,8 @@ class PhysicsNemoTools:
 
 
 def distributed_context() -> DistributedContext:
-    """Free-function alias for :meth:`PhysicsNemoTools.distributed_context`."""
-    return PhysicsNemoTools.distributed_context()
+    """Free-function alias for :meth:`ProcessPhysicsNemo.distributed_context`."""
+    return ProcessPhysicsNemo.distributed_context()
 
 
 # --------------------------------------------------------------------------- #
@@ -544,7 +544,7 @@ class PhaseSampleDataset:
             self._cache.move_to_end(path)
             return cached
 
-        values = PhysicsNemoTools.load_target_array(path, self._target_array)
+        values = ProcessPhysicsNemo.load_target_array(path, self._target_array)
         if values.shape[0] != self._n_points:
             raise ValueError(
                 f"{path} has {values.shape[0]} points, expected {self._n_points}."
@@ -559,7 +559,7 @@ class PhaseSampleDataset:
     def __getitem__(self, index: int) -> tuple[np.ndarray, np.ndarray]:
         """Return ``(node_features, normalized_target)`` for one sample."""
         sample = self._samples[index]
-        node_feats = PhysicsNemoTools.build_node_features(
+        node_feats = ProcessPhysicsNemo.build_node_features(
             self._mean_coords_norm, sample.pca_norm, sample.stage
         )
         target = self._target_values(sample.target_mesh) / self._target_scale

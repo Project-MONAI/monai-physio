@@ -34,9 +34,9 @@ Class Boundaries
 * Workflows orchestrate complete pipelines.
 * Registration classes estimate transforms.
 * Segmentation classes return ITK images or dictionaries of ITK masks.
-* ``TransformTools`` applies transforms to images and PyVista contours.
-* ``ContourTools`` creates and transforms VTK/PyVista surface data.
-* ``USDTools`` and ``USDAnatomyTools`` operate on USD stages and files.
+* ``ProcessTransforms`` applies transforms to images and PyVista contours.
+* ``ProcessContours`` creates and transforms VTK/PyVista surface data.
+* ``ProcessUSD`` and ``ProcessUSDAnatomy`` operate on USD stages and files.
 
 Public APIs should be documented in ``docs/api``.
 

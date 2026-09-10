@@ -1,5 +1,5 @@
 """
-This module contains the USDTools class for manipulating USD objects and files.
+This module contains the ProcessUSD class for manipulating USD objects and files.
 
 This module provides utilities for working with Universal Scene Description (USD)
 files in the context of medical visualization. It includes functions for merging
@@ -25,7 +25,7 @@ from .convert_vtk_to_usd import add_framing_camera
 from .monai_physio_base import MONAIPhysioBase
 
 
-class USDTools(MONAIPhysioBase):
+class ProcessUSD(MONAIPhysioBase):
     """
     Utilities for manipulating Universal Scene Description (USD) files.
 
@@ -50,7 +50,7 @@ class USDTools(MONAIPhysioBase):
     and MR images.
 
     Example:
-        >>> usd_tools = USDTools()
+        >>> usd_tools = ProcessUSD()
         >>> # Merge multiple anatomical USD files
         >>> usd_tools.merge_usd_files(
         ...     'combined_anatomy.usd', ['heart.usd', 'lungs.usd', 'bones.usd']
@@ -62,7 +62,7 @@ class USDTools(MONAIPhysioBase):
     """
 
     def __init__(self, log_level: int | str = logging.INFO) -> None:
-        """Initialize the USDTools class.
+        """Initialize the ProcessUSD class.
 
         Args:
             log_level: Logging level (default: logging.INFO)
@@ -635,7 +635,7 @@ class USDTools(MONAIPhysioBase):
         method unless you need fine-grained control over what gets copied.
 
         Example:
-            >>> usd_tools = USDTools()
+            >>> usd_tools = ProcessUSD()
             >>> usd_tools.merge_usd_files_flattened(
             ...     'complete_anatomy.usd', ['heart_dynamic.usd', 'lungs_static.usd']
             ... )
@@ -761,7 +761,7 @@ class USDTools(MONAIPhysioBase):
                 - range: Tuple (min, max) for numeric arrays, None otherwise
 
         Example:
-            >>> usd_tools = USDTools()
+            >>> usd_tools = ProcessUSD()
             >>> primvars = usd_tools.list_mesh_primvars("valve.usd", "/World/Meshes/Valve")
             >>> for pv in primvars:
             ...     print(f"{pv['name']}: {pv['interpolation']}, {pv['elements']} elements")
@@ -930,7 +930,7 @@ class USDTools(MONAIPhysioBase):
             ImportError: If matplotlib is not available
 
         Example:
-            >>> usd_tools = USDTools()
+            >>> usd_tools = ProcessUSD()
             >>> usd_tools.apply_colormap_from_primvar(
             ...     "valve.usd",
             ...     "/World/Meshes/Valve",
