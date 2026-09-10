@@ -113,8 +113,9 @@ from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 from monai_physio import (
     ContourTools,
     DistributedContext,
-    RegisterImagesGreedy,
     EvaluateMovementLung,
+    PhysicsNemoTools,
+    RegisterImagesGreedy,
     SegmentNVSegmentCTMRI,
     TestTools,
     TrainPhysicsNeMoMGN,
@@ -128,7 +129,6 @@ from monai_physio import (
     WorkflowInferPhysicsNeMo,
     WorkflowReconstructHighres4DCT,
     WorkflowTrainPhysicsNeMo,
-    distributed_context,
 )
 
 # The five lobes of ``SegmentNVSegmentCTMRI``.  Its "lung" group also carries
@@ -429,7 +429,7 @@ if __name__ == "__main__":
     # Under torchrun / SLURM / mpirun this is one rank of many; started plainly
     # it reports a world of one and every branch below collapses to a single
     # process.
-    context = distributed_context()
+    context = PhysicsNemoTools.distributed_context()
 
     data_dir = LUNG_CT_DIRLAB.input_directory(test_mode)
     number_of_pca_components = LUNG_CT_DIRLAB.pca_components(test_mode)

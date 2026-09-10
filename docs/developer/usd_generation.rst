@@ -158,7 +158,7 @@ produced by ``TransformTools.convert_transform_to_usd_visualization`` and
 that already has a Camera does not produce a duplicate transform op.
 
 Anatomy Materials with USDAnatomyTools
-=======================================
+==========================================
 
 :class:`monai_physio.USDAnatomyTools` applies OmniSurface materials to
 labeled meshes after conversion. It reads :class:`AnatomyTaxonomy` from the

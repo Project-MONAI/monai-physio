@@ -39,8 +39,8 @@ import numpy as np
 import pyvista as pv
 
 from .contour_tools import ContourTools
-from .physicsnemo_tools import DistributedContext, PhaseSampleDataset
 from .monai_physio_base import MONAIPhysioBase
+from .physicsnemo_tools import DistributedContext, PhaseSampleDataset
 from .train_physicsnemo_mgn import TrainPhysicsNeMoMGN
 
 if TYPE_CHECKING:  # typed for mypy; imported lazily at runtime
@@ -53,7 +53,7 @@ if TYPE_CHECKING:  # typed for mypy; imported lazily at runtime
 _MIN_JACOBIAN = 1.0e-6
 
 
-def _resolved_device(device: "torch.device") -> "torch.device":
+def _resolved_device(device: torch.device) -> torch.device:
     """Return *device* with its CUDA index filled in.
 
     ``torch.device("cuda")`` carries no index and compares unequal to
@@ -127,18 +127,18 @@ def tet_edges(tets: np.ndarray) -> np.ndarray:
     return np.unique(np.sort(pairs, axis=1), axis=0)
 
 
-def edge_matrix(points: "torch.Tensor", tets: "torch.Tensor") -> "torch.Tensor":
+def edge_matrix(points: torch.Tensor, tets: torch.Tensor) -> torch.Tensor:
     """Return the ``(n_tet, 3, 3)`` matrix whose columns are an element's edges."""
     corners = points[tets]
     return (corners[:, 1:, :] - corners[:, 0:1, :]).transpose(-1, -2)
 
 
 def compute_deformation_gradient(
-    reference_points: "torch.Tensor",
-    displacement: "torch.Tensor",
-    tets: "torch.Tensor",
-    reference_inverse: Optional["torch.Tensor"] = None,
-) -> "torch.Tensor":
+    reference_points: torch.Tensor,
+    displacement: torch.Tensor,
+    tets: torch.Tensor,
+    reference_inverse: Optional[torch.Tensor] = None,
+) -> torch.Tensor:
     """Return the per-element deformation gradient ``F``.
 
     ``F = Ds @ Dm^-1``, with the columns of ``Dm`` the reference edge vectors of
@@ -195,7 +195,7 @@ class NeoHookeanResidual(MONAIPhysioBase):
         self.lambda_lame_kpa = lambda_lame_kpa
         # Accumulated on whatever device the gradients arrive on, so counting
         # costs no host synchronization; only the property below pays one.
-        self._inverted: Optional["torch.Tensor"] = None
+        self._inverted: Optional[torch.Tensor] = None
 
     @property
     def inverted_element_count(self) -> int:
@@ -209,7 +209,7 @@ class NeoHookeanResidual(MONAIPhysioBase):
             return 0
         return int(self._inverted.item())
 
-    def jacobian(self, deformation_gradient: "torch.Tensor") -> "torch.Tensor":
+    def jacobian(self, deformation_gradient: torch.Tensor) -> torch.Tensor:
         """Return ``det(F)`` clamped away from zero, counting any inversion."""
         import torch
 
@@ -220,27 +220,44 @@ class NeoHookeanResidual(MONAIPhysioBase):
         )
         return torch.clamp(jacobian, min=_MIN_JACOBIAN)
 
-    def strain_energy(self, deformation_gradient: "torch.Tensor") -> "torch.Tensor":
+    def strain_energy(self, deformation_gradient: torch.Tensor) -> torch.Tensor:
         """Return the per-element strain energy density, in kilopascals."""
         import torch
 
         first_invariant = torch.einsum(
             "...ij,...ij->...", deformation_gradient, deformation_gradient
         )
+        if not torch.isfinite(first_invariant).all():
+            bad = (~torch.isfinite(first_invariant)).sum().item()
+            self.log_warning(
+                "first_invariant: %d/%d elements non-finite (max finite %.4g)",
+                bad,
+                first_invariant.numel(),
+                first_invariant[torch.isfinite(first_invariant)].max().item()
+                if bad < first_invariant.numel()
+                else float("nan"),
+            )
         log_jacobian = torch.log(self.jacobian(deformation_gradient))
+        if not torch.isfinite(log_jacobian).all():
+            bad = (~torch.isfinite(log_jacobian)).sum().item()
+            self.log_warning(
+                "log_jacobian: %d/%d elements non-finite",
+                bad,
+                log_jacobian.numel(),
+            )
         return (
             0.5 * self.mu_kpa * (first_invariant - 3.0)
             - self.mu_kpa * log_jacobian
             + 0.5 * self.lambda_lame_kpa * log_jacobian**2
         )
 
-    def incompressibility(self, deformation_gradient: "torch.Tensor") -> "torch.Tensor":
+    def incompressibility(self, deformation_gradient: torch.Tensor) -> torch.Tensor:
         """Return ``(J - 1)^2``, the soft penalty on volume change."""
         import torch
 
         return cast("torch.Tensor", (torch.linalg.det(deformation_gradient) - 1.0) ** 2)
 
-    def cauchy_stress(self, deformation_gradient: "torch.Tensor") -> "torch.Tensor":
+    def cauchy_stress(self, deformation_gradient: torch.Tensor) -> torch.Tensor:
         """Return the ``(..., 3, 3)`` Cauchy stress tensor, in kilopascals."""
         import torch
 
@@ -340,12 +357,11 @@ class PhysicsInformedMotion(MONAIPhysioBase):
         n_points: int,
         mu_kpa: float = 10.0,
         lambda_lame_kpa: float = 100.0,
-        device: Optional["torch.device"] = None,
+        device: Optional[torch.device] = None,
         log_level: int | str = logging.INFO,
     ) -> None:
         super().__init__(class_name=self.__class__.__name__, log_level=log_level)
         import torch
-
         from physicsnemo.sym.eq.gradients import compute_connectivity_tensor
         from physicsnemo.sym.eq.phy_informer import PhysicsInformer
 
@@ -391,7 +407,7 @@ class PhysicsInformedMotion(MONAIPhysioBase):
         )
 
     @property
-    def device(self) -> "torch.device":
+    def device(self) -> torch.device:
         """Device this residual's connectivity and symbolic graph were built on.
 
         Fixed at construction: ``PhysicsInformer`` is given the device when its
@@ -416,10 +432,10 @@ class PhysicsInformedMotion(MONAIPhysioBase):
 
     def __call__(
         self,
-        reference_points: "torch.Tensor",
-        displacement_mm: "torch.Tensor",
-        nodal_volumes: "torch.Tensor",
-    ) -> tuple["torch.Tensor", "torch.Tensor"]:
+        reference_points: torch.Tensor,
+        displacement_mm: torch.Tensor,
+        nodal_volumes: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """Return the volume-weighted ``(strain energy, incompressibility)``.
 
         Args:
@@ -434,6 +450,8 @@ class PhysicsInformedMotion(MONAIPhysioBase):
         Returns:
             Two scalars, each a nodal-volume-weighted mean over the mesh.
         """
+        import torch
+
         residuals = self._informer.forward(
             {
                 "coordinates": reference_points,
@@ -443,6 +461,19 @@ class PhysicsInformedMotion(MONAIPhysioBase):
                 "w": displacement_mm[:, 2:3],
             }
         )
+        for key in ("neo_hookean_energy", "incompressibility", "jacobian"):
+            values = residuals[key]
+            if not torch.isfinite(values).all():
+                bad = (~torch.isfinite(values)).sum().item()
+                self.log_warning(
+                    "%s: %d/%d elements non-finite (max finite %.4g)",
+                    key,
+                    bad,
+                    values.numel(),
+                    values[torch.isfinite(values)].max().item()
+                    if bad < values.numel()
+                    else float("nan"),
+                )
         # Accumulated on the device; only the property pays a synchronization.
         self._inverted += (residuals["jacobian"] <= 0.0).sum().detach()
 
@@ -477,6 +508,8 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
         """
         super().__init__(log_level=log_level)
         self.lambda_physics: float = 0.1
+        self._lambda_physics_target: float = 0.1
+        self._lambda_physics_warmup_epochs: int = 0
         self._residual: Optional[PhysicsInformedMotion] = None
         self._reference_meshes: dict[str, Path] = {}
         self._tets: Optional[np.ndarray] = None
@@ -486,8 +519,8 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
         # Epoch bookkeeping, so the two loss terms can be reported apart.
         # Summed on the device and read once per logged epoch, so separating the
         # terms costs no per-batch synchronization.
-        self._epoch_data_loss: Optional["torch.Tensor"] = None
-        self._epoch_physics_loss: Optional["torch.Tensor"] = None
+        self._epoch_data_loss: Optional[torch.Tensor] = None
+        self._epoch_physics_loss: Optional[torch.Tensor] = None
         self._epoch_batches = 0
 
     def set_mechanics(
@@ -517,6 +550,53 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
             )
         self._residual = residual
         self.lambda_physics = lambda_physics
+        self._lambda_physics_target = lambda_physics
+        # Confirmed by A/B run: with the physics residual active, Inductor
+        # silently corrupts PhysicsInformer's least-squares-gradient autograd
+        # into NaN on every element rather than raising -- the data-only
+        # ablation (lambda_physics=0) compiles and trains correctly, so the
+        # fallback to eager mode is scoped to only the physics-informed case.
+        self._compile_incompatible = (
+            "PhysicsInformer's autograd is not safely compilable"
+            if lambda_physics > 0.0
+            else None
+        )
+
+    def set_lambda_physics_warmup(self, warmup_epochs: int) -> None:
+        """Ramp ``lambda_physics`` linearly from 0 up to its target value.
+
+        Cold-start weights make ``F`` far from ``I`` everywhere, so the
+        neo-Hookean energy starts huge relative to the data loss -- large
+        enough, at the default ``lambda_physics=0.1``, that its gradient
+        dominates the combined loss and pulls the network straight to the
+        energy's own global minimum: zero strain (``F=I``) everywhere,
+        i.e. a spatially uniform predicted displacement. That trivially
+        zeroes the physics term (and freezes ``inverted_element_count``,
+        since the Jacobian stops changing) but ignores the data term, and
+        because zero strain is a critical point of the energy, the physics
+        gradient vanishes there too -- there is nothing left pulling the
+        network back out. Warming up `lambda_physics` from 0 lets the data
+        term shape real, non-uniform motion first, before the physics term
+        is weighted heavily enough to matter.
+
+        Args:
+            warmup_epochs: Number of epochs to ramp over. ``0`` (default)
+                disables warmup: ``lambda_physics`` is held at the value
+                passed to :meth:`set_mechanics` for the whole run.
+
+        Raises:
+            ValueError: If *warmup_epochs* is negative.
+        """
+        if warmup_epochs < 0:
+            raise ValueError(f"warmup_epochs must be >= 0, got {warmup_epochs}")
+        self._lambda_physics_warmup_epochs = warmup_epochs
+
+    def _on_epoch_start(self, epoch: int, epochs: int) -> None:
+        """Ramp ``lambda_physics`` toward its target during warmup."""
+        if self._lambda_physics_warmup_epochs <= 0:
+            return
+        progress = min(1.0, (epoch + 1) / self._lambda_physics_warmup_epochs)
+        self.lambda_physics = self._lambda_physics_target * progress
 
     @property
     def inverted_element_count(self) -> int:
@@ -554,7 +634,7 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
         template_mesh: pv.DataSet,
         template_coords: np.ndarray,
         resume_from: Optional[Path] = None,
-    ) -> tuple["torch.nn.Module", list[float], list[dict]]:
+    ) -> tuple[torch.nn.Module, list[float], list[dict]]:
         """Bind each sample to its subject's reference geometry, then train."""
         assert not self._shuffle_points_within_batch, (
             "The physics residual indexes the template's elements, so it needs "
@@ -657,7 +737,13 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
             # would repair the wrong topology and still leave the physics
             # elements inverted.
             tet_grid = pv.UnstructuredGrid({pv.CellType.TETRA: self._tets}, mesh.points)
-            repaired = contour_tools.repair_inverted_tetrahedra(tet_grid)
+            try:
+                repaired = contour_tools.repair_inverted_tetrahedra(tet_grid)
+            except ValueError as error:
+                raise ValueError(
+                    f"Subject {subject_id!r} "
+                    f"({self._reference_meshes[subject_id]}): {error}"
+                ) from error
             points = np.asarray(repaired.points, dtype=np.float64)
             _, nodal = tet_volumes(points, self._tets)
             reference = torch.from_numpy(points).to(device=device, dtype=torch.float32)
@@ -671,12 +757,12 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
 
     def _compute_loss(
         self,
-        pred: "torch.Tensor",
-        tgt: "torch.Tensor",
+        pred: torch.Tensor,
+        tgt: torch.Tensor,
         batch_len: int,
         target_scale: float,
         indices: np.ndarray,
-    ) -> "torch.Tensor":
+    ) -> torch.Tensor:
         """Return the data loss plus the weighted neo-Hookean residual."""
         data_loss = super()._compute_loss(pred, tgt, batch_len, target_scale, indices)
         self._accumulate("_epoch_data_loss", data_loss)
@@ -712,7 +798,7 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
         self._accumulate("_epoch_physics_loss", physics_loss)
         return data_loss + self.lambda_physics * physics_loss
 
-    def _accumulate(self, name: str, value: "torch.Tensor") -> None:
+    def _accumulate(self, name: str, value: torch.Tensor) -> None:
         """Add *value* to the named epoch accumulator, on its own device."""
         running = getattr(self, name)
         detached = value.detach()
@@ -749,7 +835,10 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
         physics_mean = physics_sum / divisor
         self._log_main(
             context,
-            "    data=%.6f  physics=%.6f  (weighted %.6f)  inverted=%d",
+            # physics/weighted in scientific notation: %f rounds anything
+            # under 5e-7 to 0.000000, which looks identical whether the
+            # residual has genuinely converged near zero or gone dead.
+            "    data=%.6f  physics=%.6e  (weighted %.6e)  inverted=%d",
             data_sum / divisor,
             physics_mean,
             self.lambda_physics * physics_mean,

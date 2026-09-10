@@ -58,7 +58,7 @@ Create Anatomical Scene
 .. code-block:: python
 
    from monai_physio import usd_anatomy_tools
-   
+
    stage = usd_anatomy_tools.create_anatomical_stage()
    usd_anatomy_tools.add_heart_model(stage, "heart.vtk")
    usd_anatomy_tools.add_lungs_model(stage, "lungs.vtk")

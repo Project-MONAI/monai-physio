@@ -30,7 +30,8 @@ registered entry, so any group present in the segmenter's
 """
 
 import logging
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any, Optional
 
 from pxr import Sdf, UsdGeom, UsdShade
 

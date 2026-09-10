@@ -39,8 +39,8 @@ from typing import cast
 
 import numpy as np
 import pyvista as pv
-
 from parameters_base import ParametersBase
+
 from monai_physio import (
     MONAIPhysioBase,
     SegmentHeartSimplewareTrimmedBranches,

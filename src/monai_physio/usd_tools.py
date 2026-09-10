@@ -21,8 +21,8 @@ import numpy as np
 import pyvista as pvtk
 from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade
 
-from .monai_physio_base import MONAIPhysioBase
 from .convert_vtk_to_usd import add_framing_camera
+from .monai_physio_base import MONAIPhysioBase
 
 
 class USDTools(MONAIPhysioBase):
@@ -206,9 +206,7 @@ class USDTools(MONAIPhysioBase):
 
         colors = colors[:, :3]
         interpolation = primvar.GetInterpolation()
-        if interpolation in (UsdGeom.Tokens.constant, "constant"):
-            colors = np.tile(colors[0], (n_points, 1))
-        elif len(colors) == 1:
+        if interpolation in (UsdGeom.Tokens.constant, "constant") or len(colors) == 1:
             colors = np.tile(colors[0], (n_points, 1))
         elif len(colors) != n_points:
             return fallback

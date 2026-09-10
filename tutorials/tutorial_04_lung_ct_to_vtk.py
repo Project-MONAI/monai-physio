@@ -21,7 +21,6 @@ from pathlib import Path
 
 import itk
 import pyvista as pv
-
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
 from monai_physio import (

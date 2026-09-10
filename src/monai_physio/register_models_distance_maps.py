@@ -335,6 +335,7 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
     def register(
         self,
         transform_type: str = "Deformable",
+        deformable_engine: str = "icon",
     ) -> dict:
         """Perform mask-based registration of moving model to fixed model.
 
@@ -349,12 +350,17 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
         **Affine transform type:**
             1. Greedy affine registration
 
-        **Deformable transform type:**
+        **Deformable transform type, engine 'icon' (default):**
             1. Greedy affine registration
             2. ICON deformable registration on the affine-pre-aligned masks
 
+        **Deformable transform type, engine 'greedy':**
+            1. Greedy's own affine + warp deformable registration, in one call
+
         Args:
             transform_type: Registration transform type - 'None', 'Rigid', 'Affine', or 'Deformable'. Default: 'Deformable'
+            deformable_engine: For 'Deformable' transform_type, which engine runs
+                the nonrigid stage - 'icon' or 'greedy'. Default: 'icon'
 
         Returns:
             Dictionary containing:
@@ -363,7 +369,8 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
                 - 'moving_to_fixed_transform': Moving-to-fixed transform (ITK CompositeTransform)
 
         Raises:
-            ValueError: If transform_type is not 'None', 'Rigid', 'Affine', or 'Deformable'
+            ValueError: If transform_type is not 'None', 'Rigid', 'Affine', or 'Deformable',
+                or if deformable_engine is not 'icon' or 'greedy'
 
         Example:
             >>> # Rigid registration
@@ -374,10 +381,19 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
             >>>
             >>> # Deformable registration (Greedy affine + ICON)
             >>> result = registrar.register(transform_type='Deformable')
+            >>>
+            >>> # Deformable registration (Greedy affine + warp only, no ICON)
+            >>> result = registrar.register(
+            ...     transform_type='Deformable', deformable_engine='greedy'
+            ... )
         """
         if transform_type not in ["None", "Rigid", "Affine", "Deformable"]:
             raise ValueError(
                 f"Invalid transform type '{transform_type}'. Must be 'None', 'Rigid', 'Affine', or 'Deformable'."
+            )
+        if deformable_engine not in ("icon", "greedy"):
+            raise ValueError(
+                f"Invalid deformable_engine '{deformable_engine}'. Must be 'icon' or 'greedy'."
             )
 
         self.log_section("%s Distance-Map-based Registration", transform_type.upper())
@@ -385,8 +401,14 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
         # Step 1: Generate distance maps and registration masks from models
         self._create_masks_from_models()
 
-        # Step 2: Greedy rigid or affine stage (skipped for None/Deformable uses Affine)
-        greedy_type = "Affine" if transform_type == "Deformable" else transform_type
+        # Step 2: Greedy rigid/affine/deformable stage. Deformable normally
+        # only runs Greedy's affine here and leaves the nonrigid part to ICON
+        # below; the 'greedy' engine instead asks Greedy to do affine + warp
+        # itself in this one call, and step 3 is skipped entirely.
+        if transform_type == "Deformable":
+            greedy_type = "Deformable" if deformable_engine == "greedy" else "Affine"
+        else:
+            greedy_type = transform_type
 
         fixed_to_moving_transform_Greedy = None
         moving_to_fixed_transform_Greedy = None
@@ -418,8 +440,9 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
         self.fixed_to_moving_transform = fixed_to_moving_transform_Greedy
         self.moving_to_fixed_transform = moving_to_fixed_transform_Greedy
 
-        # Step 3: ICON deformable stage (only for Deformable mode)
-        if transform_type == "Deformable":
+        # Step 3: ICON deformable stage (only for Deformable mode with the
+        # 'icon' engine; 'greedy' already did affine + warp in step 2 above)
+        if transform_type == "Deformable" and deformable_engine == "icon":
             self.log_info("Performing ICON deformable registration...")
 
             # Pre-align moving distance map and binary mask into the fixed grid using the Greedy affine result

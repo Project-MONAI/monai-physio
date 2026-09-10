@@ -191,6 +191,57 @@ uv pip install --torch-backend=auto monai-physio   # auto-detected PyTorch, no C
 not Python symbols; no code referenced `[physicsnemo]` or the other removed
 extras, so only install commands change.
 
+## `physicsnemo_tools.py` free functions - wrapped into `PhysicsNemoTools`
+
+**Change:** `physicsnemo_tools.py` had no class - it was free functions
+(`parse_manifest`, `load_target_array`, `build_node_features`,
+`mesh_to_edge_index`, `compute_edge_features`, `import_meshgraphnet`,
+`unwrap_model`, `uncompiled_state_dict`, `strip_compile_prefix`). Those are
+now `@staticmethod`s on a new `PhysicsNemoTools` class, so `parse_manifest(path)`
+becomes `PhysicsNemoTools.parse_manifest(path)`, etc. `distributed_context` is
+unaffected: it remains a top-level free function (`from monai_physio import
+distributed_context`), now implemented as a thin wrapper around
+`PhysicsNemoTools.distributed_context()`. `PhaseEntry`, `SubjectManifest`,
+`DistributedContext`, `PhaseSampleDataset` are unaffected -
+`from monai_physio import DistributedContext` still works.
+
+**Why:** grouping the PhysicsNeMo helpers under one class namespace matches
+the `*Tools` pattern used by every other utility module in the project
+(`ImageTools`, `ContourTools`, `TransformTools`, etc.), instead of being the
+only module exposing a flat set of free functions at import time.
+
+**Before**
+
+```python
+from monai_physio.physicsnemo_tools import parse_manifest
+
+manifest = parse_manifest(manifest_path)
+```
+
+**After**
+
+```python
+from monai_physio import PhysicsNemoTools
+
+manifest = PhysicsNemoTools.parse_manifest(manifest_path)
+```
+
+**Automated conversion:** `None needed` - the class is a thin wrapper, so a
+manual pass covers every call site. Search for all three call forms, not
+only the qualified one:
+
+- `physicsnemo_tools.<function>(` -> `PhysicsNemoTools.<function>(`
+- a bare, directly-imported call (`from monai_physio.physicsnemo_tools
+  import parse_manifest` then `parse_manifest(...)`) -> import
+  `PhysicsNemoTools` instead and call `PhysicsNemoTools.parse_manifest(...)`
+- an aliased module import (`import monai_physio.physicsnemo_tools as pnt`
+  then `pnt.parse_manifest(...)`) -> `pnt.PhysicsNemoTools.parse_manifest(...)`,
+  or import `PhysicsNemoTools` directly
+
+Remove any now-obsolete `from monai_physio.physicsnemo_tools import
+<function>` line once its call sites are updated; the free functions no
+longer exist on that module (`distributed_context` is the one exception).
+
 ## Entry template
 
 Append one section per breaking change, newest last, using this shape:

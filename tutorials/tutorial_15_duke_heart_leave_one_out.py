@@ -109,8 +109,9 @@ from parameters_duke_heart_labelmaps import DUKE_HEART
 from monai_physio import (
     ContourTools,
     DistributedContext,
-    RegisterModelsDistanceMaps,
     EvaluateMovementDukeHeart,
+    PhysicsNemoTools,
+    RegisterModelsDistanceMaps,
     TestTools,
     TrainPhysicsNeMoMGN,
     WorkflowCreateMeanSurface,
@@ -120,7 +121,6 @@ from monai_physio import (
     WorkflowInferMovement,
     WorkflowInferPhysicsNeMo,
     WorkflowTrainPhysicsNeMo,
-    distributed_context,
 )
 
 # Structure name Tutorial 4 (Duke Heart) writes its whole-heart surfaces under.
@@ -428,7 +428,7 @@ if __name__ == "__main__":
     # Under torchrun / SLURM / mpirun this is one rank of many; started plainly
     # it reports a world of one and every branch below collapses to a single
     # process.
-    context = distributed_context()
+    context = PhysicsNemoTools.distributed_context()
 
     data_dir = DUKE_HEART.hold_out_directory(test_mode)
     tutorial_04_dir = DUKE_HEART.input_directory(test_mode)

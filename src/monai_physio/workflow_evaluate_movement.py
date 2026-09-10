@@ -30,7 +30,7 @@ from __future__ import annotations
 
 import csv
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Optional, cast
 
@@ -38,10 +38,10 @@ import itk
 import numpy as np
 import pyvista as pv
 
-from . import physicsnemo_tools as pnt
 from .contour_tools import ContourTools
 from .evaluate_movement_base import EvaluateMovementBase, MovementGroundTruth
 from .monai_physio_base import MONAIPhysioBase
+from .physicsnemo_tools import PhysicsNemoTools
 from .report_evaluate_movement import ReportEvaluateMovement
 from .workflow_infer_movement import WorkflowInferMovement
 
@@ -555,7 +555,7 @@ class WorkflowEvaluateMovement(MONAIPhysioBase):
         return {
             "subject_id": case_id,
             "stage": stage,
-            "n_points": int(len(errors)),
+            "n_points": len(errors),
             "mean_error_mm": float(errors.mean()),
             "median_error_mm": float(np.median(errors)),
             "max_error_mm": float(errors.max()),
@@ -757,7 +757,7 @@ class WorkflowEvaluateMovement(MONAIPhysioBase):
         inference = self.movement_workflow.inference_workflow
         checkpoint = Path(inference.checkpoint_file)
         info = checkpoint.stat()
-        coefficients = pnt.load_pca_coefficients(shape_parameters)
+        coefficients = PhysicsNemoTools.load_pca_coefficients(shape_parameters)
         provenance: dict[str, Any] = {
             "case_id": case_id,
             "shape_parameters_file": str(shape_parameters),
@@ -778,9 +778,7 @@ class WorkflowEvaluateMovement(MONAIPhysioBase):
     @staticmethod
     def _timestamp(seconds: float) -> str:
         """Format a filesystem timestamp as an ISO-8601 UTC string."""
-        return datetime.fromtimestamp(seconds, tz=timezone.utc).isoformat(
-            timespec="seconds"
-        )
+        return datetime.fromtimestamp(seconds, tz=UTC).isoformat(timespec="seconds")
 
     def _score(
         self,

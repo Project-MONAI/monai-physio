@@ -27,8 +27,8 @@ import logging
 from pathlib import Path
 
 import itk
-
 from parameters_base import ParametersBase
+
 from monai_physio import (
     RegisterImagesGreedy,
     TestTools,

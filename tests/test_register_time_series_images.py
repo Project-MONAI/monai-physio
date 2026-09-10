@@ -606,7 +606,7 @@ class TestReconstructTimeSeriesCompositeMode:
         registrar = RegisterTimeSeriesImages(registration_method=RegisterImagesGreedy())
         registrar.set_fixed_image(fixed_image)
 
-        composite = registrar._compute_composite_reference(
+        composite = registrar.compute_composite_reference(
             moving_images=[moving_image],
             fixed_to_moving_transforms=self._identity_transforms(1),
             mode="mean",
@@ -633,7 +633,7 @@ class TestReconstructTimeSeriesCompositeMode:
         registrar = RegisterTimeSeriesImages(registration_method=RegisterImagesGreedy())
         registrar.set_fixed_image(fixed_image)
 
-        composite = registrar._compute_composite_reference(
+        composite = registrar.compute_composite_reference(
             moving_images=[moving_image],
             fixed_to_moving_transforms=self._identity_transforms(1),
             mode="mean",

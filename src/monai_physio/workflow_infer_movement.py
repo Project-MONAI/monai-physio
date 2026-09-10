@@ -24,8 +24,8 @@ import itk
 import numpy as np
 import pyvista as pv
 
-from . import physicsnemo_tools as pnt
 from .monai_physio_base import MONAIPhysioBase
+from .physicsnemo_tools import PhysicsNemoTools
 from .transform_tools import TransformTools
 from .workflow_convert_vtk_to_usd import WorkflowConvertVTKToUSD
 from .workflow_infer_physicsnemo import WorkflowInferPhysicsNeMo
@@ -106,8 +106,8 @@ class WorkflowInferMovement(MONAIPhysioBase):
             Dict with ``subject_id`` and ``predicted_surfaces`` (paths).
         """
         workflow = self.inference_workflow
-        manifest = pnt.parse_manifest(subject_manifest)
-        pca_coeffs = pnt.load_pca_coefficients(manifest.pca_coefficients)
+        manifest = PhysicsNemoTools.parse_manifest(subject_manifest)
+        pca_coeffs = PhysicsNemoTools.load_pca_coefficients(manifest.pca_coefficients)
         fitted_reference_mesh = cast(
             pv.DataSet, pv.read(str(manifest.fitted_reference_mesh))
         )
@@ -162,7 +162,7 @@ class WorkflowInferMovement(MONAIPhysioBase):
             Dict with ``predicted_surface`` (path) and ``predicted_points``.
         """
         workflow = self.inference_workflow
-        coeffs = pnt.load_pca_coefficients(shape_parameters)
+        coeffs = PhysicsNemoTools.load_pca_coefficients(shape_parameters)
         fitted_mesh = cast(pv.DataSet, pv.read(str(fitted_reference_mesh)))
         fitted_reference_points = self._fitted_reference_points(fitted_mesh)
         pred_points = fitted_reference_points + workflow.predict(coeffs, stage)
@@ -256,7 +256,7 @@ class WorkflowInferMovement(MONAIPhysioBase):
             raise ValueError("process_time_series needs at least one stage.")
 
         workflow = self.inference_workflow
-        coeffs = pnt.load_pca_coefficients(shape_parameters)
+        coeffs = PhysicsNemoTools.load_pca_coefficients(shape_parameters)
         fitted_mesh = cast(pv.DataSet, pv.read(str(fitted_reference_mesh)))
         fitted_reference_points = self._fitted_reference_points(fitted_mesh)
 
@@ -396,7 +396,7 @@ class WorkflowInferMovement(MONAIPhysioBase):
             when written, their paths.
         """
         workflow = self.inference_workflow
-        coeffs = pnt.load_pca_coefficients(shape_parameters)
+        coeffs = PhysicsNemoTools.load_pca_coefficients(shape_parameters)
         fitted_mesh = cast(pv.DataSet, pv.read(str(fitted_reference_mesh)))
         fitted_reference_points = self._fitted_reference_points(fitted_mesh)
         disps = workflow.predict(coeffs, stage)

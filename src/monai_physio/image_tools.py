@@ -40,6 +40,50 @@ class ImageTools(MONAIPhysioBase):
         """
         super().__init__(class_name=self.__class__.__name__, log_level=log_level)
 
+    def transform_image(
+        self,
+        image: itk.image,
+        transform: itk.Transform,
+        reference_image: itk.image,
+        interpolation_method: str = "linear",
+        background_value: float = 0.0,
+    ) -> itk.image:
+        """Transform an ITK image using a specified transform and interpolation.
+
+        Delegates to :meth:`TransformTools.transform_image`; imported
+        locally since ``transform_tools`` imports this module.
+
+        Args:
+            image (itk.image): The input image to transform
+            transform (itk.Transform): The ITK transform to apply
+            reference_image (itk.image): Defines output spacing, size, origin,
+                and direction for the transformed image
+            interpolation_method (str): Interpolation method. Options:
+                - "linear": Linear interpolation (default, good for CT/MR)
+                - "nearest": Nearest neighbor (preserves discrete values)
+                - "sinc": Sinc interpolation (highest quality, slower)
+            background_value (float): Value written where the reference grid
+                samples outside the input image. Default 0.0, which is right for
+                labelmaps and masks; intensity images need the value that means
+                "no tissue" in their own units -- for CT that is -1000 HU (air),
+                not 0 HU (water).
+
+        Returns:
+            itk.image: The transformed image resampled to reference grid
+
+        Raises:
+            ValueError: If interpolation_method is not one of the supported options
+        """
+        from .transform_tools import TransformTools
+
+        return TransformTools(log_level=self.log_level).transform_image(
+            image,
+            transform,
+            reference_image,
+            interpolation_method=interpolation_method,
+            background_value=background_value,
+        )
+
     def imreadVD3(self, filename: str) -> Any:
         """Read an ITK vector image with double precision vectors.
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Self
 
 import itk
 import numpy as np
@@ -11,7 +11,6 @@ import pyvista as pv
 from scipy.ndimage import map_coordinates
 from scipy.optimize import minimize
 from scipy.spatial import cKDTree
-from typing_extensions import Self
 
 from .contour_tools import ContourTools
 from .monai_physio_base import MONAIPhysioBase
