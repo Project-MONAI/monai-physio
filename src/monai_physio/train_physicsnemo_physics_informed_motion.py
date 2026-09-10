@@ -522,6 +522,9 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
         self._epoch_data_loss: Optional[torch.Tensor] = None
         self._epoch_physics_loss: Optional[torch.Tensor] = None
         self._epoch_batches = 0
+        # Consecutive epochs with physics_mean ~ 0 while lambda_physics > 0;
+        # see the collapse warning in _log_epoch.
+        self._zero_physics_streak = 0
 
     def set_mechanics(
         self,
@@ -833,6 +836,21 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
 
         divisor = max(batches, 1)
         physics_mean = physics_sum / divisor
+
+        if self.lambda_physics > 0.0 and physics_mean < 1e-9:
+            self._zero_physics_streak += 1
+        else:
+            self._zero_physics_streak = 0
+        if self._zero_physics_streak == 5 and context.is_main:
+            self.log_warning(
+                "physics loss has been ~0 for 5 consecutive epochs while "
+                "lambda_physics=%.4g; the network likely collapsed to the "
+                "trivial uniform-displacement solution described in "
+                "set_lambda_physics_warmup()'s docstring. Consider a longer "
+                "warmup or a lower lambda_physics target.",
+                self.lambda_physics,
+            )
+
         self._log_main(
             context,
             # physics/weighted in scientific notation: %f rounds anything

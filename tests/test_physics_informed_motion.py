@@ -502,6 +502,56 @@ def test_the_epoch_log_separates_the_two_loss_terms() -> None:
     )
 
 
+def test_zero_physics_streak_warns_once_after_five_epochs() -> None:
+    """A collapsed physics term should be flagged, not silently trained through.
+
+    ``set_lambda_physics_warmup``'s docstring describes a trivial-solution
+    collapse where the physics term reads exactly zero for the rest of the
+    run. Five consecutive zero-physics epochs should raise exactly one
+    warning -- not one per epoch, and not at all before the streak or once
+    physics recovers.
+    """
+    import torch
+
+    from monai_physio.process_physicsnemo import DistributedContext
+    from monai_physio.train_physicsnemo_physics_informed_motion import (
+        TrainPhysicsNeMoPhysicsInformedMotion,
+    )
+
+    method = TrainPhysicsNeMoPhysicsInformedMotion()
+    method.lambda_physics = 0.1
+
+    warnings: list[str] = []
+    method.log_warning = lambda *args: warnings.append(str(args[0]) % args[1:])  # type: ignore[method-assign]
+    method.log_info = lambda *args: None  # type: ignore[method-assign]
+
+    context = DistributedContext(
+        device=torch.device("cpu"), rank=0, local_rank=0, world_size=1
+    )
+
+    def log_epoch_with(physics: float, epoch: int) -> None:
+        method._epoch_data_loss = torch.tensor(1.0)
+        method._epoch_physics_loss = torch.tensor(physics)
+        method._epoch_batches = 1
+        method._log_epoch(context, epoch=epoch, epochs=10)
+
+    for epoch in range(4):
+        log_epoch_with(0.0, epoch)
+    assert not warnings, "Should not warn before five consecutive zero epochs"
+
+    log_epoch_with(0.0, 4)
+    assert len(warnings) == 1, "Should warn exactly once at the fifth zero epoch"
+    assert "collapsed" in warnings[0]
+
+    log_epoch_with(0.0, 5)
+    assert len(warnings) == 1, "Should not warn again every epoch after"
+
+    log_epoch_with(1.0, 6)
+    for epoch in range(4):
+        log_epoch_with(0.0, 7 + epoch)
+    assert len(warnings) == 1, "A streak broken by recovery should not re-warn early"
+
+
 def test_bind_reference_meshes_repairs_against_template_elements(tmp_path: Any) -> None:
     """Repair must use ``self._tets``, not whatever cells the file stores.
 
