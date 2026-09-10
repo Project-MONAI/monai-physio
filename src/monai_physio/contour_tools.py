@@ -690,7 +690,7 @@ class ContourTools(MONAIPhysioBase):
             self.log_warning("Trimming against the surface removed every cell")
             return relaxed
 
-        connectivity = relaxed.cells_dict[np.uint8(pv.CellType.TETRA)]
+        connectivity = cast(np.ndarray, relaxed.cells_dict[np.uint8(pv.CellType.TETRA)])
         # Both directions of every tetrahedron edge, so a point's neighbors are
         # the second column of the rows its id occupies in the first.
         edges = np.vstack(
@@ -790,7 +790,9 @@ class ContourTools(MONAIPhysioBase):
                 "tetrahedra has no TETRA cells to repair; got cell types "
                 f"{sorted(tetrahedra.cells_dict)}."
             )
-        connectivity = tetrahedra.cells_dict[np.uint8(pv.CellType.TETRA)]
+        connectivity = cast(
+            np.ndarray, tetrahedra.cells_dict[np.uint8(pv.CellType.TETRA)]
+        )
 
         def volumes(points: np.ndarray) -> np.ndarray:
             corners = points[connectivity]
