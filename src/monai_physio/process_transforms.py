@@ -1,7 +1,7 @@
 """
 Tools for transforming and manipulating ITK transforms.
 
-This module provides the TransformTools class with utilities for working with
+This module provides the ProcessTransforms class with utilities for working with
 ITK transforms, including transforming images and contours, generating
 deformation fields, interpolating between transforms, and correcting spatial
 folding artifacts.
@@ -20,11 +20,11 @@ import pyvista as pv
 import SimpleITK as sitk
 import vtk
 
-from .image_tools import ImageTools
 from .monai_physio_base import MONAIPhysioBase
+from .process_images import ProcessImages
 
 
-class TransformTools(MONAIPhysioBase):
+class ProcessTransforms(MONAIPhysioBase):
     """
     Utilities for transforming and manipulating ITK transforms.
 
@@ -48,7 +48,7 @@ class TransformTools(MONAIPhysioBase):
     - Generate visualization grids
 
     Example:
-        >>> transform_tools = TransformTools()
+        >>> transform_tools = ProcessTransforms()
         >>> # Transform a contour mesh
         >>> transformed_contour = transform_tools.transform_pvcontour(
         ...     contour, transform, with_deformation_magnitude=True
@@ -58,7 +58,7 @@ class TransformTools(MONAIPhysioBase):
     """
 
     def __init__(self, log_level: int | str = logging.INFO):
-        """Initialize the TransformTools class.
+        """Initialize the ProcessTransforms class.
 
         Args:
             log_level: Logging level (default: logging.INFO)
@@ -154,7 +154,7 @@ class TransformTools(MONAIPhysioBase):
                 dfield2_arr[:, :, :, dim] = tmp_field
         if mode == "add":
             dfield_composed_arr = tfm1_weight * dfield1_arr + tfm2_weight * dfield2_arr
-            image_tools = ImageTools()
+            image_tools = ProcessImages()
             dfield_composed = image_tools.convert_array_to_image_of_vectors(
                 dfield_composed_arr,
                 ptype=itk.D,
@@ -164,7 +164,7 @@ class TransformTools(MONAIPhysioBase):
             new_tfm.SetDisplacementField(dfield_composed)
             return new_tfm
         # compose
-        image_tools = ImageTools()
+        image_tools = ProcessImages()
 
         dfield1_arr = tfm1_weight * dfield1_arr
         dfield2_arr = tfm2_weight * dfield2_arr
@@ -262,7 +262,7 @@ class TransformTools(MONAIPhysioBase):
         field_arr = itk.array_from_image(field)
         field_arr = field_arr.astype(np_component_type)
 
-        image_tools = ImageTools()
+        image_tools = ProcessImages()
         field = image_tools.convert_array_to_image_of_vectors(
             field_arr,
             ptype=np_component_type,
@@ -320,7 +320,7 @@ class TransformTools(MONAIPhysioBase):
         assert "DisplacementFieldTransform" in str(type(tfm)), (
             "Input transform must be a displacement field transform"
         )
-        image_tools = ImageTools()
+        image_tools = ProcessImages()
 
         field_itk = tfm.GetDisplacementField()
 
@@ -659,7 +659,7 @@ class TransformTools(MONAIPhysioBase):
             )
             tmp_field_arr = itk.array_from_image(tmp_image)
             field_arr[:, :, :, dim] = tmp_field_arr
-        image_tools = ImageTools()
+        image_tools = ProcessImages()
         field = image_tools.convert_array_to_image_of_vectors(
             field_arr,
             ptype=itk.D,
@@ -810,7 +810,7 @@ class TransformTools(MONAIPhysioBase):
             inside = np.clip(mask, 0.0, 1.0)[..., None]
             smoothed = inside * smoothed_sets[0] + (1.0 - inside) * smoothed_sets[1]
 
-        smoothed_field = ImageTools().convert_array_to_image_of_vectors(
+        smoothed_field = ProcessImages().convert_array_to_image_of_vectors(
             smoothed, reference_image=field, ptype=itk.D
         )
         field_transform = itk.DisplacementFieldTransform[itk.D, 3].New()
@@ -904,7 +904,7 @@ class TransformTools(MONAIPhysioBase):
         combined_field_arr = sum_fields_arr / denom
 
         # Copy array data to ITK image
-        combined_field = ImageTools().convert_array_to_image_of_vectors(
+        combined_field = ProcessImages().convert_array_to_image_of_vectors(
             combined_field_arr, field1, itk.F
         )
 
@@ -945,7 +945,7 @@ class TransformTools(MONAIPhysioBase):
         """
         if "VF" not in str(type(field)):
             field_arr = itk.array_from_image(field)
-            field = ImageTools().convert_array_to_image_of_vectors(
+            field = ProcessImages().convert_array_to_image_of_vectors(
                 field_arr, field, itk.F
             )
         jac_filter = itk.DisplacementFieldJacobianDeterminantFilter.New(field)
@@ -1018,7 +1018,7 @@ class TransformTools(MONAIPhysioBase):
         field_arr = itk.array_from_image(field)
         for i in range(field_arr.shape[3]):
             field_arr[:, :, :, i] *= thresh_arr
-        corrected_field = ImageTools().convert_array_to_image_of_vectors(
+        corrected_field = ProcessImages().convert_array_to_image_of_vectors(
             field_arr, field, itk.F
         )
         return corrected_field

@@ -12,8 +12,8 @@ import itk
 import numpy as np
 import pytest
 
+from monai_physio.process_transforms import ProcessTransforms
 from monai_physio.register_images_greedy import RegisterImagesGreedy
-from monai_physio.transform_tools import TransformTools
 
 from .conftest import KnownAffineCase, KnownShiftCase
 
@@ -333,7 +333,7 @@ class TestRegisterImagesGreedy:
         result = registrar_greedy.register(moving_image=moving_image)
 
         fixed_to_moving_transform = result["fixed_to_moving_transform"]
-        transform_tools = TransformTools()
+        transform_tools = ProcessTransforms()
         registered_image = transform_tools.transform_image(
             moving_image,
             fixed_to_moving_transform,

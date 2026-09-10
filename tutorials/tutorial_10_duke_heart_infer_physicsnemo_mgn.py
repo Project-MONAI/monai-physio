@@ -60,7 +60,7 @@ import pyvista as pv
 from parameters_duke_heart_labelmaps import DUKE_HEART
 
 from monai_physio import (
-    TestTools,
+    ProcessTests,
     WorkflowInferMovement,
     WorkflowInferPhysicsNeMo,
 )
@@ -88,7 +88,7 @@ def _cardiac_stage_from_filename(surface_file: Path) -> float:
 if __name__ == "__main__":
     # Data directory specification
     tutorials_dir = Path(__file__).resolve().parent
-    test_mode = TestTools.running_as_test()
+    test_mode = ProcessTests.running_as_test()
     # Keep a test run out of the directories a full run reads and writes.
     # Fitted SSM surfaces and PCA coefficients written by Tutorial 8 (Duke Heart).
     data_dir = DUKE_HEART.output_directory(test_mode) / "tutorial_08_duke_heart"
@@ -179,7 +179,7 @@ if __name__ == "__main__":
 
     # Testing: render the first predicted stage beside the ground-truth frame it
     # is scored against.
-    tt = TestTools(
+    tt = ProcessTests(
         class_name=class_name,
         results_dir=output_dir,
         baselines_dir=tutorials_dir.parent / "tests" / "baselines" / class_name,

@@ -10,7 +10,6 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock
 
-
 # Add the source directory to the path
 sys.path.insert(0, os.path.abspath("../src"))
 

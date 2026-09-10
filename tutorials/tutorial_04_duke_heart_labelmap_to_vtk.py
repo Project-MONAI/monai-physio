@@ -20,15 +20,15 @@ hundred times the short one:
 Files written per frame, the per-label ones only under ``"full"``:
 
 - ``<frame_stem>_surfaces.vtp`` -- every label's watertight, outward-oriented
-  surface in one file, via ``ContourTools.extract_label_surfaces`` on the whole
+  surface in one file, via ``ProcessContours.extract_label_surfaces`` on the whole
   labelmap.  Extracting the labels together is what keeps neighbors touching:
   a wall between two of them is contoured from the same field on the same
   isotropic grid, so both surfaces carry the same vertices there.  Per-cell
   ``SegmentationLabelIds`` says which label each triangle came from.
 - ``<frame_stem>_<name>.vtu`` -- one tetrahedral mesh per structure, six
-  ``VTK_TETRA`` per isotropic voxel, via ``ContourTools.extract_tetrahedra``,
+  ``VTK_TETRA`` per isotropic voxel, via ``ProcessContours.extract_tetrahedra``,
   then relaxed onto that structure's surface by
-  ``ContourTools.trim_tetrahedra_to_surface``.
+  ``ProcessContours.trim_tetrahedra_to_surface``.
 
 The mesh starts as a voxel staircase and ends up bounded by the smooth
 surface: the relaxation projects its boundary onto that surface while smoothing
@@ -36,7 +36,7 @@ the interior to make room, so no trace of the voxel blocks is left.  What
 remains between the two geometries is faceting at the element size, logged per
 structure in millimeters.
 
-Both carry the structure's ``USDAnatomyTools`` color, as ``AnatomyColor`` and
+Both carry the structure's ``ProcessUSDAnatomy`` color, as ``AnatomyColor`` and
 as a per-cell ``Color``, so they render the same way as the surfaces
 ``WorkflowConvertImageToVTK`` writes.
 
@@ -67,10 +67,10 @@ import pyvista as pv
 from parameters_duke_heart_labelmaps import DUKE_HEART
 
 from monai_physio import (
-    ContourTools,
     MONAIPhysioBase,
+    ProcessContours,
+    ProcessTests,
     SegmentHeartSimplewareTrimmedBranches,
-    TestTools,
 )
 
 # Only run if this script is not imported as a module
@@ -79,7 +79,7 @@ if __name__ == "__main__":
 
     class_name = "tutorial_04_duke_heart_labelmap_to_vtk"
 
-    test_mode = TestTools.running_as_test()
+    test_mode = ProcessTests.running_as_test()
 
     output_dir = (
         DUKE_HEART.output_directory(test_mode) / "tutorial_04_duke_heart_labelmap"
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     log_level = logging.INFO
     reporter = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
-    contour_tools = ContourTools(log_level=log_level)
+    contour_tools = ProcessContours(log_level=log_level)
     taxonomy = SegmentHeartSimplewareTrimmedBranches(log_level=logging.WARNING).taxonomy
     label_names = taxonomy.all_labels()
 
@@ -141,9 +141,9 @@ if __name__ == "__main__":
 
         ``SegmentationLabelIds`` holds one id for a per-label structure and
         every retained id for the whole-heart one; a single id is what
-        ``ContourTools.save_combined_surfaces`` needs to tag the merged file's
+        ``ProcessContours.save_combined_surfaces`` needs to tag the merged file's
         cells with the structure they came from.  The anatomy color is attached
-        separately, by ``ContourTools.apply_anatomy_color``.
+        separately, by ``ProcessContours.apply_anatomy_color``.
         """
         mesh.field_data["SegmentationLabelIds"] = np.asarray(label_ids, dtype=np.int32)
         mesh.field_data["LabelName"] = np.array([name])
@@ -180,7 +180,7 @@ if __name__ == "__main__":
         finest_spacing = float(np.min(np.asarray(mask.GetSpacing())))
         element_size = mesh_element_size_mm
         while True:
-            # USDAnatomyTools has no override for names like "left_ventricle",
+            # ProcessUSDAnatomy has no override for names like "left_ventricle",
             # so the structure's anatomy group is offered as the fallback color.
             tet_mesh = contour_tools.extract_tetrahedra(
                 mask,
@@ -324,7 +324,9 @@ if __name__ == "__main__":
                     )
                     if displacement is not None:
                         displacements.append(displacement)
-                ContourTools.save_combined_surfaces(named_surfaces, str(surfaces_file))
+                ProcessContours.save_combined_surfaces(
+                    named_surfaces, str(surfaces_file)
+                )
 
             # Written last, so an interrupted frame is redone rather than
             # skipped by the check above.
@@ -342,7 +344,7 @@ if __name__ == "__main__":
         reporter.log_section(f"Wrote {surface_count} surfaces")
 
     # Testing
-    tt = TestTools(
+    tt = ProcessTests(
         class_name=class_name,
         results_dir=output_dir,
         log_level=log_level,

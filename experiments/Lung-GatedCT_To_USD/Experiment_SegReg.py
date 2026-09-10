@@ -3,8 +3,7 @@ import os
 
 import itk
 
-from monai_physio import RegisterImagesICON
-from monai_physio import SegmentChestTotalSegmentator
+from monai_physio import RegisterImagesICON, SegmentChestTotalSegmentator
 
 # nnUNetv2 (used by TotalSegmentator) spawns a multiprocessing.Pool. On Windows
 # the spawn start method re-imports this script in each child; without the

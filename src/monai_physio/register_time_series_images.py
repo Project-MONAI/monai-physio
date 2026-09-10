@@ -16,9 +16,9 @@ from typing import Literal, Optional, Union, cast
 import itk
 import numpy as np
 
+from .process_transforms import ProcessTransforms
 from .register_images_base import RegisterImagesBase
 from .register_images_greedy import RegisterImagesGreedy
-from .transform_tools import TransformTools
 
 
 class RegisterTimeSeriesImages(RegisterImagesBase):
@@ -38,7 +38,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
 
     Attributes:
         registrar (RegisterImagesBase): The registration backend in use.
-        transform_tools (TransformTools): Utility for transform operations.
+        transform_tools (ProcessTransforms): Utility for transform operations.
 
     Example:
         >>> # Register a cardiac CT time series
@@ -95,7 +95,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
 
         self.composite_reference_image: Optional[itk.Image] = None
 
-        self.transform_tools: TransformTools = TransformTools()
+        self.transform_tools: ProcessTransforms = ProcessTransforms()
 
     def set_mask_dilation(self, mask_dilation_mm: float) -> None:
         """Set the dilation of the fixed and moving image masks.

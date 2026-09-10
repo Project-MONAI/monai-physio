@@ -49,15 +49,15 @@ class ParametersHeartCTKCL(ParametersBase):
             that the myocardium survives the coarsening.
         model_points: Points kept per surface when building the shape model.
             ``0`` keeps every point, which is what a full run does.
-        model_points_test: Same, under ``TestTools.running_as_test``, where the
+        model_points_test: Same, under ``ProcessTests.running_as_test``, where the
             KCL meshes are read at full resolution because that dataset has no
             downsampled test subset.
         number_of_pca_components: PCA components retained when building the
             heart statistical model, and used when fitting it to a patient.
-        number_of_pca_components_test: Same, under ``TestTools.running_as_test``.
+        number_of_pca_components_test: Same, under ``ProcessTests.running_as_test``.
         number_of_iterations_greedy: Greedy coarse-to-fine iteration schedule.
         number_of_iterations_greedy_test: Same, under
-            ``TestTools.running_as_test``.
+            ``ProcessTests.running_as_test``.
         segmenter_class: Segmenter every heart tutorial instantiates, so the
             surfaces they compare share a definition of "heart".
         anatomy_group: Anatomy group name that segmenter registers for the heart.
@@ -66,10 +66,10 @@ class ParametersHeartCTKCL(ParametersBase):
             myocardium, so a distance map must not measure to them.
         input_dir: Population Tutorial 6 builds the model from, and
             ``input_dir_test`` its counterpart under
-            ``TestTools.running_as_test``.
+            ``ProcessTests.running_as_test``.
         hold_out_dir: Dataset the held-out case is read from by Tutorial 7, and
             ``hold_out_dir_test`` its counterpart under
-            ``TestTools.running_as_test``.  A different dataset from
+            ``ProcessTests.running_as_test``.  A different dataset from
             ``input_dir``: the model is built from KCL meshes and fitted to a
             DIR-Lab patient.
         pca_json_file: Shape model Tutorial 6 writes and Tutorial 7 reads.

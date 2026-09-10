@@ -27,7 +27,7 @@ from monai_physio import (
     WorkflowInferPhysicsNeMo,
     WorkflowTrainPhysicsNeMo,
 )
-from monai_physio.physicsnemo_tools import PhysicsNemoTools
+from monai_physio.process_physicsnemo import ProcessPhysicsNemo
 
 _TARGET_ARRAY = "displacement"
 _STAGES = (0.0, 1.0)
@@ -266,7 +266,7 @@ def test_a_ddp_wrapped_model_checkpoints_without_its_prefix() -> None:
     inner = torch.nn.Linear(2, 2)
     wrapped = _FakeDDP(inner)
 
-    state = PhysicsNemoTools.uncompiled_state_dict(wrapped)
+    state = ProcessPhysicsNemo.uncompiled_state_dict(wrapped)
 
     assert set(state) == set(inner.state_dict())
     assert not any(key.startswith("module.") for key in state)

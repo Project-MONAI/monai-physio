@@ -249,7 +249,7 @@ graphify update .               # refresh after code changes (AST-only, no API c
   those are fixed conventions (see Data Conventions above). State only what is
   specific to the test, such as the size of a synthetic volume.
 - When a test produces an image or surface, compare against a baseline using
-  `src/monai_physio/test_tools.py` utilities such as `TestTools`.
+  `src/monai_physio/process_tests.py` utilities such as `ProcessTests`.
 - Store baselines under `tests/baselines/`, which is tracked by Git LFS. Run
   `git lfs pull` after cloning.
 - Run with `--create-baselines` to materialize missing baselines on first use.

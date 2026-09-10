@@ -48,15 +48,15 @@ class InferPhysicsNeMoBase(MONAIPhysioBase):
             log_level: Logging level. Default: ``logging.INFO``.
         """
         super().__init__(class_name=self.__class__.__name__, log_level=log_level)
-        self._model: "torch.nn.Module"
-        self._device: "torch.device"
+        self._model: torch.nn.Module
+        self._device: torch.device
 
-    def build_model(self, meta: dict) -> "torch.nn.Module":
+    def build_model(self, meta: dict) -> torch.nn.Module:
         """Rebuild the (uncompiled) network from checkpoint metadata."""
         raise NotImplementedError
 
     def load_artifacts(
-        self, model_directory: Path, n_points: int, device: "torch.device"
+        self, model_directory: Path, n_points: int, device: torch.device
     ) -> None:
         """Load any architecture-specific artifacts (MGN graph tensors)."""
         raise NotImplementedError
@@ -65,7 +65,7 @@ class InferPhysicsNeMoBase(MONAIPhysioBase):
         """Run the network over all nodes; return the ``(n, n_target)`` output."""
         raise NotImplementedError
 
-    def set_model(self, model: "torch.nn.Module", device: "torch.device") -> None:
+    def set_model(self, model: torch.nn.Module, device: torch.device) -> None:
         """Attach the loaded model and its device before predicting."""
         self._model = model
         self._device = device

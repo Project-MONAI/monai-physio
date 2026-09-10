@@ -24,9 +24,9 @@ import pyvista as pv
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
 from monai_physio import (
-    ContourTools,
+    ProcessContours,
+    ProcessTests,
     SegmentChestTotalSegmentator,
-    TestTools,
     WorkflowConvertImageToVTK,
 )
 
@@ -42,7 +42,7 @@ if __name__ == "__main__":
 
     project_name = "tutorial_04_lung"
 
-    test_mode = TestTools.running_as_test()
+    test_mode = ProcessTests.running_as_test()
 
     output_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / project_name
 
@@ -104,24 +104,24 @@ if __name__ == "__main__":
         result["label_surfaces"] if save_label_surfaces else result["surfaces"]
     )
     surface_file = Path(
-        ContourTools.save_combined_surfaces(
+        ProcessContours.save_combined_surfaces(
             combined_input,
             str(output_dir / "patient_surfaces.vtp"),
         )
     )
     if save_group_surfaces:
-        ContourTools.save_surfaces(
+        ProcessContours.save_surfaces(
             result["surfaces"], str(output_dir), prefix="patient"
         )
     if save_label_surfaces:
-        ContourTools.save_surfaces(
+        ProcessContours.save_surfaces(
             result["label_surfaces"], str(output_dir), prefix="patient"
         )
     labelmap_file = output_dir / "patient_labelmap.mha"
     itk.imwrite(result["labelmap"], str(labelmap_file), compression=True)
 
     # Testing
-    tt = TestTools(
+    tt = ProcessTests(
         class_name=project_name,
         results_dir=output_dir,
         log_level=log_level,

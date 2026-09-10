@@ -332,7 +332,7 @@ def create_primvar(
 
     # If this is a multi-component array that we're storing in a scalar array type
     # (e.g. FloatArray for >4 components), preserve the component grouping via elementSize.
-    # This makes downstream tools (and USDTools.apply_colormap_from_primvar) able to reshape.
+    # This makes downstream tools (and ProcessUSD.apply_colormap_from_primvar) able to reshape.
     if array.num_components > 1 and sdf_type in (
         Sdf.ValueTypeNames.FloatArray,
         Sdf.ValueTypeNames.IntArray,

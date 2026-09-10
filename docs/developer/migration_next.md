@@ -63,9 +63,7 @@ result = RegisterImagesANTS().register(moving_image)
 warped = transform_tools.transform_image(
     moving_image, result["forward_transform"], fixed_image
 )
-warped_points = transform_tools.transform_pvcontour(
-    points, result["inverse_transform"]
-)
+warped_points = transform_tools.transform_pvcontour(points, result["inverse_transform"])
 
 # PCA/ICP model registration
 result = registrar.compute_pca_transforms(reference_image)
@@ -241,6 +239,69 @@ only the qualified one:
 Remove any now-obsolete `from monai_physio.physicsnemo_tools import
 <function>` line once its call sites are updated; the free functions no
 longer exist on that module (`distributed_context` is the one exception).
+
+## `*_tools`/`*Tools` module and class family - renamed to `process_*`/`Process*`
+
+**Change:** the object-first `*_tools.py`/`*Tools` naming used throughout
+`src/monai_physio/` is renamed to match the verb-first convention used
+elsewhere in the project (`workflow_train_physicsnemo.py`,
+`register_images_ants.py`, `segment_chest_total_segmentator.py`):
+
+| Old module / class | New module / class |
+|---|---|
+| `contour_tools.py` / `ContourTools` | `process_contours.py` / `ProcessContours` |
+| `transform_tools.py` / `TransformTools` | `process_transforms.py` / `ProcessTransforms` |
+| `test_tools.py` / `TestTools` | `process_tests.py` / `ProcessTests` |
+| `image_tools.py` / `ImageTools` | `process_images.py` / `ProcessImages` |
+| `physicsnemo_tools.py` / `PhysicsNemoTools` | `process_physicsnemo.py` / `ProcessPhysicsNemo` |
+| `usd_anatomy_tools.py` / `USDAnatomyTools` | `process_usd_anatomy.py` / `ProcessUSDAnatomy` |
+| `usd_tools.py` / `USDTools` | `process_usd.py` / `ProcessUSD` |
+| `labelmap_tools.py` / `LabelmapTools` | `process_labelmaps.py` / `ProcessLabelmaps` |
+| `landmark_tools.py` / `LandmarkTools` | `process_landmarks.py` / `ProcessLandmarks` |
+| `data_download_tools.py` / `DataDownloadTools` | `download_data.py` / `DownloadData` |
+
+Only import paths and PascalCase class names changed. Lowercase instance
+attributes and pytest fixtures that hold instances of these classes (for
+example `self.image_tools`, or the `contour_tools` pytest fixture) are
+unaffected. The corresponding Sphinx API pages also moved (e.g.
+`docs/api/utilities/image_tools.rst` -> `docs/api/utilities/process_images.rst`,
+`docs/api/usd/tools.rst` -> `docs/api/usd/process_usd.rst`,
+`docs/api/usd/anatomy_tools.rst` -> `docs/api/usd/process_usd_anatomy.rst`,
+`docs/api/utilities/data_download.rst` -> `docs/api/utilities/download_data.rst`),
+so bookmarked ReadTheDocs URLs for those pages change.
+
+**Why:** extends the verb-first naming already used by every workflow,
+registration, and segmentation module in the project to what was previously
+an inconsistent, object-first `*_tools` family, and reads naturally at call
+sites (`ProcessContours().merge(...)`).
+
+**Before**
+
+```python
+from monai_physio import ContourTools, ImageTools, USDTools
+
+contours = ContourTools()
+image = ImageTools()
+usd = USDTools()
+```
+
+**After**
+
+```python
+from monai_physio import ProcessContours, ProcessImages, ProcessUSD
+
+contours = ProcessContours()
+image = ProcessImages()
+usd = ProcessUSD()
+```
+
+**Automated conversion:** `py utils/rename_tools_to_process.py --dry-run`
+to preview, then `py utils/rename_tools_to_process.py` to apply. The script
+performs the `git mv` for each renamed module, its dedicated test file (where
+one exists), and its Sphinx API page, then rewrites imports, dotted
+`monai_physio.<module>` references, and whole-word PascalCase class names
+tree-wide. It is retained in `utils/` for reuse rather than deleted after
+running.
 
 ## Entry template
 

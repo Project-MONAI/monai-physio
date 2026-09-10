@@ -280,7 +280,7 @@ Viewing Results
 
    import monai_physio as mphysio
 
-   mesh = mphysio.USDTools().load_usd_as_vtk("output.usd")
+   mesh = mphysio.ProcessUSD().load_usd_as_vtk("output.usd")
    print(mesh.n_points, mesh.n_cells)
 
 PyVista reads the VTK input files used above, but local validation with

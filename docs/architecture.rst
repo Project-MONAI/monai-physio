@@ -16,7 +16,7 @@ Data Flow
    4D CT / time-series CT
           |
           v
-   ConvertImage4DTo3D / ImageTools
+   ConvertImage4DTo3D / ProcessImages
           |
           v
    RegisterTimeSeriesImages
@@ -30,7 +30,7 @@ Data Flow
    SegmentNVSegmentCTMRI (CT + MRI)
           |
           v
-   ContourTools + TransformTools
+   ProcessContours + ProcessTransforms
           |
           v
    WorkflowConvertImageToVTK / ConvertVTKToUSD / WorkflowConvertVTKToUSD
@@ -177,7 +177,7 @@ it produces - a new segmenter for a new organ or data type only has to
 declare that map once. Everything downstream reads it rather than
 special-casing the segmenter: ``ConvertVTKToUSD`` groups label-mode mesh
 prims under per-anatomy-group Xforms (``/World/{name}/{group}/{organ}``)
-straight from the taxonomy, and ``USDAnatomyTools`` looks up
+straight from the taxonomy, and ``ProcessUSDAnatomy`` looks up
 :data:`DEFAULT_RENDER_PARAMS` by group name to assign the matching
 OmniSurface material. A group without a registered look still renders (via
 the ``"other"`` fallback), so a new segmentation class is usable end-to-end -

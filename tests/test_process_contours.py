@@ -13,21 +13,21 @@ import numpy as np
 import pytest
 import pyvista as pv
 
-from monai_physio.contour_tools import ContourTools
+from monai_physio.process_contours import ProcessContours
 
 
 @pytest.mark.slow
-class TestContourTools:
-    """Test suite for ContourTools functionality."""
+class TestProcessContours:
+    """Test suite for ProcessContours functionality."""
 
-    def test_contour_tools_initialization(self, contour_tools: ContourTools) -> None:
-        """Test that ContourTools initializes correctly."""
-        assert contour_tools is not None, "ContourTools not initialized"
-        print("\nContourTools initialized successfully")
+    def test_contour_tools_initialization(self, contour_tools: ProcessContours) -> None:
+        """Test that ProcessContours initializes correctly."""
+        assert contour_tools is not None, "ProcessContours not initialized"
+        print("\nProcessContours initialized successfully")
 
     def test_extract_contours_from_heart_mask(
         self,
-        contour_tools: ContourTools,
+        contour_tools: ProcessContours,
         test_labelmaps: list[dict[str, Any]],
         test_directories: dict[str, Path],
     ) -> None:
@@ -60,7 +60,7 @@ class TestContourTools:
 
     def test_extract_contours_from_lung_mask(
         self,
-        contour_tools: ContourTools,
+        contour_tools: ProcessContours,
         test_labelmaps: list[dict[str, Any]],
         test_directories: dict[str, Path],
     ) -> None:
@@ -89,7 +89,7 @@ class TestContourTools:
 
     def test_extract_contours_multiple_anatomy(
         self,
-        contour_tools: ContourTools,
+        contour_tools: ProcessContours,
         test_labelmaps: list[dict[str, Any]],
         test_directories: dict[str, Path],
     ) -> None:
@@ -127,7 +127,7 @@ class TestContourTools:
 
     def test_create_mask_from_mesh(
         self,
-        contour_tools: ContourTools,
+        contour_tools: ProcessContours,
         test_labelmaps: list[dict[str, Any]],
         test_images: list[Any],
         test_directories: dict[str, Path],
@@ -168,7 +168,7 @@ class TestContourTools:
 
     def test_merge_meshes(
         self,
-        contour_tools: ContourTools,
+        contour_tools: ProcessContours,
         test_labelmaps: list[dict[str, Any]],
         test_directories: dict[str, Path],
     ) -> None:
@@ -218,7 +218,7 @@ class TestContourTools:
 
     def test_transform_contours_identity(
         self,
-        contour_tools: ContourTools,
+        contour_tools: ProcessContours,
         test_labelmaps: list[dict[str, Any]],
         test_directories: dict[str, Path],
     ) -> None:
@@ -264,7 +264,7 @@ class TestContourTools:
 
     def test_transform_contours_with_deformation(
         self,
-        contour_tools: ContourTools,
+        contour_tools: ProcessContours,
         test_labelmaps: list[dict[str, Any]],
         test_directories: dict[str, Path],
     ) -> None:
@@ -313,7 +313,7 @@ class TestContourTools:
 
     def test_contours_from_both_time_points(
         self,
-        contour_tools: ContourTools,
+        contour_tools: ProcessContours,
         test_labelmaps: list[dict[str, Any]],
         test_directories: dict[str, Path],
     ) -> None:
@@ -360,7 +360,7 @@ class TestSaveCombinedSurfaces:
         }
 
         output_file = tmp_path / "combined.vtp"
-        ContourTools.save_combined_surfaces(surfaces, str(output_file))
+        ProcessContours.save_combined_surfaces(surfaces, str(output_file))
 
         merged = pv.read(str(output_file))
         label_ids = merged.cell_data["SegmentationLabelIds"]
@@ -382,7 +382,9 @@ class TestSaveCombinedSurfaces:
         )
 
         output_file = tmp_path / "combined_group.vtp"
-        ContourTools.save_combined_surfaces({"heart": group_surface}, str(output_file))
+        ProcessContours.save_combined_surfaces(
+            {"heart": group_surface}, str(output_file)
+        )
 
         merged = pv.read(str(output_file))
         assert set(np.unique(merged.cell_data["SegmentationLabelIds"])) == {0}
@@ -414,7 +416,7 @@ class TestRemeshCarriesCellLabels:
         return surface
 
     def test_remeshing_carries_both_cell_arrays(
-        self, contour_tools: ContourTools
+        self, contour_tools: ProcessContours
     ) -> None:
         """Anatomy splitting downstream reads these off the remeshed surface."""
         original = self._two_label_sphere()

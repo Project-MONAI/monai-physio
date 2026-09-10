@@ -14,8 +14,8 @@ import pytest
 import pyvista as pv
 import vtk
 
-from monai_physio.image_tools import ImageTools
-from monai_physio.transform_tools import TransformTools
+from monai_physio.process_images import ProcessImages
+from monai_physio.process_transforms import ProcessTransforms
 
 
 def _sphere_shell_samples(
@@ -72,7 +72,7 @@ def test_smooth_deformation_field_transform_stops_sliding_outside_the_mask() -> 
     weight_image = itk.image_from_array(weights)
     mask_image = itk.image_from_array(interior)
 
-    tools = TransformTools()
+    tools = ProcessTransforms()
 
     def spread(samples: Any, restrict: bool) -> Any:
         field = _as_field(samples)
@@ -116,7 +116,7 @@ def test_smooth_deformation_field_transform_stops_sliding_outside_the_mask() -> 
 def test_smooth_deformation_field_transform_rejects_a_lone_normal_or_mask() -> None:
     """The normals say what to project onto, the mask says where to."""
     normals, radial, _, weights, interior = _sphere_shell_samples()
-    tools = TransformTools()
+    tools = ProcessTransforms()
 
     with pytest.raises(ValueError, match="must be given together"):
         tools.smooth_deformation_field_transform(
@@ -142,7 +142,9 @@ def test_generate_grid_image_clamps_boundary_lines() -> None:
     image_arr[-1, -1, -1] = 5.0
     image = itk.image_from_array(image_arr)
 
-    grid_image = TransformTools().generate_grid_image(image, grid_size=2, line_width=3)
+    grid_image = ProcessTransforms().generate_grid_image(
+        image, grid_size=2, line_width=3
+    )
     grid_arr = itk.array_from_image(grid_image)
 
     assert grid_arr.shape == image_arr.shape
@@ -194,7 +196,7 @@ def test_composing_at_unit_weight_chains_the_inputs_instead_of_rasterizing() -> 
     directions together retained 36.6 GB to hold what is really an affine plus a
     175-cubed field.
     """
-    transform_tools = TransformTools()
+    transform_tools = ProcessTransforms()
     affine, translation = _affine_and_translation()
 
     composed = transform_tools.combine_displacement_field_transforms(
@@ -237,7 +239,7 @@ def test_composing_with_a_weight_or_a_blur_still_rasterizes() -> None:
     This is the half of the branch the existing callers rely on: scaling or
     smoothing a transform cannot be expressed by chaining it unchanged.
     """
-    transform_tools = TransformTools()
+    transform_tools = ProcessTransforms()
     affine, translation = _affine_and_translation()
     reference = _small_reference_image()
 
@@ -254,8 +256,8 @@ def test_composing_with_a_weight_or_a_blur_still_rasterizes() -> None:
 
 
 @pytest.mark.slow
-class TestTransformTools:
-    """Test suite for TransformTools functionality."""
+class TestProcessTransforms:
+    """Test suite for ProcessTransforms functionality."""
 
     @pytest.fixture(scope="class")
     def test_contour(self, test_images: list[Any]) -> Any:
@@ -265,15 +267,15 @@ class TestTransformTools:
         return sphere
 
     def test_transform_tools_initialization(
-        self, transform_tools: TransformTools
+        self, transform_tools: ProcessTransforms
     ) -> None:
-        """Test that TransformTools initializes correctly."""
-        assert transform_tools is not None, "TransformTools not initialized"
-        print("\nTransformTools initialized successfully")
+        """Test that ProcessTransforms initializes correctly."""
+        assert transform_tools is not None, "ProcessTransforms not initialized"
+        print("\nProcessTransforms initialized successfully")
 
     def test_transform_image_linear(
         self,
-        transform_tools: TransformTools,
+        transform_tools: ProcessTransforms,
         test_transforms: dict[str, Any],
         test_images: list[Any],
         test_directories: dict[str, Path],
@@ -316,7 +318,7 @@ class TestTransformTools:
 
     def test_transform_image_nearest(
         self,
-        transform_tools: TransformTools,
+        transform_tools: ProcessTransforms,
         test_transforms: dict[str, Any],
         test_images: list[Any],
         test_directories: dict[str, Path],
@@ -353,7 +355,7 @@ class TestTransformTools:
 
     def test_transform_image_sinc(
         self,
-        transform_tools: TransformTools,
+        transform_tools: ProcessTransforms,
         test_transforms: dict[str, Any],
         test_images: list[Any],
         test_directories: dict[str, Path],
@@ -390,7 +392,7 @@ class TestTransformTools:
 
     def test_transform_image_invalid_method(
         self,
-        transform_tools: TransformTools,
+        transform_tools: ProcessTransforms,
         test_transforms: dict[str, Any],
         test_images: list[Any],
     ) -> None:
@@ -413,7 +415,7 @@ class TestTransformTools:
 
     def test_transform_pvcontour_without_deformation(
         self,
-        transform_tools: TransformTools,
+        transform_tools: ProcessTransforms,
         test_contour: Any,
         test_transforms: dict[str, Any],
     ) -> None:
@@ -448,7 +450,7 @@ class TestTransformTools:
 
     def test_transform_pvcontour_with_deformation(
         self,
-        transform_tools: TransformTools,
+        transform_tools: ProcessTransforms,
         test_contour: Any,
         test_transforms: dict[str, Any],
         test_directories: dict[str, Path],
@@ -491,7 +493,7 @@ class TestTransformTools:
 
     def test_transform_dataset_preserves_unstructured_grid_topology(
         self,
-        transform_tools: TransformTools,
+        transform_tools: ProcessTransforms,
     ) -> None:
         """Transform UnstructuredGrid points with image shape (Z, Y, X) = (3, 3, 3)."""
         points = np.array(
@@ -528,7 +530,7 @@ class TestTransformTools:
 
     def test_convert_transform_to_displacement_field(
         self,
-        transform_tools: TransformTools,
+        transform_tools: ProcessTransforms,
         test_transforms: dict[str, Any],
         test_images: list[Any],
         test_directories: dict[str, Path],
@@ -560,7 +562,7 @@ class TestTransformTools:
         print(f"  Field shape: {field_arr.shape}")
 
         # Save deformation field using imwriteVD3 (for double precision vector images)
-        image_tools = ImageTools()
+        image_tools = ProcessImages()
         image_tools.imwriteVD3(
             deformation_field,
             str(tfm_output_dir / "deformation_field.mha"),
@@ -568,7 +570,7 @@ class TestTransformTools:
         )
 
     def test_convert_vtk_matrix_to_itk_transform(
-        self, transform_tools: TransformTools
+        self, transform_tools: ProcessTransforms
     ) -> None:
         """Test converting VTK matrix to ITK transform."""
         # Create a VTK matrix
@@ -601,7 +603,7 @@ class TestTransformTools:
 
     def test_compute_jacobian_determinant_from_field(
         self,
-        transform_tools: TransformTools,
+        transform_tools: ProcessTransforms,
         test_transforms: dict[str, Any],
         test_images: list[Any],
         test_directories: dict[str, Path],
@@ -652,7 +654,7 @@ class TestTransformTools:
 
     def test_detect_folding_in_field(
         self,
-        transform_tools: TransformTools,
+        transform_tools: ProcessTransforms,
         test_transforms: dict[str, Any],
         test_images: list[Any],
     ) -> None:
@@ -682,7 +684,7 @@ class TestTransformTools:
 
     def test_interpolate_transforms(
         self,
-        transform_tools: TransformTools,
+        transform_tools: ProcessTransforms,
         test_transforms: dict[str, Any],
         test_images: list[Any],
     ) -> None:
@@ -719,7 +721,7 @@ class TestTransformTools:
 
     def test_combine_displacement_field_transforms(
         self,
-        transform_tools: TransformTools,
+        transform_tools: ProcessTransforms,
         test_transforms: dict[str, Any],
         test_images: list[Any],
     ) -> None:
@@ -833,7 +835,7 @@ class TestTransformTools:
 
     def test_smooth_transform(
         self,
-        transform_tools: TransformTools,
+        transform_tools: ProcessTransforms,
         test_transforms: dict[str, Any],
         test_images: list[Any],
     ) -> None:
@@ -859,7 +861,7 @@ class TestTransformTools:
 
     def test_combine_transforms_with_masks(
         self,
-        transform_tools: TransformTools,
+        transform_tools: ProcessTransforms,
         test_transforms: dict[str, Any],
         test_images: list[Any],
     ) -> None:
@@ -906,7 +908,7 @@ class TestTransformTools:
 
     def test_multiple_transform_applications(
         self,
-        transform_tools: TransformTools,
+        transform_tools: ProcessTransforms,
         test_transforms: dict[str, Any],
         test_images: list[Any],
     ) -> None:
@@ -939,7 +941,7 @@ class TestTransformTools:
         print("Multiple sequential transforms applied")
 
     def test_identity_transform(
-        self, transform_tools: TransformTools, test_images: list[Any]
+        self, transform_tools: ProcessTransforms, test_images: list[Any]
     ) -> None:
         """Test that identity transform doesn't change the image."""
         moving_image = test_images[1]

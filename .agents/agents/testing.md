@@ -17,7 +17,7 @@ test off the GPU bucket.
 
 - `tests/conftest.py` - session-scoped fixtures chaining: download → convert → segment → register
 - `tests/baselines/` - stored via Git LFS; fetch with `git lfs pull`
-- `src/monai_physio/test_tools.py` - baseline comparison utilities (`TestTools`)
+- `src/monai_physio/process_tests.py` - baseline comparison utilities (`ProcessTests`)
 - Markers (all opt-in via `--run-<bucket>`): `slow`, `requires_gpu`,
   `requires_simpleware`, `tutorial`. The `requires_data` marker
   no longer exists - tests that need downloadable data pull it through the
@@ -32,7 +32,7 @@ to the project interpreter. If activation is impossible, use
 ```powershell
 python -m pytest tests/ -v                                        # fast, recommended (slow/GPU/etc auto-skipped)
 python -m pytest tests/test_contour_tools.py -v                   # single file
-python -m pytest tests/test_contour_tools.py::TestContourTools -v # single class
+python -m pytest tests/test_contour_tools.py::TestProcessContours -v # single class
 python -m pytest tests/ -v --run-slow                             # opt into slow tests
 # typical local GPU profile; CI adds --run-simpleware --run-tutorials
 python -m pytest tests/ -v --run-gpu --run-slow
@@ -59,7 +59,7 @@ python -m pytest tests/ --create-baselines                        # create missi
    those are fixed conventions. State only what is specific to the test, such
    as the size of a synthetic volume.
 6. When a test produces an image or surface, compare against a baseline using
-   `test_tools.py` utilities (`TestTools`) rather than ad-hoc value asserts.
+   `process_tests.py` utilities (`ProcessTests`) rather than ad-hoc value asserts.
    Store baselines under `tests/baselines/` (Git LFS-tracked).
 7. Prefer images from `ROOT/data/test/slicer_heart_small`.
 8. Prefer storing results in subdirectories under `./results/<test_name>`.

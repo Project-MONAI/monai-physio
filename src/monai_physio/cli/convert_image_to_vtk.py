@@ -167,7 +167,7 @@ Examples
     print("=" * 70)
 
     try:
-        from .. import ContourTools, WorkflowConvertImageToVTK
+        from .. import ProcessContours, WorkflowConvertImageToVTK
 
         workflow = WorkflowConvertImageToVTK(
             segmentation_method=build_segmentation_method(
@@ -202,13 +202,13 @@ Examples
     try:
         if args.output_mode == "combined":
             stem = f"{prefix}_surfaces" if prefix else "surfaces"
-            surface_file = ContourTools.save_combined_surfaces(
+            surface_file = ProcessContours.save_combined_surfaces(
                 surfaces, os.path.join(args.output_dir, f"{stem}.vtp")
             )
             print(f"  Combined surface -> {surface_file}")
         else:
             # One file per anatomy group or per individual label
-            saved_surfaces = ContourTools.save_surfaces(
+            saved_surfaces = ProcessContours.save_surfaces(
                 surfaces, args.output_dir, prefix=prefix
             )
             for name, path in saved_surfaces.items():

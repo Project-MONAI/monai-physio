@@ -16,7 +16,7 @@ statistical-shape-model (SSM) surface per respiratory phase:
 2. Propagate the fitted surface to every respiratory phase. Each phase is
    registered to the reference phase with ``RegisterImagesGreedy``
    (``WorkflowReconstructHighres4DCT``). The forward transform for each phase
-   warps the fitted SSM surface (``TransformTools.transform_pvcontour``, with
+   warps the fitted SSM surface (``ProcessTransforms.transform_pvcontour``, with
    deformation magnitude attached), producing one ``*_T{PP}_ssm_surface.vtp``
    per phase.
 
@@ -57,11 +57,11 @@ import pyvista as pv
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
 from monai_physio import (
-    ContourTools,
+    ProcessContours,
+    ProcessTests,
+    ProcessTransforms,
     RegisterImagesGreedy,
     SegmentNVSegmentCTMRI,
-    TestTools,
-    TransformTools,
     WorkflowConvertImageToVTK,
     WorkflowFitStatisticalModelToPatient,
     WorkflowReconstructHighres4DCT,
@@ -80,7 +80,7 @@ if __name__ == "__main__":
 
     class_name = "tutorial_08_lung_fit_model_to_4d_patients"
 
-    test_mode = TestTools.running_as_test()
+    test_mode = ProcessTests.running_as_test()
 
     data_dir = LUNG_CT_DIRLAB.input_directory(test_mode)
 
@@ -159,8 +159,8 @@ if __name__ == "__main__":
     segmentation_workflow = WorkflowConvertImageToVTK(
         segmentation_method=segmentation_method, log_level=log_level
     )
-    contour_tools = ContourTools(log_level=log_level)
-    transform_tools = TransformTools(log_level=log_level)
+    contour_tools = ProcessContours(log_level=log_level)
+    transform_tools = ProcessTransforms(log_level=log_level)
 
     tutorial_results: dict[str, Any] = {"cases": {}, "screenshots": []}
 
@@ -303,7 +303,7 @@ if __name__ == "__main__":
         }
 
     # Testing
-    tt = TestTools(
+    tt = ProcessTests(
         class_name=class_name,
         results_dir=output_dir,
         baselines_dir=baselines_dir,

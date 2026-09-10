@@ -201,6 +201,7 @@ Enable detailed logging:
 
 ```python
 import logging
+
 segmenter = SegmentHeartSimpleware(log_level=logging.DEBUG)
 ```
 
@@ -228,7 +229,9 @@ workflow.set_static_labelmap(result["labelmap"])
 ### Statistical Model Registration
 Register segmentation with heart model using `Heart-Statistical_Model_To_Patient`:
 ```python
-from monai_physio.workflow_fit_statistical_model_to_patient import WorkflowFitStatisticalModelToPatient
+from monai_physio.workflow_fit_statistical_model_to_patient import (
+    WorkflowFitStatisticalModelToPatient,
+)
 
 workflow = WorkflowFitStatisticalModelToPatient()
 workflow.set_patient_segmentation(result["labelmap"])
@@ -246,6 +249,7 @@ lv_volume_ml = np.sum(lv_mask) * voxel_volume / 1000
 
 # Create mesh for computational modeling
 from monai_physio.convert_vtk_to_usd import create_mesh_from_mask
+
 lv_mesh = create_mesh_from_mask(lv_mask)
 ```
 
@@ -262,7 +266,8 @@ segmenter.set_target_spacing(2.0)  # Use 2mm instead of 1mm
 2. **Use region of interest**:
 ```python
 # Crop image to heart region before segmentation
-from monai_physio.image_tools import crop_to_roi
+from monai_physio.process_images import crop_to_roi
+
 cropped_image = crop_to_roi(input_image, roi_bounds)
 ```
 

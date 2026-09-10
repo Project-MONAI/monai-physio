@@ -32,7 +32,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pyvista as pv
 
-from monai_physio.landmark_tools import LandmarkTools
+from monai_physio.process_landmarks import ProcessLandmarks
 from monai_physio.segment_heart_simpleware import SegmentHeartSimpleware
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -211,7 +211,7 @@ if input_image is not None:
         # Save landmarks
         print("\nSaving landmarks...")
         landmarks = segmenter.get_landmarks()
-        LandmarkTools().write_landmarks_3dslicer(
+        ProcessLandmarks().write_landmarks_3dslicer(
             landmarks=landmarks, path=os.path.join(output_dir, "landmarks.mrk.json")
         )
 

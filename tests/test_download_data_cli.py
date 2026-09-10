@@ -8,7 +8,7 @@ from typing import Union
 import pytest
 
 from monai_physio.cli import download_data
-from monai_physio.data_download_tools import DataDownloadTools
+from monai_physio.download_data import DownloadData
 
 
 def test_download_data_cli_with_no_args_prints_help(
@@ -30,9 +30,9 @@ def test_download_data_cli_uses_requested_directory(
 
     def fake_download(dirname: Union[str, Path]) -> Path:
         calls.append(Path(dirname))
-        return Path(dirname) / DataDownloadTools.SLICER_HEART_CT_FILENAME
+        return Path(dirname) / DownloadData.SLICER_HEART_CT_FILENAME
 
-    monkeypatch.setattr(DataDownloadTools, "DownloadSlicerHeartCTData", fake_download)
+    monkeypatch.setattr(DownloadData, "DownloadSlicerHeartCTData", fake_download)
 
     result = download_data.main(["Slicer-Heart-CT", "--directory", str(tmp_path)])
 
@@ -51,7 +51,7 @@ def test_download_data_cli_routes_kcl_heart_model(
         calls.append(Path(dirname))
         return Path(dirname)
 
-    monkeypatch.setattr(DataDownloadTools, "DownloadKCLHeartModelData", fake_download)
+    monkeypatch.setattr(DownloadData, "DownloadKCLHeartModelData", fake_download)
 
     result = download_data.main(["KCL-Heart-Model"])
 
@@ -71,7 +71,7 @@ def test_download_data_cli_routes_chop_valve4d(
         calls.append(Path(dirname))
         return Path(dirname)
 
-    monkeypatch.setattr(DataDownloadTools, "DownloadCHOPValve4DData", fake_download)
+    monkeypatch.setattr(DownloadData, "DownloadCHOPValve4DData", fake_download)
 
     result = download_data.main(["CHOP-Valve4D"])
 
@@ -89,9 +89,9 @@ def test_download_data_cli_routes_chest_ct(
 
     def fake_download(dirname: Union[str, Path]) -> Path:
         calls.append(Path(dirname))
-        return Path(dirname) / DataDownloadTools.CHEST_CT_FILENAME
+        return Path(dirname) / DownloadData.CHEST_CT_FILENAME
 
-    monkeypatch.setattr(DataDownloadTools, "DownloadChestCTData", fake_download)
+    monkeypatch.setattr(DownloadData, "DownloadChestCTData", fake_download)
 
     result = download_data.main(["Chest-CT"])
 

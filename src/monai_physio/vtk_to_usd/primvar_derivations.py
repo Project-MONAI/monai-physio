@@ -25,7 +25,7 @@ Naming convention
 
 Use ``<source_name>_<DerivedName>`` (capitalized derived suffix). Capital
 letters sort before lowercase in ASCII, so ``stress_VonMises`` is selected over
-``stress_c0`` by ``USDTools.pick_color_primvar``'s alphabetical tiebreak.
+``stress_c0`` by ``ProcessUSD.pick_color_primvar``'s alphabetical tiebreak.
 """
 
 from __future__ import annotations

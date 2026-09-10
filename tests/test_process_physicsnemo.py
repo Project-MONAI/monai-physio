@@ -15,7 +15,7 @@ import numpy as np
 import pytest
 import pyvista as pv
 
-from monai_physio import physicsnemo_tools as pnt
+from monai_physio import process_physicsnemo as pnt
 
 _TARGET_ARRAY = "displacement"
 _STAGES = (0.0, 0.5)
@@ -78,7 +78,7 @@ def test_parse_manifest_rejects_a_manifest_without_a_fitted_reference_mesh(
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
     with pytest.raises(ValueError, match="fitted_reference_mesh"):
-        pnt.PhysicsNemoTools.parse_manifest(manifest_path)
+        pnt.ProcessPhysicsNemo.parse_manifest(manifest_path)
 
 
 def _without_physicsnemo(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -110,7 +110,7 @@ def test_multi_process_launch_without_physicsnemo_is_refused(
     _without_physicsnemo(monkeypatch)
 
     with pytest.raises(ImportError, match="1 of 8"):
-        pnt.PhysicsNemoTools.distributed_context()
+        pnt.ProcessPhysicsNemo.distributed_context()
 
 
 def test_a_single_process_without_physicsnemo_still_runs(
@@ -122,7 +122,7 @@ def test_a_single_process_without_physicsnemo_still_runs(
     monkeypatch.setenv("WORLD_SIZE", "1")
     _without_physicsnemo(monkeypatch)
 
-    context = pnt.PhysicsNemoTools.distributed_context()
+    context = pnt.ProcessPhysicsNemo.distributed_context()
 
     assert context.world_size == 1
     assert context.rank == 0
@@ -136,7 +136,7 @@ def test_parse_manifest_round_trips_the_new_schema(tmp_path: Path) -> None:
         tmp_path, [_targets(n_points, 3, 0.0), _targets(n_points, 3, 1.0)]
     )
 
-    manifest = pnt.PhysicsNemoTools.parse_manifest(manifest_path)
+    manifest = pnt.ProcessPhysicsNemo.parse_manifest(manifest_path)
 
     assert manifest.subject_id == "subject_01"
     assert manifest.target_array == _TARGET_ARRAY
@@ -156,7 +156,7 @@ def test_parse_manifest_requires_the_target_array(tmp_path: Path) -> None:
     manifest_path.write_text(json.dumps(data), encoding="utf-8")
 
     with pytest.raises(ValueError, match="target_array"):
-        pnt.PhysicsNemoTools.parse_manifest(manifest_path)
+        pnt.ProcessPhysicsNemo.parse_manifest(manifest_path)
 
 
 @pytest.mark.parametrize("n_target", [1, 3, 6])
@@ -170,7 +170,7 @@ def test_load_target_array_returns_two_dimensional_targets(
     mesh_file = tmp_path / "target.vtp"
     mesh.save(str(mesh_file))
 
-    loaded = pnt.PhysicsNemoTools.load_target_array(mesh_file, _TARGET_ARRAY)
+    loaded = pnt.ProcessPhysicsNemo.load_target_array(mesh_file, _TARGET_ARRAY)
 
     assert loaded.shape == (mesh.n_points, n_target)
     assert np.allclose(loaded, values)
@@ -181,7 +181,7 @@ def test_load_target_array_reports_missing_arrays(tmp_path: Path) -> None:
     _sphere().save(str(mesh_file))
 
     with pytest.raises(KeyError, match=_TARGET_ARRAY):
-        pnt.PhysicsNemoTools.load_target_array(mesh_file, _TARGET_ARRAY)
+        pnt.ProcessPhysicsNemo.load_target_array(mesh_file, _TARGET_ARRAY)
 
 
 def test_dataset_returns_the_stored_targets_scaled(tmp_path: Path) -> None:
@@ -189,7 +189,7 @@ def test_dataset_returns_the_stored_targets_scaled(tmp_path: Path) -> None:
     n_points = _sphere().n_points
     stored = [_targets(n_points, 3, 0.0), _targets(n_points, 3, 1.0)]
     manifest_path = _write_subject(tmp_path, stored)
-    manifest = pnt.PhysicsNemoTools.parse_manifest(manifest_path)
+    manifest = pnt.ProcessPhysicsNemo.parse_manifest(manifest_path)
 
     target_scale = 2.0
     coords_norm = np.zeros((n_points, 3), dtype=np.float32)
@@ -224,7 +224,7 @@ def test_mesh_to_edge_index_preserves_volumetric_point_ids(tmp_path: Path) -> No
 
     volume = pv.UnstructuredGrid(pv.Box().triangulate().delaunay_3d())
 
-    edge_index = pnt.PhysicsNemoTools.mesh_to_edge_index(volume)
+    edge_index = pnt.ProcessPhysicsNemo.mesh_to_edge_index(volume)
 
     assert isinstance(edge_index, torch.Tensor)
     assert edge_index.shape[0] == 2

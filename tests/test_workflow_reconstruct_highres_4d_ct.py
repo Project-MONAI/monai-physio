@@ -3,8 +3,8 @@ instance-based registration_method API."""
 
 from __future__ import annotations
 
-import numpy as np
 import itk
+import numpy as np
 import pytest
 
 from monai_physio.register_images_base import RegisterImagesBase

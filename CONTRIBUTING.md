@@ -228,6 +228,7 @@ Add tests in the `tests/` directory:
 import pytest
 from monai_physio import MyNewFeature
 
+
 def test_my_feature():
     feature = MyNewFeature()
     result = feature.do_something()

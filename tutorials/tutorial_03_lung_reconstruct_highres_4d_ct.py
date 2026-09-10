@@ -30,8 +30,8 @@ import itk
 from parameters_base import ParametersBase
 
 from monai_physio import (
+    ProcessTests,
     RegisterImagesGreedy,
-    TestTools,
     WorkflowReconstructHighres4DCT,
 )
 
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     # Only the shared directory roots are needed here; no dataset-specific
     # parameters module applies to this tutorial.
     tutorial_paths = ParametersBase()
-    test_mode = TestTools.running_as_test()
+    test_mode = ProcessTests.running_as_test()
 
     output_dir = tutorial_paths.output_directory(test_mode) / "tutorial_03_lung"
     baselines_dir = repo_root / "tests" / "baselines"
@@ -126,7 +126,7 @@ if __name__ == "__main__":
         itk.transformwrite(moving_to_fixed_transform[frame_index], str(out_path))
 
     # Testing
-    tt = TestTools(
+    tt = ProcessTests(
         class_name=class_name,
         results_dir=output_dir,
         baselines_dir=baselines_dir,

@@ -156,7 +156,7 @@ came from.
 - Baselines in `tests/baselines/` via Git LFS - run `git lfs pull` after cloning
 - `tests/conftest.py`: session-scoped fixtures chaining
   download → convert → segment → register
-- `src/monai_physio/test_tools.py`: baseline comparison utilities (`TestTools`, etc.)
+- `src/monai_physio/process_tests.py`: baseline comparison utilities (`ProcessTests`, etc.)
 - Markers (all opt-in via `--run-<bucket>`): `slow`, `requires_gpu`,
   `requires_simpleware`, `tutorial`. Data-dependent tests no
   longer use a marker - they pull data through fixtures and run by default.

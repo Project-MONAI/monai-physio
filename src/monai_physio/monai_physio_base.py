@@ -60,7 +60,7 @@ class ClassNameFilter(logging.Filter):
 
         # Extract class name from the message (format: "ClassName - message")
         if hasattr(record, "class_name"):
-            return cast(str, getattr(record, "class_name")) in self.allowed_classes
+            return cast(str, record.class_name) in self.allowed_classes
 
         return True  # Show messages without class name attribute
 

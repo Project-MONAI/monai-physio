@@ -508,7 +508,7 @@ class ConvertVTKToUSD(MONAIPhysioBase):
         becomes a USD primvar at convert time (``vtk_cell_<output_name>`` or
         ``vtk_point_<output_name>``) and can be selected as the
         ``color_by_array`` for set_colormap or as the target primvar for
-        ``USDTools.apply_colormap_from_primvar``.
+        ``ProcessUSD.apply_colormap_from_primvar``.
 
         Tensor layout (row-major)::
 
@@ -972,7 +972,7 @@ class ConvertVTKToUSD(MONAIPhysioBase):
             vtk_mesh = vtk_mesh.extract_surface(algorithm="dataset_surface")
 
         # Get per-cell label IDs. 'SegmentationLabelIds' is written by
-        # ContourTools.save_combined_surfaces when merging per-label surfaces;
+        # ProcessContours.save_combined_surfaces when merging per-label surfaces;
         # 'boundary_labels' comes from contouring a multi-label labelmap.
         if "SegmentationLabelIds" in vtk_mesh.cell_data:
             label_array = vtk_mesh.cell_data["SegmentationLabelIds"]

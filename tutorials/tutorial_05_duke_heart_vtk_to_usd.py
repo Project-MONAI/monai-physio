@@ -43,8 +43,8 @@ from parameters_base import ParametersBase
 
 from monai_physio import (
     MONAIPhysioBase,
+    ProcessTests,
     SegmentHeartSimplewareTrimmedBranches,
-    TestTools,
     WorkflowConvertVTKToUSD,
 )
 
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     # Only the shared directory roots are needed here; no dataset-specific
     # parameters module applies to this tutorial.
     tutorial_paths = ParametersBase()
-    test_mode = TestTools.running_as_test()
+    test_mode = ProcessTests.running_as_test()
 
     input_dir = (
         tutorial_paths.output_directory(test_mode) / "tutorial_04_duke_heart_labelmap"
@@ -127,7 +127,7 @@ if __name__ == "__main__":
     reporter.log_section(f"Wrote {len(usd_files)} animated USD files to {output_dir}")
 
     # Testing
-    tt = TestTools(
+    tt = ProcessTests(
         class_name=class_name,
         results_dir=output_dir,
         log_level=log_level,

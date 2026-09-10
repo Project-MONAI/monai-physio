@@ -17,12 +17,12 @@ import itk
 import numpy as np
 
 from monai_physio import (
+    ProcessTransforms,
     RegisterImagesBase,
     RegisterImagesGreedy,
     RegisterImagesGreedyICON,
     RegisterImagesICON,
     RegisterTimeSeriesImages,
-    TransformTools,
 )
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -128,7 +128,7 @@ for file in files:
 #
 
 # %%
-tfm_tools = TransformTools()
+tfm_tools = ProcessTransforms()
 
 # Loop through each registration method
 for method_idx, registration_method_name in enumerate(registration_method_names):

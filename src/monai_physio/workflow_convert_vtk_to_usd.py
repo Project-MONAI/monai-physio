@@ -19,9 +19,9 @@ import vtk
 
 from .convert_vtk_to_usd import ConvertVTKToUSD
 from .monai_physio_base import MONAIPhysioBase
+from .process_usd import ProcessUSD
+from .process_usd_anatomy import ProcessUSDAnatomy
 from .segment_anatomy_base import SegmentAnatomyBase
-from .usd_anatomy_tools import USDAnatomyTools
-from .usd_tools import USDTools
 
 AppearanceKind = Literal["solid", "anatomy", "colormap"]
 
@@ -106,14 +106,14 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
                 which is positional per frame. None (default) reads the ids off
                 the meshes themselves when they carry the per-cell array, and
                 names them from *segmenter*'s taxonomy - so passing a mesh
-                merged by :meth:`ContourTools.save_combined_surfaces` splits by
+                merged by :meth:`ProcessContours.save_combined_surfaces` splits by
                 structure without further arguments. ``static_merge`` accepts
                 only one labeled mesh: several would collide on one prim path
                 per label.
             segmenter: Segmenter whose taxonomy groups the labels of
                 *label_names* by anatomy type. Also selects each structure's
                 material when appearance == "anatomy", through
-                :meth:`USDAnatomyTools.enhance_meshes`, which falls back to the
+                :meth:`ProcessUSDAnatomy.enhance_meshes`, which falls back to the
                 containing group for a structure with no material of its own.
             colormap_primvar: Primvar name for coloring when appearance == "colormap"
                 (e.g. vtk_point_stress_c0). If None, a candidate is auto-picked when possible.
@@ -166,7 +166,7 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
 
         An explicit ``label_names`` is used as given. Otherwise the meshes are
         searched for the per-cell label array that
-        :meth:`ContourTools.save_combined_surfaces` writes on a merge, and that
+        :meth:`ProcessContours.save_combined_surfaces` writes on a merge, and that
         contouring a multi-label labelmap leaves behind. That array is
         preferred wherever it exists because it survives merging, which the
         per-object ``field_data`` naming does not - so a combined surface file
@@ -366,7 +366,7 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
         stage = converter.convert(str(output_usd))
 
         # Post-process: apply chosen appearance to all meshes under /World/{usd_project_name}
-        usd_tools = USDTools(log_level=self.log_level)
+        usd_tools = ProcessUSD(log_level=self.log_level)
         mesh_paths = usd_tools.list_mesh_paths_under(
             str(output_usd), parent_path=f"/World/{self.usd_project_name}"
         )
@@ -401,13 +401,13 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
             # The label layout names each prim after its structure, and the
             # segmenter's taxonomy supplies the group to fall back on when the
             # structure has no material of its own.
-            USDAnatomyTools(stage, log_level=self.log_level).enhance_meshes(
+            ProcessUSDAnatomy(stage, log_level=self.log_level).enhance_meshes(
                 self.segmenter
             )
             stage.Save()
 
         elif self.appearance == "anatomy":
-            anatomy_tools = USDAnatomyTools(stage, log_level=self.log_level)
+            anatomy_tools = ProcessUSDAnatomy(stage, log_level=self.log_level)
             for mesh_path in mesh_paths:
                 candidates = self._anatomy_candidates(mesh_path, object_groups)
                 selected = next(

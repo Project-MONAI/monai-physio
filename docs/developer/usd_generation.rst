@@ -153,24 +153,24 @@ DistantLight emits along its local -Z, the same direction the camera looks,
 so the anatomy is lit from the viewing direction in stages that carry no
 other light. The light is created only when valid, non-degenerate bounds
 exist; otherwise no light is authored. The camera is also baked into stages
-produced by ``TransformTools.convert_transform_to_usd_visualization`` and
-``USDTools.merge_usd_files``; the helper is idempotent so re-merging a USD
+produced by ``ProcessTransforms.convert_transform_to_usd_visualization`` and
+``ProcessUSD.merge_usd_files``; the helper is idempotent so re-merging a USD
 that already has a Camera does not produce a duplicate transform op.
 
-Anatomy Materials with USDAnatomyTools
+Anatomy Materials with ProcessUSDAnatomy
 ==========================================
 
-:class:`monai_physio.USDAnatomyTools` applies OmniSurface materials to
+:class:`monai_physio.ProcessUSDAnatomy` applies OmniSurface materials to
 labeled meshes after conversion. It reads :class:`AnatomyTaxonomy` from the
 segmenter to find which prim names map to which group, and looks up the
 material parameters in its ``render_params`` dict (initialized from the
-module-level :data:`monai_physio.usd_anatomy_tools.DEFAULT_RENDER_PARAMS`).
+module-level :data:`monai_physio.process_usd_anatomy.DEFAULT_RENDER_PARAMS`).
 
 .. code-block:: python
 
-   from monai_physio import USDAnatomyTools
+   from monai_physio import ProcessUSDAnatomy
 
-   tools = USDAnatomyTools(stage)
+   tools = ProcessUSDAnatomy(stage)
    tools.enhance_meshes(seg)
    stage.Export('painted.usd')
 
@@ -179,7 +179,7 @@ module-level defaults (affects future instances) or a single instance:
 
 .. code-block:: python
 
-   from monai_physio.usd_anatomy_tools import DEFAULT_RENDER_PARAMS
+   from monai_physio.process_usd_anatomy import DEFAULT_RENDER_PARAMS
 
    DEFAULT_RENDER_PARAMS["brain"] = {
        "name": "Brain",

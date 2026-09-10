@@ -4,7 +4,7 @@ import os
 import itk
 import numpy as np
 
-from monai_physio import RegisterImagesGreedy, TransformTools
+from monai_physio import ProcessTransforms, RegisterImagesGreedy
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -52,7 +52,7 @@ def register_slices(
     reference_image_reg_use_identity,
     portion_of_prior_to_use=0.0,
 ):
-    tfm_tools = TransformTools()
+    tfm_tools = ProcessTransforms()
 
     img = images[reference_image_num]
     fixed_to_moving_transform = None
@@ -288,7 +288,7 @@ for reg_tool_name, reg_tool, num_iterations in reg_method_data:
     moving_to_fixed_transform_arr = results["moving_to_fixed_transforms"]
 
 # %%
-tfm_tool = TransformTools()
+tfm_tool = ProcessTransforms()
 
 load_data = True
 

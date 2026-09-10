@@ -1,7 +1,7 @@
 # %%
 import os
 
-from monai_physio.data_download_tools import DataDownloadTools
+from monai_physio.download_data import DownloadData
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -13,4 +13,4 @@ if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
 # Downloads TruncalValve_4DCT.seq.nrrd and splits it into slice_???.mha.
-DataDownloadTools.DownloadSlicerHeartCTData(data_dir)
+DownloadData.DownloadSlicerHeartCTData(data_dir)

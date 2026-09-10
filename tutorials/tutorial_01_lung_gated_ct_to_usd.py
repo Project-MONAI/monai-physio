@@ -31,7 +31,7 @@ Strengths
 ---------
 - Single call (``WorkflowConvertImageToUSD.process()``) runs the full pipeline.
 - Registers on the CPU with ``RegisterImagesGreedy``; no GPU needed for this stage.
-- Output is Omniverse-ready with anatomical materials (USDAnatomyTools).
+- Output is Omniverse-ready with anatomical materials (ProcessUSDAnatomy).
 
 Weaknesses / Limitations
 ------------------------
@@ -48,9 +48,9 @@ Classes Used
     Deep-learning segmentation of 117 anatomical structures (used internally).
 - RegisterImagesGreedy (register_images_greedy.py):
     Frame-to-frame image registration (used internally).
-- ContourTools (contour_tools.py):
+- ProcessContours (process_contours.py):
     Extracts and transforms surface meshes from segmentation masks (used internally).
-- USDAnatomyTools (usd_anatomy_tools.py):
+- ProcessUSDAnatomy (process_usd_anatomy.py):
     Applies clinical material colours to USD prims (used internally).
 
 Data Required
@@ -72,9 +72,9 @@ import itk
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
 from monai_physio import (
+    ProcessTests,
     RegisterImagesGreedy,
     SegmentChestTotalSegmentator,
-    TestTools,
     WorkflowConvertImageToUSD,
 )
 
@@ -90,7 +90,7 @@ if __name__ == "__main__":
 
     class_name = "tutorial_01_lung_gated_ct_to_usd"
 
-    test_mode = TestTools.running_as_test()
+    test_mode = ProcessTests.running_as_test()
 
     output_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_01_lung"
 
@@ -156,7 +156,7 @@ if __name__ == "__main__":
         usd_file = output_dir / workflow_results["all"]
 
     # Result saving
-    tt = TestTools(
+    tt = ProcessTests(
         class_name=class_name,
         results_dir=output_dir,
         log_level=log_level,
