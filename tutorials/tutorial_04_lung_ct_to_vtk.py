@@ -9,8 +9,8 @@ input for Tutorial 5.
 
 Data Required
 -------------
-Full data: ``data/DirLab-4DCT/Case1Pack_T??.mha``
-Test data: ``data/test/DirLab-4DCT/Case1Pack_T??.mha``
+Full data: ``data/TCIA-4DLung/100_HM10395/100_HM10395_g0??.nii.gz``
+Test data: ``data/test/TCIA-4DLung/100_HM10395/100_HM10395_g0??.nii.gz``
 """
 
 # Imports
@@ -21,7 +21,7 @@ from pathlib import Path
 
 import itk
 import pyvista as pv
-from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
+from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
     ProcessContours,
@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
     test_mode = ProcessTests.running_as_test()
 
-    output_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / project_name
+    output_dir = TCIA_4D_LUNG.output_directory(test_mode) / project_name
 
     # In addition to the combined surface file always saved below, also
     # save one VTP per anatomy group (e.g. heart.vtp, lung.vtp) and/or one
@@ -52,12 +52,9 @@ if __name__ == "__main__":
     save_group_surfaces = True
     save_label_surfaces = True
 
-    if test_mode:
-        data_dir = LUNG_CT_DIRLAB.data_directory(test_mode) / "DirLab-4DCT"
-    else:
-        data_dir = LUNG_CT_DIRLAB.data_directory(test_mode) / "DirLab-4DCT"
+    data_dir = TCIA_4D_LUNG.input_directory(test_mode)
 
-    frame_files = sorted(data_dir.glob("Case1Pack_T??.mha"))
+    frame_files = sorted(data_dir.glob("100_HM10395_g0??.nii.gz"))
 
     log_level = logging.INFO
 
@@ -69,7 +66,7 @@ if __name__ == "__main__":
 
     if not frame_files:
         raise FileNotFoundError(
-            "DirLab-4DCT frame data not found. Checked:\n"
+            "TCIA-4DLung frame data not found. Checked:\n"
             + f"  - {data_dir}\n"
             + "See data/README.md for download instructions."
         )
@@ -89,7 +86,7 @@ if __name__ == "__main__":
     # surface_reduction_rate decimates each exported VTP surface.
     result = workflow.process(
         input_image=ct_image,
-        surface_reduction_rate=LUNG_CT_DIRLAB.surface_reduction_rate,
+        surface_reduction_rate=TCIA_4D_LUNG.surface_reduction_rate,
         extract_label_surfaces=save_label_surfaces,
     )
 

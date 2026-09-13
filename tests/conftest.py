@@ -578,6 +578,7 @@ def _downsample_labelmap(source: Path, destination: Path, spacing_mm: float) -> 
 # hold out, and carries enough others that a model can still be built without it
 # (Tutorials 6 and 9 both refuse to run on fewer than three).
 _DIRLAB_TEST_CASES = ["Case1Pack", "Case2Pack", "Case3Pack"]
+_TCIA_4D_LUNG_TEST_CASES = ["100_HM10395", "101_HM10395", "102_HM10395"]
 _DUKE_HEART_TEST_CASES = ["pm0027", "pm0002", "pm0003", "pm0004"]
 
 
@@ -587,7 +588,10 @@ def dirlab_test_data(test_directories: dict[str, Path]) -> Path:
 
     Reads ``<input root>/DirLab-4DCT`` and writes ``<input root>/test/
     DirLab-4DCT``, where the root is whatever ``MONAI_PHYSIO_INPUT_DATA_DIR``
-    names and defaults to the clone's ``data/``.
+    names and defaults to the clone's ``data/``.  Still used by the heart
+    Tutorial 7 test, whose patient scan is a DIR-Lab lung CT stood in for a
+    generic chest CT; the lung tutorials read ``tcia_4d_lung_test_data``
+    instead.
     """
     source_dir = ParametersBase().data_directory(test_mode=False) / "DirLab-4DCT"
     target_dir = test_directories["data"] / "DirLab-4DCT"
@@ -606,6 +610,39 @@ def dirlab_test_data(test_directories: dict[str, Path]) -> Path:
 
     if not list(target_dir.glob("*_T??.mha")):
         skip_or_fail_missing_data(f"No DIR-Lab cases could be built under {target_dir}")
+    return target_dir
+
+
+@pytest.fixture(scope="session")
+def tcia_4d_lung_test_data(test_directories: dict[str, Path]) -> Path:
+    """Build the TCIA-4DLung test subset: a few cases, downsampled to 3 mm.
+
+    Reads ``<input root>/TCIA-4DLung`` and writes ``<input root>/test/
+    TCIA-4DLung``, where the root is whatever ``MONAI_PHYSIO_INPUT_DATA_DIR``
+    names and defaults to the clone's ``data/``.  TCIA-4DLung nests each
+    case's phases in its own subdirectory, unlike DIR-Lab's flat layout, so
+    that layout is preserved in the downsampled copy.
+    """
+    source_dir = ParametersBase().data_directory(test_mode=False) / "TCIA-4DLung"
+    target_dir = test_directories["data"] / "TCIA-4DLung"
+    if not source_dir.is_dir():
+        skip_or_fail_missing_data(
+            f"TCIA-4DLung data not found at {source_dir}. "
+            "See data/TCIA-4DLung/README.md."
+        )
+
+    for case_id in _TCIA_4D_LUNG_TEST_CASES:
+        case_source = source_dir / case_id
+        for phase_file in sorted(case_source.glob(f"{case_id}_g0??.nii.gz")):
+            small_file = target_dir / case_id / phase_file.name
+            if not small_file.exists():
+                logger.info("Downsampling %s -> %s", phase_file.name, small_file)
+                _downsample_image(phase_file, small_file, 3.0)
+
+    if not list(target_dir.glob("*_HM10395/*_g0??.nii.gz")):
+        skip_or_fail_missing_data(
+            f"No TCIA-4DLung cases could be built under {target_dir}"
+        )
     return target_dir
 
 

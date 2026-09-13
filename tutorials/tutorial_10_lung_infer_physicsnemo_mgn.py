@@ -9,9 +9,9 @@ displacement decoder :class:`monai_physio.WorkflowInferMovement`:
 
 1. Discover the per-phase SSM surfaces that Tutorial 8
    (``tutorial_08_lung_fit_model_to_4d_patients.py``) wrote for
-   ``ParametersLungCTDirLab.mgn_hold_out_case`` -- the case Tutorial 9 held out
+   ``ParametersTCIA4DLung.mgn_hold_out_case`` -- the case Tutorial 9 held out
    of training, so this scores generalization rather than recall. Stages are
-   parsed from the ``T{PP}`` phase filenames.
+   parsed from the ``g{PPP}`` phase filenames.
 
 2. Predict that case's surface at *every* respiratory stage with the
    MeshGraphNet trained by Tutorial 9
@@ -34,9 +34,10 @@ For command-line use with path arguments, use the installed
 Data Required
 -------------
   * ``output/tutorial_08_lung/<case>/``  - Tutorial 8 SSM surfaces
-  * ``data/DirLab-4DCT/<case>_T70.mha``  - reference-phase CT that is warped
+  * ``data/TCIA-4DLung/<case>/<case>_g070.nii.gz``  - reference-phase CT that
+    is warped
   * ``network_weights/physicsnemo_mgn_lung_motion/mgn_stage_model.pt``
-    - Tutorial 9 checkpoint (``ParametersLungCTDirLab.mgn_weights_directory``)
+    - Tutorial 9 checkpoint (``ParametersTCIA4DLung.mgn_weights_directory``)
 
 Outputs (under ``output/tutorial_10_lung_mgn/<case>/``)
 -------------------------------------------------------
@@ -54,7 +55,7 @@ from typing import Any, Optional, cast
 
 import itk
 import pyvista as pv
-from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
+from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
     ProcessTests,
@@ -64,9 +65,9 @@ from monai_physio import (
 
 
 def _respiratory_stage_from_filename(surface_file: Path) -> float:
-    """Extract the normalized respiratory stage [0, 1] from a ``T{PP}`` filename stem."""
+    """Extract the normalized respiratory stage [0, 1] from a ``g{PPP}`` filename stem."""
     for part in surface_file.stem.split("_"):
-        if part.startswith("T") and part[1:].isdigit():
+        if part.startswith("g") and len(part) == 4 and part[1:].isdigit():
             return int(part[1:]) / 100.0
     raise ValueError(f"Cannot parse respiratory phase from filename: {surface_file}")
 
@@ -83,24 +84,24 @@ if __name__ == "__main__":
     test_mode = ProcessTests.running_as_test()
     # Keep a test run out of the directories a full run reads and writes.
     # Fitted SSM surfaces and PCA coefficients written by Tutorial 8 (lung).
-    data_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_08_lung"
+    data_dir = TCIA_4D_LUNG.output_directory(test_mode) / "tutorial_08_lung"
     # Weights Tutorial 9 trained. A resumed Tutorial 9 run writes to a numbered
     # sibling of this directory, which is what would be evaluated instead.
-    model_dir = LUNG_CT_DIRLAB.mgn_weights_directory(test_mode)
+    model_dir = TCIA_4D_LUNG.mgn_weights_directory(test_mode)
     # Intermittent-checkpoint epoch to load; None uses the final weights.
     epoch: Optional[int] = None
 
     # Case to predict: the case Tutorial 9 held out of training.
-    case_id = LUNG_CT_DIRLAB.mgn_hold_out_case
+    case_id = TCIA_4D_LUNG.mgn_hold_out_case
     # Phase the SSM was fitted to by Tutorial 8, and therefore the phase whose
     # CT the predicted deformations carry into every other stage.
-    reference_phase = "T70"
+    reference_phase = "g070"
     # Gaussian sigma, in mm, that spreads the predicted surface displacements
     # into the continuous field the CT is resampled through.
     smoothing_sigma_mm = 10.0
 
     output_dir = (
-        LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_10_lung_mgn" / case_id
+        TCIA_4D_LUNG.output_directory(test_mode) / "tutorial_10_lung_mgn" / case_id
     )
     log_level = logging.INFO
 
@@ -126,11 +127,11 @@ if __name__ == "__main__":
     fitted_reference_mesh_file = case_dir / f"{case_id}_ssm_surface.vtp"
     pca_file = case_dir / f"{case_id}_ssm_pca_coefficients.json"
     reference_ct_file = (
-        LUNG_CT_DIRLAB.data_directory(test_mode)
-        / "DirLab-4DCT"
-        / (f"{case_id}_{reference_phase}.mha")
+        TCIA_4D_LUNG.cases_directory(test_mode)
+        / case_id
+        / (f"{case_id}_{reference_phase}.nii.gz")
     )
-    phase_files = sorted(case_dir.glob(f"{case_id}_T??_ssm_surface.vtp"))
+    phase_files = sorted(case_dir.glob(f"{case_id}_g0??_ssm_surface.vtp"))
     for required_file in (fitted_reference_mesh_file, pca_file):
         if not required_file.exists():
             raise FileNotFoundError(
@@ -142,7 +143,7 @@ if __name__ == "__main__":
     if not reference_ct_file.exists():
         raise FileNotFoundError(
             f"Reference-phase CT not found: {reference_ct_file}\n"
-            "See data/DirLab-4DCT/README.md for download instructions."
+            "See data/TCIA-4DLung/README.md for download instructions."
         )
 
     # Step 1: read every respiratory phase of the case and its ground-truth

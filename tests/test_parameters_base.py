@@ -17,6 +17,7 @@ from parameters_base import ParametersBase
 from parameters_duke_heart_labelmaps import DUKE_HEART
 from parameters_heart_ct_kcl import HEART_CT_KCL
 from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
+from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -32,8 +33,16 @@ _ROOTS = [
 ]
 
 # Every parameters module a tutorial imports, plus the bare base the tutorials
-# with no dataset-specific module use.
-_PARAMETERS = [ParametersBase(), DUKE_HEART, LUNG_CT_DIRLAB, HEART_CT_KCL]
+# with no dataset-specific module use.  LUNG_CT_DIRLAB is kept alongside
+# TCIA_4D_LUNG even though no tutorial imports it anymore: the module, and the
+# DirLab-4DCT data it describes, are still kept for experiments/.
+_PARAMETERS = [
+    ParametersBase(),
+    DUKE_HEART,
+    LUNG_CT_DIRLAB,
+    TCIA_4D_LUNG,
+    HEART_CT_KCL,
+]
 
 
 def _resolver(parameters: ParametersBase, name: str) -> Callable[[bool], Path]:

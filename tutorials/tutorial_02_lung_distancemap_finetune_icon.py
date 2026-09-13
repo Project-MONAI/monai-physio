@@ -10,48 +10,51 @@ It rasterizes a signed squared distance map from each surface, normalizes it to
 preprocesses with, then hands that pair to ICON.  Stock uniGradICON has never
 seen such an image, so this tutorial finetunes it on exactly that
 representation: distance maps rasterized from the lung surfaces segmented out of
-the DIR-Lab 4D CT cases.
+the TCIA-4DLung cases.
 
-The finetuning cohort is every DIR-Lab case except Case 1, and within each case
-only every other respiratory phase (``T00``, ``T20``, ``T40``, ``T60``, ``T80``)
--- half the time points, spanning the full breathing cycle at half the
-segmentation cost.  Each selected phase is segmented once with
-``SegmentNVSegmentCTMRI``; the lung labelmap is kept for uniGradICON's Dice
-loss and the lung surfaces are combined and rasterized into the distance map
-that serves as the training "image".  Segmentation outputs are cached on disk,
-so a second run of this tutorial only re-runs the finetuning.
+The finetuning cohort is every TCIA-4DLung case except ``100_HM10395``, and
+within each case only every other respiratory phase (``g000``, ``g020``,
+``g040``, ``g060``, ``g080``) -- half the time points, spanning the full
+breathing cycle at half the segmentation cost.  Each selected phase is
+segmented once with ``SegmentNVSegmentCTMRI``; the lung labelmap is kept for
+uniGradICON's Dice loss and the lung surfaces are combined and rasterized into
+the distance map that serves as the training "image".  Segmentation outputs
+are cached on disk, so a second run of this tutorial only re-runs the
+finetuning.
 
-Accuracy is measured on Case 1, which is never seen during finetuning, by
-registering ``Case1Pack_T00.mha`` (moving) to ``Case1Pack_T50.mha`` (fixed) five
-ways: ``RegisterImagesGreedy`` deformable on the distance maps,
-``RegisterImagesICON`` on the distance maps with the stock and with the
-finetuned weights, ``RegisterImagesGreedyICON`` on the distance maps with the
-finetuned weights in its ICON stage -- which separates what the finetuned
-network adds on its own from what it adds on top of the Greedy result -- and,
-as the intensity-based reference point, stock ``RegisterImagesICON`` on the CT
-images themselves.  No registration masks are used, so the comparison isolates
-the method and the weights.
+Accuracy is measured on ``100_HM10395``, which is never seen during
+finetuning, by registering ``100_HM10395_g000.nii.gz`` (moving) to
+``100_HM10395_g050.nii.gz`` (fixed) five ways: ``RegisterImagesGreedy``
+deformable on the distance maps, ``RegisterImagesICON`` on the distance maps
+with the stock and with the finetuned weights, ``RegisterImagesGreedyICON`` on
+the distance maps with the finetuned weights in its ICON stage -- which
+separates what the finetuned network adds on its own from what it adds on top
+of the Greedy result -- and, as the intensity-based reference point, stock
+``RegisterImagesICON`` on the CT images themselves.  No registration masks are
+used, so the comparison isolates the method and the weights.
 
-The two metrics match ``tutorial_02_lung_finetune_icon.py``.  The primary metric
-is target registration error: DIR-Lab ships 300 expert landmarks for the extreme
-phases (T00 and T50) of every case, so each fixed-image landmark is mapped
-through the registration transform and compared, in millimeters, against its
-moving-image counterpart.  The secondary metric is label overlap: the moving
-lung labelmap is warped onto the fixed grid by every transform, so the Dice
-scores reflect the transform rather than segmentation variability.  The moving
-image and labelmap resampled onto the fixed grid without registration supply the
-"before registration" reference row for both metrics.
+The two metrics match ``tutorial_02_lung_finetune_icon.py``.  The primary
+metric is image similarity: TCIA-4DLung ships no expert landmarks (unlike
+DIR-Lab), so accuracy is instead read off how well each method's warped
+distance map matches the fixed one, within the fixed lung labelmap's
+footprint -- normalized cross-correlation (1.0 is a perfect match) and RMSE in
+the distance map's own [-1000, 1000] units. The secondary metric is label
+overlap: the moving lung labelmap is warped onto the fixed grid by every
+transform, so the Dice scores reflect the transform rather than segmentation
+variability. The moving distance map and labelmap resampled onto the fixed
+grid without registration supply the "before registration" reference row for
+both metrics.
 
-Reported per method: the mean, standard deviation, 95th percentile and maximum
-landmark error in millimeters; the mean, 5th percentile, median, 95th
-percentile, minimum and maximum of the per-class Dice scores; the number of
-mislabeled voxels; and the wall-clock registration time.
+Reported per method: normalized cross-correlation and RMSE between the warped
+and fixed distance maps; the mean, 5th percentile, median, 95th percentile,
+minimum and maximum of the per-class Dice scores; the number of mislabeled
+voxels; and the wall-clock registration time.
 
 Finetuning artifacts (dataset JSON, YAML config, checkpoint tree) are written
-under ``tutorials/network_weights/icon_dirlab_4dct_distancemap``.  The final
-checkpoint is ``tutorials/network_weights/icon_dirlab_4dct_distancemap/
-icon_dirlab_4dct_distancemap_model/checkpoints/network_weights_final.trch``, the
-path returned by ``WorkflowFinetuneICONRegistration.expected_weights_path()``
+under ``tutorials/network_weights/icon_tcia_4dlung_distancemap``.  The final
+checkpoint is ``tutorials/network_weights/icon_tcia_4dlung_distancemap/
+icon_tcia_4dlung_distancemap_model/checkpoints/network_weights_final.trch``,
+the path returned by ``WorkflowFinetuneICONRegistration.expected_weights_path()``
 and the path ``tutorial_07_lung_fit_statistical_model_to_patient.py`` and
 ``tutorial_08_lung_fit_model_to_4d_patients.py`` look for.  That directory is
 deleted at the start of every run, so each run finetunes from scratch; see the
@@ -59,10 +62,8 @@ comment above the ``shutil.rmtree`` call for how to reuse a previous run.
 
 Data Required
 -------------
-Full data: ``data/DirLab-4DCT`` (all 10 cases, converted to HU ``.mha`` by
-``data/DirLab-4DCT/fix_downloaded_data.py``), including the raw
-``downloaded_data/Case1Pack/ExtremePhases`` landmark files
-Test data: ``data/test/DirLab-4DCT``
+Full data: ``data/TCIA-4DLung`` (all cases, ``*_HM10395/*_HM10395_g0??.nii.gz``)
+Test data: ``data/test/TCIA-4DLung``
 """
 
 # Imports
@@ -78,7 +79,7 @@ from typing import Any, Optional, cast
 import itk
 import numpy as np
 import pyvista as pv
-from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
+from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
     MONAIPhysioBase,
@@ -109,23 +110,23 @@ if __name__ == "__main__":
     test_mode = ProcessTests.running_as_test()
 
     output_dir = (
-        LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_02_lung_distancemap"
+        TCIA_4D_LUNG.output_directory(test_mode) / "tutorial_02_lung_distancemap"
     )
     # The workflow writes its dataset JSON, YAML config, and checkpoint tree
     # under ``weights_dir / finetune_name``.
-    weights_dir = LUNG_CT_DIRLAB.weights_directory(test_mode)
+    weights_dir = TCIA_4D_LUNG.weights_directory(test_mode)
 
     # Segmented labelmaps, lung surfaces, and rasterized distance maps.  Cached
     # so re-runs skip the segmentation, which dominates this tutorial's runtime.
     derived_dir = output_dir / "distance_maps"
     baselines_dir = repo_root / "tests" / "baselines"
 
-    finetune_name = "icon_dirlab_4dct_distancemap"
+    finetune_name = "icon_tcia_4dlung_distancemap"
 
     # Distance-map normalization, shared with every lung tutorial that later
     # registers these maps, so this run trains on the same image distribution
     # they infer on.
-    distance_squared_max = LUNG_CT_DIRLAB.distancemap_squared_max
+    distance_squared_max = TCIA_4D_LUNG.distancemap_squared_max
 
     run_finetuning = True
 
@@ -134,37 +135,31 @@ if __name__ == "__main__":
     phase_stride = 2
 
     if test_mode:
-        data_dir = LUNG_CT_DIRLAB.data_directory(test_mode) / "DirLab-4DCT"
+        cases_dir = TCIA_4D_LUNG.cases_directory(test_mode)
         number_of_iterations_icon: Optional[int] = 1
         epochs = 1
     else:
-        data_dir = LUNG_CT_DIRLAB.data_directory(test_mode) / "DirLab-4DCT"
+        cases_dir = TCIA_4D_LUNG.cases_directory(test_mode)
         number_of_iterations_icon = 10
         epochs = 200
-    number_of_iterations_greedy = LUNG_CT_DIRLAB.greedy_iterations(test_mode)
+    number_of_iterations_greedy = TCIA_4D_LUNG.greedy_iterations(test_mode)
 
     log_level = logging.INFO
     reporter = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
     derived_dir.mkdir(parents=True, exist_ok=True)
 
-    # Held-out evaluation pair (Case 1 is excluded from finetuning).  T00 and
-    # T50 are the extreme inhale/exhale phases, the only pair DIR-Lab supplies
-    # expert landmarks for.
-    fixed_file = data_dir / "Case1Pack_T50.mha"
-    moving_file = data_dir / "Case1Pack_T00.mha"
-    landmark_dir = data_dir / "downloaded_data" / "Case1Pack" / "ExtremePhases"
-    fixed_landmark_file = landmark_dir / "Case1_300_T50_xyz.txt"
-    moving_landmark_file = landmark_dir / "Case1_300_T00_xyz.txt"
-    missing = [
-        str(p)
-        for p in (fixed_file, moving_file, fixed_landmark_file, moving_landmark_file)
-        if not p.exists()
-    ]
+    # Held-out evaluation pair (100_HM10395 is excluded from finetuning).
+    # g000 and g050 are the extreme inhale/exhale phases used here for the
+    # largest deformation available.
+    hold_out_case = TCIA_4D_LUNG.mgn_hold_out_case
+    fixed_file = cases_dir / hold_out_case / f"{hold_out_case}_g050.nii.gz"
+    moving_file = cases_dir / hold_out_case / f"{hold_out_case}_g000.nii.gz"
+    missing = [str(p) for p in (fixed_file, moving_file) if not p.exists()]
     if missing:
         raise FileNotFoundError(
-            f"Missing DirLab phase images or landmarks: {missing}.\n"
-            "See data/DirLab-4DCT/README.md for download instructions."
+            f"Missing TCIA-4DLung phase images: {missing}.\n"
+            "See data/TCIA-4DLung/README.md for download instructions."
         )
 
     # Segmentation and distance-map generation
@@ -192,9 +187,12 @@ if __name__ == "__main__":
         combined lung surface, are cached under ``derived_dir``; an existing
         pair short-circuits the segmentation.
         """
-        distance_map_file = derived_dir / f"{image_file.stem}_distance_map.mha"
-        labelmap_file = derived_dir / f"{image_file.stem}_lung_labelmap.nii.gz"
-        surface_file = derived_dir / f"{image_file.stem}_lung_surface.vtp"
+        # ``.stem`` only strips ``.gz``, leaving a stray ``.nii`` in the name,
+        # since these are ``.nii.gz`` (TCIA) rather than ``.mha`` (DIR-Lab).
+        image_stem = image_file.name.removesuffix(".nii.gz")
+        distance_map_file = derived_dir / f"{image_stem}_distance_map.mha"
+        labelmap_file = derived_dir / f"{image_stem}_lung_labelmap.nii.gz"
+        surface_file = derived_dir / f"{image_stem}_lung_surface.vtp"
         if distance_map_file.exists() and labelmap_file.exists():
             return distance_map_file, labelmap_file
 
@@ -234,18 +232,18 @@ if __name__ == "__main__":
         itk.imwrite(distance_map, str(distance_map_file), compression=True)
         return distance_map_file, labelmap_file
 
-    # Finetuning cohort: every case except Case1Pack, every other phase.
-    # ``Case10Pack_*`` is kept because only the exact ``Case1Pack_`` prefix is
-    # excluded.
+    # Finetuning cohort: every case except the held-out one, every other phase.
     case_phase_files: dict[str, list[Path]] = {}
-    for path in sorted(data_dir.glob("Case*_T??.mha")):
-        if path.name.startswith("Case1Pack_"):
+    for path in sorted(cases_dir.glob("*_HM10395/*_HM10395_g0??.nii.gz")):
+        case_id = path.parent.name
+        if case_id == hold_out_case:
             continue
-        case_phase_files.setdefault(path.name.split("_")[0], []).append(path)
+        case_phase_files.setdefault(case_id, []).append(path)
     if not case_phase_files:
         raise FileNotFoundError(
-            f"No non-Case1 DirLab phase images found under {data_dir}.\n"
-            "See data/DirLab-4DCT/README.md for download instructions."
+            f"No non-{hold_out_case} TCIA-4DLung phase images found under "
+            f"{cases_dir}.\nSee data/TCIA-4DLung/README.md for download "
+            "instructions."
         )
     case_phase_files = {
         case_id: files[::phase_stride] for case_id, files in case_phase_files.items()
@@ -266,7 +264,7 @@ if __name__ == "__main__":
 
     # Always finetune from scratch.  uniGradICON refuses to overwrite an
     # existing experiment directory: it appends "-N" to the name instead
-    # (``icon_dirlab_4dct_distancemap_model-5``, ...), while
+    # (``icon_tcia_4dlung_distancemap_model-5``, ...), while
     # expected_weights_path() keeps pointing at the original, never-written
     # path.  Deleting the tree up front keeps the two in agreement.
     #
@@ -329,42 +327,23 @@ if __name__ == "__main__":
     moving_labelmap = itk.imread(str(moving_labelmap_file))
     fixed_labels = itk.array_from_image(fixed_labelmap)
 
-    def read_landmarks(landmark_file: Path, image: itk.Image) -> np.ndarray:
-        """Read a DIR-Lab landmark file as an (N, 3) array of world points.
+    # TCIA-4DLung ships no expert landmarks, unlike DIR-Lab, so accuracy is
+    # read off image similarity instead of target registration error: how well
+    # each method's warped distance map matches the fixed one, within the
+    # fixed lung labelmap's footprint.
+    fixed_roi = fixed_labels != 0
 
-        Each line holds one 1-based voxel index as ``x y z``.
-        """
-        indices = np.loadtxt(landmark_file, dtype=int) - 1
-        return np.array(
-            [
-                image.TransformIndexToPhysicalPoint([int(v) for v in index])
-                for index in indices
-            ]
+    def similarity_metrics(warped_distance_map: itk.Image) -> dict[str, Any]:
+        """NCC and RMSE between a warped and the fixed distance map, in the ROI."""
+        warped_vals = itk.array_from_image(warped_distance_map)[fixed_roi].astype(
+            np.float64
         )
-
-    fixed_landmarks = read_landmarks(fixed_landmark_file, fixed_image)
-    moving_landmarks = read_landmarks(moving_landmark_file, moving_image)
-
-    def landmark_metrics(errors_mm: np.ndarray) -> dict[str, Any]:
-        """Summarize per-landmark target registration errors, in millimeters."""
-        return {
-            "tre_mean": float(errors_mm.mean()),
-            "tre_std": float(errors_mm.std()),
-            "tre_p95": float(np.percentile(errors_mm, 95)),
-            "tre_max": float(errors_mm.max()),
-        }
-
-    def landmark_errors(transform: itk.Transform) -> np.ndarray:
-        """Distance from each mapped fixed landmark to its moving counterpart.
-
-        ``fixed_to_moving_transform`` is the resampling transform: it maps points on the
-        fixed grid back into moving space, which is the direction the landmark
-        correspondences are defined in.
-        """
-        mapped = np.array(
-            [transform.TransformPoint(tuple(point)) for point in fixed_landmarks]
+        fixed_vals = itk.array_from_image(fixed_distance_map)[fixed_roi].astype(
+            np.float64
         )
-        return np.asarray(np.linalg.norm(mapped - moving_landmarks, axis=1))
+        ncc = float(np.corrcoef(fixed_vals, warped_vals)[0, 1])
+        rmse = float(np.sqrt(np.mean((fixed_vals - warped_vals) ** 2)))
+        return {"ncc": ncc, "rmse": rmse}
 
     def overlap_metrics(labelmap: itk.Image) -> dict[str, Any]:
         """Per-class Dice summary against the fixed lung labelmap.
@@ -419,9 +398,7 @@ if __name__ == "__main__":
             "weights": "-",
             "registration_time_s": None,
             "loss": None,
-            **landmark_metrics(
-                np.linalg.norm(fixed_landmarks - moving_landmarks, axis=1)
-            ),
+            **similarity_metrics(unregistered_distance_map),
             **overlap_metrics(unregistered_labelmap),
         }
     ]
@@ -495,9 +472,7 @@ if __name__ == "__main__":
                 "weights": str(method_weights) if method_weights else "-",
                 "registration_time_s": elapsed_s,
                 "loss": float(result["loss"]),
-                **landmark_metrics(
-                    landmark_errors(result["fixed_to_moving_transform"])
-                ),
+                **similarity_metrics(registered_distance_maps[method_name]),
                 **overlap_metrics(labelmaps[method_name]),
             }
         )
@@ -535,27 +510,24 @@ if __name__ == "__main__":
 
     # Reporting
     reporter.log_info(
-        "Case1Pack_T00 -> Case1Pack_T50, error at %d expert landmarks, mm",
-        len(fixed_landmarks),
+        "%s_g000 -> %s_g050, distance-map similarity in the fixed lung ROI",
+        hold_out_case,
+        hold_out_case,
     )
     reporter.log_info(
-        "  %-26s %7s %7s %7s %7s %9s",
+        "  %-26s %7s %9s %9s",
         "method",
-        "mean",
-        "std",
-        "p95",
-        "max",
+        "ncc",
+        "rmse",
         "time_s",
     )
     for row in rows:
         elapsed = row["registration_time_s"]
         reporter.log_info(
-            "  %-26s %7.2f %7.2f %7.2f %7.2f %9s",
+            "  %-26s %7.4f %9.2f %9s",
             row["method"],
-            row["tre_mean"],
-            row["tre_std"],
-            row["tre_p95"],
-            row["tre_max"],
+            row["ncc"],
+            row["rmse"],
             "-" if elapsed is None else f"{float(elapsed):.1f}",
         )
 

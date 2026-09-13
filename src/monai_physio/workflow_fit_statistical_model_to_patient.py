@@ -342,7 +342,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
 
         The radius fixes those images' intensity distribution, so it has to
         match the value the ICON weights in use were finetuned at -- see
-        ``tutorials/parameters_lung_ct_dirlab.py`` and
+        ``tutorials/parameters_tcia_4d_lung.py`` and
         ``tutorials/parameters_heart_ct_kcl.py``, which carry one value per
         organ.  Left unset, it is derived from ``mask_dilation_mm``.
 

@@ -16,8 +16,8 @@ Patient image: an ungated 3D chest CT,
 ``monai-physio-download-data Chest-CT --directory data/Chest-CT``
 (see ``data/Chest-CT/README.md`` for the data source and required citation)
 ICON weights: ``tutorial_02_lung_distancemap_finetune_icon.py`` output
-(``network_weights/icon_dirlab_4dct_distancemap/
-icon_dirlab_4dct_distancemap_model/checkpoints/network_weights_final.trch``),
+(``network_weights/icon_tcia_4dlung_distancemap/
+icon_tcia_4dlung_distancemap_model/checkpoints/network_weights_final.trch``),
 optional -- the stock uniGradICON weights are used when it is absent.
 """
 
@@ -31,7 +31,7 @@ from typing import Any, Optional, cast
 
 import itk
 import pyvista as pv
-from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
+from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
     ProcessContours,
@@ -56,29 +56,29 @@ if __name__ == "__main__":
 
     test_mode = ProcessTests.running_as_test()
 
-    output_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / project_name
-    weights_dir = LUNG_CT_DIRLAB.weights_directory(test_mode)
+    output_dir = TCIA_4D_LUNG.output_directory(test_mode) / project_name
+    weights_dir = TCIA_4D_LUNG.weights_directory(test_mode)
 
     baselines_dir = repo_root / "tests" / "baselines"
 
     # PCA model + mean surface produced by Tutorial 6 (lung).
-    pca_json = LUNG_CT_DIRLAB.pca_model_file(test_mode)
-    pca_mean_file = LUNG_CT_DIRLAB.pca_mean_surface_file(test_mode)
+    pca_json = TCIA_4D_LUNG.pca_model_file(test_mode)
+    pca_mean_file = TCIA_4D_LUNG.pca_mean_surface_file(test_mode)
 
-    number_of_pca_components = LUNG_CT_DIRLAB.pca_components(test_mode)
+    number_of_pca_components = TCIA_4D_LUNG.pca_components(test_mode)
 
     # The study Tutorial 6 leaves out of the model, so this fit is out of sample.
     patient_image_file = (
-        LUNG_CT_DIRLAB.hold_out_directory(test_mode) / LUNG_CT_DIRLAB.hold_out_case
+        TCIA_4D_LUNG.hold_out_directory(test_mode) / TCIA_4D_LUNG.hold_out_case
     )
 
-    # Distance-map weights finetuned on DIR-Lab by
+    # Distance-map weights finetuned on TCIA-4DLung by
     # tutorial_02_lung_distancemap_finetune_icon.py; see
     # WorkflowFinetuneICONRegistration.expected_weights_path().
     icon_weights_path = (
         weights_dir
-        / "icon_dirlab_4dct_distancemap"
-        / "icon_dirlab_4dct_distancemap_model"
+        / "icon_tcia_4dlung_distancemap"
+        / "icon_tcia_4dlung_distancemap_model"
         / "checkpoints"
         / "network_weights_final.trch"
     )
@@ -122,7 +122,7 @@ if __name__ == "__main__":
         segmentation_result = segmentation_workflow.process(
             input_image=patient_image,
             anatomy_groups=["lung"],
-            surface_reduction_rate=LUNG_CT_DIRLAB.surface_reduction_rate,
+            surface_reduction_rate=TCIA_4D_LUNG.surface_reduction_rate,
             extract_label_surfaces=True,
         )
         contour_tools.save_combined_surfaces(
@@ -151,9 +151,9 @@ if __name__ == "__main__":
             use_surface=False,
         )
 
-    workflow.set_icp_transform_type(LUNG_CT_DIRLAB.icp_transform_type)
-    workflow.set_mask_dilation_mm(LUNG_CT_DIRLAB.mask_dilation_mm)
-    workflow.set_distancemap_squared_max(LUNG_CT_DIRLAB.distancemap_squared_max)
+    workflow.set_icp_transform_type(TCIA_4D_LUNG.icp_transform_type)
+    workflow.set_mask_dilation_mm(TCIA_4D_LUNG.mask_dilation_mm)
+    workflow.set_distancemap_squared_max(TCIA_4D_LUNG.distancemap_squared_max)
 
     # The labelmap-to-labelmap stage registers distance maps, not intensities,
     # so it uses the distance-map-finetuned weights when they exist; without

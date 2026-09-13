@@ -70,8 +70,10 @@ git clone https://github.com/Project-MONAI/monai-physio.git
 ### Download Tutorial Data
 
 Tutorial 1 (heart) runs on the public Slicer-Heart 4D CT sample.  We provide
-automated download for multiple datasets via a CLI.  However, one key dataset
-from DirLab requires manual download, see [data/DirLab-4DCT/README.md](data/DirLab-4DCT/README.md).
+automated download for multiple datasets via a CLI, including the lung
+tutorials' key dataset, TCIA-4DLung (a converted tutorial subset - the full
+TCIA 4D-Lung collection remains a manual download), see
+[data/TCIA-4DLung/README.md](data/TCIA-4DLung/README.md).
 
 **IMPORTANT:** Run the download from the top level of the clone. The tutorials
 resolve their inputs against the repository root, so downloading

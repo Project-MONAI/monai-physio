@@ -22,8 +22,13 @@ subsets here only when run as tests, under `MONAI_PHYSIO_RUNNING_AS_TEST`.
   used by tests that need a smaller/faster image (labelmaps and
   transforms computed from this data are cached here too).
 - `KCL-Heart-Model/` - downloaded by the `download_kcl_heart_model` fixture.
+- `TCIA-4DLung/` - a few cases from `<input root>/TCIA-4DLung`, downsampled to
+  3 mm by the `tcia_4d_lung_test_data` fixture, preserving TCIA-4DLung's
+  nested per-case directory layout.
 - `DirLab-4DCT/` - a few cases from `<input root>/DirLab-4DCT`, downsampled to
-  3 mm by the `dirlab_test_data` fixture.
+  3 mm by the `dirlab_test_data` fixture. Only the heart Tutorial 7 test still
+  reads this, as a stand-in patient scan; the lung tutorials read
+  `TCIA-4DLung/` instead.
 - `Duke-Heart-4DLabelmaps/` - a few cases from
   `<input root>/Duke-Heart-4DLabelmaps`, their labelmaps downsampled to 2 mm
   nearest-neighbour by the `duke_heart_test_data` fixture.

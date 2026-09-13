@@ -4,14 +4,14 @@ Tutorial 3 (Lung): Reconstruct High-Resolution 4D CT
 Purpose
 -------
 Register a respiratory CT time series to a fixed reference phase and save the
-reconstructed frames. DIR-Lab does not provide a separate high-resolution
-breath-hold reference image, so this tutorial uses the T70 (end-exhale) phase
+reconstructed frames. TCIA-4DLung does not provide a separate high-resolution
+breath-hold reference image, so this tutorial uses the g070 (end-exhale) phase
 as the fixed reference - the same reference Tutorial 8 fits its lung SSM to.
 
 Data Required
 -------------
-Full data: ``data/DirLab-4DCT/Case1Pack_T??.mha``
-Test data: ``data/test/DirLab-4DCT/Case1Pack_T??.mha``
+Full data: ``data/TCIA-4DLung/100_HM10395/100_HM10395_g0??.nii.gz``
+Test data: ``data/test/TCIA-4DLung/100_HM10395/100_HM10395_g0??.nii.gz``
 
 Outputs (under ``tutorials/output/tutorial_03_lung/``)
 -----------------------------------------------------
@@ -27,7 +27,7 @@ import logging
 from pathlib import Path
 
 import itk
-from parameters_base import ParametersBase
+from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
     ProcessTests,
@@ -48,23 +48,17 @@ if __name__ == "__main__":
 
     class_name = "tutorial_03_lung_reconstruct_highres_4d_ct"
 
-    # Only the shared directory roots are needed here; no dataset-specific
-    # parameters module applies to this tutorial.
-    tutorial_paths = ParametersBase()
     test_mode = ProcessTests.running_as_test()
 
-    output_dir = tutorial_paths.output_directory(test_mode) / "tutorial_03_lung"
+    output_dir = TCIA_4D_LUNG.output_directory(test_mode) / "tutorial_03_lung"
     baselines_dir = repo_root / "tests" / "baselines"
 
-    # .mha files are DirLab-4DCT data already converted to HU by
-    # data/DirLab-4DCT/fix_downloaded_data.py.
-    case_glob = "Case1Pack_T??.mha"
+    case_glob = "100_HM10395_g0??.nii.gz"
 
+    data_dir = TCIA_4D_LUNG.input_directory(test_mode)
     if test_mode:
-        data_dir = tutorial_paths.data_directory(test_mode) / "DirLab-4DCT"
         number_of_iterations_greedy = [1, 0]
     else:
-        data_dir = tutorial_paths.data_directory(test_mode) / "DirLab-4DCT"
         number_of_iterations_greedy = [30, 15, 7, 3]
 
     log_level = logging.INFO
@@ -79,15 +73,15 @@ if __name__ == "__main__":
     phase_files = sorted(data_dir.glob(case_glob))
     if not phase_files:
         raise FileNotFoundError(
-            f"No DirLab phase images found under {data_dir}.\n"
+            f"No TCIA-4DLung phase images found under {data_dir}.\n"
             "See data/README.md for download instructions."
         )
 
     time_series = [itk.imread(str(path)) for path in phase_files]
-    # T70 (end-exhale) is the DIR-Lab reference phase used throughout the
+    # g070 (end-exhale) is the TCIA-4DLung reference phase used throughout the
     # tutorials; fall back to the last phase when it is absent (test data).
     reference_time_frame = next(
-        (index for index, path in enumerate(phase_files) if path.stem.endswith("T70")),
+        (index for index, path in enumerate(phase_files) if "g070" in path.name),
         len(time_series) - 1,
     )
     reference_image = time_series[reference_time_frame]

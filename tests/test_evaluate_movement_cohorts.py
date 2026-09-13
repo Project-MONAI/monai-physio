@@ -46,14 +46,14 @@ def test_a_cohort_that_names_no_segmenter_cannot_name_its_structures() -> None:
 
 
 def test_lung_reads_the_respiratory_phase_tag() -> None:
-    """``T{PP}`` of a ``.mha`` frame or a ``.vtp`` fit, as a fraction."""
+    """``g{PPP}`` of a ``.nii.gz`` frame or a ``.vtp`` fit, as a fraction."""
     lung = EvaluateMovementLung()
 
-    assert lung.stage_from_filename(Path("Case1Pack_T00.mha")) == 0.0
-    assert lung.stage_from_filename(Path("Case1Pack_T70.mha")) == 0.7
-    assert lung.stage_from_filename(Path("Case1Pack_T50_ssm_surface.vtp")) == 0.5
+    assert lung.stage_from_filename(Path("100_HM10395_g000.nii.gz")) == 0.0
+    assert lung.stage_from_filename(Path("100_HM10395_g070.nii.gz")) == 0.7
+    assert lung.stage_from_filename(Path("100_HM10395_g050_ssm_surface.vtp")) == 0.5
     with pytest.raises(ValueError, match="respiratory phase"):
-        lung.stage_from_filename(Path("Case1Pack.mha"))
+        lung.stage_from_filename(Path("100_HM10395.nii.gz"))
 
 
 def test_heart_reads_the_cardiac_gate_through_a_double_suffix() -> None:
@@ -83,5 +83,5 @@ def test_the_lung_refuses_to_segment_without_somewhere_to_cache_it(
     """A segmentation pass per phase is too expensive to repeat every run."""
     with pytest.raises(ValueError, match="cache_directory"):
         EvaluateMovementLung().assemble_ground_truth(
-            "Case1Pack", tmp_path, tmp_path, cache_directory=None
+            "100_HM10395", tmp_path, tmp_path, cache_directory=None
         )

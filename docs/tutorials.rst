@@ -44,20 +44,25 @@ relative to the current working directory:
    monai-physio-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
    monai-physio-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
    monai-physio-download-data Chest-CT --directory data/Chest-CT
+   monai-physio-download-data TCIA-4DLung --directory data/TCIA-4DLung
 
 That covers Heart Tutorials 1, 3, 4 and 6 (``Slicer-Heart-CT`` and
-``KCL-Heart-Model``) and Lung Tutorial 7 (``Chest-CT``), which Tutorial 13 also
-animates. ``DirLab-4DCT`` - used by Lung Tutorials 1, 2, 3, 4, 6, 8, 10, 11 and
-12, and by Heart Tutorial 7 - is **not** auto-downloaded: DIR-Lab distributes
-each case individually and may require registration.
+``KCL-Heart-Model``), Lung Tutorial 7 (``Chest-CT``, which Tutorial 13 also
+animates), and Lung Tutorials 1, 2, 3, 4, 6, 8, 10, 11 and 12
+(``TCIA-4DLung``, a converted tutorial subset of the full TCIA 4D-Lung
+collection). The full collection is obtained separately, by downloading its
+DICOM series from TCIA and running ``data/TCIA-4DLung/convert.py``, if more
+than the tutorial subset is needed. ``DirLab-4DCT``, used by Heart Tutorial
+7, is **not** auto-downloaded: DIR-Lab distributes each case individually
+and may require registration.
 
 Tutorials 5 and 9 need no dataset of their own; they consume the outputs of
 Tutorials 4 and 8. ``Duke-Heart-4DLabelmaps`` drives the fifteen ``duke_heart``
 variants: a fourteen-tutorial chain from Tutorial 4 through Tutorial 18, plus
 the separate, optional Tutorial 2 ICON finetuning variant; the dataset is
 being released soon, and until then access can be requested from Stephen Aylward
-(saylward@nvidia.com). See ``data/DirLab-4DCT/README.md``,
-``data/Duke-Heart-4DLabelmaps/README.md``, and
+(saylward@nvidia.com). See ``data/TCIA-4DLung/README.md``,
+``data/DirLab-4DCT/README.md``, ``data/Duke-Heart-4DLabelmaps/README.md``, and
 :doc:`cli_scripts/download_data` for every dataset's size and source.
 
 **3. Know where output lands.** Every tutorial writes to
@@ -71,25 +76,25 @@ second run is cheap and later tutorials pick up earlier results automatically.
        <span class="mphysio-card__number">01</span>
        <h2>Gated 4D CT to Animated USD</h2>
        <p>Segment, register and assemble a 4D CT series into an animated OpenUSD scene.</p>
-       <span class="mphysio-card__meta">Slicer-Heart-CT &middot; DIR-Lab</span>
+       <span class="mphysio-card__meta">Slicer-Heart-CT &middot; TCIA-4DLung</span>
      </a>
      <a class="mphysio-card" href="#tutorial-2-finetune-icon-registration">
        <span class="mphysio-card__number">02</span>
        <h2>Finetune ICON Registration</h2>
        <p>Adapt uniGradICON to your own cohort and measure what the finetuning bought you.</p>
-       <span class="mphysio-card__meta">DIR-Lab</span>
+       <span class="mphysio-card__meta">TCIA-4DLung</span>
      </a>
      <a class="mphysio-card" href="#tutorial-3-reconstruct-high-resolution-4d-ct">
        <span class="mphysio-card__number">03</span>
        <h2>Reconstruct High-Resolution 4D CT</h2>
        <p>Register every phase to one reference and reconstruct the series at its resolution.</p>
-       <span class="mphysio-card__meta">Slicer-Heart-CT &middot; DIR-Lab</span>
+       <span class="mphysio-card__meta">Slicer-Heart-CT &middot; TCIA-4DLung</span>
      </a>
      <a class="mphysio-card" href="#tutorial-4-ct-segmentation-to-vtk-surfaces">
        <span class="mphysio-card__number">04</span>
        <h2>CT Segmentation to VTK Surfaces</h2>
        <p>Segment one CT phase and export patient anatomy as VTK PolyData surfaces.</p>
-       <span class="mphysio-card__meta">Slicer-Heart-CT &middot; DIR-Lab</span>
+       <span class="mphysio-card__meta">Slicer-Heart-CT &middot; TCIA-4DLung</span>
      </a>
      <a class="mphysio-card" href="#tutorial-5-vtk-surfaces-to-animated-usd">
        <span class="mphysio-card__number">05</span>
@@ -101,7 +106,7 @@ second run is cheap and later tutorials pick up earlier results automatically.
        <span class="mphysio-card__number">06</span>
        <h2>Create a PCA Shape Model</h2>
        <p>Turn a population of meshes into a statistical shape model and its modes.</p>
-       <span class="mphysio-card__meta">KCL-Heart-Model &middot; DIR-Lab</span>
+       <span class="mphysio-card__meta">KCL-Heart-Model &middot; TCIA-4DLung</span>
      </a>
      <a class="mphysio-card" href="#tutorial-7-fit-the-shape-model-to-a-patient">
        <span class="mphysio-card__number">07</span>
@@ -113,7 +118,7 @@ second run is cheap and later tutorials pick up earlier results automatically.
        <span class="mphysio-card__number">08</span>
        <h2>Propagate the Model Through 4D</h2>
        <p>Fit each case at its reference phase and carry the mesh through every phase.</p>
-       <span class="mphysio-card__meta">DIR-Lab &middot; Tutorials 2 and 6</span>
+       <span class="mphysio-card__meta">TCIA-4DLung &middot; Tutorials 2 and 6</span>
      </a>
      <a class="mphysio-card" href="#tutorial-9-train-a-physicsnemo-surrogate">
        <span class="mphysio-card__number">09</span>
@@ -155,7 +160,7 @@ second run is cheap and later tutorials pick up earlier results automatically.
        <span class="mphysio-card__number">15</span>
        <h2>Leave-One-Out Cross-Validation</h2>
        <p>Rebuild the model, refit, retrain and rescore once per fold, for a spread rather than a number.</p>
-       <span class="mphysio-card__meta">DIR-Lab &middot; Duke-Heart-4DLabelmaps</span>
+       <span class="mphysio-card__meta">TCIA-4DLung &middot; Duke-Heart-4DLabelmaps</span>
      </a>
      <a class="mphysio-card" href="#tutorial-16-build-a-volumetric-shape-model-of-the-myocardium">
        <span class="mphysio-card__number">16</span>
@@ -188,14 +193,14 @@ work end-to-end; 6 through 18 build the statistical-model and AI-surrogate
 pipeline on top.
 
 1. **Tutorial 1** - after downloading Slicer-Heart-CT.
-2. **Tutorial 2** - after obtaining DIR-Lab. It writes the finetuned ICON
+2. **Tutorial 2** - after obtaining TCIA-4DLung. It writes the finetuned ICON
    weights Tutorial 8 uses when present; optional if stock weights are
    acceptable.
 3. **Tutorial 3** - after obtaining its dataset; it registers with Greedy and
    needs no finetuned weights.
 4. **Tutorial 4** - after downloading Slicer-Heart-CT.
 5. **Tutorial 5** - after Tutorial 4, whose surfaces it converts.
-6. **Tutorial 6** - heart needs KCL-Heart-Model, lung needs DIR-Lab.
+6. **Tutorial 6** - heart needs KCL-Heart-Model, lung needs TCIA-4DLung.
 7. **Tutorial 7** - after Tutorial 6; the lung variant also needs Chest-CT.
 8. **Tutorial 8** - after Tutorial 6 (lung); Tutorial 2 optional.
 9. **Tutorial 9** - after Tutorial 8, whose fitted meshes it trains on.
@@ -224,7 +229,7 @@ Tutorial 1: Gated 4D CT to Animated USD
 Script
    ``tutorials/tutorial_01_heart_gated_ct_to_usd.py`` (Slicer-Heart-CT)
 
-   ``tutorials/tutorial_01_lung_gated_ct_to_usd.py`` (DIR-Lab)
+   ``tutorials/tutorial_01_lung_gated_ct_to_usd.py`` (TCIA-4DLung)
 
 Workflow
    :class:`~monai_physio.WorkflowConvertImageToUSD`, driving
@@ -232,9 +237,9 @@ Workflow
    :class:`~monai_physio.SegmentAnatomyBase` subclass.
 
 Dataset
-   Slicer-Heart-CT (auto-download) for the heart, DIR-Lab (manual) for the
-   lung. The phase roughly 70% through the series is the segmentation and
-   registration reference.
+   Slicer-Heart-CT (auto-download) for the heart, TCIA-4DLung (auto-download)
+   for the lung. The phase roughly 70% through the series is the
+   segmentation and registration reference.
 
 Requirements
    Greedy registers every phase against the reference on the CPU; a GPU is
@@ -251,7 +256,7 @@ Preview
       :alt: Animated lung USD produced by Tutorial 1
       :width: 90%
 
-      The same workflow on a DIR-Lab respiratory series.
+      The same workflow on a TCIA-4DLung respiratory series.
 
 Inner API usage
    .. code-block:: python
@@ -304,7 +309,7 @@ Script
    it registers with a much tighter mask than the lungs, so its distance maps
    saturate over a shorter radius and do not share an intensity distribution
    with lung ones. The per-organ values live in
-   ``tutorials/parameters_lung_ct_dirlab.py`` for the lung variant and
+   ``tutorials/parameters_tcia_4d_lung.py`` for the lung variant and
    ``tutorials/parameters_duke_heart_labelmaps.py`` for this one. This is a
    ``duke_heart`` tutorial: Duke-Heart-4DLabelmaps is being released soon (see
    `Before You Start`_), and until then access can be requested from Stephen
@@ -318,10 +323,10 @@ Workflow
    :class:`~monai_physio.SegmentNVSegmentCTMRI` supplying the labelmaps.
 
 Dataset
-   DIR-Lab (manual). Every case except ``Case1Pack`` trains; ``Case1Pack`` is
-   held out and registered three ways - Greedy alone with its defaults, then
-   Greedy+ICON with the stock uniGradICON weights and with the finetuned ones -
-   so the improvement is measured, not asserted.
+   TCIA-4DLung (auto-download). Every case except ``100_HM10395`` trains;
+   ``100_HM10395`` is held out and registered three ways - Greedy alone with
+   its defaults, then Greedy+ICON with the stock uniGradICON weights and with
+   the finetuned ones - so the improvement is measured, not asserted.
 
 Scoring
    The fixed image is segmented once, and each registered moving image is
@@ -365,7 +370,7 @@ Run
 
 Outputs
    The finetuned checkpoint under
-   ``tutorials/network_weights/icon_dirlab_4dct/``, plus
+   ``tutorials/network_weights/icon_tcia_4dlung/``, plus
    ``registration_summary.csv``, the fixed-minus-registered difference images
    (residual structure is what separates the methods), the fixed and warped
    labelmaps, and before/after screenshots in
@@ -391,8 +396,8 @@ Workflow
    :class:`~monai_physio.RegisterImagesGreedy`.
 
 Dataset
-   Slicer-Heart-CT for the heart; DIR-Lab for the lung, which reconstructs
-   against its T70 (end-exhale) phase - the same reference Tutorial 8 fits to.
+   Slicer-Heart-CT for the heart; TCIA-4DLung for the lung, which reconstructs
+   against its g070 (end-exhale) phase - the same reference Tutorial 8 fits to.
 
 Requirements
    CPU is enough. One coarse-to-fine registration per phase, greedy schedule
@@ -470,7 +475,7 @@ Workflow
    :class:`~monai_physio.SegmentChestTotalSegmentator` (lung).
 
 Dataset
-   One frame of Slicer-Heart-CT or DIR-Lab - a single static volume is enough.
+   One frame of Slicer-Heart-CT or TCIA-4DLung - a single static volume is enough.
 
 Requirements
    GPU recommended for segmentation; no registration, so this is the quickest
@@ -487,7 +492,7 @@ Preview
       :alt: Lung surfaces extracted from a CT phase
       :width: 90%
 
-      The same workflow on a DIR-Lab respiratory case.
+      The same workflow on a TCIA-4DLung respiratory case.
 
    .. figure:: assets/tutorial_04_duke_heart.png
       :alt: Heart surfaces extracted from a gated Duke labelmap
@@ -616,7 +621,7 @@ Workflow
 
 Dataset
    KCL-Heart-Model (auto-download) for the heart. The lung variant starts from
-   raw DIR-Lab volumes, segmenting each case's T70 phase itself.
+   raw TCIA-4DLung volumes, segmenting each case's g070 phase itself.
 
 Requirements
    The heart variant is CPU-only and quick. **The lung variant is the slowest
@@ -763,7 +768,7 @@ Workflow
    the fitted surface through every other phase.
 
 Dataset
-   DIR-Lab, plus Tutorial 6 (lung)'s model. Tutorial 2's finetuned distance-map
+   TCIA-4DLung, plus Tutorial 6 (lung)'s model. Tutorial 2's finetuned distance-map
    ICON weights are used by the model fit when present; without them the
    tutorial warns and fits with the stock uniGradICON weights.
 
@@ -776,8 +781,8 @@ Preview
       :alt: Fitted lung shape model carried through every respiratory phase
       :width: 90%
 
-      The fitted shape-model surface propagated across the phases of a DIR-Lab
-      case.
+      The fitted shape-model surface propagated across the phases of a
+      TCIA-4DLung case.
 
    .. figure:: assets/tutorial_08_duke_heart_def_mag.gif
       :alt: Deformation magnitude over the propagated heart surface
@@ -1003,9 +1008,9 @@ Workflow
    :class:`~monai_physio.SegmentNVSegmentCTMRI`.
 
 Dataset
-   The gated sequence itself - DIR-Lab for the lung, Duke-Heart-4DLabelmaps for
-   the heart - plus Tutorial 8's fitted surface and Tutorial 9's checkpoint for
-   the held-out case.
+   The gated sequence itself - TCIA-4DLung for the lung, Duke-Heart-4DLabelmaps
+   for the heart - plus Tutorial 8's fitted surface and Tutorial 9's checkpoint
+   for the held-out case.
 
 Requirements
    The lung variant also segments every gated frame
@@ -1092,8 +1097,8 @@ Workflow
    :meth:`~monai_physio.WorkflowInferMovement.process_time_series`.
 
 Dataset
-   The gated sequence alone - DIR-Lab for the lung, Duke-Heart-4DLabelmaps for
-   the heart - plus the Tutorial 6 shape model and the Tutorial 9 checkpoint.
+   The gated sequence alone - TCIA-4DLung for the lung, Duke-Heart-4DLabelmaps
+   for the heart - plus the Tutorial 6 shape model and the Tutorial 9 checkpoint.
    Unlike Tutorial 10, nothing is read from Tutorial 8: this script fits the
    model to the patient itself, so the chain from image to animation runs in one
    place.
@@ -1109,7 +1114,7 @@ Preview
       :alt: Lung motion predicted end-to-end from a gated series
       :width: 90%
 
-      The whole chain on one DIR-Lab case: segment, fit, infer, animate - no
+      The whole chain on one TCIA-4DLung case: segment, fit, infer, animate - no
       phase registered anywhere in it.
 
    .. figure:: assets/tutorial_12_duke_heart.gif
@@ -1248,7 +1253,7 @@ Tutorial 14: Sweep the Shape Parameters
 =======================================
 
 Script
-   ``tutorials/tutorial_14_lung_shape_parameter_sweep.py`` (DIR-Lab)
+   ``tutorials/tutorial_14_lung_shape_parameter_sweep.py`` (TCIA-4DLung)
 
    ``tutorials/tutorial_14_duke_heart_shape_parameter_sweep.py``
    (Duke-Heart-4DLabelmaps)
@@ -1327,7 +1332,7 @@ Tutorial 15: Leave-One-Out Cross-Validation
 ===========================================
 
 Script
-   ``tutorials/tutorial_15_lung_leave_one_out.py`` (DIR-Lab)
+   ``tutorials/tutorial_15_lung_leave_one_out.py`` (TCIA-4DLung)
 
    ``tutorials/tutorial_15_duke_heart_leave_one_out.py``
    (Duke-Heart-4DLabelmaps)

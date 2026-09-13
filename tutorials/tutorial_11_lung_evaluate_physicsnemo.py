@@ -5,7 +5,7 @@ Purpose
 -------
 Measures how close the size and shape of the lung inferred by Tutorial 10 are to
 the lung actually imaged, one respiratory phase at a time and one lobe at a
-time.  The case is ``ParametersLungCTDirLab.mgn_hold_out_case``, held out of the
+time.  The case is ``ParametersTCIA4DLung.mgn_hold_out_case``, held out of the
 Tutorial 9 training, so this scores generalization rather than recall.
 
 1. Build the ground truth: segment every gated CT frame of the case
@@ -39,7 +39,7 @@ the lobes and the ground truth.
 
 Data Required
 -------------
-  * ``data/DirLab-4DCT/<case>_T??.mha``  - the gated CT sequence
+  * ``data/TCIA-4DLung/<case>/<case>_g0??.nii.gz``  - the gated CT sequence
   * ``output/tutorial_08_lung/<case>/``  - Tutorial 8 SSM surface + coefficients
   * ``network_weights/physicsnemo_mgn_lung_motion/`` - Tutorial 9 checkpoint
 
@@ -50,7 +50,7 @@ Outputs (under ``output/tutorial_11_lung/<case>/``)
   * ``evaluation_metrics.csv``  - one row per stage and lobe, each carrying
     that lobe's displacement error (RMS, 95th percentile, maximum)
   * ``volume_vs_stage.png``     - each lobe's volume across the stages
-  * ``ground_truth/<case>_T{PP}_labelmap.nii.gz`` - cached per-phase segmentation
+  * ``ground_truth/<case>_g{PPP}_labelmap.nii.gz`` - cached per-phase segmentation
   * ``<case>_ssm_pca_coefficients_s{TTT}_pred.vtp`` - predicted surface per stage,
     carrying the displacement point-data arrays the ``include_*`` switches ask for
   * ``displacement_per_point.csv`` - every mesh point's predicted and true
@@ -66,7 +66,7 @@ from typing import Any, Optional, cast
 
 import itk
 import pyvista as pv
-from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
+from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
     EvaluateMovementLung,
@@ -89,18 +89,18 @@ if __name__ == "__main__":
     class_name = "tutorial_11_lung_evaluate_physicsnemo"
 
     # Case to score: the case Tutorial 9 held out of training.
-    case_id = LUNG_CT_DIRLAB.mgn_hold_out_case
+    case_id = TCIA_4D_LUNG.mgn_hold_out_case
     # Phase Tutorial 8 fitted the SSM to, and therefore the phase whose anatomy
     # the predicted deformations carry into every other phase.
-    reference_phase = "T70"
+    reference_phase = "g070"
 
     # Fitted SSM surface and PCA coefficients written by Tutorial 8 (lung).
     test_mode = ProcessTests.running_as_test()
     # Keep a test run out of the directories a full run reads and writes.
-    case_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_08_lung" / case_id
+    case_dir = TCIA_4D_LUNG.output_directory(test_mode) / "tutorial_08_lung" / case_id
     # Weights Tutorial 9 trained, and the checkpoint epoch Tutorial 10 infers
     # with; None uses the final weights.
-    model_dir = LUNG_CT_DIRLAB.mgn_weights_directory(test_mode)
+    model_dir = TCIA_4D_LUNG.mgn_weights_directory(test_mode)
     epoch: Optional[int] = None
 
     # Gaussian sigma, in mm, that spreads the predicted surface displacements
@@ -123,16 +123,14 @@ if __name__ == "__main__":
     # in the wrong direction cannot hide in, and it costs one mesh read a phase.
     include_displacement_error = True
 
-    output_dir = (
-        LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_11_lung" / case_id
-    )
+    output_dir = TCIA_4D_LUNG.output_directory(test_mode) / "tutorial_11_lung" / case_id
     ground_truth_dir = output_dir / "ground_truth"
     log_level = logging.INFO
 
     logging.basicConfig(level=log_level)
     logger = logging.getLogger(class_name)
 
-    data_dir = LUNG_CT_DIRLAB.input_directory(test_mode)
+    data_dir = TCIA_4D_LUNG.cases_directory(test_mode) / case_id
 
     # Directory setup and data reading
 

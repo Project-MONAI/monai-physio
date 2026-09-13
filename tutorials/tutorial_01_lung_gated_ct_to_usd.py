@@ -12,10 +12,9 @@ single USD file with anatomical materials applied.
 
 Inputs
 ------
-- A set of 3D CT volumes (``*.mha``) representing successive respiratory
-  phases of one DirLab-4DCT case.
-  Expected location: ``data/DirLab-4DCT/Case1Pack_T??.mha`` (already converted
-  to Hounsfield units by ``data/DirLab-4DCT/fix_downloaded_data.py``).
+- A set of 3D CT volumes (``*.nii.gz``) representing successive respiratory
+  phases of one TCIA 4D-Lung case.
+  Expected location: ``data/TCIA-4DLung/100_HM10395/100_HM10395_g0??.nii.gz``.
 - The mid-inspiration phase (index ~0.7 through the series) is used as the
   reference frame for segmentation and registration.
 
@@ -30,7 +29,7 @@ Outputs (under ``tutorials/output/tutorial_01_lung/``)
 Strengths
 ---------
 - Single call (``WorkflowConvertImageToUSD.process()``) runs the full pipeline.
-- Registers on the CPU with ``RegisterImagesGreedy``; no GPU needed for this stage.
+- Registers on the CPU with ``RegisterImagesICON``; no GPU needed for this stage.
 - Output is Omniverse-ready with anatomical materials (ProcessUSDAnatomy).
 
 Weaknesses / Limitations
@@ -46,7 +45,7 @@ Classes Used
     contour extraction -> USD export.
 - SegmentChestTotalSegmentator (segment_chest_total_segmentator.py):
     Deep-learning segmentation of 117 anatomical structures (used internally).
-- RegisterImagesGreedy (register_images_greedy.py):
+- RegisterImagesICON (register_images_icon.py):
     Frame-to-frame image registration (used internally).
 - ProcessContours (process_contours.py):
     Extracts and transforms surface meshes from segmentation masks (used internally).
@@ -56,10 +55,9 @@ Classes Used
 Data Required
 -------------
 See data/README.md for download instructions and dataset licensing.
-Dataset: DirLab-4DCT - see ``data/DirLab-4DCT/README.md``.
-This script expects the HU-corrected ``Case1Pack_T??.mha`` phase volumes to
-already exist under ``data/DirLab-4DCT/``. Download the DirLab-4DCT case and run
-``data/DirLab-4DCT/fix_downloaded_data.py`` before running this tutorial.
+Dataset: TCIA 4D-Lung - see ``data/TCIA-4DLung/README.md``.
+This script expects the ``100_HM10395_g0??.nii.gz`` phase volumes to already
+exist under ``data/TCIA-4DLung/100_HM10395/``.
 """
 
 # Imports
@@ -69,12 +67,12 @@ import logging
 from pathlib import Path
 
 import itk
-from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
+from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
     ProcessTests,
     RegisterImagesGreedy,
-    SegmentChestTotalSegmentator,
+    SegmentNVSegmentCTMRI,
     WorkflowConvertImageToUSD,
 )
 
@@ -92,26 +90,24 @@ if __name__ == "__main__":
 
     test_mode = ProcessTests.running_as_test()
 
-    output_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_01_lung"
+    output_dir = TCIA_4D_LUNG.output_directory(test_mode) / "tutorial_01_lung"
 
-    data_dir = LUNG_CT_DIRLAB.data_directory(test_mode) / "DirLab-4DCT"
+    data_dir = TCIA_4D_LUNG.input_directory(test_mode)
 
-    # .mha files are DirLab-4DCT data already converted to HU by
-    # data/DirLab-4DCT/fix_downloaded_data.py.
     if test_mode:
-        number_of_iterations_greedy = [1, 0]
-        frame_files = sorted(data_dir.glob("Case1Pack_T??.mha"))[0:2]
+        number_of_iterations_greedy = TCIA_4D_LUNG.number_of_iterations_greedy_test
+        frame_files = sorted(data_dir.glob("100_HM10395_g0??.nii.gz"))[0:2]
     else:
-        number_of_iterations_greedy = [30, 15, 7, 3]
-        frame_files = sorted(data_dir.glob("Case1Pack_T??.mha"))
+        number_of_iterations_greedy = TCIA_4D_LUNG.number_of_iterations_greedy
+        frame_files = sorted(data_dir.glob("100_HM10395_g0??.nii.gz"))
 
     log_level = logging.INFO
 
     registration_method = RegisterImagesGreedy(log_level=log_level)
     registration_method.set_number_of_iterations(number_of_iterations_greedy)
+    registration_method.set_metric(TCIA_4D_LUNG.greedy_metric)
 
-    segmentation_method = SegmentChestTotalSegmentator(log_level=log_level)
-    segmentation_method.set_has_academic_license(True)
+    segmentation_method = SegmentNVSegmentCTMRI(log_level=log_level)
 
     # Directory setup and data reading
 
@@ -120,7 +116,7 @@ if __name__ == "__main__":
     input_filenames = [str(path) for path in frame_files]
     if not input_filenames:
         raise FileNotFoundError(
-            "DirLab-4DCT data not found. Checked:\n"
+            "TCIA-4DLung data not found. Checked:\n"
             + f"  - {data_dir}"
             + "\n"
             + "See data/README.md for download instructions."
@@ -140,7 +136,7 @@ if __name__ == "__main__":
         usd_project_name="lung_model",
         registration_method=registration_method,
         segmentation_method=segmentation_method,
-        surface_reduction_rate=LUNG_CT_DIRLAB.surface_reduction_rate,
+        surface_reduction_rate=TCIA_4D_LUNG.surface_reduction_rate,
         log_level=log_level,
         frames_per_second=1,
         save_assets=True,

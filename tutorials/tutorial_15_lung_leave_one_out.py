@@ -6,8 +6,8 @@ Purpose
 Tutorials 6 -> 8 -> 9 -> 11 report accuracy for one fixed held-out case. That
 is a single observation: it says nothing about how much the number would move
 had a different patient been held out. This tutorial runs the same chain once
-per fold, holding out a different DIR-Lab case each time, and reports the mean
-and spread of the metrics across folds.
+per fold, holding out a different TCIA-4DLung case each time, and reports the
+mean and spread of the metrics across folds.
 
 Each fold is a full re-run, not a re-score of a shared model:
 
@@ -50,7 +50,7 @@ What is *not* recomputed per fold
 Two things do not depend on which case is held out, so they are computed once
 into ``shared/`` and reused by every fold:
 
-  * the T70 lung segmentations, and
+  * the g070 lung segmentations, and
   * the phase-to-reference-phase image registrations.
 
 The registrations are image-to-image and never touch the shape model, so one
@@ -72,8 +72,8 @@ launcher and the same script runs as a single process.
 
 Data Required
 -------------
-  * ``data/DirLab-4DCT/Case*_T??.mha`` - the whole cohort; see
-    ``data/DirLab-4DCT/README.md``
+  * ``data/TCIA-4DLung/*_HM10395/*_HM10395_g0??.nii.gz`` - the whole cohort;
+    see ``data/TCIA-4DLung/README.md``
   * Nothing from Tutorials 6, 8 or 9. Their outputs are reused as a cache when
     present, but this tutorial builds everything it needs.
 
@@ -108,7 +108,7 @@ from typing import Any, cast
 import itk
 import numpy as np
 import pyvista as pv
-from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
+from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
     DistributedContext,
@@ -140,9 +140,9 @@ TARGET_ARRAY = "displacement"
 
 
 def _respiratory_stage_from_filename(surface_file: Path) -> float:
-    """Extract the normalized respiratory stage [0, 1] from a ``T{PP}`` filename stem."""
+    """Extract the normalized respiratory stage [0, 1] from a ``g{PPP}`` filename stem."""
     for part in surface_file.stem.split("_"):
-        if part.startswith("T") and part[1:].isdigit():
+        if part.startswith("g") and len(part) == 4 and part[1:].isdigit():
             return int(part[1:]) / 100.0
     raise ValueError(f"Cannot parse respiratory phase from filename: {surface_file}")
 
@@ -178,7 +178,7 @@ def _write_case_manifest(case_dir: Path, manifests_dir: Path) -> Path:
     """Write one case's training manifest and return its path."""
     case_id = case_dir.name
     fitted_reference_mesh_file = case_dir / f"{case_id}_ssm_surface.vtp"
-    phase_files = sorted(case_dir.glob(f"{case_id}_T??_ssm_surface.vtp"))
+    phase_files = sorted(case_dir.glob(f"{case_id}_g0??_ssm_surface.vtp"))
     manifests_dir.mkdir(parents=True, exist_ok=True)
     ref_points = np.asarray(
         pv.read(str(fitted_reference_mesh_file)).points, dtype=np.float32
@@ -386,8 +386,8 @@ if __name__ == "__main__":
 
     class_name = "tutorial_15_lung_leave_one_out"
 
-    # Number of folds. Each holds out one DIR-Lab case and re-runs the entire
-    # chain without it, so the runtime is linear in this.
+    # Number of folds. Each holds out one TCIA-4DLung case and re-runs the
+    # entire chain without it, so the runtime is linear in this.
     number_of_leave_one_out_runs = 5
 
     # Atlas iterations used to build each fold's reference surface; 1 is a
@@ -405,7 +405,7 @@ if __name__ == "__main__":
 
     # Phase the SSM is fitted to, and therefore the phase whose anatomy the
     # predicted deformations carry into every other phase.
-    reference_phase = "T70"
+    reference_phase = "g070"
 
     # Gaussian sigma, in mm, that spreads the predicted surface displacements
     # into the continuous field the labelmap is resampled through.
@@ -417,9 +417,9 @@ if __name__ == "__main__":
 
     test_mode = ProcessTests.running_as_test()
     # Keep a test run out of the directories a full run reads and writes.
-    weights_dir = LUNG_CT_DIRLAB.weights_directory(test_mode)
+    weights_dir = TCIA_4D_LUNG.weights_directory(test_mode)
 
-    output_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_15_lung"
+    output_dir = TCIA_4D_LUNG.output_directory(test_mode) / "tutorial_15_lung"
     shared_dir = output_dir / "shared"
     log_level = logging.INFO
 
@@ -431,8 +431,12 @@ if __name__ == "__main__":
     # process.
     context = ProcessPhysicsNemo.distributed_context()
 
-    data_dir = LUNG_CT_DIRLAB.input_directory(test_mode)
-    number_of_pca_components = LUNG_CT_DIRLAB.pca_components(test_mode)
+    cases_dir = TCIA_4D_LUNG.cases_directory(test_mode)
+    number_of_pca_components = TCIA_4D_LUNG.pca_components(test_mode)
+
+    def case_phase_file(case_id: str, phase_id: str) -> Path:
+        """Return one case's phase image, under TCIA-4DLung's nested layout."""
+        return cases_dir / case_id / f"{case_id}_{phase_id}.nii.gz"
 
     # In test mode, run the smallest study that is still a cross-validation and
     # train for a couple of epochs, to keep the run inside the pytest timeout.
@@ -444,16 +448,16 @@ if __name__ == "__main__":
     # Tutorial 6 caches one segmentation per case beside its model, and
     # Tutorial 8 one set of phase transforms per case; both are reused when
     # present because neither depends on which case is held out.
-    tutorial_06_dir = LUNG_CT_DIRLAB.pca_model_file(test_mode).parent
-    tutorial_08_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_08_lung"
+    tutorial_06_dir = TCIA_4D_LUNG.pca_model_file(test_mode).parent
+    tutorial_08_dir = TCIA_4D_LUNG.output_directory(test_mode) / "tutorial_08_lung"
 
-    # Distance-map weights finetuned on DIR-Lab by
+    # Distance-map weights finetuned on TCIA-4DLung by
     # tutorial_02_lung_distancemap_finetune_icon.py, used by the
     # labelmap-to-labelmap stage of the SSM fit.
     icon_distancemap_weights_path = (
         weights_dir
-        / "icon_dirlab_4dct_distancemap"
-        / "icon_dirlab_4dct_distancemap_model"
+        / "icon_tcia_4dlung_distancemap"
+        / "icon_tcia_4dlung_distancemap_model"
         / "checkpoints"
         / "network_weights_final.trch"
     )
@@ -464,24 +468,26 @@ if __name__ == "__main__":
         shared_dir.mkdir(parents=True, exist_ok=True)
     context.barrier()
 
-    # DIR-Lab names case 8 "Case8Deploy" while every other case is "Case*Pack",
-    # so match on "Case*" to avoid silently dropping it.
-    reference_files = sorted(data_dir.glob(f"Case*_{reference_phase}.mha"))
+    reference_files = sorted(
+        cases_dir.glob(f"*_HM10395/*_HM10395_{reference_phase}.nii.gz")
+    )
     if not reference_files:
         raise FileNotFoundError(
-            f"No DirLab {reference_phase} images found under {data_dir}.\n"
-            "See data/DirLab-4DCT/README.md for download instructions."
+            f"No TCIA-4DLung {reference_phase} images found under {cases_dir}.\n"
+            "See data/TCIA-4DLung/README.md for download instructions."
         )
-    case_ids = [path.name.split("_")[0] for path in reference_files]
+    # The case directory name (e.g. "107a_HM10395") is the case id; TCIA nests
+    # each case's phases under one, unlike DIR-Lab's flat layout.
+    case_ids = [path.parent.name for path in reference_files]
     if len(case_ids) < 3:
         raise RuntimeError(
-            f"Found only {len(case_ids)} case(s) under {data_dir}; a fold needs "
+            f"Found only {len(case_ids)} case(s) under {cases_dir}; a fold needs "
             "one case to hold out and at least two to build a shape model from."
         )
     if number_of_leave_one_out_runs > len(case_ids):
         raise ValueError(
             f"number_of_leave_one_out_runs is {number_of_leave_one_out_runs} but "
-            f"only {len(case_ids)} cases are available under {data_dir}."
+            f"only {len(case_ids)} cases are available under {cases_dir}."
         )
     held_out_cases = case_ids[:number_of_leave_one_out_runs]
     logger.info(
@@ -546,11 +552,9 @@ if __name__ == "__main__":
         if not (surface_file.exists() and labelmap_file.exists()):
             logger.info("Segmenting %s %s", case_id, reference_phase)
             segmentation_result = segmentation_workflow.process(
-                input_image=itk.imread(
-                    str(data_dir / f"{case_id}_{reference_phase}.mha")
-                ),
+                input_image=itk.imread(str(case_phase_file(case_id, reference_phase))),
                 anatomy_groups=["lung"],
-                surface_reduction_rate=LUNG_CT_DIRLAB.surface_reduction_rate,
+                surface_reduction_rate=TCIA_4D_LUNG.surface_reduction_rate,
                 extract_label_surfaces=True,
             )
             contour_tools.save_combined_surfaces(
@@ -565,8 +569,13 @@ if __name__ == "__main__":
         # fold. Tutorial 8 wrote the same transforms; reuse them when present.
         case_transform_dir = transform_dir / case_id
         case_transform_dir.mkdir(parents=True, exist_ok=True)
-        phase_files = sorted(data_dir.glob(f"{case_id}_T??.mha"))
-        phase_ids = [path.stem.split("_")[1] for path in phase_files]
+        phase_files = sorted((cases_dir / case_id).glob(f"{case_id}_g0??.nii.gz"))
+        # The last "_"-separated token, e.g. "g070" out of "107a_HM10395_g070"
+        # -- unlike DIR-Lab's 2-part stem, the case id itself has an "_" in it,
+        # and ".stem" only strips ".gz" off a ".nii.gz" name.
+        phase_ids = [
+            path.name.removesuffix(".nii.gz").split("_")[-1] for path in phase_files
+        ]
         wanted = [
             case_transform_dir / f"{case_id}_{p}_forward_tfm.hdf" for p in phase_ids
         ]
@@ -585,7 +594,7 @@ if __name__ == "__main__":
                 reg_workflow = WorkflowReconstructHighres4DCT(
                     time_series_images=[itk.imread(str(path)) for path in phase_files],
                     reference_image=itk.imread(
-                        str(data_dir / f"{case_id}_{reference_phase}.mha")
+                        str(case_phase_file(case_id, reference_phase))
                     ),
                     reference_time_frame=phase_ids.index(reference_phase),
                     register_reference_time_frame_to_reference_image=False,
@@ -606,8 +615,9 @@ if __name__ == "__main__":
     for case_id in _rank_share(held_out_cases, context):
         case_ground_truth_dir = ground_truth_dir / case_id
         case_ground_truth_dir.mkdir(parents=True, exist_ok=True)
-        for frame_file in sorted(data_dir.glob(f"{case_id}_T??.mha")):
-            labelmap_file = case_ground_truth_dir / f"{frame_file.stem}_labelmap.nii.gz"
+        for frame_file in sorted((cases_dir / case_id).glob(f"{case_id}_g0??.nii.gz")):
+            frame_stem = frame_file.name.removesuffix(".nii.gz")
+            labelmap_file = case_ground_truth_dir / f"{frame_stem}_labelmap.nii.gz"
             if labelmap_file.exists():
                 continue
             logger.info("Segmenting ground-truth frame %s", frame_file.name)
@@ -658,9 +668,9 @@ if __name__ == "__main__":
                     surfaces=sample_surfaces, log_level=log_level
                 )
                 mean_workflow.set_number_of_iterations(mean_surface_iterations)
-                mean_workflow.set_mask_dilation_mm(LUNG_CT_DIRLAB.mask_dilation_mm)
+                mean_workflow.set_mask_dilation_mm(TCIA_4D_LUNG.mask_dilation_mm)
                 mean_workflow.set_distance_squared_max(
-                    LUNG_CT_DIRLAB.distancemap_squared_max
+                    TCIA_4D_LUNG.distancemap_squared_max
                 )
                 if use_finetuned_distancemap_weights:
                     mean_workflow.set_icon_weights_path(
@@ -673,9 +683,9 @@ if __name__ == "__main__":
                 sample_meshes=sample_surfaces,
                 reference_mesh=pv.read(str(reference_surface_file)),
                 number_of_pca_components=number_of_pca_components,
-                icp_transform_type=LUNG_CT_DIRLAB.icp_transform_type,
-                mask_dilation_mm=LUNG_CT_DIRLAB.mask_dilation_mm,
-                distance_squared_max=LUNG_CT_DIRLAB.distancemap_squared_max,
+                icp_transform_type=TCIA_4D_LUNG.icp_transform_type,
+                mask_dilation_mm=TCIA_4D_LUNG.mask_dilation_mm,
+                distance_squared_max=TCIA_4D_LUNG.distancemap_squared_max,
                 log_level=log_level,
             )
             if use_finetuned_distancemap_weights:
@@ -709,7 +719,7 @@ if __name__ == "__main__":
                     template_model=pca_mean_surface,
                     patient_models=[cast(pv.PolyData, pv.read(str(surface_file)))],
                     patient_image=itk.imread(
-                        str(data_dir / f"{case_id}_{reference_phase}.mha")
+                        str(case_phase_file(case_id, reference_phase))
                     ),
                     patient_labelmap=itk.imread(str(labelmap_file)),
                     log_level=log_level,
@@ -720,10 +730,10 @@ if __name__ == "__main__":
                     number_of_pca_components=number_of_pca_components,
                     use_surface=False,
                 )
-                fit_workflow.set_icp_transform_type(LUNG_CT_DIRLAB.icp_transform_type)
-                fit_workflow.set_mask_dilation_mm(LUNG_CT_DIRLAB.mask_dilation_mm)
+                fit_workflow.set_icp_transform_type(TCIA_4D_LUNG.icp_transform_type)
+                fit_workflow.set_mask_dilation_mm(TCIA_4D_LUNG.mask_dilation_mm)
                 fit_workflow.set_distancemap_squared_max(
-                    LUNG_CT_DIRLAB.distancemap_squared_max
+                    TCIA_4D_LUNG.distancemap_squared_max
                 )
                 if use_finetuned_distancemap_weights:
                     fit_workflow.set_labelmap_to_labelmap_icon_weights_path(
@@ -745,8 +755,10 @@ if __name__ == "__main__":
             fitted_reference_mesh = cast(
                 pv.PolyData, pv.read(str(fitted_reference_mesh_file))
             )
-            for phase_file in sorted(data_dir.glob(f"{case_id}_T??.mha")):
-                phase_id = phase_file.stem.split("_")[1]
+            for phase_file in sorted(
+                (cases_dir / case_id).glob(f"{case_id}_g0??.nii.gz")
+            ):
+                phase_id = phase_file.name.removesuffix(".nii.gz").split("_")[-1]
                 phase_surface_file = (
                     case_fit_dir / f"{case_id}_{phase_id}_ssm_surface.vtp"
                 )
@@ -812,7 +824,7 @@ if __name__ == "__main__":
             # against are this fold's own, which is what makes the fold honest.
             fold_ground_truth = cohort.assemble_ground_truth(
                 case_id=held_out_case,
-                frame_directory=data_dir,
+                frame_directory=cases_dir / held_out_case,
                 fit_directory=case_fit_dir,
                 cache_directory=ground_truth_dir / held_out_case,
             )

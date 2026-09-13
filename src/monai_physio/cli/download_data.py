@@ -13,6 +13,7 @@ SLICER_HEART_CT = "Slicer-Heart-CT"
 KCL_HEART_MODEL = "KCL-Heart-Model"
 CHOP_VALVE4D = "CHOP-Valve4D"
 CHEST_CT = "Chest-CT"
+TCIA_4D_LUNG = "TCIA-4DLung"
 
 
 def main(argv: Optional[list[str]] = None) -> int:
@@ -26,12 +27,19 @@ Examples:
   %(prog)s {KCL_HEART_MODEL} --directory data/KCL-Heart-Model
   %(prog)s {CHOP_VALVE4D} --directory data/CHOP-Valve4D
   %(prog)s {CHEST_CT} --directory data/Chest-CT
+  %(prog)s {TCIA_4D_LUNG} --directory data/TCIA-4DLung
         """,
     )
     parser.add_argument(
         "data_name",
         nargs="?",
-        choices=[SLICER_HEART_CT, KCL_HEART_MODEL, CHOP_VALVE4D, CHEST_CT],
+        choices=[
+            SLICER_HEART_CT,
+            KCL_HEART_MODEL,
+            CHOP_VALVE4D,
+            CHEST_CT,
+            TCIA_4D_LUNG,
+        ],
         default=None,
         help="Dataset to download",
     )
@@ -67,6 +75,11 @@ Examples:
     if args.data_name == CHEST_CT:
         data_file = DownloadData.DownloadChestCTData(output_dir)
         print(f"Downloaded {CHEST_CT} to: {data_file}")
+        return 0
+
+    if args.data_name == TCIA_4D_LUNG:
+        data_dir = DownloadData.DownloadTCIA4DLungData(output_dir)
+        print(f"Downloaded {TCIA_4D_LUNG} to: {data_dir}")
         return 0
 
     parser.error(f"Unsupported dataset: {args.data_name}")
