@@ -134,12 +134,12 @@ class RegisterImagesGreedy(RegisterImagesBase):
     def _greedy_metric(self) -> str:
         """Map base metric to Greedy metric string."""
         if self.metric == "CC":
-            return "NCC 2x2x2"
+            return "WNCC 2x2x2"
         if self.metric == "Mattes":
             return "NMI"
         if self.metric == "MeanSquares":
             return "SSD"
-        return "NCC 2x2x2"
+        return "WNCC 2x2x2"
 
     def _greedy_iterations_str(self) -> str:
         """Format iterations as Greedy -n string (e.g. 40x20x10)."""
@@ -361,7 +361,7 @@ class RegisterImagesGreedy(RegisterImagesBase):
         # configured metric.
         cmd_aff = "-d 3"
         if fixed_labelmap_sitk is not None and moving_labelmap_sitk is not None:
-            cmd_aff += " -w 0.60"
+            cmd_aff += " -w 0.60 -sv"
         cmd_aff += " -i fixed moving"
         kwargs_aff: dict[str, Any] = {
             "fixed": fixed_sitk,

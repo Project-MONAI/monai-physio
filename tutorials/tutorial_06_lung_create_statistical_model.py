@@ -3,16 +3,16 @@ Tutorial 6 (Lung): Create a PCA Statistical Shape Model
 
 Purpose
 -------
-Build a PCA statistical shape model of the lungs from the DIR-Lab population,
-less ``ParametersLungCTDirLab.hold_out_case``, which Tutorial 7 fits it to.
-Each case's T70 phase is segmented, an unbiased mean surface is built with
-``WorkflowCreateMeanSurface``, and the population is decomposed into shape
-modes. Tutorials 7 and 8 reuse the saved ``pca_model.json``.
+Build a PCA statistical shape model of the lungs from the TCIA-4DLung
+population, less ``ParametersTCIA4DLung.hold_out_case``, which Tutorial 7 fits
+it to. Each case's g070 phase is segmented, an unbiased mean surface is built
+with ``WorkflowCreateMeanSurface``, and the population is decomposed into
+shape modes. Tutorials 7 and 8 reuse the saved ``pca_model.json``.
 
 Data Required
 -------------
-Full data: ``data/DirLab-4DCT/Case*T70.mha``
-DirLab-4DCT is not auto-downloaded - see ``data/DirLab-4DCT/README.md``.
+Full data: ``data/TCIA-4DLung/*_HM10395/*_HM10395_g070.nii.gz``
+TCIA-4DLung is not auto-downloaded - see ``data/TCIA-4DLung/README.md``.
 
 Outputs (under ``tutorials/output/tutorial_06_lung/``)
 -----------------------------------------------------
@@ -40,7 +40,7 @@ from typing import Any, cast
 import itk
 import numpy as np
 import pyvista as pv
-from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
+from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
     ProcessContours,
@@ -66,14 +66,14 @@ if __name__ == "__main__":
 
     test_mode = ProcessTests.running_as_test()
 
-    output_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_06_lung"
-    weights_dir = LUNG_CT_DIRLAB.weights_directory(test_mode)
+    output_dir = TCIA_4D_LUNG.output_directory(test_mode) / "tutorial_06_lung"
+    weights_dir = TCIA_4D_LUNG.weights_directory(test_mode)
 
     baselines_dir = repo_root / "tests" / "baselines"
 
-    data_dir = LUNG_CT_DIRLAB.input_directory(test_mode)
+    cases_dir = TCIA_4D_LUNG.cases_directory(test_mode)
 
-    number_of_pca_components = LUNG_CT_DIRLAB.pca_components(test_mode)
+    number_of_pca_components = TCIA_4D_LUNG.pca_components(test_mode)
 
     # Atlas iterations used to build the reference surface; 1 is a single
     # template-biased pass.
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     # Points kept per surface; 0 keeps every point.  The lung surfaces feed
     # both the atlas below and the model after it, so reducing them here cuts
     # the cost of each.
-    model_points = LUNG_CT_DIRLAB.points_per_model(test_mode)
+    model_points = TCIA_4D_LUNG.points_per_model(test_mode)
 
     # Distance-map weights finetuned by
     # tutorial_02_lung_distancemap_finetune_icon.py.  Stock uniGradICON weights
@@ -92,8 +92,8 @@ if __name__ == "__main__":
     # checkpoint.
     icon_weights_path = (
         weights_dir
-        / "icon_dirlab_4dct_distancemap"
-        / "icon_dirlab_4dct_distancemap_model"
+        / "icon_tcia_4dlung_distancemap"
+        / "icon_tcia_4dlung_distancemap_model"
         / "checkpoints"
         / "network_weights_final.trch"
     )
@@ -116,13 +116,17 @@ if __name__ == "__main__":
     # have seen it.  That study lives in another dataset, so this drops nothing
     # today; moving it in here cannot slip it in.
     sample_image_files = [
-        path
-        for path in sorted(data_dir.glob("Case*T70.mha"))
-        if path.name != LUNG_CT_DIRLAB.hold_out_case
+        case_dir / f"{case_dir.name}_g070.nii.gz"
+        for case_dir in sorted(p for p in cases_dir.glob("*_HM10395") if p.is_dir())
+        if case_dir.name != TCIA_4D_LUNG.hold_out_case
+        and (case_dir / f"{case_dir.name}_g070.nii.gz").exists()
     ]
     sample_surfaces = []
     for sample_image_file in sample_image_files:
-        sample_surface_file = output_dir / f"{sample_image_file.stem}.vtp"
+        # ``.stem`` only strips ``.gz``, leaving a stray ``.nii`` in the name,
+        # since these are ``.nii.gz`` (TCIA) rather than ``.mha`` (DIR-Lab).
+        sample_image_stem = sample_image_file.name.removesuffix(".nii.gz")
+        sample_surface_file = output_dir / f"{sample_image_stem}.vtp"
         if not sample_surface_file.exists():
             sample_image = itk.imread(str(sample_image_file))
             result = workflow_method.process(
@@ -134,9 +138,7 @@ if __name__ == "__main__":
             contour_tools.save_combined_surfaces(surfaces, str(sample_surface_file))
 
             sample_labelmap = result["labelmap"]
-            sample_labelmap_file = (
-                output_dir / f"{sample_image_file.stem}_labelmap.nii.gz"
-            )
+            sample_labelmap_file = output_dir / f"{sample_image_stem}_labelmap.nii.gz"
             itk.imwrite(sample_labelmap, str(sample_labelmap_file), compression=True)
         sample_surface = cast(pv.PolyData, pv.read(str(sample_surface_file)))
         if model_points:
@@ -157,8 +159,8 @@ if __name__ == "__main__":
     mean_surface_settings = {
         "iterations": mean_surface_iterations,
         "model_points": model_points,
-        "mask_dilation_mm": LUNG_CT_DIRLAB.mask_dilation_mm,
-        "distance_squared_max": LUNG_CT_DIRLAB.distancemap_squared_max,
+        "mask_dilation_mm": TCIA_4D_LUNG.mask_dilation_mm,
+        "distance_squared_max": TCIA_4D_LUNG.distancemap_squared_max,
         "icon_weights": (
             [str(icon_weights_path), icon_weights_path.stat().st_mtime_ns]
             if icon_weights_path.exists()
@@ -178,8 +180,8 @@ if __name__ == "__main__":
         mean_workflow.set_number_of_iterations(mean_surface_iterations)
         # Correspond the atlas with the same settings the model below uses, so
         # the template is not itself built from under-fitting registrations.
-        mean_workflow.set_mask_dilation_mm(LUNG_CT_DIRLAB.mask_dilation_mm)
-        mean_workflow.set_distance_squared_max(LUNG_CT_DIRLAB.distancemap_squared_max)
+        mean_workflow.set_mask_dilation_mm(TCIA_4D_LUNG.mask_dilation_mm)
+        mean_workflow.set_distance_squared_max(TCIA_4D_LUNG.distancemap_squared_max)
         if icon_weights_path.exists():
             mean_workflow.set_icon_weights_path(str(icon_weights_path))
         mean_result = mean_workflow.process()
@@ -199,9 +201,9 @@ if __name__ == "__main__":
         # and generating, dilating and affinely registering them is what the
         # step costs.  2 mm is an eighth of the voxels of the 1 mm default.
         reference_spatial_resolution=2.0 if test_mode else 1.0,
-        icp_transform_type=LUNG_CT_DIRLAB.icp_transform_type,
-        mask_dilation_mm=LUNG_CT_DIRLAB.mask_dilation_mm,
-        distance_squared_max=LUNG_CT_DIRLAB.distancemap_squared_max,
+        icp_transform_type=TCIA_4D_LUNG.icp_transform_type,
+        mask_dilation_mm=TCIA_4D_LUNG.mask_dilation_mm,
+        distance_squared_max=TCIA_4D_LUNG.distancemap_squared_max,
         log_level=log_level,
     )
 
@@ -225,13 +227,13 @@ if __name__ == "__main__":
 
     # Result saving
     pca_model: dict[str, Any] = result["pca_model"]
-    model_file = LUNG_CT_DIRLAB.pca_model_file(test_mode)
+    model_file = TCIA_4D_LUNG.pca_model_file(test_mode)
     model_file.parent.mkdir(parents=True, exist_ok=True)
     with model_file.open("w", encoding="utf-8") as f:
         json.dump(pca_model, f, indent=2)
 
     mean_surface = result["pca_mean_surface"]
-    mean_surface_file = LUNG_CT_DIRLAB.pca_mean_surface_file(test_mode)
+    mean_surface_file = TCIA_4D_LUNG.pca_mean_surface_file(test_mode)
     mean_surface.save(str(mean_surface_file))
 
     # Testing

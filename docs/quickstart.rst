@@ -84,9 +84,12 @@ Which dataset each tutorial needs:
    * - ``Slicer-Heart-CT``
      - CLI
      - Heart Tutorials 1, 3, 4
+   * - ``TCIA-4DLung``
+     - CLI
+     - Lung Tutorials 1, 2, 3, 4, 6, 8, 10, 11, 12
    * - ``DirLab-4DCT``
      - Manual
-     - Lung Tutorials 1, 2, 3, 4, 6, 8, 10, 11, 12, and Heart Tutorial 7
+     - Heart Tutorial 7
    * - ``KCL-Heart-Model``
      - CLI
      - Heart Tutorial 6
@@ -108,9 +111,12 @@ ten ``duke_heart`` variants cannot be run; contact Stephen Aylward
 (saylward@nvidia.com) to request access, and see
 ``data/Duke-Heart-4DLabelmaps/README.md``.
 
-``DirLab-4DCT`` is the one dataset with no automatic downloader: DIR-Lab
-distributes each case individually and may require registration, so download it
-by hand following ``data/DirLab-4DCT/README.md``. See
+``TCIA-4DLung``'s CLI download is a converted tutorial subset; the full TCIA
+4D-Lung collection is still obtained manually by downloading its DICOM
+series from TCIA and running ``data/TCIA-4DLung/convert.py`` - see
+``data/TCIA-4DLung/README.md``. ``DirLab-4DCT`` has no automatic downloader
+at all - it distributes each case individually and may require registration,
+so download it by hand following ``data/DirLab-4DCT/README.md``. See
 :doc:`cli_scripts/download_data` for every dataset's size and source.
 
 Tutorial 1 needs only ``Slicer-Heart-CT``; with that dataset in place it runs
@@ -313,11 +319,13 @@ or from Python:
 See :doc:`cli_scripts/download_data` for sizes, source URLs, and directory
 layouts for every dataset.
 
-DirLab-4DCT data is manual-only; see ``data/DirLab-4DCT/README.md``. It drives
-the whole lung pipeline - Lung Tutorials 1, 2, 3, 4, 6 and 8, plus Heart
-Tutorial 7 - which then feeds the AI-surrogate Tutorials 9 through 12.
-PhysicsNeMo and ``torch-geometric`` (for the MeshGraphNet) are base
-dependencies of monai-physio; PhysicsNeMo itself requires Python >= 3.11.
+TCIA-4DLung's tutorial subset downloads via the CLI; see
+``data/TCIA-4DLung/README.md``. It drives the whole lung pipeline - Lung
+Tutorials 1, 2, 3, 4, 6 and 8 - which then feeds the AI-surrogate Tutorials 9
+through 12. (Heart Tutorial 7 separately uses DirLab-4DCT, which is
+manual-only; see ``data/DirLab-4DCT/README.md``.) PhysicsNeMo and
+``torch-geometric`` (for the MeshGraphNet) are base dependencies of
+monai-physio; PhysicsNeMo itself requires Python >= 3.11.
 
 Visualizing Results
 ===================

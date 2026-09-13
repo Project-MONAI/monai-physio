@@ -28,6 +28,11 @@ Supported Datasets
      - Ungated 3D chest CT, a single static volume, from the MONAI Physio
        GitHub release. See ``data/Chest-CT/README.md`` for the data source
        and required citation.
+   * - ``TCIA-4DLung``
+     - Converted tutorial subset of the 4D-Lung collection, from the MONAI
+       Physio GitHub release. See ``data/TCIA-4DLung/README.md`` for the
+       data source, the full-collection manual download, and required
+       citation.
 
 Basic Usage
 ===========
@@ -46,12 +51,12 @@ Options
 
 .. code-block:: bash
 
-   monai-physio-download-data [Slicer-Heart-CT|KCL-Heart-Model|CHOP-Valve4D|Chest-CT] [--directory DIRECTORY]
+   monai-physio-download-data [Slicer-Heart-CT|KCL-Heart-Model|CHOP-Valve4D|Chest-CT|TCIA-4DLung] [--directory DIRECTORY]
 
 ``data_name``
    Dataset to download. One of ``Slicer-Heart-CT``, ``KCL-Heart-Model``,
-   ``CHOP-Valve4D``, or ``Chest-CT``. Required - omitting it prints help and
-   exits.
+   ``CHOP-Valve4D``, ``Chest-CT``, or ``TCIA-4DLung``. Required - omitting
+   it prints help and exits.
 
 ``--directory``
    Directory where the dataset is stored. Defaults to ``data/<data_name>``.
@@ -111,13 +116,30 @@ The command uses
 which fetches the volume from the MONAI Physio GitHub release and reuses an
 existing non-empty file, so re-running resumes an interrupted download.
 
+For ``TCIA-4DLung``, the command downloads, extracts, and reuses:
+
+.. code-block:: text
+
+   data/TCIA-4DLung/100_HM10395/100_HM10395_g000.nii.gz ...
+   data/TCIA-4DLung/116_HM10395/116_HM10395_g000.nii.gz ...
+
+The command uses
+:meth:`monai_physio.download_data.DownloadData.DownloadTCIA4DLungData`,
+which fetches both zip archives (``TCIA-4DLung-Part1.zip`` and
+``TCIA-4DLung-Part2.zip``) from the MONAI Physio GitHub release and skips
+the download entirely once any case's phase volumes are already present -
+this is a converted tutorial subset; see ``data/TCIA-4DLung/README.md`` for
+how to obtain the full TCIA 4D-Lung collection manually.
+
 See Also
 ========
 
 * :doc:`../tutorials` - ``Slicer-Heart-CT`` drives Heart Tutorials 1, 3 and 4;
   ``KCL-Heart-Model`` drives Heart Tutorial 6; ``Chest-CT`` drives Lung
-  Tutorial 7 and Tutorial 13. ``DirLab-4DCT`` - Lung Tutorials 1, 2, 3, 4, 6, 8
-  and 10-12, plus Heart Tutorial 7 - is manual-only, see
+  Tutorial 7 and Tutorial 13; ``TCIA-4DLung`` drives Lung Tutorials 1, 2, 3,
+  4, 6, 8 and 10-12. ``DirLab-4DCT``, used by Heart Tutorial 7, has no
+  ``monai-physio-download-data`` entry - DIR-Lab distributes each case
+  individually and may require registration, so it is manual-only, see
   ``data/DirLab-4DCT/README.md``. ``Duke-Heart-4DLabelmaps``, which drives the
   ten ``duke_heart`` variants, is being released soon; see
   ``data/Duke-Heart-4DLabelmaps/README.md``.

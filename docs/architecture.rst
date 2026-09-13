@@ -102,7 +102,7 @@ replacing the explicit per-phase registration solve with a learned model at
 inference time:
 
 ``tutorial_08_lung_fit_model_to_4d_patients.py``
-   Fits the lung PCA model to a DIR-Lab case (via
+   Fits the lung PCA model to a TCIA-4DLung case (via
    ``WorkflowFitStatisticalModelToPatient``) and propagates the fitted surface
    through every respiratory phase using ICON-based registration
    (``WorkflowReconstructHighres4DCT``), producing the per-phase surfaces used

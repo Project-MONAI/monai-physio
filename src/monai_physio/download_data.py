@@ -1,10 +1,10 @@
 """
 Dataset download and verification helpers.
 
-Slicer-Heart-CT, KCL-Heart-Model, CHOP-Valve4D, and Chest-CT are downloaded
-automatically. Other datasets require manual download, and the verification
-helpers check the file layouts used by the repository tutorials,
-experiments, and tests.
+Slicer-Heart-CT, KCL-Heart-Model, CHOP-Valve4D, Chest-CT, and TCIA-4DLung
+are downloaded automatically. Other datasets require manual download, and
+the verification helpers check the file layouts used by the repository
+tutorials, experiments, and tests.
 """
 
 from __future__ import annotations
@@ -283,8 +283,16 @@ class DownloadData:
         return any(target_dir.glob("*.vtk"))
 
     @staticmethod
-    def _DownloadAndExtractZip(url: str, target_dir: Path) -> None:
-        """Stream-download a ``.zip`` archive and extract it into ``target_dir``."""
+    def _DownloadAndExtractZip(
+        url: str, target_dir: Path, extract_dir: Optional[Path] = None
+    ) -> None:
+        """Stream-download a ``.zip`` archive and extract it into ``extract_dir``.
+
+        ``extract_dir`` defaults to ``target_dir.parent``, which is correct
+        when the archive's top-level entry is ``target_dir.name`` itself; pass
+        ``extract_dir=target_dir`` when the archive's entries already sit
+        directly inside ``target_dir``.
+        """
         target_dir.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=str(target_dir.parent)) as tmp_dir_name:
             archive_file = Path(tmp_dir_name) / "archive.zip"
@@ -299,7 +307,7 @@ class DownloadData:
                 raise RuntimeError(f"Downloaded archive is empty: {url}")
 
             with zipfile.ZipFile(archive_file) as archive:
-                archive.extractall(target_dir.parent)
+                archive.extractall(extract_dir or target_dir.parent)
 
     @staticmethod
     def VerifyCHOPValve4DData(dirname: Union[str, Path]) -> bool:
@@ -348,6 +356,43 @@ class DownloadData:
     def VerifyChestCTData(dirname: Union[str, Path]) -> bool:
         """Return True when Chest-CT has its expected CT volume."""
         return (Path(dirname) / DownloadData.CHEST_CT_FILENAME).is_file()
+
+    TCIA_4D_LUNG_RELEASE_URL = (
+        "https://github.com/Project-MONAI/monai-physio/releases/download/2026.07.1/"
+    )
+    TCIA_4D_LUNG_ASSETS = ["TCIA-4DLung-Part1.zip", "TCIA-4DLung-Part2.zip"]
+
+    @staticmethod
+    def DownloadTCIA4DLungData(dirname: Union[str, Path]) -> Path:
+        """Download the TCIA-4DLung converted-subset release into ``dirname``.
+
+        Fetches the two zip archives attached to the MONAI Physio 2026.07.1
+        GitHub release and extracts them directly into ``dirname``, giving
+        the per-case ``<case>/<case>_g0??.nii.gz`` phase volumes the lung
+        tutorials read. This is a tutorial subset of the full TCIA 4D-Lung
+        collection; see ``data/TCIA-4DLung/README.md`` for how to obtain the
+        full collection manually. Already-populated data is left alone, so
+        re-running is a no-op once the subset is present.
+
+        Args:
+            dirname: Directory where the TCIA-4DLung dataset should live.
+
+        Returns:
+            Path to ``dirname``.
+        """
+        data_dir = Path(dirname)
+        if DownloadData.VerifyTCIA4DLungData(data_dir):
+            return data_dir
+        for asset_name in DownloadData.TCIA_4D_LUNG_ASSETS:
+            url = DownloadData.TCIA_4D_LUNG_RELEASE_URL + asset_name
+            DownloadData._DownloadAndExtractZip(url, data_dir, extract_dir=data_dir)
+            _logger.info("Downloaded %s", asset_name)
+        return data_dir
+
+    @staticmethod
+    def VerifyTCIA4DLungData(dirname: Union[str, Path]) -> bool:
+        """Return True when TCIA-4DLung has at least one case's phase volumes."""
+        return any(Path(dirname).glob("*_HM10395/*_g0??.nii.gz"))
 
     @staticmethod
     def _MetaImageHeaderHasBackingData(mhd_file: Path) -> bool:

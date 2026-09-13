@@ -185,12 +185,12 @@ class TestTutorial01LungGatedCTToUSD:
     def test_run(
         self,
         test_directories: dict[str, Path],
-        dirlab_test_data: Path,
+        tcia_4d_lung_test_data: Path,
     ) -> None:
         _require_files(
-            _TUTORIAL_PATHS.data_directory(test_mode=True) / "DirLab-4DCT",
-            "Case1Pack_T??.mha",
-            "DirLab-4DCT is acquired manually; see data/README.md.",
+            _TUTORIAL_PATHS.data_directory(test_mode=True) / "TCIA-4DLung",
+            "100_HM10395/100_HM10395_g0??.nii.gz",
+            "TCIA-4DLung is acquired manually; see data/README.md.",
         )
 
         out_dir = _TUTORIAL_OUTPUT / "tutorial_01_lung"
@@ -254,12 +254,12 @@ class TestTutorial02LungDistancemapFinetuneICON:
     def test_run(
         self,
         test_directories: dict[str, Path],
-        dirlab_test_data: Path,
+        tcia_4d_lung_test_data: Path,
     ) -> None:
         _require_files(
-            test_directories["data"] / "DirLab-4DCT",
-            "Case*_T??.mha",
-            "DirLab-4DCT is acquired manually; see data/README.md.",
+            test_directories["data"] / "TCIA-4DLung",
+            "*_HM10395/*_HM10395_g0??.nii.gz",
+            "TCIA-4DLung is acquired manually; see data/README.md.",
         )
 
         out_dir = _TUTORIAL_OUTPUT / "tutorial_02_lung_distancemap"
@@ -284,12 +284,12 @@ class TestTutorial02LungFinetuneICON:
     def test_run(
         self,
         test_directories: dict[str, Path],
-        dirlab_test_data: Path,
+        tcia_4d_lung_test_data: Path,
     ) -> None:
         _require_files(
-            test_directories["data"] / "DirLab-4DCT",
-            "Case*_T??.mha",
-            "DirLab-4DCT is acquired manually; see data/README.md.",
+            test_directories["data"] / "TCIA-4DLung",
+            "*_HM10395/*_HM10395_g0??.nii.gz",
+            "TCIA-4DLung is acquired manually; see data/README.md.",
         )
 
         out_dir = _TUTORIAL_OUTPUT / "tutorial_02_lung"
@@ -344,14 +344,14 @@ class TestTutorial03LungReconstructHighres4DCT:
     def test_run(
         self,
         test_directories: dict[str, Path],
-        dirlab_test_data: Path,
+        tcia_4d_lung_test_data: Path,
     ) -> None:
         # Match the phase files the script itself globs, not a directory layout
         # it never uses.
-        dirlab_dir = test_directories["data"] / "DirLab-4DCT"
-        if not list(dirlab_dir.glob("Case1Pack_T??.mha")):
+        tcia_dir = test_directories["data"] / "TCIA-4DLung"
+        if not list(tcia_dir.glob("100_HM10395/100_HM10395_g0??.nii.gz")):
             pytest.skip(
-                "DirLab-4DCT Case1Pack phases not downloaded. See data/README.md "
+                "TCIA-4DLung 100_HM10395 phases not downloaded. See data/README.md "
                 "for instructions."
             )
 
@@ -437,12 +437,12 @@ class TestTutorial04LungCTToVTK:
     def test_run(
         self,
         test_directories: dict[str, Path],
-        dirlab_test_data: Path,
+        tcia_4d_lung_test_data: Path,
     ) -> None:
         _require_files(
-            test_directories["data"] / "DirLab-4DCT",
-            "Case*_T??.mha",
-            "DirLab-4DCT is acquired manually; see data/README.md.",
+            test_directories["data"] / "TCIA-4DLung",
+            "*_HM10395/*_HM10395_g0??.nii.gz",
+            "TCIA-4DLung is acquired manually; see data/README.md.",
         )
 
         out_dir = _TUTORIAL_OUTPUT / "tutorial_04_lung"
@@ -599,13 +599,13 @@ class TestTutorial06LungCreateStatisticalModel:
     def test_run(
         self,
         test_directories: dict[str, Path],
-        dirlab_test_data: Path,
+        tcia_4d_lung_test_data: Path,
     ) -> None:
-        # This variant segments the T70 phases itself, so the images are input.
+        # This variant segments the g070 phases itself, so the images are input.
         _require_files(
-            test_directories["data"] / "DirLab-4DCT",
-            "Case*T70.mha",
-            "DirLab-4DCT is acquired manually; see data/README.md.",
+            test_directories["data"] / "TCIA-4DLung",
+            "*_HM10395/*_HM10395_g070.nii.gz",
+            "TCIA-4DLung is acquired manually; see data/README.md.",
         )
 
         out_dir = _TUTORIAL_OUTPUT / "tutorial_06_lung"
@@ -723,11 +723,11 @@ class TestTutorial07LungFitStatisticalModelToPatient:
     def test_run(
         self,
         test_directories: dict[str, Path],
-        dirlab_test_data: Path,
+        tcia_4d_lung_test_data: Path,
         chest_ct_test_data: Path,
     ) -> None:
         # The lung variant fits the ungated Chest-CT scan, which the
-        # download CLI provides, rather than a gated DIR-Lab phase.
+        # download CLI provides, rather than a gated TCIA-4DLung phase.
         _require_files(
             test_directories["data"] / "Chest-CT",
             "Chest-CT.mha",
@@ -811,12 +811,12 @@ class TestTutorial08LungFitModelTo4DPatients:
     def test_run(
         self,
         test_directories: dict[str, Path],
-        dirlab_test_data: Path,
+        tcia_4d_lung_test_data: Path,
     ) -> None:
         _require_files(
-            _TUTORIAL_PATHS.data_directory(test_mode=True) / "DirLab-4DCT",
-            "Case*_T70.mha",
-            "DirLab-4DCT is acquired manually; see data/README.md.",
+            _TUTORIAL_PATHS.data_directory(test_mode=True) / "TCIA-4DLung",
+            "*_HM10395/*_HM10395_g070.nii.gz",
+            "TCIA-4DLung is acquired manually; see data/README.md.",
         )
         _require_files(
             _TUTORIAL_OUTPUT / "tutorial_06_lung",
@@ -877,7 +877,7 @@ def _require_physicsnemo_and_tutorial_08() -> Path:
     """Skip unless the MGN dependencies and three Tutorial 8 cases are present."""
     _require_physicsnemo()
     data_dir = _TUTORIAL_OUTPUT / "tutorial_08_lung"
-    if len(list(data_dir.glob("Case*Pack"))) < 3:
+    if len(list(data_dir.glob("*_HM10395"))) < 3:
         skip_or_fail_missing_data(
             "Fewer than three Tutorial 8 cases under "
             "the Tutorial 8 lung output directory. "
@@ -965,7 +965,7 @@ class TestTutorial10LungInferPhysicsNeMoMGN:
     def test_run(self, test_directories: dict[str, Path]) -> None:
         _require_physicsnemo_and_tutorial_08()
 
-        # ParametersLungCTDirLab.mgn_weights_directory under test mode, which is
+        # ParametersTCIA4DLung.mgn_weights_directory under test mode, which is
         # where Tutorial 9 trains to. Reading the full-run directory instead
         # would look for a checkpoint the test run never writes.
         model_dir = _TUTORIAL_WEIGHTS / "physicsnemo_mgn_lung_motion"
@@ -982,7 +982,7 @@ class TestTutorial10LungInferPhysicsNeMoMGN:
         )
         assert Path(results["usd_file"]).exists(), "USD file should exist"
 
-        out_dir = _TUTORIAL_OUTPUT / "tutorial_10_lung_mgn" / "Case1Pack"
+        out_dir = _TUTORIAL_OUTPUT / "tutorial_10_lung_mgn" / "100_HM10395"
         tt = ProcessTests(
             class_name=self._class_name,
             results_dir=out_dir,
@@ -1090,14 +1090,14 @@ class TestTutorial11LungEvaluatePhysicsNeMo:
     def test_run(
         self,
         test_directories: dict[str, Path],
-        dirlab_test_data: Path,
+        tcia_4d_lung_test_data: Path,
     ) -> None:
         _require_physicsnemo_and_tutorial_08()
         # The acquired phases this variant segments to get its ground truth.
         _require_files(
-            test_directories["data"] / "DirLab-4DCT",
-            "Case1Pack_T??.mha",
-            "DirLab-4DCT is acquired manually; see data/README.md.",
+            test_directories["data"] / "TCIA-4DLung",
+            "100_HM10395/100_HM10395_g0??.nii.gz",
+            "TCIA-4DLung is acquired manually; see data/README.md.",
         )
         _require_files(
             _TUTORIAL_WEIGHTS / "physicsnemo_mgn_lung_motion",
@@ -1113,8 +1113,8 @@ class TestTutorial11LungEvaluatePhysicsNeMo:
             "Per-point displacement error should be reported"
         )
 
-        # ParametersLungCTDirLab.mgn_hold_out_case names the output subdirectory.
-        out_dir = _TUTORIAL_OUTPUT / "tutorial_11_lung" / "Case1Pack"
+        # ParametersTCIA4DLung.mgn_hold_out_case names the output subdirectory.
+        out_dir = _TUTORIAL_OUTPUT / "tutorial_11_lung" / "100_HM10395"
         _compare_screenshots(
             results["screenshots"],
             _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
@@ -1190,14 +1190,14 @@ class TestTutorial12LungEndToEndInference:
     def test_run(
         self,
         test_directories: dict[str, Path],
-        dirlab_test_data: Path,
+        tcia_4d_lung_test_data: Path,
         chest_ct_test_data: Path,
     ) -> None:
         _require_physicsnemo()
         _require_files(
-            test_directories["data"] / "DirLab-4DCT",
-            "Case1Pack_T??.mha",
-            "DirLab-4DCT is acquired manually; see data/README.md.",
+            test_directories["data"] / "TCIA-4DLung",
+            "100_HM10395/100_HM10395_g0??.nii.gz",
+            "TCIA-4DLung is acquired manually; see data/README.md.",
         )
         _require_files(
             _TUTORIAL_OUTPUT / "tutorial_06_lung",
@@ -1216,14 +1216,14 @@ class TestTutorial12LungEndToEndInference:
         assert Path(results["usd_file"]).exists(), "USD file should exist"
         assert results["runtime_file"].exists(), "Per-step runtime record should exist"
 
-        out_dir = _TUTORIAL_OUTPUT / "tutorial_12_lung" / "Case1Pack"
+        out_dir = _TUTORIAL_OUTPUT / "tutorial_12_lung" / "100_HM10395"
         _compare_screenshots(
             results["screenshots"],
             _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
         )
         _compare_metrics(
             _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
-            ["Case1Pack_ssm_pca_coefficients.json"],
+            ["100_HM10395_ssm_pca_coefficients.json"],
         )
 
 
@@ -1247,7 +1247,7 @@ class TestTutorial13HeartAndLungMotion:
     def test_run(
         self,
         test_directories: dict[str, Path],
-        dirlab_test_data: Path,
+        tcia_4d_lung_test_data: Path,
         duke_heart_test_data: Path,
         chest_ct_test_data: Path,
     ) -> None:
@@ -1364,14 +1364,14 @@ class TestTutorial14LungShapeParameterSweep:
     def test_run(
         self,
         test_directories: dict[str, Path],
-        dirlab_test_data: Path,
+        tcia_4d_lung_test_data: Path,
     ) -> None:
         _require_physicsnemo_and_tutorial_08()
         # The acquired phases this variant segments to get its ground truth.
         _require_files(
-            test_directories["data"] / "DirLab-4DCT",
-            "Case1Pack_T??.mha",
-            "DirLab-4DCT is acquired manually; see data/README.md.",
+            test_directories["data"] / "TCIA-4DLung",
+            "100_HM10395/100_HM10395_g0??.nii.gz",
+            "TCIA-4DLung is acquired manually; see data/README.md.",
         )
         _require_files(
             _TUTORIAL_WEIGHTS / "physicsnemo_mgn_lung_motion",
@@ -1388,8 +1388,8 @@ class TestTutorial14LungShapeParameterSweep:
             "Every combination of the test-mode grid should reach the CSV"
         )
 
-        # ParametersLungCTDirLab.mgn_hold_out_case names the output subdirectory.
-        out_dir = _TUTORIAL_OUTPUT / "tutorial_14_lung" / "Case1Pack"
+        # ParametersTCIA4DLung.mgn_hold_out_case names the output subdirectory.
+        out_dir = _TUTORIAL_OUTPUT / "tutorial_14_lung" / "100_HM10395"
         _compare_screenshots(
             results["screenshots"],
             _baseline_tools(self._class_name, out_dir, test_directories["baselines"]),
@@ -1419,15 +1419,15 @@ class TestTutorial15LungLeaveOneOut:
     def test_run(
         self,
         test_directories: dict[str, Path],
-        dirlab_test_data: Path,
+        tcia_4d_lung_test_data: Path,
     ) -> None:
         _require_physicsnemo()
         # Nothing from Tutorials 6, 8 or 9 is needed: every fold builds its own
         # shape model, fits and network. The cohort itself is the only input.
         _require_files(
-            test_directories["data"] / "DirLab-4DCT",
-            "Case*_T70.mha",
-            "DirLab-4DCT is acquired manually; see data/README.md.",
+            test_directories["data"] / "TCIA-4DLung",
+            "*_HM10395/*_HM10395_g070.nii.gz",
+            "TCIA-4DLung is acquired manually; see data/README.md.",
         )
 
         results = _run_tutorial_script("tutorial_15_lung_leave_one_out.py")

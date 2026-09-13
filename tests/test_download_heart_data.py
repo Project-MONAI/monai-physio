@@ -88,6 +88,16 @@ class TestDownloadData:
 
         assert DownloadData.VerifyCHOPValve4DData(tmp_path)
 
+    def test_verify_tcia_4d_lung_data(self, tmp_path: Path) -> None:
+        """Verify TCIA-4DLung data by an expected case's gated-phase filename."""
+        assert not DownloadData.VerifyTCIA4DLungData(tmp_path)
+
+        case_dir = tmp_path / "100_HM10395"
+        case_dir.mkdir()
+        (case_dir / "100_HM10395_g000.nii.gz").write_bytes(b"nii")
+
+        assert DownloadData.VerifyTCIA4DLungData(tmp_path)
+
 
 class TestDownloadHeartData:
     """Test suite for downloading and converting Slicer-Heart-CT data."""
@@ -299,6 +309,66 @@ class TestDownloadHeartData:
         # The stray leftover file did not prevent Alterra from re-downloading.
         assert (partial_dir / "frame_0000.vtk").read_text() == "# Alterra\n"
         assert (partial_dir / "partial_download.tmp").exists()
+
+    def test_download_tcia_4d_lung_data(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Both zip parts are downloaded and extracted directly into dirname."""
+        archives_dir = tmp_path / "archives"
+        archives_dir.mkdir()
+        cases = {
+            "TCIA-4DLung-Part1.zip": "100_HM10395",
+            "TCIA-4DLung-Part2.zip": "101_HM10395",
+        }
+
+        def make_archive(asset_name: str, case_name: str) -> Path:
+            archive_path = archives_dir / asset_name
+            with zipfile.ZipFile(archive_path, "w") as zf:
+                zf.writestr(
+                    f"{case_name}/{case_name}_g000.nii.gz",
+                    f"# {case_name}\n".encode(),
+                )
+            return archive_path
+
+        urls_to_archives = {}
+        for asset_name, case_name in cases.items():
+            url = DownloadData.TCIA_4D_LUNG_RELEASE_URL + asset_name
+            urls_to_archives[url] = make_archive(asset_name, case_name)
+
+        def fake_urlopen(url: str, timeout: float) -> object:
+            return open(urls_to_archives[url], "rb")
+
+        monkeypatch.setattr(
+            "monai_physio.download_data.urllib.request.urlopen", fake_urlopen
+        )
+
+        output_dir = tmp_path / "TCIA-4DLung"
+        result_dir = DownloadData.DownloadTCIA4DLungData(output_dir)
+
+        assert result_dir == output_dir
+        for case_name in cases.values():
+            extracted_file = output_dir / case_name / f"{case_name}_g000.nii.gz"
+            assert extracted_file.read_text() == f"# {case_name}\n"
+
+    def test_download_tcia_4d_lung_data_skips_when_populated(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """An already-populated directory is not re-downloaded."""
+        output_dir = tmp_path / "TCIA-4DLung"
+        case_dir = output_dir / "100_HM10395"
+        case_dir.mkdir(parents=True)
+        (case_dir / "100_HM10395_g000.nii.gz").write_bytes(b"nii")
+
+        def fake_urlopen(url: str, timeout: float) -> object:
+            raise AssertionError(f"Should not download when already populated: {url}")
+
+        monkeypatch.setattr(
+            "monai_physio.download_data.urllib.request.urlopen", fake_urlopen
+        )
+
+        result_dir = DownloadData.DownloadTCIA4DLungData(output_dir)
+
+        assert result_dir == output_dir
 
 
 if __name__ == "__main__":

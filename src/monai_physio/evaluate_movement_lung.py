@@ -1,4 +1,4 @@
-"""The DIR-Lab gated-CT lung cohort, as a movement-evaluation subject.
+"""The TCIA-4DLung gated-CT lung cohort, as a movement-evaluation subject.
 
 This cohort ships CT, not labelmaps, so its ground truth has to be *derived*:
 every gated frame is segmented on its own, which means the lobes a phase is
@@ -25,7 +25,7 @@ class EvaluateMovementLung(EvaluateMovementBase):
     Args:
         reference_phase: The phase the shape model was fitted to, and therefore
             the one whose anatomy the predicted deformations carry into every
-            other phase. Default: ``"T70"``.
+            other phase. Default: ``"g070"``.
         log_level: Logging level. Default: ``logging.INFO``.
     """
 
@@ -42,15 +42,18 @@ class EvaluateMovementLung(EvaluateMovementBase):
     evaluation_spacing_mm = 2.0
 
     def __init__(
-        self, reference_phase: str = "T70", log_level: int | str = logging.INFO
+        self, reference_phase: str = "g070", log_level: int | str = logging.INFO
     ) -> None:
         super().__init__(log_level=log_level)
         self.reference_phase = reference_phase
 
     def stage_from_filename(self, path: Path) -> float:
-        """Read the normalized respiratory stage from a ``T{PP}`` filename stem."""
-        for part in path.stem.split("_"):
-            if part.startswith("T") and part[1:].isdigit():
+        """Read the normalized respiratory stage from a ``g{PPP}`` filename stem."""
+        # ``.nii.gz`` leaves a ``.nii`` suffix on ``path.stem``; strip it too so
+        # the stem's last ``_``-separated part is the phase token.
+        stem = path.name[: -len("".join(path.suffixes))]
+        for part in stem.split("_"):
+            if part.startswith("g") and len(part) == 4 and part[1:].isdigit():
                 return int(part[1:]) / 100.0
         raise ValueError(f"Cannot parse respiratory phase from filename: {path}")
 
@@ -79,11 +82,11 @@ class EvaluateMovementLung(EvaluateMovementBase):
                 "EvaluateMovementLung needs a cache_directory: it segments every "
                 "gated frame, which is too expensive to repeat on every run."
             )
-        frame_files = sorted(frame_directory.glob(f"{case_id}_T??.mha"))
+        frame_files = sorted(frame_directory.glob(f"{case_id}_g0??.nii.gz"))
         if not frame_files:
             raise FileNotFoundError(
-                f"No {case_id}_T??.mha frames found under {frame_directory}.\n"
-                "See data/DirLab-4DCT/README.md for download instructions."
+                f"No {case_id}_g0??.nii.gz frames found under {frame_directory}.\n"
+                "See data/TCIA-4DLung/README.md for download instructions."
             )
         cache_directory.mkdir(parents=True, exist_ok=True)
 
@@ -111,7 +114,7 @@ class EvaluateMovementLung(EvaluateMovementBase):
                 "segmented."
             )
 
-        surface_files = sorted(fit_directory.glob(f"{case_id}_T??_ssm_surface.vtp"))
+        surface_files = sorted(fit_directory.glob(f"{case_id}_g0??_ssm_surface.vtp"))
         if not surface_files:
             raise FileNotFoundError(
                 f"No per-phase SSM surfaces found in {fit_directory}.\n"

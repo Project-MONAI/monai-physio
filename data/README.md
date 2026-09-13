@@ -12,6 +12,7 @@ the source of truth.
 | --- | --- | --- | --- | --- |
 | `Slicer-Heart-CT/` | 4D cardiac CT with gated cardiac phases | Jolley Lab, Children's Hospital of Philadelphia (CHOP) | Automatic | [Slicer-Heart-CT/README.md](Slicer-Heart-CT/README.md) |
 | `DirLab-4DCT/` | 4D lung CT respiratory motion benchmark | DIR-Lab, MD Anderson Cancer Center / Emory University | Manual | [DirLab-4DCT/README.md](DirLab-4DCT/README.md) |
+| `TCIA-4DLung/` | 4D lung CT, respiratory-gated, with RTSTRUCT contours | VCU, The Cancer Imaging Archive (TCIA) | Automatic (tutorial subset) | [TCIA-4DLung/README.md](TCIA-4DLung/README.md) |
 | `KCL-Heart-Model/` | Statistical shape model of the heart | King's College London (KCL) | Automatic | [KCL-Heart-Model/README.md](KCL-Heart-Model/README.md) |
 | `CHOP-Valve4D/` | 4D valve reconstruction models | Jolley Lab, CHOP (original FEBio model) | Automatic | [CHOP-Valve4D/README.md](CHOP-Valve4D/README.md) |
 | `Chest-CT/` | Ungated 3D chest CT, single static volume | AREN0534 trial, The Cancer Imaging Archive (TCIA) | Automatic | [Chest-CT/README.md](Chest-CT/README.md) |
@@ -19,11 +20,16 @@ the source of truth.
 
 ## Automatic Download
 
-`Slicer-Heart-CT`, `KCL-Heart-Model`, `CHOP-Valve4D`, and `Chest-CT` can be
-fetched with the `monai-physio-download-data` CLI or `DownloadData`; see each
-dataset's README for the exact command. `DirLab-4DCT` has no automatic
-downloader - DIR-Lab distributes each case individually and may require
-registration, so it must be obtained manually; see
+`Slicer-Heart-CT`, `KCL-Heart-Model`, `CHOP-Valve4D`, `Chest-CT`, and
+`TCIA-4DLung` can be fetched with the `monai-physio-download-data` CLI or
+`DownloadData`; see each dataset's README for the exact command.
+`TCIA-4DLung`'s automatic download is a converted tutorial subset (the
+`.nii.gz` phases the tutorials read); the full TCIA 4D-Lung collection is
+still obtained manually - its DICOM series downloaded from TCIA by hand and
+converted with [TCIA-4DLung/convert.py](TCIA-4DLung/convert.py) - see
+[TCIA-4DLung/README.md](TCIA-4DLung/README.md). `DirLab-4DCT` has no
+automatic downloader at all - DIR-Lab distributes each case individually and
+may require registration, so it must be obtained manually; see
 [DirLab-4DCT/README.md](DirLab-4DCT/README.md).
 
 ## Keeping the Data Outside the Clone
@@ -52,6 +58,7 @@ The layout under an overridden input root is the same as here:
 ```text
 <MONAI_PHYSIO_INPUT_DATA_DIR>/
   DirLab-4DCT/             Case1Pack_T00.mha, ...
+  TCIA-4DLung/             100_HM10395/100_HM10395_g000.nii.gz, ...
   Duke-Heart-4DLabelmaps/  pm0027/*_labelmap.nii.gz, *_landmark.mrk.json
   Chest-CT/                Chest-CT.mha
   KCL-Heart-Model/         average_mesh.vtk, input_meshes/

@@ -3,7 +3,7 @@ Tutorial 9 (Lung, MGN): Train a PhysicsNeMo MeshGraphNet on the Fitted Lung SSM
 
 Purpose
 -------
-Runs on the public DIR-Lab 4D CT data. A thin driver over the reusable
+Runs on the public TCIA-4DLung data. A thin driver over the reusable
 :class:`monai_physio.WorkflowTrainPhysicsNeMo` workflow:
 
 1. Discover the per-phase SSM surfaces produced by Tutorial 8
@@ -11,7 +11,7 @@ Runs on the public DIR-Lab 4D CT data. A thin driver over the reusable
    for each phase, and write one JSON manifest per case. The target here is the
    per-vertex displacement from the case's reference surface, stored as a
    ``displacement`` point-data array - the workflow reads targets verbatim and
-   never derives them. Respiratory stages are parsed from the ``T{PP}`` phase
+   never derives them. Respiratory stages are parsed from the ``g{PPP}`` phase
    filenames and written explicitly into the manifest (the workflow never parses
    filenames).
 
@@ -40,13 +40,15 @@ Runtime
 Measured on the full 10-case DIR-Lab set with the Tutorial 6 lung template
 (179k points, 1.07M mesh-graph edges): one training step of ``batch_size`` 4
 takes ~430 ms and peaks near 43 GiB of GPU memory, giving ~9 s per epoch and
-roughly 4 hours for the 1500 epochs below. Lower ``batch_size``, or call
+roughly 4 hours for the 1500 epochs below. TCIA-4DLung's population is roughly
+8x larger (~83 cases including lettered re-scan variants, vs. DIR-Lab's
+curated 10), so a full run scales accordingly. Lower ``batch_size``, or call
 ``training_method.set_num_processor_checkpoint_segments(...)`` to trade compute
 for memory, on a smaller card.
 
 Data Required
 -------------
-SSM surfaces: Tutorial 8 output (``output/tutorial_08_lung/Case*Pack/``)
+SSM surfaces: Tutorial 8 output (``output/tutorial_08_lung/*_HM10395/``)
 PCA mean surface: Tutorial 6 output
 (``output/tutorial_06_lung/pca_mean_surface.vtp``, alongside ``pca_model.json``)
 
@@ -55,12 +57,12 @@ Outputs
 Manifests, the held-out evaluation and the screenshots are written under
 ``output/tutorial_09_lung_mgn/``:
 
-  * ``manifests_mgn/Case*Pack_manifest.json``  - per-case training manifest
-  * ``manifests_mgn/Case*Pack_T??_ssm_surface_target.vtp`` - displacement targets
-  * ``eval_mgn/Case*Pack/``     - predicted surfaces per held-out case
+  * ``manifests_mgn/*_HM10395_manifest.json``  - per-case training manifest
+  * ``manifests_mgn/*_HM10395_g0??_ssm_surface_target.vtp`` - displacement targets
+  * ``eval_mgn/*_HM10395/``     - predicted surfaces per held-out case
   * ``predicted_surface.png``   - screenshot of the held-out prediction
 
-The model lands in ``ParametersLungCTDirLab.mgn_weights_directory``
+The model lands in ``ParametersTCIA4DLung.mgn_weights_directory``
 (``network_weights/physicsnemo_mgn_lung_motion/``), where Tutorial 10 reads it:
 
   * ``mgn_stage_model.pt``      - trained MeshGraphNet checkpoint
@@ -88,7 +90,7 @@ from typing import Any, Optional, cast
 
 import numpy as np
 import pyvista as pv
-from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
+from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
     ProcessTests,
@@ -103,9 +105,9 @@ TARGET_ARRAY = "displacement"
 
 
 def _respiratory_stage_from_filename(surface_file: Path) -> float:
-    """Extract the normalized respiratory stage [0, 1] from a ``T{PP}`` filename stem."""
+    """Extract the normalized respiratory stage [0, 1] from a ``g{PPP}`` filename stem."""
     for part in surface_file.stem.split("_"):
-        if part.startswith("T") and part[1:].isdigit():
+        if part.startswith("g") and len(part) == 4 and part[1:].isdigit():
             return int(part[1:]) / 100.0
     raise ValueError(f"Cannot parse respiratory phase from filename: {surface_file}")
 
@@ -141,7 +143,7 @@ def _write_case_manifest(
     case_id = case_dir.name
     fitted_reference_mesh_file = case_dir / f"{case_id}_ssm_surface.vtp"
     pca_file = case_dir / f"{case_id}_ssm_pca_coefficients.json"
-    phase_files = sorted(case_dir.glob(f"{case_id}_T??_ssm_surface.vtp"))
+    phase_files = sorted(case_dir.glob(f"{case_id}_g0??_ssm_surface.vtp"))
     missing = []
     if not fitted_reference_mesh_file.exists():
         missing.append(f"reference surface {fitted_reference_mesh_file.name}")
@@ -187,16 +189,16 @@ if __name__ == "__main__":
     test_mode = ProcessTests.running_as_test()
     # Keep a test run out of the directories a full run reads and writes.
     # Fitted SSM surfaces and PCA coefficients written by Tutorial 8 (lung).
-    data_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_08_lung"
+    data_dir = TCIA_4D_LUNG.output_directory(test_mode) / "tutorial_08_lung"
     # PCA mean surface written by Tutorial 6 (lung); pca_model.json must sit
     # beside it, which is how Tutorial 6 writes them.
-    ssm_mean_surface_file = LUNG_CT_DIRLAB.pca_mean_surface_file(test_mode)
+    ssm_mean_surface_file = TCIA_4D_LUNG.pca_mean_surface_file(test_mode)
     # Manifests, evaluation surfaces and screenshots are written here.
-    output_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_09_lung_mgn"
+    output_dir = TCIA_4D_LUNG.output_directory(test_mode) / "tutorial_09_lung_mgn"
     manifests_dir = output_dir / "manifests_mgn"
     # The trained model goes to the shared weights directory Tutorial 10 loads
     # it from, beside the ICON weights the registration tutorials finetune.
-    weights_dir = LUNG_CT_DIRLAB.mgn_weights_directory(test_mode)
+    weights_dir = TCIA_4D_LUNG.mgn_weights_directory(test_mode)
 
     # Warm-start from a previous run's checkpoint; None trains from scratch. When
     # resuming, training writes to a fresh sibling of weights_dir, e.g.
@@ -216,7 +218,7 @@ if __name__ == "__main__":
     # out of the Tutorial 2 ICON finetuning. Adding a case to val_cases spends it
     # on the intermittent validation RMSE instead of training; empty means that
     # RMSE is reported as "n/a".
-    test_cases = [LUNG_CT_DIRLAB.mgn_hold_out_case]
+    test_cases = [TCIA_4D_LUNG.mgn_hold_out_case]
     val_cases: list[str] = []
     log_level = logging.INFO
 
@@ -235,10 +237,8 @@ if __name__ == "__main__":
         )
 
     # Step 1: build one manifest per valid case and partition into splits.
-    # DIR-Lab names case 8 "Case8Deploy" while every other case is "Case*Pack",
-    # so match on "Case*" to avoid silently dropping it.
     manifests: dict[str, Path] = {}
-    for case_dir in sorted(p for p in data_dir.glob("Case*") if p.is_dir()):
+    for case_dir in sorted(p for p in data_dir.glob("*_HM10395") if p.is_dir()):
         manifest_path = _write_case_manifest(case_dir, manifests_dir, logger)
         if manifest_path is not None:
             manifests[case_dir.name] = manifest_path

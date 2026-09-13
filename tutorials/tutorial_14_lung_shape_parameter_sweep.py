@@ -11,7 +11,7 @@ combination, and scores each one the way Tutorial 11 scores its single fit, so
 the CSV says how far Dice, volume and surface RMSE move when the shape
 parameters move.
 
-The case is ``ParametersLungCTDirLab.mgn_hold_out_case``, held out of the
+The case is ``ParametersTCIA4DLung.mgn_hold_out_case``, held out of the
 Tutorial 9 training, so this measures the sensitivity of a generalizing
 prediction rather than of a recalled one.
 
@@ -78,7 +78,7 @@ scoring workflow unchanged.
 
 Data Required
 -------------
-  * ``data/DirLab-4DCT/<case>_T??.mha``  - the gated CT sequence
+  * ``data/TCIA-4DLung/<case>/<case>_g0??.nii.gz``  - the gated CT sequence
   * ``output/tutorial_08_lung/<case>/``  - Tutorial 8 SSM surface + coefficients
   * ``network_weights/physicsnemo_mgn_lung_motion/`` - Tutorial 9 checkpoint
 
@@ -87,7 +87,7 @@ Outputs (under ``output/tutorial_14_lung/<case>/``)
   * ``shape_sweep_metrics.csv`` - one row per combination, phase and lobe
   * ``shape_sweep_summary.csv`` - one row per combination, with that
     combination's pooled displacement error
-  * ``ground_truth/<case>_T{PP}_labelmap.nii.gz`` - cached per-phase segmentation
+  * ``ground_truth/<case>_g{PPP}_labelmap.nii.gz`` - cached per-phase segmentation
   * ``combo_{NNN}/shape_parameters.json`` - that combination's coefficients
   * ``combo_{NNN}/evaluation_report.md``, ``evaluation_metrics.csv``,
     ``volume_vs_stage.png`` - that combination's own Tutorial 11 style report
@@ -109,7 +109,7 @@ from typing import Any, Optional, cast
 
 import numpy as np
 import pyvista as pv
-from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
+from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
     EvaluateMovementLung,
@@ -158,18 +158,18 @@ if __name__ == "__main__":
     class_name = "tutorial_14_lung_shape_parameter_sweep"
 
     # Case to sweep: the case Tutorial 9 held out of training.
-    case_id = LUNG_CT_DIRLAB.mgn_hold_out_case
+    case_id = TCIA_4D_LUNG.mgn_hold_out_case
     # Phase Tutorial 8 fitted the SSM to, and therefore the phase whose anatomy
     # the predicted deformations carry into every other phase.
-    reference_phase = "T70"
+    reference_phase = "g070"
 
     # Fitted SSM surface and PCA coefficients written by Tutorial 8 (lung).
     test_mode = ProcessTests.running_as_test()
     # Keep a test run out of the directories a full run reads and writes.
-    case_dir = LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_08_lung" / case_id
+    case_dir = TCIA_4D_LUNG.output_directory(test_mode) / "tutorial_08_lung" / case_id
     # Weights Tutorial 9 trained, and the checkpoint epoch to infer with; None
     # uses the final weights.
-    model_dir = LUNG_CT_DIRLAB.mgn_weights_directory(test_mode)
+    model_dir = TCIA_4D_LUNG.mgn_weights_directory(test_mode)
     epoch: Optional[int] = None
 
     # Gaussian sigma, in mm, that spreads the predicted surface displacements
@@ -180,16 +180,14 @@ if __name__ == "__main__":
     # that a lobe boundary is not quantized away.
     evaluation_spacing_mm = 2.0
 
-    output_dir = (
-        LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_14_lung" / case_id
-    )
+    output_dir = TCIA_4D_LUNG.output_directory(test_mode) / "tutorial_14_lung" / case_id
     ground_truth_dir = output_dir / "ground_truth"
     log_level = logging.INFO
 
     logging.basicConfig(level=log_level)
     logger = logging.getLogger(class_name)
 
-    data_dir = LUNG_CT_DIRLAB.input_directory(test_mode)
+    data_dir = TCIA_4D_LUNG.cases_directory(test_mode) / case_id
 
     # The sweep itself.  The first modes carry the most variance, so varying
     # them is what a shape-parameter study is about; the offsets are in standard

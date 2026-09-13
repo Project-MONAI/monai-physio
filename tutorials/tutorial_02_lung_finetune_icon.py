@@ -1,34 +1,36 @@
 """
-Tutorial 2: Finetune uniGradICON on DIR-Lab 4D CT
+Tutorial 2: Finetune uniGradICON on TCIA-4DLung
 
 Purpose
 -------
-Finetune uniGradICON on every DIR-Lab 4D CT case except Case 1, then register
-``Case1Pack_T00.mha`` (moving) to ``Case1Pack_T50.mha`` (fixed) several ways:
-``RegisterImagesGreedy`` alone, deformable, with its default iteration
-schedule; ``RegisterImagesICON`` with the stock uniGradICON weights and with
-the finetuned weights; and ``RegisterImagesGreedyICON`` -- the same Greedy
-stage initializing an ICON stage that carries the finetuned weights -- which
-separates what the finetuned network adds on its own from what it adds on top
-of a classical affine-plus-deformable initialization.  Case 1 is never seen
-during finetuning, so it is a held-out evaluation pair.
+Finetune uniGradICON on every TCIA-4DLung case except ``100_HM10395``, then
+register ``100_HM10395_g000.nii.gz`` (moving) to ``100_HM10395_g050.nii.gz``
+(fixed) several ways: ``RegisterImagesGreedy`` alone, deformable, with its
+default iteration schedule; ``RegisterImagesICON`` with the stock uniGradICON
+weights and with the finetuned weights; and ``RegisterImagesGreedyICON`` --
+the same Greedy stage initializing an ICON stage that carries the finetuned
+weights -- which separates what the finetuned network adds on its own from
+what it adds on top of a classical affine-plus-deformable initialization.
+``100_HM10395`` is never seen during finetuning, so it is a held-out
+evaluation pair.
 
-Accuracy is measured two ways.  The primary metric is target registration
-error: DIR-Lab ships 300 expert landmarks for the extreme phases (T00 and T50)
-of every case, so each fixed-image landmark is mapped through the registration
-transform and compared, in millimeters, against its moving-image counterpart.
-The secondary metric is label overlap: ``SegmentNVSegmentCTMRI`` segments the
-fixed and moving images once each, and the moving labelmap is warped onto the
-fixed grid by every transform, so the Dice scores reflect the transform rather
-than segmentation variability on re-segmented warped volumes.  The moving image
-and labelmap resampled onto the fixed grid without registration supply the
-"before registration" reference row for both metrics.
+Accuracy is measured two ways.  The primary metric is image similarity:
+TCIA-4DLung ships no expert landmarks (unlike DIR-Lab), so each method's
+warped image is compared to the fixed image directly -- normalized
+cross-correlation (1.0 is a perfect match) and RMSE in HU, both restricted to
+the fixed image's segmented foreground.  The secondary metric is label
+overlap: ``SegmentNVSegmentCTMRI`` segments the fixed and moving images once
+each, and the moving labelmap is warped onto the fixed grid by every
+transform, so the Dice scores reflect the transform rather than segmentation
+variability on re-segmented warped volumes.  The moving image and labelmap
+resampled onto the fixed grid without registration supply the "before
+registration" reference row for both metrics.
 
-Reported per method: the mean, standard deviation, 95th percentile and maximum
-landmark error in millimeters; the mean, 5th percentile, median, 95th
-percentile, minimum and maximum of the per-class Dice scores; the number of
-mislabeled voxels; and the wall-clock registration time.  The ``loss`` column is
-*not* comparable across rows: each backend reports its own metric, and a chain
+Reported per method: normalized cross-correlation and RMSE (HU) between the
+warped and fixed image; the mean, 5th percentile, median, 95th percentile,
+minimum and maximum of the per-class Dice scores; the number of mislabeled
+voxels; and the wall-clock registration time.  The ``loss`` column is *not*
+comparable across rows: each backend reports its own metric, and a chain
 reports only its last stage's loss, measured against data the earlier stage
 already warped.
 
@@ -41,10 +43,10 @@ Compare a chain row against ``greedy_icon_stage0`` -- that row is the chain's ow
 Greedy stage scored on its own transform, and it is the right comparator because
 Greedy is not bit-reproducible run to run (its scatter is a few thousandths of a
 millimeter, the same size as the effect being measured).  ``icon_residual_*`` is
-how far the ICON stage moved the landmarks and ``tre_delta_*`` how much their
-error changed as a result.
+how far the ICON stage moved sampled foreground points and ``ncc_delta``/
+``rmse_delta`` how much the similarity metrics changed as a result.
 
-What that shows: the ICON residual is small, and its per-landmark size is
+What that shows: the ICON residual is small, and its size at a sampled point is
 essentially uncorrelated with how much it helps or hurts -- it is a random
 perturbation of an already-better transform, not a correction.  Raising ICON's
 test-time optimization steps shrinks the residual and the damage together, so the
@@ -56,13 +58,13 @@ reached.  A refinement stage that cannot resolve the error it is asked to remove
 has nothing to contribute, and the chain applies its residual unconditionally.
 
 Ruled out as causes: the two stages are configured identically; the transform
-composition was verified; every row is scored with the same landmarks in the same
+composition was verified; every row is scored the same way in the same
 direction; and the pre-warp between stages leaves under a percent of the fixed
-grid without moving data, none of it near a landmark.
+grid without moving data.
 
 Finetuning artifacts (dataset JSON, YAML config, checkpoint tree) are written
-under ``tutorials/network_weights/icon_dirlab_4dct``.  The final checkpoint is
-``tutorials/network_weights/icon_dirlab_4dct/icon_dirlab_4dct_model/checkpoints/
+under ``tutorials/network_weights/icon_tcia_4dlung``.  The final checkpoint is
+``tutorials/network_weights/icon_tcia_4dlung/icon_tcia_4dlung_model/checkpoints/
 network_weights_final.trch``, the path returned by
 ``WorkflowFinetuneICONRegistration.expected_weights_path()``.  ``run_finetuning``
 is off by default so runs reuse that checkpoint; turning it on deletes the
@@ -70,10 +72,8 @@ directory and finetunes from scratch.
 
 Data Required
 -------------
-Full data: ``data/DirLab-4DCT`` (all 10 cases, converted to HU ``.mha`` by
-``data/DirLab-4DCT/fix_downloaded_data.py``), including the raw
-``downloaded_data/Case1Pack/ExtremePhases`` landmark files
-Test data: ``data/test/DirLab-4DCT``
+Full data: ``data/TCIA-4DLung`` (all cases, ``*_HM10395/*_HM10395_g0??.nii.gz``)
+Test data: ``data/test/TCIA-4DLung``
 """
 
 # Imports
@@ -88,7 +88,7 @@ from typing import Any, Optional
 
 import itk
 import numpy as np
-from parameters_base import ParametersBase
+from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
     MONAIPhysioBase,
@@ -113,33 +113,30 @@ if __name__ == "__main__":
 
     class_name = "tutorial_02_lung_finetune_icon"
 
-    # Only the shared directory roots are needed here; no dataset-specific
-    # parameters module applies to this tutorial.
-    tutorial_paths = ParametersBase()
     test_mode = ProcessTests.running_as_test()
 
-    output_dir = tutorial_paths.output_directory(test_mode) / "tutorial_02_lung"
+    output_dir = TCIA_4D_LUNG.output_directory(test_mode) / "tutorial_02_lung"
     # The workflow writes its dataset JSON, YAML config, and checkpoint tree
     # under ``weights_dir / finetune_name``.
-    weights_dir = tutorial_paths.weights_directory(test_mode)
+    weights_dir = TCIA_4D_LUNG.weights_directory(test_mode)
+    cases_dir = TCIA_4D_LUNG.cases_directory(test_mode)
+    hold_out_case = TCIA_4D_LUNG.mgn_hold_out_case
 
     # Segmented labelmaps, cached so re-runs skip the segmentation.
     labelmaps_dir = output_dir / "labelmaps"
     baselines_dir = repo_root / "tests" / "baselines"
 
-    finetune_name = "icon_dirlab_4dct"
+    finetune_name = "icon_tcia_4dlung"
 
     # Set True to finetune from scratch.  That deletes experiment_dir below,
     # including any checkpoint a previous run left there.
     run_finetuning = True
 
     if test_mode:
-        data_dir = tutorial_paths.data_directory(test_mode) / "DirLab-4DCT"
         number_of_iterations_greedy: Optional[list[int]] = [1, 0]
         number_of_iterations_icon = None  # [1]
         epochs = 1
     else:
-        data_dir = tutorial_paths.data_directory(test_mode) / "DirLab-4DCT"
         number_of_iterations_greedy = None  # [60, 30, 20]
         number_of_iterations_icon = None  # [10]
         epochs = 100
@@ -149,39 +146,32 @@ if __name__ == "__main__":
 
     labelmaps_dir.mkdir(parents=True, exist_ok=True)
 
-    # Held-out evaluation pair (Case 1 is excluded from finetuning).  T00 and
-    # T50 are the extreme inhale/exhale phases, the only pair DIR-Lab supplies
-    # expert landmarks for.
-    fixed_file = data_dir / "Case1Pack_T50.mha"
-    moving_file = data_dir / "Case1Pack_T00.mha"
-    landmark_dir = data_dir / "downloaded_data" / "Case1Pack" / "ExtremePhases"
-    fixed_landmark_file = landmark_dir / "Case1_300_T50_xyz.txt"
-    moving_landmark_file = landmark_dir / "Case1_300_T00_xyz.txt"
-    missing = [
-        str(p)
-        for p in (fixed_file, moving_file, fixed_landmark_file, moving_landmark_file)
-        if not p.exists()
-    ]
+    # Held-out evaluation pair (the hold-out case is excluded from
+    # finetuning).  g000 and g050 are the extreme inhale/exhale phases used
+    # here for the largest deformation available.
+    fixed_file = cases_dir / hold_out_case / f"{hold_out_case}_g050.nii.gz"
+    moving_file = cases_dir / hold_out_case / f"{hold_out_case}_g000.nii.gz"
+    missing = [str(p) for p in (fixed_file, moving_file) if not p.exists()]
     if missing:
         raise FileNotFoundError(
-            f"Missing DirLab phase images or landmarks: {missing}.\n"
-            "See data/DirLab-4DCT/README.md for download instructions."
+            f"Missing TCIA-4DLung phase images: {missing}.\n"
+            "See data/TCIA-4DLung/README.md for download instructions."
         )
 
-    # Finetuning cohort: every case except Case1Pack.  ``Case10Pack_*`` is kept
-    # because only the exact ``Case1Pack_`` prefix is excluded.
+    # Finetuning cohort: every case except the held-out one.
     training_files = sorted(
         path
-        for path in data_dir.glob("Case*_T??.mha")
-        if not path.name.startswith("Case1Pack_")
+        for path in cases_dir.glob("*_HM10395/*_HM10395_g0??.nii.gz")
+        if path.parent.name != hold_out_case
     )
     subject_image_files: dict[str, list[str]] = {}
     for path in training_files:
-        subject_image_files.setdefault(path.name.split("_")[0], []).append(str(path))
+        subject_image_files.setdefault(path.parent.name, []).append(str(path))
     if not subject_image_files:
         raise FileNotFoundError(
-            f"No non-Case1 DirLab phase images found under {data_dir}.\n"
-            "See data/DirLab-4DCT/README.md for download instructions."
+            f"No non-{hold_out_case} TCIA-4DLung phase images found under "
+            f"{cases_dir}.\nSee data/TCIA-4DLung/README.md for download "
+            "instructions."
         )
     reporter.log_info(
         "Finetuning cohort: %d cases, %d frames",
@@ -191,7 +181,7 @@ if __name__ == "__main__":
 
     # Always finetune from scratch.  uniGradICON refuses to overwrite an
     # existing experiment directory: it appends "-N" to the name instead
-    # (``icon_dirlab_4dct_model-5``, ...), while expected_weights_path() keeps
+    # (``icon_tcia_4dlung_model-5``, ...), while expected_weights_path() keeps
     # pointing at the original, never-written path.  Deleting the tree up front
     # keeps the two in agreement.
     #
@@ -208,9 +198,9 @@ if __name__ == "__main__":
             )
             shutil.rmtree(experiment_dir)
 
-        # DIR-Lab ships no segmentations, so no labelmaps or masks are supplied and
-        # the Dice loss must be disabled: uniGradICON requires a ``segmentation``
-        # field on every dataset entry when dice_loss_weight > 0.
+        # No labelmaps or masks are supplied here, so the Dice loss must be
+        # disabled: uniGradICON requires a ``segmentation`` field on every
+        # dataset entry when dice_loss_weight > 0.
         #
         # lncc_sigma matches the sigma RegisterImagesICON uses at inference, so
         # finetuning optimizes the similarity this comparison scores.
@@ -245,43 +235,6 @@ if __name__ == "__main__":
     moving_image = itk.imread(str(moving_file), pixel_type=itk.F)
     transform_tools = ProcessTransforms()
 
-    def read_landmarks(landmark_file: Path, image: itk.Image) -> np.ndarray:
-        """Read a DIR-Lab landmark file as an (N, 3) array of world points.
-
-        Each line holds one 1-based voxel index as ``x y z``.
-        """
-        indices = np.loadtxt(landmark_file, dtype=int) - 1
-        return np.array(
-            [
-                image.TransformIndexToPhysicalPoint([int(v) for v in index])
-                for index in indices
-            ]
-        )
-
-    fixed_landmarks = read_landmarks(fixed_landmark_file, fixed_image)
-    moving_landmarks = read_landmarks(moving_landmark_file, moving_image)
-
-    def landmark_metrics(errors_mm: np.ndarray) -> dict[str, Any]:
-        """Summarize per-landmark target registration errors, in millimeters."""
-        return {
-            "tre_mean": float(errors_mm.mean()),
-            "tre_std": float(errors_mm.std()),
-            "tre_p95": float(np.percentile(errors_mm, 95)),
-            "tre_max": float(errors_mm.max()),
-        }
-
-    def landmark_errors(transform: itk.Transform) -> np.ndarray:
-        """Distance from each mapped fixed landmark to its moving counterpart.
-
-        ``fixed_to_moving_transform`` is the resampling transform: it maps points on the
-        fixed grid back into moving space, which is the direction the landmark
-        correspondences are defined in.
-        """
-        mapped = np.array(
-            [transform.TransformPoint(tuple(point)) for point in fixed_landmarks]
-        )
-        return np.asarray(np.linalg.norm(mapped - moving_landmarks, axis=1))
-
     # Each image is segmented once and the moving labelmap is warped by every
     # transform, so Dice reflects the transform rather than what the segmenter
     # does differently on each interpolated volume.
@@ -293,7 +246,10 @@ if __name__ == "__main__":
         An existing labelmap short-circuits the segmentation, which dominates
         this tutorial's runtime outside of finetuning.
         """
-        labelmap_file = labelmaps_dir / f"{image_file.stem}_labelmap.mha"
+        # ``.stem`` only strips ``.gz``, leaving a stray ``.nii`` in the name,
+        # since these are ``.nii.gz`` (TCIA) rather than ``.mha`` (DIR-Lab).
+        image_stem = image_file.name.removesuffix(".nii.gz")
+        labelmap_file = labelmaps_dir / f"{image_stem}_labelmap.mha"
         if labelmap_file.exists():
             reporter.log_info("Reusing cached labelmap: %s", labelmap_file.name)
             return itk.imread(str(labelmap_file))
@@ -305,6 +261,20 @@ if __name__ == "__main__":
     fixed_labelmap = segment_phase(fixed_file, fixed_image)
     moving_labelmap = segment_phase(moving_file, moving_image)
     fixed_labels = itk.array_from_image(fixed_labelmap)
+
+    # TCIA-4DLung ships no expert landmarks, unlike DIR-Lab, so accuracy is
+    # read off image similarity instead of target registration error: how well
+    # each method's warped image matches the fixed one, within the fixed
+    # segmentation's footprint.
+    fixed_roi = fixed_labels != 0
+
+    def similarity_metrics(warped_image: itk.Image) -> dict[str, Any]:
+        """NCC and RMSE (HU) between a warped and the fixed image, in the ROI."""
+        warped_vals = itk.array_from_image(warped_image)[fixed_roi].astype(np.float64)
+        fixed_vals = itk.array_from_image(fixed_image)[fixed_roi].astype(np.float64)
+        ncc = float(np.corrcoef(fixed_vals, warped_vals)[0, 1])
+        rmse = float(np.sqrt(np.mean((fixed_vals - warped_vals) ** 2)))
+        return {"ncc": ncc, "rmse": rmse}
 
     def overlap_metrics(labelmap: itk.Image) -> dict[str, Any]:
         """Per-class Dice summary against the fixed labelmap.
@@ -353,15 +323,25 @@ if __name__ == "__main__":
     # Diagnostic columns describing what the ICON stage of the chain added on
     # top of its Greedy stage.  They are empty on rows where they do not apply,
     # but csv.DictWriter takes its field names from the first row, so every row
-    # has to carry the keys.
+    # has to carry the keys.  The residual is sampled at a strided subset of
+    # the fixed ROI's voxels, in place of DIR-Lab's expert landmarks.
     empty_chain_diagnostics: dict[str, Any] = {
         "icon_residual_mean": None,
         "icon_residual_p95": None,
         "icon_residual_max": None,
-        "tre_delta_mean": None,
-        "tre_delta_max": None,
-        "tre_delta_residual_corr": None,
+        "ncc_delta": None,
+        "rmse_delta": None,
     }
+
+    # Every 500th ROI voxel, in physical space -- a subsample of a few
+    # thousand points spread over the whole lung, not a handful of landmarks.
+    roi_indices = np.argwhere(fixed_roi)[::500]
+    sample_points = np.array(
+        [
+            fixed_image.TransformIndexToPhysicalPoint([int(v) for v in index[::-1]])
+            for index in roi_indices
+        ]
+    )
 
     def warp_moving(transform: itk.Transform) -> tuple[itk.Image, itk.Image]:
         """Warp the moving image and labelmap onto the fixed grid."""
@@ -385,9 +365,7 @@ if __name__ == "__main__":
             "weights": "-",
             "registration_time_s": None,
             "loss": None,
-            **landmark_metrics(
-                np.linalg.norm(fixed_landmarks - moving_landmarks, axis=1)
-            ),
+            **similarity_metrics(unregistered_image),
             **overlap_metrics(unregistered_labelmap),
             **empty_chain_diagnostics,
         }
@@ -408,6 +386,7 @@ if __name__ == "__main__":
     ]
 
     greedy_stage_transform: Optional[itk.Transform] = None
+    greedy_stage_metrics: Optional[dict[str, Any]] = None
     for method_name, method_weights, icon_steps in methods:
         registrar: RegisterImagesBase
         chain: Optional[RegisterImagesGreedyICON] = None
@@ -444,7 +423,10 @@ if __name__ == "__main__":
         result = registrar.register(moving_image)
         elapsed_s = time.perf_counter() - start_time
 
-        composed_errors = landmark_errors(result["fixed_to_moving_transform"])
+        registered_images[method_name], labelmaps[method_name] = warp_moving(
+            result["fixed_to_moving_transform"]
+        )
+        composed_metrics = similarity_metrics(registered_images[method_name])
         chain_diagnostics = dict(empty_chain_diagnostics)
         if chain is not None:
             # RegisterImagesChain mirrors each stage's own result onto the
@@ -452,9 +434,6 @@ if __name__ == "__main__":
             # is the stage-only Greedy result and chain.icon.fixed_to_moving_transform
             # is the residual ICON added on top of it.  Both are exact
             # transforms, scored the same way as every other row.
-            greedy_stage_errors = landmark_errors(
-                chain.greedy.fixed_to_moving_transform
-            )
             icon_stage_transform: itk.Transform = chain.icon.fixed_to_moving_transform
             residual_mm = np.array(
                 [
@@ -462,25 +441,15 @@ if __name__ == "__main__":
                         np.asarray(icon_stage_transform.TransformPoint(tuple(point)))
                         - point
                     )
-                    for point in fixed_landmarks
+                    for point in sample_points
                 ]
             )
-            delta_mm = composed_errors - greedy_stage_errors
-            chain_diagnostics = {
-                "icon_residual_mean": float(residual_mm.mean()),
-                "icon_residual_p95": float(np.percentile(residual_mm, 95)),
-                "icon_residual_max": float(residual_mm.max()),
-                "tre_delta_mean": float(delta_mm.mean()),
-                "tre_delta_max": float(delta_mm.max()),
-                "tre_delta_residual_corr": float(
-                    np.corrcoef(delta_mm, residual_mm)[0, 1]
-                ),
-            }
 
             # The Greedy stage is identical across the sweep, so score it once.
             if greedy_stage_transform is None:
                 greedy_stage_transform = chain.greedy.fixed_to_moving_transform
                 stage_image, stage_labelmap = warp_moving(greedy_stage_transform)
+                greedy_stage_metrics = similarity_metrics(stage_image)
                 registered_images["greedy_icon_stage0"] = stage_image
                 labelmaps["greedy_icon_stage0"] = stage_labelmap
                 rows.append(
@@ -489,15 +458,21 @@ if __name__ == "__main__":
                         "weights": "-",
                         "registration_time_s": None,
                         "loss": None,
-                        **landmark_metrics(greedy_stage_errors),
+                        **greedy_stage_metrics,
                         **overlap_metrics(stage_labelmap),
                         **empty_chain_diagnostics,
                     }
                 )
+            assert greedy_stage_metrics is not None
 
-        registered_images[method_name], labelmaps[method_name] = warp_moving(
-            result["fixed_to_moving_transform"]
-        )
+            chain_diagnostics = {
+                "icon_residual_mean": float(residual_mm.mean()),
+                "icon_residual_p95": float(np.percentile(residual_mm, 95)),
+                "icon_residual_max": float(residual_mm.max()),
+                "ncc_delta": composed_metrics["ncc"] - greedy_stage_metrics["ncc"],
+                "rmse_delta": composed_metrics["rmse"] - greedy_stage_metrics["rmse"],
+            }
+
         rows.append(
             {
                 "method": method_name,
@@ -507,7 +482,7 @@ if __name__ == "__main__":
                 # metric, and a chain reports only its last stage's loss,
                 # measured against data the earlier stage already warped.
                 "loss": float(result["loss"]),
-                **landmark_metrics(composed_errors),
+                **composed_metrics,
                 **overlap_metrics(labelmaps[method_name]),
                 **chain_diagnostics,
             }
@@ -549,24 +524,13 @@ if __name__ == "__main__":
                 int(k_counts[0]),
                 int(k_counts[-1]),
             )
-            # Landmarks within 10mm of missing data are the ones a bad fill
+            # ROI voxels affected by missing data are the ones a bad fill
             # value could plausibly have moved.
-            spacing = np.asarray(fixed_image.GetSpacing(), dtype=np.float64)
-            radius = np.maximum(1, np.ceil(10.0 / spacing)).astype(int)
-            near_count = 0
-            for point in fixed_landmarks:
-                index = fixed_image.TransformPhysicalPointToIndex(tuple(point))
-                lo = [max(0, int(index[d]) - int(radius[d])) for d in range(3)]
-                hi = [
-                    min(uncovered.shape[2 - d], int(index[d]) + int(radius[d]) + 1)
-                    for d in range(3)
-                ]
-                if uncovered[lo[2] : hi[2], lo[1] : hi[1], lo[0] : hi[0]].any():
-                    near_count += 1
+            roi_uncovered = int((uncovered & fixed_roi).sum())
             reporter.log_info(
-                "Landmarks within 10mm of uncovered data: %d/%d",
-                near_count,
-                len(fixed_landmarks),
+                "ROI voxels within uncovered data: %d/%d",
+                roi_uncovered,
+                int(fixed_roi.sum()),
             )
 
     # Result saving
@@ -602,21 +566,18 @@ if __name__ == "__main__":
 
     # Reporting
     reporter.log_info(
-        "Case1Pack_T00 -> Case1Pack_T50, error at %d expert landmarks, mm",
-        len(fixed_landmarks),
+        "%s_g000 -> %s_g050, image similarity in the fixed segmented ROI",
+        hold_out_case,
+        hold_out_case,
     )
-    reporter.log_info(
-        "  %-21s %7s %7s %7s %7s %9s", "method", "mean", "std", "p95", "max", "time_s"
-    )
+    reporter.log_info("  %-21s %7s %9s %9s", "method", "ncc", "rmse", "time_s")
     for row in rows:
         elapsed = row["registration_time_s"]
         reporter.log_info(
-            "  %-21s %7.2f %7.2f %7.2f %7.2f %9s",
+            "  %-21s %7.4f %9.2f %9s",
             row["method"],
-            row["tre_mean"],
-            row["tre_std"],
-            row["tre_p95"],
-            row["tre_max"],
+            row["ncc"],
+            row["rmse"],
             "-" if elapsed is None else f"{float(elapsed):.1f}",
         )
 

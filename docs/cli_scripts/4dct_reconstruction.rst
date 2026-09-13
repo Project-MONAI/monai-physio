@@ -14,9 +14,12 @@ Input Requirements
 * A fixed high-resolution reference image.
 * Optional fixed and moving masks for registration focus.
 
-DirLab-4DCT data cannot be downloaded automatically by MONAI Physio. Prepare
-it manually before using the DirLab tutorial or examples - see
-``data/DirLab-4DCT/README.md`` for the download and layout instructions.
+TCIA-4DLung's tutorial subset downloads automatically via
+``monai-physio-download-data TCIA-4DLung``; the full TCIA 4D-Lung collection
+is still obtained manually - downloading its DICOM series from TCIA and
+running ``data/TCIA-4DLung/convert.py`` - if more than the tutorial subset is
+needed. See ``data/TCIA-4DLung/README.md`` for the download and layout
+instructions.
 
 Basic Usage
 ===========

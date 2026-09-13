@@ -436,7 +436,6 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
                     "composite_reference_image must be provided when composite_mode is "
                     f"{composite_mode!r}"
                 )
-            self.composite_reference_image = self.composite_reference_image
         else:
             raise ValueError(
                 "composite_mode must be 'reference', 'mean', 'max', or 'existing', "

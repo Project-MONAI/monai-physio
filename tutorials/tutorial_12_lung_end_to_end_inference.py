@@ -9,14 +9,14 @@ same motion but reads the fit Tutorial 8 wrote for the case; this one performs
 that fit itself, so the only inputs are the case's CT, the shape model and the
 trained network.
 
-The case is ``ParametersLungCTDirLab.mgn_hold_out_case``, held out of the
+The case is ``ParametersTCIA4DLung.mgn_hold_out_case``, held out of the
 Tutorial 9 training, so the prediction measures generalization rather than
 recall.
 
 1. Read the case's gated CT sequence.  The respiratory stages come from the
-   ``T{PP}`` filenames, so the acquisition itself says what is predicted.
+   ``g{PPP}`` filenames, so the acquisition itself says what is predicted.
 
-2. Segment the reference phase (``T70``) with ``SegmentNVSegmentCTMRI``, the
+2. Segment the reference phase (``g070``) with ``SegmentNVSegmentCTMRI``, the
    segmenter the lung shape model was built with, and extract its lung surface.
 
 3. Fit the lung PCA model to that phase with
@@ -35,10 +35,10 @@ motion instead, which is the point of the chain.
 
 Data Required
 -------------
-  * ``data/DirLab-4DCT/<case>_T??.mha`` - the gated CT sequence
+  * ``data/TCIA-4DLung/<case>/<case>_g0??.nii.gz`` - the gated CT sequence
   * ``output/tutorial_06_lung/`` - lung PCA model + mean surface
   * ``network_weights/physicsnemo_mgn_lung_motion/`` - Tutorial 9 checkpoint
-  * ``network_weights/icon_dirlab_4dct_distancemap/`` - Tutorial 2 weights,
+  * ``network_weights/icon_tcia_4dlung_distancemap/`` - Tutorial 2 weights,
     optional; the stock uniGradICON weights are used without them
 
 Outputs (under ``output/tutorial_12_lung/<case>/``)
@@ -46,7 +46,7 @@ Outputs (under ``output/tutorial_12_lung/<case>/``)
 The directory is deleted and rebuilt on every run: nothing is reused, so the
 runtimes below are the cost of the whole pipeline from scratch.
 
-  * ``<case>_T70.vtp``, ``<case>_T70_labelmap.nii.gz`` - reference segmentation
+  * ``<case>_g070.vtp``, ``<case>_g070_labelmap.nii.gz`` - reference segmentation
   * ``<case>_ssm_pca_coefficients.json`` - this patient's shape parameters
   * ``<case>_ssm_surface.vtp``           - the model fitted to the reference phase
   * ``<case>_ssm_pca_coefficients_s{TTT}_pred.vtp``   - predicted surface per stage
@@ -68,7 +68,7 @@ from typing import Any, Optional, cast
 
 import itk
 import pyvista as pv
-from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
+from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
     ProcessContours,
@@ -82,9 +82,13 @@ from monai_physio import (
 
 
 def _respiratory_stage_from_filename(image_file: Path) -> float:
-    """Extract the normalized respiratory stage [0, 1] from a ``T{PP}`` filename stem."""
-    for part in image_file.stem.split("_"):
-        if part.startswith("T") and part[1:].isdigit():
+    """Extract the normalized respiratory stage [0, 1] from a ``g{PPP}`` filename.
+
+    ``.stem`` only strips ``.gz``, leaving a stray ``.nii`` in the name, since
+    these are ``.nii.gz`` (TCIA) rather than ``.mha`` (DIR-Lab).
+    """
+    for part in image_file.name.removesuffix(".nii.gz").split("_"):
+        if part.startswith("g") and len(part) == 4 and part[1:].isdigit():
             return int(part[1:]) / 100.0
     raise ValueError(f"Cannot parse respiratory phase from filename: {image_file}")
 
@@ -109,31 +113,31 @@ if __name__ == "__main__":
     class_name = "tutorial_12_lung_end_to_end_inference"
 
     # Case to predict: the case Tutorial 9 held out of training.
-    case_id = LUNG_CT_DIRLAB.mgn_hold_out_case
+    case_id = TCIA_4D_LUNG.mgn_hold_out_case
     # Phase the shape model is fitted to. Tutorial 6 builds the lung PCA model
-    # from the T70 surfaces and Tutorial 9 trained on displacements from that
+    # from the g070 surfaces and Tutorial 9 trained on displacements from that
     # phase, so the network's reference frame is this one.
-    reference_phase = "T70"
+    reference_phase = "g070"
 
     test_mode = ProcessTests.running_as_test()
     # Keep a test run out of the directories a full run reads and writes.
-    weights_dir = LUNG_CT_DIRLAB.weights_directory(test_mode)
+    weights_dir = TCIA_4D_LUNG.weights_directory(test_mode)
 
     # PCA model + mean surface produced by Tutorial 6 (lung).
-    pca_model_file = LUNG_CT_DIRLAB.pca_model_file(test_mode)
-    pca_mean_file = LUNG_CT_DIRLAB.pca_mean_surface_file(test_mode)
+    pca_model_file = TCIA_4D_LUNG.pca_model_file(test_mode)
+    pca_mean_file = TCIA_4D_LUNG.pca_mean_surface_file(test_mode)
     # Weights Tutorial 9 trained, and the checkpoint epoch to infer with; None
     # uses the final weights.
-    model_dir = LUNG_CT_DIRLAB.mgn_weights_directory(test_mode)
+    model_dir = TCIA_4D_LUNG.mgn_weights_directory(test_mode)
     epoch: Optional[int] = None
 
-    # Distance-map weights finetuned on DIR-Lab by
+    # Distance-map weights finetuned on TCIA-4DLung by
     # tutorial_02_lung_distancemap_finetune_icon.py, used by the
     # labelmap-to-labelmap stage of the SSM fit.
     icon_distancemap_weights_path = (
         weights_dir
-        / "icon_dirlab_4dct_distancemap"
-        / "icon_dirlab_4dct_distancemap_model"
+        / "icon_tcia_4dlung_distancemap"
+        / "icon_tcia_4dlung_distancemap_model"
         / "checkpoints"
         / "network_weights_final.trch"
     )
@@ -142,9 +146,7 @@ if __name__ == "__main__":
     # into the continuous field the CT is resampled through.
     smoothing_sigma_mm = 10.0
 
-    output_dir = (
-        LUNG_CT_DIRLAB.output_directory(test_mode) / "tutorial_12_lung" / case_id
-    )
+    output_dir = TCIA_4D_LUNG.output_directory(test_mode) / "tutorial_12_lung" / case_id
     log_level = logging.INFO
 
     logging.basicConfig(level=log_level)
@@ -155,8 +157,8 @@ if __name__ == "__main__":
     step_times_s: dict[str, float] = {}
     step_start = time.perf_counter()
 
-    data_dir = LUNG_CT_DIRLAB.input_directory(test_mode)
-    number_of_pca_components = LUNG_CT_DIRLAB.pca_components(test_mode)
+    data_dir = TCIA_4D_LUNG.cases_directory(test_mode) / case_id
+    number_of_pca_components = TCIA_4D_LUNG.pca_components(test_mode)
 
     # Directory setup and data reading
 
@@ -176,13 +178,13 @@ if __name__ == "__main__":
                 f"Run tutorials/{hint} first."
             )
 
-    frame_files = sorted(data_dir.glob(f"{case_id}_T??.mha"))
+    frame_files = sorted(data_dir.glob(f"{case_id}_g0??.nii.gz"))
     if not frame_files:
         raise FileNotFoundError(
-            f"No {case_id}_T??.mha frames found under {data_dir}.\n"
-            "See data/DirLab-4DCT/README.md for download instructions."
+            f"No {case_id}_g0??.nii.gz frames found under {data_dir}.\n"
+            "See data/TCIA-4DLung/README.md for download instructions."
         )
-    reference_file = data_dir / f"{case_id}_{reference_phase}.mha"
+    reference_file = data_dir / f"{case_id}_{reference_phase}.nii.gz"
     if not reference_file.exists():
         raise FileNotFoundError(
             f"Reference phase not found: {reference_file}; it is the phase the "
@@ -214,8 +216,11 @@ if __name__ == "__main__":
     # Step 2: segment the lungs in the reference phase. This is the segmenter the
     # Tutorial 6 shape model was built with, so the surface the fit sees is the
     # kind of surface the model describes.
-    lung_surface_file = output_dir / f"{reference_file.stem}.vtp"
-    lung_labelmap_file = output_dir / f"{reference_file.stem}_labelmap.nii.gz"
+    # ``.stem`` only strips ``.gz``, leaving a stray ``.nii`` in the name, since
+    # these are ``.nii.gz`` (TCIA) rather than ``.mha`` (DIR-Lab).
+    reference_stem = reference_file.name.removesuffix(".nii.gz")
+    lung_surface_file = output_dir / f"{reference_stem}.vtp"
+    lung_labelmap_file = output_dir / f"{reference_stem}_labelmap.nii.gz"
     logger.info("Segmenting the reference phase %s", reference_file.name)
     contour_tools = ProcessContours(log_level=log_level)
     segmentation_result = WorkflowConvertImageToVTK(
@@ -223,8 +228,8 @@ if __name__ == "__main__":
         log_level=log_level,
     ).process(
         input_image=reference_image,
-        anatomy_groups=[LUNG_CT_DIRLAB.anatomy_group],
-        surface_reduction_rate=LUNG_CT_DIRLAB.surface_reduction_rate,
+        anatomy_groups=[TCIA_4D_LUNG.anatomy_group],
+        surface_reduction_rate=TCIA_4D_LUNG.surface_reduction_rate,
         extract_label_surfaces=True,
     )
     contour_tools.save_combined_surfaces(
@@ -253,9 +258,9 @@ if __name__ == "__main__":
         number_of_pca_components=number_of_pca_components,
         use_surface=False,
     )
-    fit_workflow.set_icp_transform_type(LUNG_CT_DIRLAB.icp_transform_type)
-    fit_workflow.set_mask_dilation_mm(LUNG_CT_DIRLAB.mask_dilation_mm)
-    fit_workflow.set_distancemap_squared_max(LUNG_CT_DIRLAB.distancemap_squared_max)
+    fit_workflow.set_icp_transform_type(TCIA_4D_LUNG.icp_transform_type)
+    fit_workflow.set_mask_dilation_mm(TCIA_4D_LUNG.mask_dilation_mm)
+    fit_workflow.set_distancemap_squared_max(TCIA_4D_LUNG.distancemap_squared_max)
     if use_finetuned_distancemap_weights:
         fit_workflow.set_labelmap_to_labelmap_icon_weights_path(
             str(icon_distancemap_weights_path)

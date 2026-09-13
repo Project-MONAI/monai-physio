@@ -65,10 +65,10 @@ rather than at a step that would tear the warped volumes.
 
 Reference stage
 ---------------
-The lung network predicts displacement relative to the ``T70`` phase its training
-cases were fitted at, so the breath-hold Chest-CT fit plays the role of ``T70``:
-the respiratory displacement is near zero at stage 0.70 and that frame reproduces
-the input scan.
+The lung network predicts displacement relative to the ``g070`` phase its
+training cases were fitted at, so the breath-hold Chest-CT fit plays the role
+of ``g070``: the respiratory displacement is near zero at stage 0.70 and that
+frame reproduces the input scan.
 
 Composition order
 -----------------
@@ -137,7 +137,7 @@ import itk
 import numpy as np
 import pyvista as pv
 from parameters_duke_heart_labelmaps import DUKE_HEART
-from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
+from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
     ConvertVTKToUSD,
@@ -174,12 +174,12 @@ if __name__ == "__main__":
 
     # The ungated clinical scan every rhythm is inferred onto.
     patient_image_file = (
-        LUNG_CT_DIRLAB.hold_out_directory(test_mode) / LUNG_CT_DIRLAB.hold_out_case
+        TCIA_4D_LUNG.hold_out_directory(test_mode) / TCIA_4D_LUNG.hold_out_case
     )
 
     # Tutorial 9 weights for each rhythm, and the Tutorial 6 shape model the
     # cardiac one was trained on.
-    lung_model_dir = LUNG_CT_DIRLAB.mgn_weights_directory(test_mode)
+    lung_model_dir = TCIA_4D_LUNG.mgn_weights_directory(test_mode)
     heart_model_dir = DUKE_HEART.mgn_weights_directory(test_mode)
     heart_pca_json = DUKE_HEART.pca_model_file(test_mode)
     heart_pca_mean_file = DUKE_HEART.pca_mean_surface_file(test_mode)
@@ -210,8 +210,8 @@ if __name__ == "__main__":
     output_dir = DUKE_HEART.output_directory(test_mode) / "tutorial_13_heart_and_lung"
 
     # ---- Parameters --------------------------------------------------------
-    # Respiratory stages, the DIR-Lab T00..T90 phases the lung network was
-    # trained on, so every inference is in distribution.
+    # Respiratory stages, the TCIA-4DLung g000..g090 phases the lung network
+    # was trained on, so every inference is in distribution.
     respiratory_stages = [round(0.1 * k, 2) for k in range(10)]
     # Cardiac stages sampled over one heartbeat (fraction of the RR interval).
     cardiac_stages = [round(0.1 * k, 2) for k in range(10)]
