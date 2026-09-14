@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "monai-physio"
-version = "2026.08.0"
+version = "2026.09.0"
 description = "Methods, workflows, tutorials, and CLI for creating personalized physiological digital twins from 3D/4D medical images"
 authors = [
     {name = "Stephen R. Aylward", email = "saylward@nvidia.com"}
@@ -303,7 +303,7 @@ monai-physio-visualize-pca-modes = "monai_physio.cli.visualize_pca_modes:main"
 where = ["src"]
 
 [tool.bumpver]
-current_version = "2026.08.0"
+current_version = "2026.09.0"
 version_pattern = "YYYY.0M.PATCH[PYTAGNUM]"
 commit_message = "Bump version {old_version} -> {new_version}"
 commit = false
