@@ -1,7 +1,7 @@
-# Migration Guide - Unreleased
+# Migration Guide - 2026.09.0
 
-Breaking changes committed since the last release, and how to update code that
-depends on them.
+Breaking changes in this release, and how to update code that depends on
+them.
 
 MONAI Physio prefers compatibility: public APIs are broken only when the change
 is generally beneficial to future users. When a break is unavoidable, the
