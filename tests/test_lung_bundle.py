@@ -38,6 +38,14 @@ def _create_release(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
     archive_path = release_directory / "test-profile.tar.gz"
     with tarfile.open(archive_path, "w:gz") as archive:
         archive.add(payload, arcname="data/sample.bin")
+        archive.add(
+            payload,
+            arcname=".cache/physiotwin4d/totalsegmentator/model.bin",
+        )
+        archive.add(
+            payload,
+            arcname=".cache/physiotwin4d/huggingface/model.bin",
+        )
 
     manifest = {
         "format_version": 1,
@@ -86,6 +94,17 @@ def test_install_verifies_and_extracts_bundle(
     installed_file = repository_root / "data" / "sample.bin"
     assert installed_file.read_bytes() == b"monai-physio"
     assert installed_manifest.is_file()
+    assert (
+        repository_root
+        / ".cache"
+        / "monai-physio"
+        / "totalsegmentator"
+        / "model.bin"
+    ).read_bytes() == b"monai-physio"
+    assert (
+        repository_root / ".cache" / "monai-physio" / "huggingface" / "model.bin"
+    ).read_bytes() == b"monai-physio"
+    assert not (repository_root / ".cache" / "physiotwin4d").exists()
 
 
 def test_install_rejects_archive_checksum(

@@ -38,7 +38,7 @@ def _load_manifest(path: Path) -> dict[str, Any]:
 
 def _safe_tar_filter(
     member: tarfile.TarInfo, destination: str
-) -> Optional[tarfile.TarInfo]:  # noqa: UP045
+) -> Optional[tarfile.TarInfo]:
     """Apply Python's restrictive data-archive extraction policy."""
     try:
         return tarfile.data_filter(member, destination)
@@ -50,6 +50,17 @@ def _extract_archive(archive_path: Path, repository_root: Path) -> None:
     """Safely extract one verified data archive into the repository."""
     with tarfile.open(archive_path, "r:gz") as archive:
         archive.extractall(repository_root, filter=_safe_tar_filter)
+
+
+def _migrate_legacy_cache(repository_root: Path) -> None:
+    """Merge the pre-rebranding workshop cache into the current cache."""
+    legacy_cache = repository_root / ".cache" / "physiotwin4d"
+    if not legacy_cache.is_dir():
+        return
+
+    current_cache = repository_root / ".cache" / "monai-physio"
+    shutil.copytree(legacy_cache, current_cache, dirs_exist_ok=True, symlinks=True)
+    shutil.rmtree(legacy_cache)
 
 
 def install_bundles(
@@ -100,6 +111,7 @@ def install_bundles(
         print(f"Extracting {profile} into {repository_root}")
         _extract_archive(archive_path, repository_root)
 
+    _migrate_legacy_cache(repository_root)
     installed_manifest = (
         repository_root / ".cache" / "monai-physio" / "bundles" / "manifest.json"
     )
@@ -123,7 +135,7 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:  # noqa: UP045
+def main(argv: Optional[Sequence[str]] = None) -> int:
     """Install selected lung workshop bundle profiles."""
     args = _parser().parse_args(argv)
     profiles = list(dict.fromkeys(args.profile or ["course"]))

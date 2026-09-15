@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Sequence
 import logging
 import math
 import os
-from pathlib import Path
 import time
-from typing import Any, Callable, Optional, Union
+from collections.abc import Callable, Sequence
+from pathlib import Path
+from typing import Any, Optional, Union
 
 import numpy as np
 import pyvista as pv
@@ -211,7 +211,7 @@ class MeshWebViewer(MONAIPhysioBase):
         assert self._server is not None
         names = ", ".join(path.name for path in self.input_files)
         self.log_info("Serving %s at http://%s:%d", names, host, port)
-        self._server.start(port=port, open_browser=open_browser)
+        self._server.start(port=port, open_browser=open_browser, timeout=0)
 
     @staticmethod
     def _read_vtp(path: Path) -> pv.PolyData:

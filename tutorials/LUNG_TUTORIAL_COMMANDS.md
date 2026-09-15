@@ -15,12 +15,14 @@ unset HF_TOKEN
 ./docker/tutorial-shell.sh
 ```
 
-## Tutorial 1: gated CT to animated USD
+## Tutorial 1: lung-gated CT to animated USD
 
-Segments one phase, registers the breathing cycle, and writes animated USD.
+Downloads the public TCIA-4DLung tutorial subset, segments one phase, registers
+the breathing cycle, and writes animated USD.
 
 ```bash
 # Tutorial shell
+monai-physio-download-data TCIA-4DLung --directory data/TCIA-4DLung
 python tutorials/tutorial_01_lung_gated_ct_to_usd.py
 
 # Host
