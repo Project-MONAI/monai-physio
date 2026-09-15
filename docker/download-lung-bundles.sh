@@ -41,6 +41,17 @@ mkdir -p "$cache_dir/home" "$repo_root/tutorials/network_weights" \
         --profile course \
         --profile offline-segmentation
 
+echo "Downloading the public TCIA-4DLung input for Tutorial 1..."
+"${docker_command[@]}" run --rm \
+    --user "$(id -u):$(id -g)" \
+    --volume "$repo_root:$container_root" \
+    --volume "$cache_dir:/cache" \
+    --workdir "$container_root" \
+    --env HOME=/cache/home \
+    --env XDG_CACHE_HOME=/cache/xdg \
+    "$image" \
+    monai-physio-download-data TCIA-4DLung --directory data/TCIA-4DLung
+
 chest_ct_file="$repo_root/data/Chest-CT/Chest-CT.mha"
 if [[ -s "$chest_ct_file" ]]; then
     echo "Reusing the public Chest-CT input at $chest_ct_file"

@@ -4,7 +4,7 @@
 
 set -Eeuo pipefail
 
-readonly NGC_IMAGE="nvcr.io/0569033758414229/physiomotion:v0.4-cu126"
+readonly NGC_IMAGE="nvcr.io/0569033758414229/physiomotion:v0.5-cu126"
 readonly LOCAL_IMAGE="monai-physio:tutorials"
 readonly INSTALL_DIR="${HOME}/monai-physio"
 
@@ -104,7 +104,7 @@ docker_cmd run --rm \
     "${LOCAL_IMAGE}" \
     -c 'cp -a /workspace/monai-physio/. /deployment/'
 
-echo "Downloading the private lung workshop bundles..."
+echo "Downloading workshop bundles and tutorial data..."
 MONAI_PHYSIO_DOCKER_USE_SUDO="${use_sudo}" \
 MONAI_PHYSIO_IMAGE="${LOCAL_IMAGE}" \
     "${INSTALL_DIR}/docker/download-lung-bundles.sh"
@@ -119,7 +119,7 @@ Local image:   ${LOCAL_IMAGE}
 Image ID:      ${image_id}
 Workspace:     ${INSTALL_DIR}
 
-The course and offline-segmentation bundles have been downloaded and verified.
+The workshop bundles and public tutorial data have been downloaded and verified.
 Run:
 
   cd ${INSTALL_DIR}

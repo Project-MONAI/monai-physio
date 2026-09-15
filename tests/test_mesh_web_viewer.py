@@ -131,6 +131,24 @@ def test_viewer_overrides_playback_rate_without_changing_stage(tmp_path: Path) -
     assert viewer.stage_frames_per_second == 12.0
 
 
+def test_viewer_disables_idle_shutdown(tmp_path: Path) -> None:
+    """The server stays available while no browser client is connected."""
+    usd_path = tmp_path / "static.usd"
+    _create_triangle_stage(usd_path, animated=False)
+    viewer = MeshWebViewer(usd_path)
+    server = Mock()
+    viewer._server = server
+    viewer._build_application = Mock()
+
+    viewer.start(host="0.0.0.0", port=9000, open_browser=False)
+
+    server.start.assert_called_once_with(
+        port=9000,
+        open_browser=False,
+        timeout=0,
+    )
+
+
 @pytest.mark.parametrize("playback_fps", [0.0, -1.0, float("inf")])
 def test_viewer_rejects_invalid_playback_rate(
     tmp_path: Path,
