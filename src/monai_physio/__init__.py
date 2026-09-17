@@ -106,6 +106,7 @@ from .segment_heart_simpleware import SegmentHeartSimpleware
 from .segment_heart_simpleware_trimmed_branches import (
     SegmentHeartSimplewareTrimmedBranches,
 )
+from .segment_nv_segment_ct import SegmentNVSegmentCT
 from .segment_nv_segment_ct_mri import SegmentNVSegmentCTMRI
 from .train_physicsnemo_base import TrainPhysicsNeMoBase
 from .train_physicsnemo_mgn import TrainPhysicsNeMoMGN
@@ -175,6 +176,7 @@ __all__ = [
     "SegmentChestTotalSegmentatorWithContrast",
     "SegmentHeartSimpleware",
     "SegmentHeartSimplewareTrimmedBranches",
+    "SegmentNVSegmentCT",
     "SegmentNVSegmentCTMRI",
     "ProcessTests",
     # Training method classes

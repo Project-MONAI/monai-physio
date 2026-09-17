@@ -37,6 +37,7 @@ from .vtk_to_usd import (
     add_framing_camera,
     cell_type_name_for_vertex_count,
     read_vtk_file,
+    sanitize_primvar_name,
     split_mesh_data_by_cell_type,
     split_mesh_data_by_connectivity,
     validate_time_series_topology,
@@ -138,11 +139,15 @@ class ConvertVTKToUSD(MONAIPhysioBase):
         super().__init__(class_name=self.__class__.__name__, log_level=log_level)
 
         suffix = Path(data_basename).suffix
-        self.data_basename = (
+        stripped_basename = (
             data_basename[: -len(suffix)]
             if suffix.lower() in {".usd", ".usda", ".usdc"}
             else data_basename
         )
+        # data_basename becomes a USD prim path component (root_path and, per
+        # part/label, its descendants), so it must be a valid USD identifier -
+        # e.g. not start with a digit, as case names like "100_HM10395" do.
+        self.data_basename = sanitize_primvar_name(stripped_basename)
         self.input_polydata = list(input_polydata)
         self.mask_ids = mask_ids
         self.compute_normals = compute_normals

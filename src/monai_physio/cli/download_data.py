@@ -14,6 +14,7 @@ KCL_HEART_MODEL = "KCL-Heart-Model"
 CHOP_VALVE4D = "CHOP-Valve4D"
 CHEST_CT = "Chest-CT"
 TCIA_4D_LUNG = "TCIA-4DLung"
+PHYSICSNEMO_MGN_LUNG_MOTION = "PhysicsNeMo-MGN-Lung-Motion"
 
 
 def main(argv: Optional[list[str]] = None) -> int:
@@ -28,6 +29,7 @@ Examples:
   %(prog)s {CHOP_VALVE4D} --directory data/CHOP-Valve4D
   %(prog)s {CHEST_CT} --directory data/Chest-CT
   %(prog)s {TCIA_4D_LUNG} --directory data/TCIA-4DLung
+  %(prog)s {PHYSICSNEMO_MGN_LUNG_MOTION} --directory tutorials/network_weights
         """,
     )
     parser.add_argument(
@@ -39,6 +41,7 @@ Examples:
             CHOP_VALVE4D,
             CHEST_CT,
             TCIA_4D_LUNG,
+            PHYSICSNEMO_MGN_LUNG_MOTION,
         ],
         default=None,
         help="Dataset to download",
@@ -54,7 +57,12 @@ Examples:
         parser.print_help()
         return 1
 
-    directory = args.directory or f"data/{args.data_name}"
+    default_directory = (
+        "tutorials/network_weights"
+        if args.data_name == PHYSICSNEMO_MGN_LUNG_MOTION
+        else f"data/{args.data_name}"
+    )
+    directory = args.directory or default_directory
     output_dir = Path(directory)
 
     if args.data_name == SLICER_HEART_CT:
@@ -80,6 +88,11 @@ Examples:
     if args.data_name == TCIA_4D_LUNG:
         data_dir = DownloadData.DownloadTCIA4DLungData(output_dir)
         print(f"Downloaded {TCIA_4D_LUNG} to: {data_dir}")
+        return 0
+
+    if args.data_name == PHYSICSNEMO_MGN_LUNG_MOTION:
+        data_dir = DownloadData.DownloadPhysicsNeMoMGNLungMotionData(output_dir)
+        print(f"Downloaded {PHYSICSNEMO_MGN_LUNG_MOTION} to: {data_dir}")
         return 0
 
     parser.error(f"Unsupported dataset: {args.data_name}")

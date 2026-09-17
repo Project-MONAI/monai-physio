@@ -26,7 +26,7 @@ diagnosis, treatment planning, or clinical decision-making.
 for users and contributors. Key sections:
 
 - [Installation](https://project-monai.github.io/monai-physio/installation.html) and [Quickstart](https://project-monai.github.io/monai-physio/quickstart.html)
-- [Tutorials](https://project-monai.github.io/monai-physio/tutorials.html) - runnable end-to-end workflows and their datasets
+- [Tutorials](https://project-monai.github.io/monai-physio/tutorials.html) - runnable end-to-end workflows and their datasets. Most numbered tutorials ship multiple organ/dataset variant scripts (heart, lung, duke_heart) that share the same workflow class, so you can see how to adapt a workflow to your own anatomy and data
 - [CLI & Scripts Guide](https://project-monai.github.io/monai-physio/cli_scripts/overview.html) - command-line tools for conversion, segmentation, registration, and USD workflows
 - [API Reference](https://project-monai.github.io/monai-physio/api/index.html) - workflow, registration, segmentation, and USD classes
 - [Developer Guides](https://project-monai.github.io/monai-physio/developer/architecture.html) - architecture, extension points, and implementation conventions
@@ -146,5 +146,8 @@ free for academic and commercial use.  https://docs.omniverse.nvidia.com/ov/late
 ### Non-commercial Licenses (optional)
 * NVIDIA Segment CT MRI AI weights (used in the SegmentNVSegmentCTMRI class,
 are restricted from commercial use. https://github.com/NVIDIA-Medtech/NV-Segment-CTMR
+* NVIDIA Segment CT AI weights (used in the SegmentNVSegmentCT class) are
+released under the NVIDIA Open Model License Agreement, research use only,
+not for clinical use. https://huggingface.co/nvidia/NV-Segment-CT
 * TotalSegmentator includes the optional use of some of their research-only models. Using those models assumes that you have
 the appropriate license key install, otherwise an error occurs.   Those models can be disabled by calling ```set_has_academic_license(False)``` member function of the ```SegmentChestTotalSegmentator``` class.

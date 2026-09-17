@@ -33,6 +33,10 @@ Supported Datasets
        Physio GitHub release. See ``data/TCIA-4DLung/README.md`` for the
        data source, the full-collection manual download, and required
        citation.
+   * - ``PhysicsNeMo-MGN-Lung-Motion``
+     - Pretrained PhysicsNeMo MeshGraphNet checkpoint for lung motion, from
+       the MONAI Physio GitHub release. Used by Lung Tutorial 9 (train) and
+       Tutorial 10+ (infer).
 
 Basic Usage
 ===========
@@ -51,12 +55,13 @@ Options
 
 .. code-block:: bash
 
-   monai-physio-download-data [Slicer-Heart-CT|KCL-Heart-Model|CHOP-Valve4D|Chest-CT|TCIA-4DLung] [--directory DIRECTORY]
+   monai-physio-download-data [Slicer-Heart-CT|KCL-Heart-Model|CHOP-Valve4D|Chest-CT|TCIA-4DLung|PhysicsNeMo-MGN-Lung-Motion] [--directory DIRECTORY]
 
 ``data_name``
    Dataset to download. One of ``Slicer-Heart-CT``, ``KCL-Heart-Model``,
-   ``CHOP-Valve4D``, ``Chest-CT``, or ``TCIA-4DLung``. Required - omitting
-   it prints help and exits.
+   ``CHOP-Valve4D``, ``Chest-CT``, ``TCIA-4DLung``, or
+   ``PhysicsNeMo-MGN-Lung-Motion``. Required - omitting it prints help and
+   exits.
 
 ``--directory``
    Directory where the dataset is stored. Defaults to ``data/<data_name>``.
@@ -131,6 +136,22 @@ the download entirely once any case's phase volumes are already present -
 this is a converted tutorial subset; see ``data/TCIA-4DLung/README.md`` for
 how to obtain the full TCIA 4D-Lung collection manually.
 
+For ``PhysicsNeMo-MGN-Lung-Motion``, the command downloads, extracts, and
+reuses:
+
+.. code-block:: text
+
+   tutorials/network_weights/physicsnemo_mgn_lung_motion/mgn_stage_model.pt
+   tutorials/network_weights/physicsnemo_mgn_lung_motion/  (other epoch
+       checkpoints and metadata)
+
+The command uses
+:meth:`monai_physio.download_data.DownloadData.DownloadPhysicsNeMoMGNLungMotionData`,
+which fetches ``physicsnemo_mgn_lung_motion.zip`` from the MONAI Physio
+GitHub release and skips the download once ``mgn_stage_model.pt`` is
+already present. Unlike every other dataset, its default ``--directory`` is
+``tutorials/network_weights``, not ``data/<data_name>``.
+
 See Also
 ========
 
@@ -142,7 +163,10 @@ See Also
   individually and may require registration, so it is manual-only, see
   ``data/DirLab-4DCT/README.md``. ``Duke-Heart-4DLabelmaps``, which drives the
   ten ``duke_heart`` variants, is being released soon; see
-  ``data/Duke-Heart-4DLabelmaps/README.md``.
+  ``data/Duke-Heart-4DLabelmaps/README.md``. ``PhysicsNeMo-MGN-Lung-Motion``
+  is the pretrained-checkpoint shortcut for Lung Tutorial 10 (and everything
+  downstream of it: 11-14), letting a reader skip running Tutorial 9's
+  training themselves.
 * :doc:`byod_tutorials`
 * :doc:`heart_gated_ct`
 * :doc:`overview`

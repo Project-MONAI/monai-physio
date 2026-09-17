@@ -34,6 +34,12 @@ package - ``pip install monai-physio`` gives you the library and the
 
 See :doc:`quickstart` for version-matched clones and the release tarball link.
 
+Each numbered tutorial below may ship one to three organ/dataset variant
+scripts - ``heart``, ``lung``, and ``duke_heart`` - that share the same
+workflow class and the same numbered section; where a variant's data, output
+path or behaviour differs from the others, that section's ``Script`` and
+``Adapt to your data`` blocks call it out inline.
+
 **2. Get the data**, running every download from the top level of the clone.
 The tutorials resolve their inputs against the repository root
 (``<repo>/data/<dataset>``), while the CLI writes to ``data/<dataset>``
@@ -45,6 +51,7 @@ relative to the current working directory:
    monai-physio-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
    monai-physio-download-data Chest-CT --directory data/Chest-CT
    monai-physio-download-data TCIA-4DLung --directory data/TCIA-4DLung
+   monai-physio-download-data PhysicsNeMo-MGN-Lung-Motion --directory tutorials/network_weights
 
 That covers Heart Tutorials 1, 3, 4 and 6 (``Slicer-Heart-CT`` and
 ``KCL-Heart-Model``), Lung Tutorial 7 (``Chest-CT``, which Tutorial 13 also
@@ -54,7 +61,10 @@ collection). The full collection is obtained separately, by downloading its
 DICOM series from TCIA and running ``data/TCIA-4DLung/convert.py``, if more
 than the tutorial subset is needed. ``DirLab-4DCT``, used by Heart Tutorial
 7, is **not** auto-downloaded: DIR-Lab distributes each case individually
-and may require registration.
+and may require registration. ``PhysicsNeMo-MGN-Lung-Motion`` fetches the
+pretrained lung-motion checkpoint Tutorial 9 otherwise trains, letting a
+reader skip Tutorial 9 and start directly at Tutorial 10 (and the chain of
+Tutorials 11 through 14, which build on Tutorial 10's output).
 
 Tutorials 5 and 9 need no dataset of their own; they consume the outputs of
 Tutorials 4 and 8. ``Duke-Heart-4DLabelmaps`` drives the fifteen ``duke_heart``
@@ -231,6 +241,13 @@ Script
 
    ``tutorials/tutorial_01_lung_gated_ct_to_usd.py`` (TCIA-4DLung)
 
+   ``tutorials/tutorial_01_lung_gated_ct_to_usd_tetmesh.py`` (TCIA-4DLung) -
+   fills the reference-phase lung surface with tetrahedra and warps that one
+   volume mesh through every phase's registration instead of exporting a
+   surface-only USD, so every frame shares the reference mesh's connectivity -
+   needed for downstream finite-element work (e.g. strain energy) that a
+   surface cannot support.
+
 Workflow
    :class:`~monai_physio.WorkflowConvertImageToUSD`, driving
    :class:`~monai_physio.RegisterImagesGreedy` and a
@@ -277,11 +294,15 @@ Run
 
       python tutorials/tutorial_01_heart_gated_ct_to_usd.py
       python tutorials/tutorial_01_lung_gated_ct_to_usd.py
+      python tutorials/tutorial_01_lung_gated_ct_to_usd_tetmesh.py
 
 Outputs
    The animated USD named after ``usd_project_name``, the per-phase registered
    volumes and labelmaps, and screenshots - all under
-   ``tutorials/output/tutorial_01_{heart,lung}/``.
+   ``tutorials/output/tutorial_01_{heart,lung}/``. The tetmesh variant instead
+   writes one ``lung_tetmesh_<phase>.vtu`` per respiratory phase, plus a
+   reference-surface screenshot, under
+   ``tutorials/output/tutorial_01_lung_tetmesh/``.
 
 Adapt to your data
    Point ``data_dir`` and the file glob near the top of the script at your own
@@ -292,6 +313,8 @@ Adapt to your data
    matching your anatomy and contrast - see :doc:`api/segmentation/index`. For
    command-line use without editing code, run
    ``monai-physio-convert-image-to-usd`` (:doc:`cli_scripts/heart_gated_ct`).
+   The tetmesh variant points at the same data via the same knobs; tetrahedra
+   repair for inverted or degenerate elements runs automatically per phase.
 
 Tutorial 2: Finetune ICON Registration
 ======================================
@@ -910,6 +933,10 @@ Outputs
    (``tutorials/network_weights/physicsnemo_mgn_lung_motion/``, a fresh sibling
    of it when resuming). The per-case manifests and the held-out evaluation
    under ``eval_mgn/`` stay in ``tutorials/output/tutorial_09_lung_mgn/``.
+   A pretrained checkpoint is also available via
+   ``monai-physio-download-data PhysicsNeMo-MGN-Lung-Motion``, which extracts
+   to that same weights directory - a shortcut to skip this tutorial and
+   start at Tutorial 10.
 
 Adapt to your data
    The contract is the manifest, not the tutorial. Each JSON names a reference
@@ -936,7 +963,9 @@ Workflow
    and :class:`~monai_physio.WorkflowConvertVTKToUSD` to export it.
 
 Dataset
-   Tutorial 8's fitted surfaces for one case, and Tutorial 9's checkpoint.
+   Tutorial 8's fitted surfaces for one case, and Tutorial 9's checkpoint -
+   or, to skip Tutorial 9 entirely, the same checkpoint fetched with
+   ``monai-physio-download-data PhysicsNeMo-MGN-Lung-Motion``.
 
 Requirements
    Trivial - one forward pass per stage replaces the per-phase registration
@@ -1354,9 +1383,14 @@ Requirements
    Written for a
    multi-GPU Linux host, though it runs as a single process too.
 
-.. TODO(image): no preview media exists yet for Tutorial 15. Add a
-   ``loo_metrics_by_label.png``-derived figure (or similar) here once one is
-   captured, matching the ``Preview`` pattern used by the other tutorials.
+Preview
+   .. figure:: assets/tutorial_15_lung.png
+      :alt: Leave-one-out cross-validation error by fold for the lung cohort
+      :width: 90%
+
+      Held-out prediction error for each fold's lung case, scored against
+      that fold's own PCA model, fits and network rather than one built from
+      the whole cohort.
 
 What it does
    Tutorials 6 through 11 report accuracy for one fixed held-out case, which is

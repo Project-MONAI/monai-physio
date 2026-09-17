@@ -45,7 +45,6 @@ from parameters_tcia_4d_lung import TCIA_4D_LUNG
 from monai_physio import (
     ProcessContours,
     ProcessTests,
-    SegmentNVSegmentCTMRI,
     WorkflowConvertImageToVTK,
     WorkflowCreateMeanSurface,
     WorkflowCreateStatisticalModel,
@@ -105,7 +104,8 @@ if __name__ == "__main__":
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Create lung surface files
-    segmentation_method = SegmentNVSegmentCTMRI(log_level=log_level)
+    segmentation_method = TCIA_4D_LUNG.segmenter_class(log_level=log_level)
+    segmentation_method.set_fast_mode(True)
     workflow_method = WorkflowConvertImageToVTK(
         segmentation_method=segmentation_method, log_level=log_level
     )
@@ -161,6 +161,8 @@ if __name__ == "__main__":
         "model_points": model_points,
         "mask_dilation_mm": TCIA_4D_LUNG.mask_dilation_mm,
         "distance_squared_max": TCIA_4D_LUNG.distancemap_squared_max,
+        "alignment_transform_type": TCIA_4D_LUNG.icp_transform_type,
+        "registration_transform_type": "Affine",
         "icon_weights": (
             [str(icon_weights_path), icon_weights_path.stat().st_mtime_ns]
             if icon_weights_path.exists()
@@ -182,6 +184,12 @@ if __name__ == "__main__":
         # the template is not itself built from under-fitting registrations.
         mean_workflow.set_mask_dilation_mm(TCIA_4D_LUNG.mask_dilation_mm)
         mean_workflow.set_distance_squared_max(TCIA_4D_LUNG.distancemap_squared_max)
+        mean_workflow.set_alignment_transform_type(TCIA_4D_LUNG.icp_transform_type)
+        mean_workflow.set_registration_transform_type("Affine")
+        mean_workflow.spatial_resolution = 2.0
+        mean_workflow.set_greedy_iterations([40, 20, 10])
+        mean_workflow.set_icon_iterations(20)
+
         if icon_weights_path.exists():
             mean_workflow.set_icon_weights_path(str(icon_weights_path))
         mean_result = mean_workflow.process()
@@ -200,7 +208,7 @@ if __name__ == "__main__":
         # The distance maps step 3 registers are rasterized at this resolution,
         # and generating, dilating and affinely registering them is what the
         # step costs.  2 mm is an eighth of the voxels of the 1 mm default.
-        reference_spatial_resolution=2.0 if test_mode else 1.0,
+        reference_spatial_resolution=3.0 if test_mode else 2.0,
         icp_transform_type=TCIA_4D_LUNG.icp_transform_type,
         mask_dilation_mm=TCIA_4D_LUNG.mask_dilation_mm,
         distance_squared_max=TCIA_4D_LUNG.distancemap_squared_max,

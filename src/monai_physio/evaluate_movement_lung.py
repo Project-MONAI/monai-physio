@@ -16,7 +16,7 @@ from typing import Optional
 import itk
 
 from .evaluate_movement_base import EvaluateMovementBase, MovementGroundTruth
-from .segment_nv_segment_ct_mri import SegmentNVSegmentCTMRI
+from .segment_chest_total_segmentator import SegmentChestTotalSegmentator
 
 
 class EvaluateMovementLung(EvaluateMovementBase):
@@ -29,10 +29,10 @@ class EvaluateMovementLung(EvaluateMovementBase):
         log_level: Logging level. Default: ``logging.INFO``.
     """
 
-    segmenter_class = SegmentNVSegmentCTMRI
-    # The five lobes of ``SegmentNVSegmentCTMRI``. Its "lung" group also carries
+    segmenter_class = SegmentChestTotalSegmentator
+    # The five lobes of ``SegmentChestTotalSegmentator``. Its "lung" group also carries
     # whole-lung, tumor and airway labels, which are not lobes.
-    label_ids = (28, 29, 30, 31, 32)
+    label_ids = (10, 11, 12, 13, 14)
     # A lobe barely changes shape over a breath compared to how big it is, so
     # Dice says more about the lobe than about the motion. Volume difference and
     # surface RMSE are what resolve it here.
@@ -91,9 +91,11 @@ class EvaluateMovementLung(EvaluateMovementBase):
         cache_directory.mkdir(parents=True, exist_ok=True)
 
         segmenter = self.segmenter_class(log_level=self.log_level)
+        segmenter.set_fast_mode(True)
         labelmaps: dict[float, itk.Image] = {}
         for frame_file in frame_files:
-            labelmap_file = cache_directory / f"{frame_file.stem}_labelmap.nii.gz"
+            frame_stem = frame_file.name[: -len("".join(frame_file.suffixes))]
+            labelmap_file = cache_directory / f"{frame_stem}_labelmap.nii.gz"
             if not labelmap_file.exists():
                 self.log_info("Segmenting ground-truth frame %s", frame_file.name)
                 segmentation = segmenter.segment(itk.imread(str(frame_file)))
