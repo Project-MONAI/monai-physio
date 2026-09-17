@@ -336,9 +336,13 @@ class SegmentNVSegmentCT(SegmentAnatomyBase):
 
             # The bundle ships hugging_face_pipeline / vista3d_pipeline as
             # top-level modules inside the snapshot rather than as an installed
-            # package, so the snapshot directory has to be importable.
-            if snapshot_dir not in sys.path:
-                sys.path.insert(0, snapshot_dir)
+            # package, so the snapshot directory has to be importable. Move it
+            # to the front rather than just ensuring it's present: if the
+            # other backend's snapshot dir precedes it, that one would still
+            # win the import even after the cache purge below.
+            if snapshot_dir in sys.path:
+                sys.path.remove(snapshot_dir)
+            sys.path.insert(0, snapshot_dir)
 
             # NV-Segment-CT and NV-Segment-CTMR ship modules under these same
             # top-level names; if the other backend already imported them
