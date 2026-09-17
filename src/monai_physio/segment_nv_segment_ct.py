@@ -340,6 +340,17 @@ class SegmentNVSegmentCT(SegmentAnatomyBase):
             if snapshot_dir not in sys.path:
                 sys.path.insert(0, snapshot_dir)
 
+            # NV-Segment-CT and NV-Segment-CTMR ship modules under these same
+            # top-level names; if the other backend already imported them
+            # from its own snapshot dir, drop the cached entries so this
+            # backend's copy loads instead.
+            for module_name in ("vista3d_config", "vista3d_model", "vista3d_pipeline"):
+                cached = sys.modules.get(module_name)
+                if cached is not None and not (
+                    getattr(cached, "__file__", "") or ""
+                ).startswith(snapshot_dir):
+                    del sys.modules[module_name]
+
             import torch
             from vista3d_config import VISTA3DConfig
             from vista3d_model import VISTA3DModel

@@ -25,8 +25,8 @@ def test_lung_scores_the_five_lobes() -> None:
     """The lobe ids resolve to the segmenter's own names, not restated ones."""
     names = EvaluateMovementLung().label_names()
 
-    assert list(names) == [28, 29, 30, 31, 32]
-    assert names[28] == "lung_upper_lobe_left"
+    assert list(names) == [10, 11, 12, 13, 14]
+    assert names[10] == "lung_upper_lobe_left"
     assert all("lobe" in name for name in names.values())
 
 

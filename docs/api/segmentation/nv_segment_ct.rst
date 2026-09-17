@@ -21,7 +21,10 @@ exposed here.
    both models are research-use-only, just under different named terms, so
    check the license text for your use case. Use
    ``SegmentChestTotalSegmentator`` if you need no license restriction at
-   all.
+   all - its default task set is unrestricted; only its optional
+   ``heartchambers_highres`` and ``tissue_4_types`` tasks
+   (``set_has_academic_license(True)``) require a TotalSegmentator academic
+   license.
 
 Class Reference
 ===============

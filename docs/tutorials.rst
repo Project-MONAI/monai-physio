@@ -1034,7 +1034,7 @@ Script
 Workflow
    :class:`~monai_physio.WorkflowEvaluateMovement`, driving
    :class:`~monai_physio.WorkflowInferMovement` and, for the lung variant,
-   :class:`~monai_physio.SegmentNVSegmentCTMRI`.
+   :class:`~monai_physio.SegmentChestTotalSegmentator`.
 
 Dataset
    The gated sequence itself - TCIA-4DLung for the lung, Duke-Heart-4DLabelmaps

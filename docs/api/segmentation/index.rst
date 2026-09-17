@@ -16,7 +16,7 @@ MONAI Physio supports multiple segmentation approaches:
 * **NV-Segment-CTMR**: Whole-body CT *and* MRI segmentation (345 structures,
   non-commercial license)
 * **NV-Segment-CT**: Whole-body CT-only segmentation (117 structures,
-  research-use-only license)
+  weights for research use only, not for clinical use)
 
 All segmentation classes inherit from :class:`SegmentAnatomyBase` and provide consistent interfaces.
 

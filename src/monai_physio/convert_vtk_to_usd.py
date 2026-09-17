@@ -147,7 +147,17 @@ class ConvertVTKToUSD(MONAIPhysioBase):
         # data_basename becomes a USD prim path component (root_path and, per
         # part/label, its descendants), so it must be a valid USD identifier -
         # e.g. not start with a digit, as case names like "100_HM10395" do.
-        self.data_basename = sanitize_primvar_name(stripped_basename)
+        # sanitize_primvar_name collapses/strips underscores, so only run it
+        # when the name isn't already a valid identifier as-is.
+        self.data_basename = (
+            stripped_basename
+            if Sdf.Path.IsValidIdentifier(stripped_basename)
+            else sanitize_primvar_name(stripped_basename)
+        )
+        if not self.data_basename:
+            raise ValueError(
+                f"data_basename {data_basename!r} sanitizes to an empty USD identifier."
+            )
         self.input_polydata = list(input_polydata)
         self.mask_ids = mask_ids
         self.compute_normals = compute_normals

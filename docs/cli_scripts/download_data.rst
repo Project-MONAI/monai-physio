@@ -35,8 +35,8 @@ Supported Datasets
        citation.
    * - ``PhysicsNeMo-MGN-Lung-Motion``
      - Pretrained PhysicsNeMo MeshGraphNet checkpoint for lung motion, from
-       the MONAI Physio GitHub release. Used by Lung Tutorial 9 (train) and
-       Tutorial 10+ (infer).
+       the MONAI Physio GitHub release. Used by Lung Tutorial 10 and later
+       when skipping Tutorial 9's training.
 
 Basic Usage
 ===========
