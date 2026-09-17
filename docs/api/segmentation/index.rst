@@ -15,6 +15,8 @@ MONAI Physio supports multiple segmentation approaches:
 * **Simpleware**: Cardiac-focused segmentation (requires Simpleware Medical)
 * **NV-Segment-CTMR**: Whole-body CT *and* MRI segmentation (345 structures,
   non-commercial license)
+* **NV-Segment-CT**: Whole-body CT-only segmentation (117 structures,
+  weights for research use only, not for clinical use)
 
 All segmentation classes inherit from :class:`SegmentAnatomyBase` and provide consistent interfaces.
 
@@ -26,6 +28,7 @@ Quick Links
    * :doc:`totalsegmentator` - TotalSegmentator implementation
    * :doc:`simpleware` - Simpleware ASCardio cardiac segmentation
    * :doc:`nv_segment_ct_mri` - NVIDIA NV-Segment-CTMR CT/MRI segmentation
+   * :doc:`nv_segment_ct` - NVIDIA NV-Segment-CT CT-only segmentation
 
 Choosing a Method
 =================
@@ -38,6 +41,9 @@ Choosing a Method
 | Simpleware       | Medium           | Excellent        | Cardiac imaging  |
 +------------------+------------------+------------------+------------------+
 | NV-Segment-CTMR  | Medium           | Good             | CT and MRI       |
++------------------+------------------+------------------+------------------+
+| NV-Segment-CT    | Medium           | Good             | CT-only,         |
+|                  |                  |                  | research use     |
 +------------------+------------------+------------------+------------------+
 
 Quick Start
@@ -64,6 +70,7 @@ Module Documentation
    totalsegmentator
    simpleware
    nv_segment_ct_mri
+   nv_segment_ct
 
 Common Operations
 =================
@@ -120,4 +127,5 @@ See Also
 
 .. rubric:: Navigation
 
-:doc:`../index` | :doc:`base` | :doc:`totalsegmentator` | :doc:`simpleware`
+:doc:`../index` | :doc:`base` | :doc:`totalsegmentator` | :doc:`simpleware` |
+:doc:`nv_segment_ct_mri` | :doc:`nv_segment_ct`

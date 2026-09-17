@@ -53,6 +53,7 @@ By Category
    * :class:`~monai_physio.SegmentHeartSimpleware` - Simpleware cardiac segmentation
    * :class:`~monai_physio.SegmentHeartSimplewareTrimmedBranches` - Simpleware with trimmed great vessels
    * :class:`~monai_physio.SegmentNVSegmentCTMRI` - NV-Segment-CTMR, CT *and* MRI
+   * :class:`~monai_physio.SegmentNVSegmentCT` - NV-Segment-CT, CT only
 
 **Image Registration**
    * :class:`~monai_physio.RegisterImagesBase` - Base registration class

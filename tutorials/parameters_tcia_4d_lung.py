@@ -17,7 +17,7 @@ from pathlib import Path
 
 from parameters_base import ParametersBase
 
-from monai_physio import SegmentAnatomyBase, SegmentNVSegmentCTMRI
+from monai_physio import SegmentAnatomyBase, SegmentChestTotalSegmentator
 
 
 @dataclass(frozen=True)
@@ -64,7 +64,7 @@ class ParametersTCIA4DLung(ParametersBase):
             no lettered re-scan variant, unlike every other case.
     """
 
-    surface_reduction_rate: float = 0.0
+    surface_reduction_rate: float = 0.25
     mesh_element_size_mm: float = 3.0
 
     number_of_iterations_icon: int = 20
@@ -77,16 +77,16 @@ class ParametersTCIA4DLung(ParametersBase):
 
     icp_transform_type: str = "Affine"
 
-    mask_dilation_mm: float = 40.0
-    distancemap_squared_max: float = (1.25 * 40.0) ** 2
+    mask_dilation_mm: float = 20.0
+    distancemap_squared_max: float = (1.25 * 20.0) ** 2
 
-    model_points: int = 0
+    model_points: int = 80000
     model_points_test: int = 20000
 
     number_of_pca_components: int = 6
     number_of_pca_components_test: int = 5
 
-    segmenter_class: type[SegmentAnatomyBase] = SegmentNVSegmentCTMRI
+    segmenter_class: type[SegmentAnatomyBase] = SegmentChestTotalSegmentator
     anatomy_group: str = "lung"
 
     hold_out_case: str = "Chest-CT.mha"

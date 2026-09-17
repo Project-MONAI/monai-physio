@@ -61,7 +61,7 @@ from monai_physio import (
     ProcessTests,
     ProcessTransforms,
     RegisterImagesGreedy,
-    SegmentNVSegmentCTMRI,
+    SegmentChestTotalSegmentator,
     WorkflowConvertImageToVTK,
     WorkflowFitStatisticalModelToPatient,
     WorkflowReconstructHighres4DCT,
@@ -157,7 +157,8 @@ if __name__ == "__main__":
             "See data/TCIA-4DLung/README.md for download instructions."
         )
 
-    segmentation_method = SegmentNVSegmentCTMRI(log_level=log_level)
+    segmentation_method = SegmentChestTotalSegmentator(log_level=log_level)
+    segmentation_method.fast_mode = True
     segmentation_workflow = WorkflowConvertImageToVTK(
         segmentation_method=segmentation_method, log_level=log_level
     )

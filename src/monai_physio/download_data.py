@@ -485,6 +485,49 @@ class DownloadData:
             _logger.info("Fixed %s -> %s", mhd_file.name, output_file.name)
         return output_files
 
+    PHYSICSNEMO_MGN_LUNG_MOTION_URL = (
+        "https://github.com/Project-MONAI/monai-physio/releases/download/2026.07.1/"
+        "physicsnemo_mgn_lung_motion.zip"
+    )
+    PHYSICSNEMO_MGN_LUNG_MOTION_DIRNAME = "physicsnemo_mgn_lung_motion"
+
+    @staticmethod
+    def DownloadPhysicsNeMoMGNLungMotionData(dirname: Union[str, Path]) -> Path:
+        """Download the pretrained lung-motion PhysicsNeMo MGN checkpoint.
+
+        Fetches ``physicsnemo_mgn_lung_motion.zip`` from the MONAI Physio
+        2026.07.1 GitHub release and extracts it into ``dirname``, giving
+        the ``physicsnemo_mgn_lung_motion/mgn_stage_model.pt`` checkpoint
+        Tutorial 10 and later lung tutorials read. Already-extracted data is
+        left alone, so re-running is a no-op once it is present.
+
+        Args:
+            dirname: Directory where ``physicsnemo_mgn_lung_motion/`` should
+                live, typically ``tutorials/network_weights``.
+
+        Returns:
+            Path to ``dirname/physicsnemo_mgn_lung_motion``.
+        """
+        data_dir = Path(dirname)
+        target_dir = data_dir / DownloadData.PHYSICSNEMO_MGN_LUNG_MOTION_DIRNAME
+        if not DownloadData.VerifyPhysicsNeMoMGNLungMotionData(data_dir):
+            DownloadData._DownloadAndExtractZip(
+                DownloadData.PHYSICSNEMO_MGN_LUNG_MOTION_URL, target_dir
+            )
+            _logger.info(
+                "Downloaded %s", DownloadData.PHYSICSNEMO_MGN_LUNG_MOTION_DIRNAME
+            )
+        return target_dir
+
+    @staticmethod
+    def VerifyPhysicsNeMoMGNLungMotionData(dirname: Union[str, Path]) -> bool:
+        """Return True when the lung-motion PhysicsNeMo MGN checkpoint exists."""
+        return (
+            Path(dirname)
+            / DownloadData.PHYSICSNEMO_MGN_LUNG_MOTION_DIRNAME
+            / "mgn_stage_model.pt"
+        ).is_file()
+
     @staticmethod
     def VerifyKCLHeartModelData(dirname: Union[str, Path]) -> bool:
         """Return True when KCL-Heart-Model has its expected mesh inputs."""

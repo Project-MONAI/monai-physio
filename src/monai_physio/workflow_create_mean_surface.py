@@ -96,6 +96,8 @@ class WorkflowCreateMeanSurface(MONAIPhysioBase):
         # "Affine" to average only the residual, size-and-pose-normalized shape.
         self.alignment_transform_type: str = "Rigid"
         self.registration_transform_type: str = "Deformable"
+        self.greedy_iterations: list[int] = [40, 20, 10]
+        self.icon_iterations: int = 20
 
         # Correspondence tuning, mirroring WorkflowFitStatisticalModelToPatient
         # so that a mean built here and a fit against it see distance maps on
@@ -118,6 +120,14 @@ class WorkflowCreateMeanSurface(MONAIPhysioBase):
                 f"number_of_iterations must be >= 1, got {number_of_iterations}"
             )
         self.number_of_iterations = number_of_iterations
+
+    def set_greedy_iterations(self, greedy_iterations: list[int]) -> None:
+        """Set the number of greedy iterations."""
+        self.greedy_iterations = greedy_iterations
+
+    def set_icon_iterations(self, icon_iterations: int) -> None:
+        """Set the number of icon iterations."""
+        self.icon_iterations = icon_iterations
 
     def set_convergence_tolerance(self, convergence_tolerance: float) -> None:
         """Set the RMS point motion (mm) below which iteration stops."""
@@ -349,6 +359,8 @@ class WorkflowCreateMeanSurface(MONAIPhysioBase):
             )
             if self.icon_weights_path is not None:
                 registrar.set_icon_weights_path(self.icon_weights_path)
+            registrar.registrar_Greedy.set_number_of_iterations(self.greedy_iterations)
+            registrar.registrar_ICON.set_number_of_iterations(self.icon_iterations)
             result = registrar.register(transform_type=self.registration_transform_type)
 
             # fixed_to_moving_transform maps template points into the sample's

@@ -109,6 +109,17 @@ class SegmentAnatomyBase(MONAIPhysioBase):
         """
         return self.taxonomy.group_for_label(label_name)
 
+    def set_fast_mode(self, fast_mode: bool) -> None:
+        """Set the fast mode for the segmenter.
+
+        Args:
+            fast_mode (bool): Whether to run in fast mode.
+
+        Example:
+            >>> segmenter.set_fast_mode(True)
+        """
+        self.fast_mode = fast_mode
+
     def set_target_spacing(self, target_spacing: float) -> None:
         """Set the target isotropic spacing for image resampling.
 

@@ -42,9 +42,15 @@ Measured on the full 10-case DIR-Lab set with the Tutorial 6 lung template
 takes ~430 ms and peaks near 43 GiB of GPU memory, giving ~9 s per epoch and
 roughly 4 hours for the 1500 epochs below. TCIA-4DLung's population is roughly
 8x larger (~83 cases including lettered re-scan variants, vs. DIR-Lab's
-curated 10), so a full run scales accordingly. Lower ``batch_size``, or call
-``training_method.set_num_processor_checkpoint_segments(...)`` to trade compute
-for memory, on a smaller card.
+curated 10), so a full run scales accordingly. Processor gradient
+checkpointing is on by default below (``num_processor_checkpoint_segments``):
+even the ~43 GiB unchecked peak leaves little headroom on a 96 GiB card once
+driver/framework overhead is added, and on Windows a CUDA process that
+exceeds dedicated VRAM silently pages the overflow into system RAM (WDDM's
+shared-GPU-memory fallback) instead of raising an out-of-memory error -
+training keeps running, just 10-50x slower, with no error to explain why.
+Lower ``batch_size`` as a further lever if memory is still tight on a smaller
+card.
 
 Data Required
 -------------
@@ -212,6 +218,9 @@ if __name__ == "__main__":
     processor_size = 3  # message-passing hops
     hidden_dim = 128
     num_layers = 2  # MLP layers inside each encoder / processor / decoder block
+    # Checkpoint every processor layer (max granularity for processor_size=3);
+    # see the Runtime section above.
+    num_processor_checkpoint_segments = 3
 
     # Explicit held-out splits; every other discovered case is used for training.
     # The held-out case is the one Tutorial 10 predicts, and is also the case held
@@ -280,6 +289,9 @@ if __name__ == "__main__":
     training_method.set_processor_size(processor_size)
     training_method.set_hidden_dim(hidden_dim)
     training_method.set_num_layers(num_layers)
+    training_method.set_num_processor_checkpoint_segments(
+        num_processor_checkpoint_segments
+    )
 
     train_workflow = WorkflowTrainPhysicsNeMo(
         train_manifests=train_manifests,

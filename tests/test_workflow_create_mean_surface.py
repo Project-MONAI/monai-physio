@@ -128,10 +128,19 @@ def test_correspondence_tuning_reaches_the_registrar(monkeypatch: Any) -> None:
     """Stock distance maps and stock ICON weights under-fit, so both are tunable."""
     seen: list[_Registrar] = []
 
+    class _SubRegistrar:
+        def __init__(self) -> None:
+            self.number_of_iterations: Any = None
+
+        def set_number_of_iterations(self, number_of_iterations: Any) -> None:
+            self.number_of_iterations = number_of_iterations
+
     class _Registrar:
         def __init__(self, **kwargs: Any) -> None:
             self.kwargs = kwargs
             self.weights_path: Optional[str] = None
+            self.registrar_Greedy = _SubRegistrar()
+            self.registrar_ICON = _SubRegistrar()
             seen.append(self)
 
         def set_icon_weights_path(self, weights_path: str) -> None:
@@ -154,3 +163,8 @@ def test_correspondence_tuning_reaches_the_registrar(monkeypatch: Any) -> None:
         assert registrar.kwargs["mask_dilation_mm"] == 10.0
         assert registrar.kwargs["distance_squared_max"] == (1.25 * 10.0) ** 2
         assert registrar.weights_path == "finetuned.trch"
+        assert (
+            registrar.registrar_Greedy.number_of_iterations
+            == workflow.greedy_iterations
+        )
+        assert registrar.registrar_ICON.number_of_iterations == workflow.icon_iterations

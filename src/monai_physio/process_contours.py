@@ -900,15 +900,29 @@ class ProcessContours(MONAIPhysioBase):
         conditioned = surface
         if surface_reduction_rate > 0.0:
             original = conditioned
-            clustering = pyacvd.Clustering(conditioned.triangulate())
-            # One cluster per retained point.  A closed surface carries about
-            # twice as many triangles as points, so scaling the point count by
-            # (1 - rate) scales the triangle count by the same fraction; four
-            # is the fewest clusters that can still close a surface.
-            clustering.cluster(
-                max(4, round(original.n_points * (1.0 - surface_reduction_rate)))
-            )
-            conditioned = clustering.create_mesh()
+            triangulated = conditioned.triangulate()
+            # ACVD's clustering graph assumes a single connected component; a
+            # multi-material surface merged from disjoint parts (e.g. left and
+            # right lung, saved as one file by save_combined_surfaces) crashes
+            # pyacvd's native clustering step otherwise. Remesh each connected
+            # component on its own and recombine.
+            regions = triangulated.connectivity(extraction_mode="all")
+            remeshed_pieces = []
+            for region_id in np.unique(regions.cell_data["RegionId"]):
+                piece = regions.threshold(
+                    (region_id, region_id), scalars="RegionId", preference="cell"
+                ).extract_surface(algorithm="geometry")
+                clustering = pyacvd.Clustering(piece)
+                # One cluster per retained point.  A closed surface carries
+                # about twice as many triangles as points, so scaling the
+                # point count by (1 - rate) scales the triangle count by the
+                # same fraction; four is the fewest clusters that can still
+                # close a surface.
+                clustering.cluster(
+                    max(4, round(piece.n_points * (1.0 - surface_reduction_rate)))
+                )
+                remeshed_pieces.append(clustering.create_mesh())
+            conditioned = pv.merge(remeshed_pieces)
             carried = [
                 name
                 for name in ("boundary_labels", "SegmentationLabelIds")

@@ -15,6 +15,7 @@ from monai_physio import (
     SegmentChestTotalSegmentatorWithContrast,
     SegmentHeartSimpleware,
     SegmentHeartSimplewareTrimmedBranches,
+    SegmentNVSegmentCT,
     SegmentNVSegmentCTMRI,
 )
 
@@ -23,6 +24,7 @@ SEGMENTATION_METHODS: tuple[str, ...] = (
     "ChestTotalSegmentator",
     "HeartSimpleware",
     "HeartSimplewareTrimmedBranches",
+    "NVSegmentCT",
     "NVSegmentCTMR",
 )
 
@@ -59,6 +61,8 @@ def build_segmentation_method(name: str, contrast: bool = False) -> SegmentAnato
         return SegmentHeartSimpleware()
     if name == "HeartSimplewareTrimmedBranches":
         return SegmentHeartSimplewareTrimmedBranches()
+    if name == "NVSegmentCT":
+        return SegmentNVSegmentCT()
     if name == "NVSegmentCTMR":
         return SegmentNVSegmentCTMRI()
     raise ValueError(
