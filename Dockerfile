@@ -79,6 +79,7 @@ WORKDIR /workspace/monai-physio
 COPY --chown=1000:1000 tutorials ./tutorials
 COPY --chown=1000:1000 \
     docker/download-lung-bundles.sh \
+    docker/serve-course-docs.sh \
     docker/tutorial-shell.sh \
     docker/view-meshes.sh \
     ./docker/

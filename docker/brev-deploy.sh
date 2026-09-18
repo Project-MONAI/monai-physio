@@ -4,8 +4,14 @@
 
 set -Eeuo pipefail
 
-readonly NGC_IMAGE="nvcr.io/0569033758414229/physiomotion:v0.5-cu126"
+readonly NGC_NAMESPACE="nvcr.io/0569033758414229"
+readonly NGC_IMAGE="${NGC_NAMESPACE}/physiomotion:v0.8-cu126"
+DEFAULT_COURSE_DOCS_IMAGE="${NGC_NAMESPACE}/physiomotion-course-docs:latest"
+readonly DEFAULT_COURSE_DOCS_IMAGE
+COURSE_DOCS_IMAGE="${MONAI_PHYSIO_COURSE_DOCS_IMAGE:-${DEFAULT_COURSE_DOCS_IMAGE}}"
+readonly COURSE_DOCS_IMAGE
 readonly LOCAL_IMAGE="monai-physio:tutorials"
+readonly LOCAL_COURSE_DOCS_IMAGE="monai-physio-course-docs:latest"
 readonly INSTALL_DIR="${HOME}/monai-physio"
 
 require_parameter() {
@@ -80,6 +86,10 @@ echo "Pulling ${NGC_IMAGE}..."
 registry_docker_cmd pull "${NGC_IMAGE}"
 docker_cmd tag "${NGC_IMAGE}" "${LOCAL_IMAGE}"
 
+echo "Pulling ${COURSE_DOCS_IMAGE}..."
+registry_docker_cmd pull "${COURSE_DOCS_IMAGE}"
+docker_cmd tag "${COURSE_DOCS_IMAGE}" "${LOCAL_COURSE_DOCS_IMAGE}"
+
 echo "Checking GPU access and core Python dependencies..."
 docker_cmd run --rm --gpus all --entrypoint python "${LOCAL_IMAGE}" -c '
 import torch
@@ -91,6 +101,9 @@ print(f"GPU ready: {torch.cuda.get_device_name(0)}")
 '
 
 image_id="$(docker_cmd image inspect "${LOCAL_IMAGE}" --format '{{.Id}}')"
+course_docs_image_id="$(
+    docker_cmd image inspect "${LOCAL_COURSE_DOCS_IMAGE}" --format '{{.Id}}'
+)"
 cleanup
 logged_in=false
 trap - EXIT
@@ -110,6 +123,37 @@ MONAI_PHYSIO_IMAGE="${LOCAL_IMAGE}" \
     "${INSTALL_DIR}/docker/download-lung-bundles.sh"
 unset HF_TOKEN
 
+docs_root="${HOME}/monai-physio-course-docs"
+if [[ ! -e "${docs_root}/current" ]]; then
+    release_name="image-${course_docs_image_id#sha256:}"
+    release_dir="${docs_root}/releases/${release_name}"
+    temporary_link="${docs_root}/.current-${release_name}-$$"
+
+    echo "Installing the course documentation from ${COURSE_DOCS_IMAGE}..."
+    mkdir -p "${release_dir}"
+    docs_container_id="$(docker_cmd create "${LOCAL_COURSE_DOCS_IMAGE}")"
+    if ! docker_cmd cp \
+        "${docs_container_id}:/usr/share/nginx/html/." \
+        "${release_dir}/"; then
+        docker_cmd rm "${docs_container_id}" >/dev/null
+        exit 1
+    fi
+    docker_cmd rm "${docs_container_id}" >/dev/null
+
+    if [[ ! -f "${release_dir}/index.html" ]]; then
+        echo "The course documentation image does not contain index.html" >&2
+        exit 1
+    fi
+
+    ln -s "releases/${release_name}" "${temporary_link}"
+    mv -Tf "${temporary_link}" "${docs_root}/current"
+fi
+
+echo "Starting the course documentation server..."
+MONAI_PHYSIO_DOCKER_USE_SUDO="${use_sudo}" \
+MONAI_PHYSIO_IMAGE="${LOCAL_IMAGE}" \
+    "${INSTALL_DIR}/docker/serve-course-docs.sh"
+
 cat <<EOF
 
 MONAI Physio is ready.
@@ -117,7 +161,10 @@ MONAI Physio is ready.
 Private image: ${NGC_IMAGE}
 Local image:   ${LOCAL_IMAGE}
 Image ID:      ${image_id}
+Course image:  ${COURSE_DOCS_IMAGE}
+Course ID:     ${course_docs_image_id}
 Workspace:     ${INSTALL_DIR}
+Course docs:   http://127.0.0.1:8000/
 
 The workshop bundles and public tutorial data have been downloaded and verified.
 Run:
