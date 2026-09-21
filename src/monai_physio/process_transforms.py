@@ -678,9 +678,6 @@ class ProcessTransforms(MONAIPhysioBase):
         field: itk.Image,
         sigma: float,
         weight_image: Optional[itk.Image] = None,
-        normal_image: Optional[itk.Image] = None,
-        interior_mask: Optional[itk.Image] = None,
-        exterior_sigma: Optional[float] = None,
     ) -> itk.DisplacementFieldTransform:
         """Spread a sparsely sampled deformation field into a continuous one.
 
@@ -693,19 +690,12 @@ class ProcessTransforms(MONAIPhysioBase):
         the empty voxels a plain blur would average in. Far from every sample
         the smoothed weight vanishes and the field decays to zero.
 
-        That spread is otherwise isotropic, and carries the whole displacement
-        vector outward. Giving ``normal_image`` and ``interior_mask`` splits each
-        sample into the component along the surface normal, which expansion and
-        contraction live in, and the tangential remainder, which sliding lives
-        in, and spreads only the normal component outside the mask. Tissue
-        beyond an organ is then pushed and pulled by it without being dragged
-        along it, which is how a slip interface such as the pleura or the
-        pericardium behaves. Inside the mask the full vector is spread, so the
-        organ's own contents still follow its surface. ``exterior_sigma`` sets
-        how far that outward push and pull carries, independently of the sigma
-        filling the organ itself.
-        ``exterior_normal_scale`` sets how much of that normal component the
-        surrounding tissue actually receives.
+        This spread is isotropic and carries the whole displacement vector
+        outward. To restrict that spread to an organ's surface normal beyond a
+        mask -- e.g. so a slip interface such as the pleura or the pericardium
+        does not drag surrounding tissue along tangentially -- smooth first with
+        this method, then pass the result to
+        :meth:`restrict_deformation_field_to_normal_falloff_outside_mask`.
 
         Args:
             field (itk.Image): Input vector deformation field, sampled where
@@ -718,103 +708,163 @@ class ProcessTransforms(MONAIPhysioBase):
                 Omit to weight every voxel holding a non-zero displacement
                 equally, which cannot tell an empty voxel from a genuinely
                 zero-displacement one.
-            normal_image (Optional[itk.Image]): Per-voxel unit surface normal on
-                ``field``'s grid, as
-                :meth:`WorkflowInferMovement.create_deformation_field` returns
-                alongside the field. Samples whose normal is zero are spread
-                whole, having no direction to project onto.
-            interior_mask (Optional[itk.Image]): Scalar image on ``field``'s
-                grid, 1 where the full displacement should be spread and 0 where
-                only its normal component should be. Soften its edge to set the
-                width of the band the tangential motion dies out over; a binary
-                mask makes the boundary a discontinuity.
-            exterior_sigma (Optional[float]): Smoothing sigma (millimeters) for
-                the normal component spread outside ``interior_mask``, in place
-                of ``sigma``. This is how far the organ reaches into the tissue
-                around it: a smaller value confines its push and pull to a
-                narrower shell without weakening the displacement at the
-                surface, and without touching the spread inside the mask.
-                Defaults to ``sigma``. Ignored when no mask is given.
 
         Returns:
             itk.DisplacementFieldTransform: Smoothed field transform.
 
         Raises:
-            ValueError: If only one of ``normal_image`` and ``interior_mask`` is
-                given, if either does not lie on ``field``'s grid, or if the
-                field holds no non-zero samples to spread.
+            ValueError: If the field holds no non-zero samples to spread.
         """
-        if (normal_image is None) != (interior_mask is None):
-            raise ValueError(
-                "normal_image and interior_mask must be given together: the "
-                "normals say what to project onto, the mask says where to."
-            )
-
         field_arr = itk.array_from_image(field).astype(np.float64)
         if weight_image is not None:
             weights = itk.array_from_image(weight_image).astype(np.float64)
         else:
             weights = (np.linalg.norm(field_arr, axis=3) > 0.0).astype(np.float64)
 
-        # Outside the mask only the normal component of each sample is spread,
-        # and it may be spread by a sigma of its own. Each set therefore carries
-        # the sigma that both its samples and the weights normalizing them are
-        # smoothed by, so a narrower exterior spread stays normalized against
-        # the weight that reached the same distance.
-        sample_sets = [(field_arr, sigma)]
-        mask: Optional[np.ndarray] = None
-        if normal_image is not None and interior_mask is not None:
-            normals = itk.array_from_image(normal_image).astype(np.float64)
-            mask = itk.array_from_image(interior_mask).astype(np.float64)
-            if normals.shape != field_arr.shape or mask.shape != field_arr.shape[:3]:
-                raise ValueError(
-                    f"normal_image {normals.shape} and interior_mask "
-                    f"{mask.shape} must lie on the field's grid "
-                    f"{field_arr.shape}."
-                )
-            projected = (field_arr * normals).sum(axis=3, keepdims=True) * normals
-            # A vertex interior to a volumetric template carries a zero normal.
-            # Projecting it would delete a sample the weights still count in the
-            # denominator, biasing the result toward zero rather than leaving the
-            # sample unprojected, so those keep their full displacement.
-            unoriented = np.linalg.norm(normals, axis=3) == 0.0
-            projected[unoriented] = field_arr[unoriented]
-            sample_sets.append(
-                (projected, sigma if exterior_sigma is None else exterior_sigma)
+        spread = np.zeros_like(field_arr)
+        for dim in range(field_arr.shape[3]):
+            spread[:, :, :, dim] = self._smooth_scalar_array(
+                field_arr[:, :, :, dim] * weights, sigma, field
             )
+        smoothed_weights = self._smooth_scalar_array(weights, sigma, field)
 
-        smoothed_sets: list[np.ndarray] = []
-        for samples, set_sigma in sample_sets:
-            spread = np.zeros_like(field_arr)
-            for dim in range(field_arr.shape[3]):
-                spread[:, :, :, dim] = self._smooth_scalar_array(
-                    samples[:, :, :, dim] * weights, set_sigma, field
-                )
-            smoothed_weights = self._smooth_scalar_array(weights, set_sigma, field)
-
-            # Add a floor to the denominator rather than clamping to it. ITK's
-            # recursive Gaussian is an IIR approximation, so far from every
-            # sample both smoothed arrays ring around zero; clamping a
-            # denominator that small turns that ringing into displacements
-            # several times larger than any the samples carried, while adding to
-            # it lets the quotient fall off to zero there, which is what a field
-            # with no nearby sample should do.
-            weight_floor = 1.0e-3 * float(smoothed_weights.max())
-            if weight_floor <= 0.0:
-                raise ValueError("Deformation field has no non-zero samples to spread.")
-            spread /= (np.maximum(smoothed_weights, 0.0) + weight_floor)[..., None]
-            smoothed_sets.append(spread)
-
-        smoothed = smoothed_sets[0]
-        if mask is not None:
-            inside = np.clip(mask, 0.0, 1.0)[..., None]
-            smoothed = inside * smoothed_sets[0] + (1.0 - inside) * smoothed_sets[1]
+        # Add a floor to the denominator rather than clamping to it. ITK's
+        # recursive Gaussian is an IIR approximation, so far from every
+        # sample both smoothed arrays ring around zero; clamping a
+        # denominator that small turns that ringing into displacements
+        # several times larger than any the samples carried, while adding to
+        # it lets the quotient fall off to zero there, which is what a field
+        # with no nearby sample should do.
+        weight_floor = 1.0e-3 * float(smoothed_weights.max())
+        if weight_floor <= 0.0:
+            raise ValueError("Deformation field has no non-zero samples to spread.")
+        spread /= (np.maximum(smoothed_weights, 0.0) + weight_floor)[..., None]
 
         smoothed_field = ProcessImages().convert_array_to_image_of_vectors(
-            smoothed, reference_image=field, ptype=itk.D
+            spread, reference_image=field, ptype=itk.D
         )
         field_transform = itk.DisplacementFieldTransform[itk.D, 3].New()
         field_transform.SetDisplacementField(smoothed_field)
+        return field_transform
+
+    @staticmethod
+    def _smoothstep(ramp: np.ndarray) -> np.ndarray:
+        """Evaluate the cubic smoothstep ``3t^2 - 2t^3`` on ``ramp`` in ``[0, 1]``."""
+        return cast(np.ndarray, ramp * ramp * (3.0 - 2.0 * ramp))
+
+    def restrict_deformation_field_to_normal_falloff_outside_mask(
+        self,
+        field: itk.Image,
+        normal_image: itk.Image,
+        mask: itk.Image,
+        direction_offset_mm: float = 0.0,
+        direction_transition_mm: float = 5.0,
+        falloff_distance_mm: float = 20.0,
+    ) -> itk.DisplacementFieldTransform:
+        """Restrict a dense field to its normal component and fade it outside a mask.
+
+        Inside ``mask`` the field passes through unchanged, so an organ's own
+        contents still follow its surface. Beyond it, only the component of the
+        displacement along the surface normal is kept -- the expansion and
+        contraction, not the tangential sliding -- which is how a slip interface
+        such as the pleura or the pericardium behaves: surrounding tissue is
+        pushed and pulled by the organ without being dragged along it. That
+        normal component then fades to zero by ``falloff_distance_mm`` outside
+        the mask, so the push does not propagate indefinitely; a dense field
+        (unlike a sparsely sampled one) has no other mechanism to die out.
+
+        Args:
+            field (itk.Image): Dense vector deformation field, e.g. the output
+                of :meth:`smooth_deformation_field_transform`
+                (``.GetDisplacementField()``).
+            normal_image (itk.Image): Per-voxel surface normal on ``field``'s
+                grid, dense the same way ``field`` is -- e.g.
+                :meth:`smooth_deformation_field_transform` applied to the raw
+                per-vertex normals :meth:`WorkflowInferMovement.create_deformation_field`
+                returns, with the same ``sigma``/``weight_image``. Renormalized
+                internally, so it need not be unit length; voxels where it is
+                near zero (no nearby surface to have spread from) keep their
+                full displacement, having no direction to project onto.
+            mask (itk.Image): Binary or label image on ``field``'s grid; any
+                non-zero value marks the organ's interior.
+            direction_offset_mm (float): Distance (millimeters) past the mask
+                boundary before the field starts switching to its normal
+                component. The fitted surface and the segmentation of the same
+                organ commonly disagree by about a voxel, so a small offset
+                keeps that disagreement from clipping tangential motion at the
+                boundary itself.
+            direction_transition_mm (float): Width (millimeters) of the band,
+                starting at ``direction_offset_mm``, over which the field blends
+                from its full vector to its normal component. Zero would make
+                the switch a discontinuity that shears neighboring voxels in
+                opposite directions and tears a warped volume.
+            falloff_distance_mm (float): Distance (millimeters) outside the
+                mask boundary over which the (by then normal-only) displacement
+                fades to zero. This is how far the organ's push and pull reaches
+                into the tissue around it.
+
+        Returns:
+            itk.DisplacementFieldTransform: The restricted field transform.
+
+        Raises:
+            ValueError: If ``normal_image`` or ``mask`` does not lie on
+                ``field``'s grid.
+        """
+        field_arr = itk.array_from_image(field).astype(np.float64)
+        normals = itk.array_from_image(normal_image).astype(np.float64)
+        mask_arr = itk.array_from_image(mask).astype(np.float64)
+        if normals.shape != field_arr.shape or mask_arr.shape != field_arr.shape[:3]:
+            raise ValueError(
+                f"normal_image {normals.shape} and mask {mask_arr.shape} must "
+                f"lie on the field's grid {field_arr.shape}."
+            )
+
+        interior = itk.image_from_array((mask_arr > 0.5).astype(np.uint8))
+        interior.CopyInformation(mask)
+        distance_mm = itk.array_from_image(
+            itk.signed_maurer_distance_map_image_filter(
+                interior,
+                InsideIsPositive=False,
+                SquaredDistance=False,
+                UseImageSpacing=True,
+            )
+        )
+
+        # A voxel with no nearby surface to have spread a normal from -- an
+        # interior point of a volumetric template, or simply outside the reach
+        # of however normal_image was spread -- carries a near-zero normal.
+        # Projecting onto it would erase displacement no falloff should have
+        # touched, so those voxels keep their full vector instead.
+        normal_norm = np.linalg.norm(normals, axis=3)
+        unoriented = normal_norm < 1.0e-8
+        unit_normals = normals / np.where(unoriented, 1.0, normal_norm)[..., None]
+        projected = (field_arr * unit_normals).sum(axis=3, keepdims=True) * unit_normals
+        projected[unoriented] = field_arr[unoriented]
+
+        direction_ramp = np.clip(
+            (distance_mm - direction_offset_mm) / direction_transition_mm, 0.0, 1.0
+        )
+        direction_weight = 1.0 - self._smoothstep(direction_ramp)
+        direction_blended = (
+            direction_weight[..., None] * field_arr
+            + (1.0 - direction_weight[..., None]) * projected
+        )
+
+        # Starts fading right at the mask boundary, independently of
+        # direction_offset_mm/direction_transition_mm: the direction switch and
+        # the reach of the push are different physical scales.
+        falloff_ramp = np.clip(distance_mm / falloff_distance_mm, 0.0, 1.0)
+        falloff_weight = np.where(
+            distance_mm <= 0.0, 1.0, 1.0 - self._smoothstep(falloff_ramp)
+        )
+
+        restricted = falloff_weight[..., None] * direction_blended
+
+        restricted_field = ProcessImages().convert_array_to_image_of_vectors(
+            restricted, reference_image=field, ptype=itk.D
+        )
+        field_transform = itk.DisplacementFieldTransform[itk.D, 3].New()
+        field_transform.SetDisplacementField(restricted_field)
         return field_transform
 
     @staticmethod

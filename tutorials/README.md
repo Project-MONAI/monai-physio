@@ -25,6 +25,7 @@ current working directory.
 
 | # | Script | Primary API | Dataset |
 |---|--------|-------------|---------|
+| 00 | [tutorial_00_lung_demo.ipynb](tutorial_00_lung_demo.ipynb) | `WorkflowFitStatisticalModelToPatient`, `WorkflowInferMovement` | Chest-CT plus pretrained PhysicsNeMo-MGN-Lung-Motion (both auto-download) |
 | 1 | [tutorial_01_heart_gated_ct_to_usd.py](tutorial_01_heart_gated_ct_to_usd.py) | `WorkflowConvertImageToUSD` | Slicer-Heart-CT (prepare first) |
 | 1 | [tutorial_01_lung_gated_ct_to_usd.py](tutorial_01_lung_gated_ct_to_usd.py) | `WorkflowConvertImageToUSD` | Lung gated 4D CT (prepare first) |
 | 2 | [tutorial_02_lung_finetune_icon.py](tutorial_02_lung_finetune_icon.py) | `WorkflowFinetuneICONRegistration` | TCIA-4DLung (manual) |
@@ -109,6 +110,10 @@ pytest tests/test_tutorials.py::TestTutorial01HeartGatedCTToUSD --run-tutorials 
 ```
 
 ## Recommended Order
+
+**Tutorial 00** is an optional, self-contained demo notebook - it downloads
+its own data and a pretrained network, then predicts lung motion end-to-end
+with nothing from the numbered chain below required first.
 
 Each numbered step has a heart variant, a lung variant, or both. Follow the
 variants for the anatomy you care about: every tutorial consumes the output of

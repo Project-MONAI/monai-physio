@@ -27,10 +27,7 @@ from parameters_heart_ct_kcl import HEART_CT_KCL
 
 from monai_physio import (
     ProcessContours,
-    # SegmentHeartSimplewareTrimmedBranches,
-    # SegmentChestTotalSegmentatorWithContrast,
     ProcessTests,
-    SegmentChestTotalSegmentator,
     WorkflowFitStatisticalModelToPatient,
 )
 
@@ -77,12 +74,7 @@ if __name__ == "__main__":
 
     log_level = logging.INFO
 
-    segmentation_method = SegmentChestTotalSegmentator()
-    segmentation_method.set_has_academic_license(True)
-    # segmentation_method = SegmentHeartSimplewareTrimmedBranches() # Use when available
-    #     and images are contrast-enhanced.
-    # segmentation_method = SegmentChestTotalSegmentatorWithContrast() # Use when
-    #     contrast-enhanced images and Simpleware is not available.
+    segmentation_method = HEART_CT_KCL.segmenter(test_mode, log_level=log_level)
 
     # Directory setup and data reading
 

@@ -16,8 +16,9 @@ recall.
 1. Read the case's gated CT sequence.  The respiratory stages come from the
    ``g{PPP}`` filenames, so the acquisition itself says what is predicted.
 
-2. Segment the reference phase (``g070``) with ``SegmentNVSegmentCTMRI``, the
-   segmenter the lung shape model was built with, and extract its lung surface.
+2. Segment the reference phase (``g070``) with ``TCIA_4D_LUNG.segmenter_class``,
+   the segmenter the lung shape model was built with, and extract its lung
+   surface.
 
 3. Fit the lung PCA model to that phase with
    :class:`monai_physio.WorkflowFitStatisticalModelToPatient` and PCA-based
@@ -36,8 +37,9 @@ motion instead, which is the point of the chain.
 Data Required
 -------------
   * ``data/TCIA-4DLung/<case>/<case>_g0??.nii.gz`` - the gated CT sequence
-  * ``output/tutorial_06_lung/`` - lung PCA model + mean surface
-  * ``network_weights/physicsnemo_mgn_lung_motion/`` - Tutorial 9 checkpoint
+  * ``network_weights/physicsnemo_mgn_lung_motion/`` - Tutorial 9 checkpoint,
+    which also carries the lung PCA model + mean surface it was trained
+    against (``pca_model.json``, ``pca_mean_surface.vtp``)
   * ``network_weights/icon_tcia_4dlung_distancemap/`` - Tutorial 2 weights,
     optional; the stock uniGradICON weights are used without them
 
@@ -73,7 +75,6 @@ from parameters_tcia_4d_lung import TCIA_4D_LUNG
 from monai_physio import (
     ProcessContours,
     ProcessTests,
-    SegmentNVSegmentCTMRI,
     WorkflowConvertImageToVTK,
     WorkflowFitStatisticalModelToPatient,
     WorkflowInferMovement,
@@ -123,13 +124,14 @@ if __name__ == "__main__":
     # Keep a test run out of the directories a full run reads and writes.
     weights_dir = TCIA_4D_LUNG.weights_directory(test_mode)
 
-    # PCA model + mean surface produced by Tutorial 6 (lung).
-    pca_model_file = TCIA_4D_LUNG.pca_model_file(test_mode)
-    pca_mean_file = TCIA_4D_LUNG.pca_mean_surface_file(test_mode)
     # Weights Tutorial 9 trained, and the checkpoint epoch to infer with; None
     # uses the final weights.
     model_dir = TCIA_4D_LUNG.mgn_weights_directory(test_mode)
     epoch: Optional[int] = None
+    # PCA model + mean surface Tutorial 9 trained against, shipped alongside
+    # the checkpoint.
+    pca_model_file = model_dir / "pca_model.json"
+    pca_mean_file = model_dir / "pca_mean_surface.vtp"
 
     # Distance-map weights finetuned on TCIA-4DLung by
     # tutorial_02_lung_distancemap_finetune_icon.py, used by the
@@ -168,8 +170,8 @@ if __name__ == "__main__":
     output_dir.mkdir(parents=True)
 
     for required_file, hint in (
-        (pca_model_file, "tutorial_06_lung_create_statistical_model.py"),
-        (pca_mean_file, "tutorial_06_lung_create_statistical_model.py"),
+        (pca_model_file, "tutorial_09_lung_train_physicsnemo_mgn.py"),
+        (pca_mean_file, "tutorial_09_lung_train_physicsnemo_mgn.py"),
         (model_dir / "mgn_stage_model.pt", "tutorial_09_lung_train_physicsnemo_mgn.py"),
     ):
         if not required_file.exists():
@@ -223,8 +225,9 @@ if __name__ == "__main__":
     lung_labelmap_file = output_dir / f"{reference_stem}_labelmap.nii.gz"
     logger.info("Segmenting the reference phase %s", reference_file.name)
     contour_tools = ProcessContours(log_level=log_level)
+    segmentation_method = TCIA_4D_LUNG.segmenter(test_mode, log_level=log_level)
     segmentation_result = WorkflowConvertImageToVTK(
-        segmentation_method=SegmentNVSegmentCTMRI(log_level=log_level),
+        segmentation_method=segmentation_method,
         log_level=log_level,
     ).process(
         input_image=reference_image,

@@ -169,7 +169,7 @@ if __name__ == "__main__":
         warp_interpolation="linear",
         warp_background_value=-1000.0,
         smoothing_sigma_mm=smoothing_sigma_mm,
-        usd_project_name=f"{case_id}_mgn_motion",
+        usd_project_name=f"lung_{case_id}_mgn_motion",
         anatomy_type="lung",
         separate_by_connectivity=True,
     )

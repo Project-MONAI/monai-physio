@@ -56,12 +56,18 @@ which would drag the chest wall, the ribs and the mediastinum along with a lung
 that is sliding past them. A real thorax slips there instead: the visceral
 pleura slides against the parietal pleura, the epicardium against the
 pericardium, and only the motion *along the surface normal* -- the organ filling
-and emptying -- is transmitted outward. Each stage's samples are therefore split
-into their normal and tangential components, and outside the organ only the
-normal component is spread. Inside it both are, so the parenchyma and the
-myocardium still follow their own surfaces. The organ masks that select between
-the two are softened by ``slip_transition_mm``, so the sliding stops over a band
-rather than at a step that would tear the warped volumes.
+and emptying -- is transmitted outward, fading out with distance rather than
+reaching indefinitely into the surrounding tissue. Each stage's field is
+therefore smoothed once with
+``ProcessTransforms.smooth_deformation_field_transform``, then restricted with
+``ProcessTransforms.restrict_deformation_field_to_normal_falloff_outside_mask``,
+which splits it into its normal and tangential components -- outside the organ
+only the normal component survives -- and fades that component to zero by
+``falloff_distance_mm``. Inside the organ mask the whole field passes through
+unchanged, so the parenchyma and the myocardium still follow their own
+surfaces. The direction switch itself is softened by
+``direction_transition_mm``, so the sliding stops over a band rather than at a
+step that would tear the warped volumes.
 
 Reference stage
 ---------------
@@ -116,8 +122,8 @@ free: the hundred warped CT volumes are 40 GB of it)
 - ``deformation_field_<rhythm>_s<sss>.mha`` /
   ``surface_normal_field_<rhythm>_s<sss>.mha`` /
   ``deformed_<rhythm>_surface_s<sss>.vtp`` - per-stage inferred motion.
-- ``interior_mask_<rhythm>.mha`` - the softened organ mask each rhythm's sliding
-  is confined to.
+- ``interior_mask_<rhythm>.mha`` - the binary organ mask each rhythm's normal
+  restriction and falloff are computed against.
 - ``breathing_lungs.usd`` / ``beating_heart.usd`` - each rhythm on its own.
 - ``combined_frame_<iii>.vtp`` (``000..099``) + ``heart_and_lung_motion.usd`` -
   the combined respiratory + cardiac 4D motion, painted with anatomy materials.
@@ -146,7 +152,6 @@ from monai_physio import (
     ProcessTests,
     ProcessTransforms,
     ProcessUSDAnatomy,
-    SegmentHeartSimplewareTrimmedBranches,
     SegmentNVSegmentCTMRI,
     WorkflowConvertVTKToUSD,
     WorkflowFitStatisticalModelToPatient,
@@ -224,25 +229,27 @@ if __name__ == "__main__":
     # to the thorax it has to fill, so it is spread further than the heart.
     respiratory_sigma_mm = 15.0
     cardiac_sigma_mm = 10.0
-    # How far each rhythm's push and pull carries *beyond* its own organ, as a
-    # separate sigma for the normal component spread outside the interior mask.
-    # The lungs drive the whole thorax, so they keep their full reach. The heart
-    # sits in tissue that barely moves with it, so its influence is confined to
-    # a quarter of that distance: the pericardial neighborhood still follows the
-    # myocardium at full strength, while the mediastinum and chest wall further
-    # out stop being pumped by it. Only the reach changes -- the displacement at
-    # the heart surface, and everything inside it, is untouched.
-    cardiac_exterior_sigma_mm = 0.25 * cardiac_sigma_mm
+    # How far each rhythm's push and pull carries *beyond* its own organ, as the
+    # distance its normal-only displacement fades to zero over, outside the
+    # interior mask. The lungs drive the whole thorax, so they keep their full
+    # reach. The heart sits in tissue that barely moves with it, so its
+    # influence is confined to a quarter of that distance: the pericardial
+    # neighborhood still follows the myocardium at full strength, while the
+    # mediastinum and chest wall further out stop being pumped by it. Only the
+    # reach changes -- the displacement at the heart surface, and everything
+    # inside it, is untouched.
+    respiratory_falloff_distance_mm = respiratory_sigma_mm
+    cardiac_falloff_distance_mm = 0.25 * cardiac_sigma_mm
     # How wide a band (mm) the sliding motion dies out over at the pleura and
     # the pericardium. Zero would make each slip boundary a step, and shear the
     # voxels either side of it in opposite directions.
-    slip_transition_mm = 5.0
+    direction_transition_mm = 5.0
     # How far past the labels that band starts. The fitted shape-model surface
     # and the segmentation of the same organ disagree by about a
     # deformation-grid voxel (3 mm here), so a fall-off that begins at the label
     # edge catches the surface the network predicted on: it costs a quarter of
     # the lung's tangential motion and a third of the heart's.
-    slip_offset_mm = 3.0
+    direction_offset_mm = 3.0
     # Grid every deformation field is sampled on, as a fraction of the CT's own
     # voxel pitch per axis. The fields are Gaussian-smoothed by the sigmas above,
     # so they carry no detail a sub-millimeter grid could resolve, while a
@@ -339,7 +346,7 @@ if __name__ == "__main__":
     # labelmap above.
     heart_labelmap_file = output_dir / "chest_ct_heart_labelmap.mha"
     if not heart_labelmap_file.exists():
-        heart_segmenter = SegmentHeartSimplewareTrimmedBranches(log_level=log_level)
+        heart_segmenter = DUKE_HEART.segmenter(test_mode, log_level=log_level)
         itk.imwrite(
             heart_segmenter.segment(patient_image)["labelmap"],
             str(heart_labelmap_file),
@@ -479,24 +486,13 @@ if __name__ == "__main__":
         logger.info("Fitted the Duke heart model to %s", patient_image_file.name)
 
     # ========================================================================
-    # Interior masks: where sliding propagates, and where only expansion does.
+    # Interior masks: where the whole field propagates, vs. only its normal
+    # component (which restrict_deformation_field_to_normal_falloff_outside_mask
+    # then ramps and fades outside of, by direction_offset_mm/
+    # direction_transition_mm/falloff_distance_mm).
     # ========================================================================
-    def interior_mask_on_grid(labelmap: itk.Image, label_ids: list[int]) -> itk.Image:
-        """Ramp an organ's labels into the blend weight the spreading uses.
-
-        1 inside the organ, where a stage's full displacement is propagated,
-        falling to 0 outside it, where only the component along the surface
-        normal is. The fall-off is what keeps a slip boundary from shearing
-        neighboring voxels in opposite directions and tearing the warped CT.
-
-        It is placed by distance rather than by blurring the labels, because a
-        symmetric blur would put the half-way point of that fall-off *on* the
-        organ boundary -- which is where the network's displacements were
-        predicted, and where the animated surface sits. Those samples would
-        then lose a third of their tangential motion to a band meant for the
-        tissue beyond them. The mask instead stays 1 until ``slip_offset_mm``
-        past the labels and decays over the ``slip_transition_mm`` after that.
-        """
+    def binary_mask_on_grid(labelmap: itk.Image, label_ids: list[int]) -> itk.Image:
+        """Rasterize an organ's labels onto the deformation grid as a 0/1 mask."""
         labels = itk.GetArrayViewFromImage(labelmap)
         binary = itk.GetImageFromArray(np.isin(labels, label_ids).astype(np.float32))
         binary.CopyInformation(labelmap)
@@ -505,31 +501,16 @@ if __name__ == "__main__":
             itk.IdentityTransform[itk.D, 3].New(),
             deformation_grid,
         )
-        interior = itk.GetImageFromArray(
-            (itk.array_from_image(on_grid) > 0.5).astype(np.uint8)
-        )
-        interior.CopyInformation(on_grid)
-        distance_mm = itk.array_from_image(
-            itk.signed_maurer_distance_map_image_filter(
-                interior,
-                InsideIsPositive=False,
-                SquaredDistance=False,
-                UseImageSpacing=True,
-            )
-        )
-        # Smoothstep rather than a straight ramp, so the mask has no kink at
-        # either end for the warped volumes to crease along.
-        ramp = np.clip((distance_mm - slip_offset_mm) / slip_transition_mm, 0.0, 1.0)
         mask = itk.GetImageFromArray(
-            (1.0 - ramp * ramp * (3.0 - 2.0 * ramp)).astype(np.float32)
+            (itk.array_from_image(on_grid) > 0.5).astype(np.uint8)
         )
         mask.CopyInformation(on_grid)
         return mask
 
-    lung_interior_mask = interior_mask_on_grid(
+    lung_interior_mask = binary_mask_on_grid(
         chest_labelmap, list(segmenter.taxonomy.labels_in_group("lung"))
     )
-    heart_interior_mask = interior_mask_on_grid(
+    heart_interior_mask = binary_mask_on_grid(
         heart_labelmap,
         [
             int(value)
@@ -556,27 +537,33 @@ if __name__ == "__main__":
         sigma_mm: float,
         tag: str,
         interior_mask: itk.Image,
-        exterior_sigma_mm: Optional[float] = None,
+        falloff_distance_mm: Optional[float] = None,
     ) -> tuple[list[itk.Transform], list[itk.Transform], list[pv.DataSet]]:
-        """Infer one rhythm across ``stages`` as smoothed deformations.
+        """Infer one rhythm across ``stages`` as smoothed, normal-restricted fields.
 
         Each stage is rasterized twice: the forward field, which moves mesh
         vertices from the reference frame to the stage, and the inverse field,
         which is what resampling an image into that stage's frame needs. Both
-        are spread into continuous transforms by the vertex counts the
-        rasterization reports, so the smoothing keeps the displacement
-        magnitude the network predicted.
+        are spread into continuous fields by the vertex counts the rasterization
+        reports (:meth:`ProcessTransforms.smooth_deformation_field_transform`),
+        which keeps the displacement magnitude the network predicted, and the
+        per-vertex surface normals are spread the same way to give a dense
+        normal field on the same grid.
 
-        The spreading is given ``interior_mask`` and the surface normals the
-        rasterization reports, so beyond the organ it carries only the motion
-        along those normals: surrounding tissue is pushed and pulled by the
-        organ without being dragged along it. ``exterior_sigma_mm`` spreads that
-        outward motion by its own sigma, which is how far into the surrounding
-        tissue the organ reaches; it defaults to ``sigma_mm``. The mask arrives
-        in the reference frame, which is the frame the forward field is indexed
-        in; the inverse field is indexed in the stage's own frame, so the mask is
-        resampled into it first through the unrestricted inverse deformation.
+        Both are then restricted with
+        :meth:`ProcessTransforms.restrict_deformation_field_to_normal_falloff_outside_mask`
+        against ``interior_mask``, so beyond the organ only the motion along
+        those normals survives: surrounding tissue is pushed and pulled by the
+        organ without being dragged along it, fading to zero by
+        ``falloff_distance_mm`` -- how far into the surrounding tissue the organ
+        reaches; it defaults to ``sigma_mm``. The mask arrives in the reference
+        frame, which is the frame the forward field is indexed in; the inverse
+        field is indexed in the stage's own frame, so the mask is resampled into
+        it first through the unrestricted inverse deformation.
         """
+        exterior_reach_mm = (
+            sigma_mm if falloff_distance_mm is None else falloff_distance_mm
+        )
         infer = WorkflowInferMovement(
             WorkflowInferPhysicsNeMo(
                 model_directory=model_directory, epoch=None, log_level=log_level
@@ -617,14 +604,27 @@ if __name__ == "__main__":
             )
             deformed_surfaces.append(fields["forward"]["deformed_surface"])
 
+            smoothed_forward = transform_tools.smooth_deformation_field_transform(
+                fields["forward"]["deformation_field"],
+                sigma_mm,
+                fields["forward"]["weight_image"],
+            )
+            # The raw per-vertex normals live only where a vertex was binned,
+            # same as the raw displacements; spreading them the same way makes
+            # them dense over the same reach the restriction needs them on.
+            forward_normals = transform_tools.smooth_deformation_field_transform(
+                fields["forward"]["normal_image"],
+                sigma_mm,
+                fields["forward"]["weight_image"],
+            )
             forward_transforms.append(
-                transform_tools.smooth_deformation_field_transform(
-                    fields["forward"]["deformation_field"],
-                    sigma_mm,
-                    fields["forward"]["weight_image"],
-                    fields["forward"]["normal_image"],
+                transform_tools.restrict_deformation_field_to_normal_falloff_outside_mask(
+                    smoothed_forward.GetDisplacementField(),
+                    forward_normals.GetDisplacementField(),
                     interior_mask,
-                    exterior_sigma_mm,
+                    direction_offset_mm,
+                    direction_transition_mm,
+                    exterior_reach_mm,
                 )
             )
 
@@ -637,16 +637,21 @@ if __name__ == "__main__":
                 sigma_mm,
                 fields["inverse"]["weight_image"],
             )
+            inverse_normals = transform_tools.smooth_deformation_field_transform(
+                fields["inverse"]["normal_image"],
+                sigma_mm,
+                fields["inverse"]["weight_image"],
+            )
             inverse_transforms.append(
-                transform_tools.smooth_deformation_field_transform(
-                    fields["inverse"]["deformation_field"],
-                    sigma_mm,
-                    fields["inverse"]["weight_image"],
-                    fields["inverse"]["normal_image"],
+                transform_tools.restrict_deformation_field_to_normal_falloff_outside_mask(
+                    unrestricted_inverse.GetDisplacementField(),
+                    inverse_normals.GetDisplacementField(),
                     transform_tools.transform_image(
                         interior_mask, unrestricted_inverse, deformation_grid
                     ),
-                    exterior_sigma_mm,
+                    direction_offset_mm,
+                    direction_transition_mm,
+                    exterior_reach_mm,
                 )
             )
 
@@ -678,6 +683,7 @@ if __name__ == "__main__":
         respiratory_sigma_mm,
         "respiratory",
         lung_interior_mask,
+        respiratory_falloff_distance_mm,
     )
     cardiac_forward, cardiac_inverse, heart_surfaces = stage_transforms(
         heart_model_dir,
@@ -687,7 +693,7 @@ if __name__ == "__main__":
         cardiac_sigma_mm,
         "cardiac",
         heart_interior_mask,
-        cardiac_exterior_sigma_mm,
+        cardiac_falloff_distance_mm,
     )
 
     # Each rhythm on its own, as a reference for the combined animation below.

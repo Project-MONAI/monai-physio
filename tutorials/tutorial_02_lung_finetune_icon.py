@@ -19,8 +19,8 @@ TCIA-4DLung ships no expert landmarks (unlike DIR-Lab), so each method's
 warped image is compared to the fixed image directly -- normalized
 cross-correlation (1.0 is a perfect match) and RMSE in HU, both restricted to
 the fixed image's segmented foreground.  The secondary metric is label
-overlap: ``SegmentNVSegmentCTMRI`` segments the fixed and moving images once
-each, and the moving labelmap is warped onto the fixed grid by every
+overlap: ``TCIA_4D_LUNG.segmenter_class`` segments the fixed and moving images
+once each, and the moving labelmap is warped onto the fixed grid by every
 transform, so the Dice scores reflect the transform rather than segmentation
 variability on re-segmented warped volumes.  The moving image and labelmap
 resampled onto the fixed grid without registration supply the "before
@@ -98,7 +98,6 @@ from monai_physio import (
     RegisterImagesGreedy,
     RegisterImagesGreedyICON,
     RegisterImagesICON,
-    SegmentNVSegmentCTMRI,
     WorkflowFinetuneICONRegistration,
 )
 
@@ -238,7 +237,7 @@ if __name__ == "__main__":
     # Each image is segmented once and the moving labelmap is warped by every
     # transform, so Dice reflects the transform rather than what the segmenter
     # does differently on each interpolated volume.
-    segmenter = SegmentNVSegmentCTMRI(log_level=log_level)
+    segmenter = TCIA_4D_LUNG.segmenter(test_mode, log_level=log_level)
 
     def segment_phase(image_file: Path, image: itk.Image) -> itk.Image:
         """Segment one phase, caching the labelmap under ``labelmaps_dir``.

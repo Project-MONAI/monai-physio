@@ -95,17 +95,17 @@ if __name__ == "__main__":
     data_dir = TCIA_4D_LUNG.input_directory(test_mode)
 
     if test_mode:
-        number_of_iterations_greedy = TCIA_4D_LUNG.number_of_iterations_greedy_test
+        number_of_iterations_greedy = [1, 0]
         frame_files = sorted(data_dir.glob("100_HM10395_g0??.nii.gz"))[0:2]
     else:
-        number_of_iterations_greedy = TCIA_4D_LUNG.number_of_iterations_greedy
+        number_of_iterations_greedy = [100, 100, 10, 5]
         frame_files = sorted(data_dir.glob("100_HM10395_g0??.nii.gz"))
 
     log_level = logging.INFO
 
     registration_method = RegisterImagesGreedy(log_level=log_level)
     registration_method.set_number_of_iterations(number_of_iterations_greedy)
-    registration_method.set_metric(TCIA_4D_LUNG.greedy_metric)
+    registration_method.set_metric("CC")
 
     segmentation_method = SegmentNVSegmentCTMRI(log_level=log_level)
 

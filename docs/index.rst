@@ -26,9 +26,14 @@
 
    <section class="mphysio-card-grid" aria-label="Tutorial cards">
      <a class="mphysio-card" href="installation.html">
-       <span class="mphysio-card__number">00</span>
+       <span class="mphysio-card__number">Setup</span>
        <h2>Install and Clone</h2>
        <p>Install the package, then clone the repository - the tutorial scripts do not ship in the wheel.</p>
+     </a>
+     <a class="mphysio-card" href="tutorials.html#tutorial-00-lung-demo-predict-lung-motion-from-a-single-chest-ct">
+       <span class="mphysio-card__number">00</span>
+       <h2>Predict Lung Motion From a Single Chest CT</h2>
+       <p>A self-contained demo: fit the shape model and predict motion with a pretrained network, nothing else to run first.</p>
      </a>
      <a class="mphysio-card" href="tutorials.html#tutorial-1-gated-4d-ct-to-animated-usd">
        <span class="mphysio-card__number">01</span>

@@ -36,7 +36,6 @@ from parameters_tcia_4d_lung import TCIA_4D_LUNG
 from monai_physio import (
     ProcessContours,
     ProcessTests,
-    SegmentChestTotalSegmentator,
     WorkflowConvertImageToVTK,
     WorkflowFitStatisticalModelToPatient,
 )
@@ -87,8 +86,7 @@ if __name__ == "__main__":
 
     # The same segmenter and surface-extraction workflow used by Tutorial 6, so
     # the patient surface matches the topology the PCA model was built from.
-    segmentation_method = SegmentChestTotalSegmentator(log_level=log_level)
-    segmentation_method.fast_mode = True
+    segmentation_method = TCIA_4D_LUNG.segmenter(test_mode, log_level=log_level)
     segmentation_workflow = WorkflowConvertImageToVTK(
         segmentation_method=segmentation_method, log_level=log_level
     )

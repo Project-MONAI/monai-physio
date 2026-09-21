@@ -26,7 +26,6 @@ from parameters_tcia_4d_lung import TCIA_4D_LUNG
 from monai_physio import (
     ProcessContours,
     ProcessTests,
-    SegmentChestTotalSegmentator,
     WorkflowConvertImageToVTK,
 )
 
@@ -58,8 +57,7 @@ if __name__ == "__main__":
 
     log_level = logging.INFO
 
-    segmentation_method = SegmentChestTotalSegmentator(log_level=log_level)
-    segmentation_method.set_has_academic_license(True)
+    segmentation_method = TCIA_4D_LUNG.segmenter(test_mode, log_level=log_level)
 
     # Directory setup and data reading
     output_dir.mkdir(parents=True, exist_ok=True)

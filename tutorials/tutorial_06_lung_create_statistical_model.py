@@ -104,8 +104,7 @@ if __name__ == "__main__":
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Create lung surface files
-    segmentation_method = TCIA_4D_LUNG.segmenter_class(log_level=log_level)
-    segmentation_method.set_fast_mode(True)
+    segmentation_method = TCIA_4D_LUNG.segmenter(test_mode, log_level=log_level)
     workflow_method = WorkflowConvertImageToVTK(
         segmentation_method=segmentation_method, log_level=log_level
     )

@@ -87,6 +87,33 @@ class TestAnatomyAppearance:
         assert myocardium.endswith("OmniSurface_Myocardium")
         assert ventricle.endswith("OmniSurface_Ventricle_Left")
 
+    def test_hyphenated_project_name_still_gets_post_processed(
+        self, tmp_path: Path
+    ) -> None:
+        """usd_project_name may sanitize to a different USD identifier.
+
+        ConvertVTKToUSD turns a "-" into "_" for the actual root prim path it
+        writes; the post-process step that finds mesh prims to apply
+        appearance to must look under that same sanitized name, not the raw
+        usd_project_name, or it finds nothing and silently skips appearance.
+        """
+        mesh = _labeled_sphere((0.0, 0.0, 0.0), "highres_myocardium")
+
+        workflow = WorkflowConvertVTKToUSD(
+            input_meshes=[mesh],
+            usd_project_name="Chest-CT_pred",
+            output_directory=tmp_path,
+            appearance="anatomy",
+            static_merge=True,
+        )
+        result = workflow.process()
+
+        stage = Usd.Stage.Open(result["usd_file"])
+        material = _bound_material_path(
+            stage, "/World/Chest_CT_pred/highres_myocardium_object1"
+        )
+        assert material.endswith("OmniSurface_Myocardium")
+
     def test_explicit_anatomy_type_overrides_names(self, tmp_path: Path) -> None:
         """A caller-supplied anatomy_type still paints every object the same."""
         meshes = [
