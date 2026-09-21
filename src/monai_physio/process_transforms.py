@@ -808,8 +808,39 @@ class ProcessTransforms(MONAIPhysioBase):
 
         Raises:
             ValueError: If ``normal_image`` or ``mask`` does not lie on
-                ``field``'s grid.
+                ``field``'s grid (size, spacing, origin, direction), or if
+                ``direction_offset_mm`` is not finite, or
+                ``direction_transition_mm``/``falloff_distance_mm`` is not a
+                finite value greater than zero.
         """
+        if not np.isfinite(direction_offset_mm):
+            raise ValueError(
+                f"direction_offset_mm must be finite, got {direction_offset_mm}."
+            )
+        if not (np.isfinite(direction_transition_mm) and direction_transition_mm > 0.0):
+            raise ValueError(
+                "direction_transition_mm must be finite and > 0, got "
+                f"{direction_transition_mm}."
+            )
+        if not (np.isfinite(falloff_distance_mm) and falloff_distance_mm > 0.0):
+            raise ValueError(
+                "falloff_distance_mm must be finite and > 0, got "
+                f"{falloff_distance_mm}."
+            )
+
+        field_size = field.GetLargestPossibleRegion().GetSize()
+        for name, grid_image in (("normal_image", normal_image), ("mask", mask)):
+            if (
+                grid_image.GetLargestPossibleRegion().GetSize() != field_size
+                or grid_image.GetSpacing() != field.GetSpacing()
+                or grid_image.GetOrigin() != field.GetOrigin()
+                or grid_image.GetDirection() != field.GetDirection()
+            ):
+                raise ValueError(
+                    f"{name} must lie on the field's grid (same size, spacing, "
+                    "origin and direction)."
+                )
+
         field_arr = itk.array_from_image(field).astype(np.float64)
         normals = itk.array_from_image(normal_image).astype(np.float64)
         mask_arr = itk.array_from_image(mask).astype(np.float64)

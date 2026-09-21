@@ -308,10 +308,15 @@ Outputs
 
 Adapt to your data
    Swap the downloaded ``Chest-CT`` volume for your own ungated chest CT,
-   and point ``model_dir`` at a different checkpoint - either the one
-   Tutorial 9 trains, or a pretrained one for another anatomy - to demo a
-   different cohort or organ. This is a standalone shortcut, not step one
-   of the numbered series: start at Tutorial 1 for the full pipeline.
+   and point ``model_dir`` at a different lung-motion checkpoint - either
+   the one Tutorial 9 trains, or another pretrained lung checkpoint whose
+   directory also carries a matching ``pca_model.json`` and
+   ``pca_mean_surface.vtp`` - to demo a different cohort. Demoing another
+   anatomy needs more than swapping ``model_dir``: the segmenter
+   (``SegmentChestTotalSegmentator``) and ``anatomy_type="lung"`` passed to
+   ``process_time_series`` are hardcoded to lung and must change too. This
+   is a standalone shortcut, not step one of the numbered series: start at
+   Tutorial 1 for the full pipeline.
 
 Tutorial 1: Gated 4D CT to Animated USD
 =======================================

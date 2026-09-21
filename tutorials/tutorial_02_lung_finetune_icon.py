@@ -247,8 +247,12 @@ if __name__ == "__main__":
         """
         # ``.stem`` only strips ``.gz``, leaving a stray ``.nii`` in the name,
         # since these are ``.nii.gz`` (TCIA) rather than ``.mha`` (DIR-Lab).
+        # The cache file carries the segmenter class name so switching
+        # segmenter_class regenerates rather than silently reusing a
+        # labelmap from a different segmenter.
         image_stem = image_file.name.removesuffix(".nii.gz")
-        labelmap_file = labelmaps_dir / f"{image_stem}_labelmap.mha"
+        segmenter_name = type(segmenter).__name__
+        labelmap_file = labelmaps_dir / f"{image_stem}_{segmenter_name}_labelmap.mha"
         if labelmap_file.exists():
             reporter.log_info("Reusing cached labelmap: %s", labelmap_file.name)
             return itk.imread(str(labelmap_file))

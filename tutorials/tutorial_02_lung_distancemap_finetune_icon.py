@@ -191,10 +191,15 @@ if __name__ == "__main__":
         """
         # ``.stem`` only strips ``.gz``, leaving a stray ``.nii`` in the name,
         # since these are ``.nii.gz`` (TCIA) rather than ``.mha`` (DIR-Lab).
+        # Cache files carry the segmenter class name so switching
+        # segmenter_class regenerates rather than silently reusing labelmaps
+        # and distance maps from a different segmenter.
         image_stem = image_file.name.removesuffix(".nii.gz")
-        distance_map_file = derived_dir / f"{image_stem}_distance_map.mha"
-        labelmap_file = derived_dir / f"{image_stem}_lung_labelmap.nii.gz"
-        surface_file = derived_dir / f"{image_stem}_lung_surface.vtp"
+        segmenter_name = type(segmenter).__name__
+        cache_stem = f"{image_stem}_{segmenter_name}"
+        distance_map_file = derived_dir / f"{cache_stem}_distance_map.mha"
+        labelmap_file = derived_dir / f"{cache_stem}_lung_labelmap.nii.gz"
+        surface_file = derived_dir / f"{cache_stem}_lung_surface.vtp"
         if distance_map_file.exists() and labelmap_file.exists():
             return distance_map_file, labelmap_file
 
