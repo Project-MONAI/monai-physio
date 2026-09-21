@@ -16,7 +16,7 @@ The finetuning cohort is every TCIA-4DLung case except ``100_HM10395``, and
 within each case only every other respiratory phase (``g000``, ``g020``,
 ``g040``, ``g060``, ``g080``) -- half the time points, spanning the full
 breathing cycle at half the segmentation cost.  Each selected phase is
-segmented once with ``SegmentNVSegmentCTMRI``; the lung labelmap is kept for
+segmented once with ``TCIA_4D_LUNG.segmenter_class``; the lung labelmap is kept for
 uniGradICON's Dice loss and the lung surfaces are combined and rasterized into
 the distance map that serves as the training "image".  Segmentation outputs
 are cached on disk, so a second run of this tutorial only re-runs the
@@ -90,7 +90,6 @@ from monai_physio import (
     RegisterImagesGreedy,
     RegisterImagesGreedyICON,
     RegisterImagesICON,
-    SegmentNVSegmentCTMRI,
     WorkflowConvertImageToVTK,
     WorkflowFinetuneICONRegistration,
 )
@@ -142,10 +141,13 @@ if __name__ == "__main__":
         cases_dir = TCIA_4D_LUNG.cases_directory(test_mode)
         number_of_iterations_icon = 10
         epochs = 200
-    number_of_iterations_greedy = TCIA_4D_LUNG.greedy_iterations(test_mode)
 
     log_level = logging.INFO
     reporter = MONAIPhysioBase(class_name=class_name, log_level=log_level)
+
+    number_of_iterations_greedy = cast(
+        RegisterImagesGreedy, TCIA_4D_LUNG.registrar(test_mode, log_level=log_level)
+    ).number_of_iterations
 
     derived_dir.mkdir(parents=True, exist_ok=True)
 
@@ -163,7 +165,7 @@ if __name__ == "__main__":
         )
 
     # Segmentation and distance-map generation
-    segmenter = SegmentNVSegmentCTMRI(log_level=log_level)
+    segmenter = TCIA_4D_LUNG.segmenter(test_mode, log_level=log_level)
     segmentation_workflow = WorkflowConvertImageToVTK(
         segmentation_method=segmenter,
         log_level=log_level,
@@ -189,10 +191,15 @@ if __name__ == "__main__":
         """
         # ``.stem`` only strips ``.gz``, leaving a stray ``.nii`` in the name,
         # since these are ``.nii.gz`` (TCIA) rather than ``.mha`` (DIR-Lab).
+        # Cache files carry the segmenter class name so switching
+        # segmenter_class regenerates rather than silently reusing labelmaps
+        # and distance maps from a different segmenter.
         image_stem = image_file.name.removesuffix(".nii.gz")
-        distance_map_file = derived_dir / f"{image_stem}_distance_map.mha"
-        labelmap_file = derived_dir / f"{image_stem}_lung_labelmap.nii.gz"
-        surface_file = derived_dir / f"{image_stem}_lung_surface.vtp"
+        segmenter_name = type(segmenter).__name__
+        cache_stem = f"{image_stem}_{segmenter_name}"
+        distance_map_file = derived_dir / f"{cache_stem}_distance_map.mha"
+        labelmap_file = derived_dir / f"{cache_stem}_lung_labelmap.nii.gz"
+        surface_file = derived_dir / f"{cache_stem}_lung_surface.vtp"
         if distance_map_file.exists() and labelmap_file.exists():
             return distance_map_file, labelmap_file
 

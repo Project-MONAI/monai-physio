@@ -73,8 +73,6 @@ from monai_physio import (
     MONAIPhysioBase,
     ProcessContours,
     ProcessTests,
-    RegisterImagesGreedy,
-    SegmentChestTotalSegmentator,
 )
 
 # Only run if this script is not imported as a module
@@ -96,20 +94,15 @@ if __name__ == "__main__":
     data_dir = TCIA_4D_LUNG.input_directory(test_mode)
 
     if test_mode:
-        number_of_iterations_greedy = [1, 0]
         frame_files = sorted(data_dir.glob("100_HM10395_g0??.nii.gz"))[0:2]
     else:
-        number_of_iterations_greedy = [30, 15, 7, 3]
         frame_files = sorted(data_dir.glob("100_HM10395_g0??.nii.gz"))
 
     log_level = logging.INFO
     reporter = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
-    registration_method = RegisterImagesGreedy(log_level=log_level)
-    registration_method.set_number_of_iterations(number_of_iterations_greedy)
-
-    segmentation_method = SegmentChestTotalSegmentator(log_level=log_level)
-    segmentation_method.set_has_academic_license(True)
+    registration_method = TCIA_4D_LUNG.registrar(test_mode, log_level=log_level)
+    segmentation_method = TCIA_4D_LUNG.segmenter(test_mode, log_level=log_level)
 
     contour_tools = ProcessContours(log_level=log_level)
 

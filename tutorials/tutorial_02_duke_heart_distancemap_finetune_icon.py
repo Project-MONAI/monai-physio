@@ -50,7 +50,7 @@ import logging
 import shutil
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 import itk
 import numpy as np
@@ -109,10 +109,13 @@ if __name__ == "__main__":
     else:
         number_of_iterations_icon = 10
         epochs = 100
-    number_of_iterations_greedy = DUKE_HEART.greedy_iterations(test_mode)
 
     log_level = logging.INFO
     reporter = MONAIPhysioBase(class_name=class_name, log_level=log_level)
+
+    number_of_iterations_greedy = cast(
+        RegisterImagesGreedy, DUKE_HEART.registrar(test_mode, log_level=log_level)
+    ).number_of_iterations
 
     derived_dir.mkdir(parents=True, exist_ok=True)
 

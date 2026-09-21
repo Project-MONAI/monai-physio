@@ -31,7 +31,6 @@ from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
     ProcessTests,
-    RegisterImagesGreedy,
     WorkflowReconstructHighres4DCT,
 )
 
@@ -56,10 +55,6 @@ if __name__ == "__main__":
     case_glob = "100_HM10395_g0??.nii.gz"
 
     data_dir = TCIA_4D_LUNG.input_directory(test_mode)
-    if test_mode:
-        number_of_iterations_greedy = [1, 0]
-    else:
-        number_of_iterations_greedy = [30, 15, 7, 3]
 
     log_level = logging.INFO
 
@@ -67,8 +62,7 @@ if __name__ == "__main__":
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    registration_method = RegisterImagesGreedy(log_level=log_level)
-    registration_method.set_number_of_iterations(number_of_iterations_greedy)
+    registration_method = TCIA_4D_LUNG.registrar(test_mode, log_level=log_level)
 
     phase_files = sorted(data_dir.glob(case_glob))
     if not phase_files:

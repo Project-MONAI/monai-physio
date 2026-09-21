@@ -15,12 +15,19 @@ together.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import logging
+from dataclasses import dataclass
 from pathlib import Path
+from typing import cast
 
 from parameters_base import ParametersBase
 
-from monai_physio import SegmentAnatomyBase, SegmentNVSegmentCTMRI
+from monai_physio import (
+    RegisterImagesBase,
+    RegisterImagesGreedy,
+    SegmentAnatomyBase,
+    SegmentChestTotalSegmentator,
+)
 
 
 @dataclass(frozen=True)
@@ -52,11 +59,11 @@ class ParametersLungCTDirLab(ParametersBase):
         number_of_pca_components: PCA components retained when building the
             lung statistical model, and used when fitting it to a patient.
         number_of_pca_components_test: Same, under ``ProcessTests.running_as_test``.
-        number_of_iterations_greedy: Greedy coarse-to-fine iteration schedule.
-        number_of_iterations_greedy_test: Same, under
-            ``ProcessTests.running_as_test``.
         segmenter_class: Segmenter every lung tutorial instantiates, so the
             surfaces they compare share a definition of "lung".
+        registration_class: Registration method every lung tutorial
+            instantiates, so the phase-to-phase transforms they produce and
+            compare share one definition of "registered".
         anatomy_group: Anatomy group name that segmenter registers for lungs.
         hold_out_case: Image fitted by Tutorial 7 and therefore kept out of the
             population Tutorial 6 builds the model from, so that the fit
@@ -93,12 +100,8 @@ class ParametersLungCTDirLab(ParametersBase):
     number_of_pca_components: int = 6
     number_of_pca_components_test: int = 5
 
-    number_of_iterations_greedy: list[int] = field(
-        default_factory=lambda: [30, 15, 7, 3]
-    )
-    number_of_iterations_greedy_test: list[int] = field(default_factory=lambda: [1, 0])
-
-    segmenter_class: type[SegmentAnatomyBase] = SegmentNVSegmentCTMRI
+    segmenter_class: type[SegmentAnatomyBase] = SegmentChestTotalSegmentator
+    registration_class: type[RegisterImagesBase] = RegisterImagesGreedy
     anatomy_group: str = "lung"
 
     hold_out_case: str = "Chest-CT.mha"
@@ -146,13 +149,29 @@ class ParametersLungCTDirLab(ParametersBase):
         """Return the per-surface point budget for this run mode."""
         return self.model_points_test if test_mode else self.model_points
 
-    def greedy_iterations(self, test_mode: bool) -> list[int]:
-        """Return the Greedy iteration schedule for this run mode."""
-        return list(
-            self.number_of_iterations_greedy_test
-            if test_mode
-            else self.number_of_iterations_greedy
+    def segmenter(
+        self, test_mode: bool, log_level: int | str = logging.INFO
+    ) -> SegmentAnatomyBase:
+        """Return the shared lung segmenter, fast mode enabled.
+
+        Args:
+            test_mode: Unused today (fast mode is always on); kept for
+                symmetry with :meth:`registrar`.
+        """
+        segmenter = self.segmenter_class(log_level=log_level)
+        segmenter.set_fast_mode(True)
+        return segmenter
+
+    def registrar(
+        self, test_mode: bool, log_level: int | str = logging.INFO
+    ) -> RegisterImagesBase:
+        """Return the shared lung registrar, tuned for this run mode."""
+        registrar = cast(
+            RegisterImagesGreedy, self.registration_class(log_level=log_level)
         )
+        registrar.set_number_of_iterations([1, 0] if test_mode else [30, 15, 7, 3])
+        registrar.set_metric("CC")
+        return registrar
 
 
 #: The single instance every lung tutorial imports.

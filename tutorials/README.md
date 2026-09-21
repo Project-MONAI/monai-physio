@@ -25,6 +25,7 @@ current working directory.
 
 | # | Script | Primary API | Dataset |
 |---|--------|-------------|---------|
+| 00 | [tutorial_00_lung_demo.ipynb](tutorial_00_lung_demo.ipynb) | `WorkflowFitStatisticalModelToPatient`, `WorkflowInferMovement` | Chest-CT plus pretrained PhysicsNeMo-MGN-Lung-Motion (both auto-download) |
 | 1 | [tutorial_01_heart_gated_ct_to_usd.py](tutorial_01_heart_gated_ct_to_usd.py) | `WorkflowConvertImageToUSD` | Slicer-Heart-CT (prepare first) |
 | 1 | [tutorial_01_lung_gated_ct_to_usd.py](tutorial_01_lung_gated_ct_to_usd.py) | `WorkflowConvertImageToUSD` | Lung gated 4D CT (prepare first) |
 | 2 | [tutorial_02_lung_finetune_icon.py](tutorial_02_lung_finetune_icon.py) | `WorkflowFinetuneICONRegistration` | TCIA-4DLung (manual) |
@@ -68,14 +69,18 @@ notes on running them against your own data.
 
 ## Running a Tutorial
 
-Each tutorial is a standalone, straightforward Python script, executed
-end-to-end. Paths are defined near the top of each script. By default, data
-is read from the repository `data/` directory and outputs are written under
+Each numbered tutorial is a standalone, straightforward Python script,
+executed end-to-end - except Tutorial 00, which is a Jupyter notebook. Paths
+are defined near the top of each script. By default, data is read from the
+repository `data/` directory and outputs are written under
 `tutorials/output/<tutorial_name>/`.
 
 ```bash
 # Run the whole tutorial from the command line
 python tutorials/tutorial_01_heart_gated_ct_to_usd.py
+
+# Tutorial 00 is a notebook - run it from Jupyter instead
+jupyter notebook tutorials/tutorial_00_lung_demo.ipynb
 ```
 
 In VS Code or Cursor, open the tutorial and use **Run Python File** (or run
@@ -109,6 +114,10 @@ pytest tests/test_tutorials.py::TestTutorial01HeartGatedCTToUSD --run-tutorials 
 ```
 
 ## Recommended Order
+
+**Tutorial 00** is an optional, self-contained demo notebook - it downloads
+its own data and a pretrained network, then predicts lung motion end-to-end
+with nothing from the numbered chain below required first.
 
 Each numbered step has a heart variant, a lung variant, or both. Follow the
 variants for the anatomy you care about: every tutorial consumes the output of

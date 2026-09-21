@@ -365,15 +365,18 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
         )
         stage = converter.convert(str(output_usd))
 
-        # Post-process: apply chosen appearance to all meshes under /World/{usd_project_name}
+        # Post-process: apply chosen appearance to all meshes under
+        # /World/{root_prim_name}. ConvertVTKToUSD sanitizes usd_project_name
+        # into a valid USD identifier (e.g. "-" -> "_") for the actual prim
+        # path it writes, so that sanitized name -- not usd_project_name
+        # itself -- is what the lookup below must use.
+        root_prim_name = converter.data_basename
         usd_tools = ProcessUSD(log_level=self.log_level)
         mesh_paths = usd_tools.list_mesh_paths_under(
-            str(output_usd), parent_path=f"/World/{self.usd_project_name}"
+            str(output_usd), parent_path=f"/World/{root_prim_name}"
         )
         if not mesh_paths:
-            self.log_warning(
-                "No mesh prims found under /World/%s", self.usd_project_name
-            )
+            self.log_warning("No mesh prims found under /World/%s", root_prim_name)
             return {"usd_file": str(output_usd)}
 
         # Static merge has no time samples; pass None so only default time is used

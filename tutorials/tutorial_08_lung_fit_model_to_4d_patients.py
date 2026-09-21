@@ -60,8 +60,6 @@ from monai_physio import (
     ProcessContours,
     ProcessTests,
     ProcessTransforms,
-    RegisterImagesGreedy,
-    SegmentChestTotalSegmentator,
     WorkflowConvertImageToVTK,
     WorkflowFitStatisticalModelToPatient,
     WorkflowReconstructHighres4DCT,
@@ -157,8 +155,7 @@ if __name__ == "__main__":
             "See data/TCIA-4DLung/README.md for download instructions."
         )
 
-    segmentation_method = SegmentChestTotalSegmentator(log_level=log_level)
-    segmentation_method.fast_mode = True
+    segmentation_method = TCIA_4D_LUNG.segmenter(test_mode, log_level=log_level)
     segmentation_workflow = WorkflowConvertImageToVTK(
         segmentation_method=segmentation_method, log_level=log_level
     )
@@ -264,7 +261,7 @@ if __name__ == "__main__":
         ]
         time_series = [itk.imread(str(path)) for path in phase_files]
 
-        registration_method = RegisterImagesGreedy(log_level=log_level)
+        registration_method = TCIA_4D_LUNG.registrar(test_mode, log_level=log_level)
 
         reg_workflow = WorkflowReconstructHighres4DCT(
             time_series_images=time_series,

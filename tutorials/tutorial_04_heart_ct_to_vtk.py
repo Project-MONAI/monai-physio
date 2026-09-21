@@ -55,7 +55,6 @@ if __name__ == "__main__":
     save_label_surfaces = True
 
     use_simpleware = False
-    use_totalsegmentator_academic_license = True
 
     if test_mode:
         data_dir = HEART_CT_KCL.data_directory(test_mode) / "slicer_heart_small"
@@ -71,13 +70,9 @@ if __name__ == "__main__":
             log_level=log_level
         )
     else:
-        total_segmentation_method = SegmentChestTotalSegmentatorWithContrast(
+        segmentation_method = SegmentChestTotalSegmentatorWithContrast(
             log_level=log_level
         )
-        total_segmentation_method.set_has_academic_license(
-            use_totalsegmentator_academic_license
-        )
-        segmentation_method = total_segmentation_method
 
     # Directory setup and data reading
 

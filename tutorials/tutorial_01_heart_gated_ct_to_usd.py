@@ -75,8 +75,6 @@ from parameters_heart_ct_kcl import HEART_CT_KCL
 
 from monai_physio import (
     ProcessTests,
-    RegisterImagesGreedy,
-    SegmentChestTotalSegmentatorWithContrast,
     WorkflowConvertImageToUSD,
 )
 
@@ -98,20 +96,15 @@ if __name__ == "__main__":
 
     if test_mode:
         data_dir = HEART_CT_KCL.data_directory(test_mode) / "slicer_heart_small"
-        number_of_iterations_greedy = [1, 0]
         frame_files = sorted(data_dir.glob("slice_???.mha"))[0:2]
     else:
         data_dir = HEART_CT_KCL.data_directory(test_mode) / "Slicer-Heart-CT"
-        number_of_iterations_greedy = [30, 15, 7, 3]
         frame_files = sorted(data_dir.glob("slice_???.mha"))
 
     log_level = logging.INFO
 
-    registration_method = RegisterImagesGreedy(log_level=log_level)
-    registration_method.set_number_of_iterations(number_of_iterations_greedy)
-
-    segmentation_method = SegmentChestTotalSegmentatorWithContrast(log_level=log_level)
-    segmentation_method.set_has_academic_license(True)
+    registration_method = HEART_CT_KCL.registrar(test_mode, log_level=log_level)
+    segmentation_method = HEART_CT_KCL.segmenter(test_mode, log_level=log_level)
 
     # Directory setup and data reading
 

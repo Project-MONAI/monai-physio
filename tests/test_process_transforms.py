@@ -59,7 +59,9 @@ def _as_field(array: Any) -> Any:
     )
 
 
-def test_smooth_deformation_field_transform_stops_sliding_outside_the_mask() -> None:
+def test_restrict_deformation_field_to_normal_falloff_outside_mask_stops_sliding() -> (
+    None
+):
     """Outside the mask only motion along the surface normal is propagated.
 
     A radial field is entirely normal, so restricting it changes nothing. A
@@ -68,22 +70,33 @@ def test_smooth_deformation_field_transform_stops_sliding_outside_the_mask() -> 
     """
     radius_mm, sigma_mm = 12.0, 4.0
     normals, radial, tangential, weights, interior = _sphere_shell_samples(radius_mm)
-    normal_image = _as_field(normals)
     weight_image = itk.image_from_array(weights)
     mask_image = itk.image_from_array(interior)
-
     tools = ProcessTransforms()
 
+    # normal_image must be dense over the same reach as field, exactly like
+    # field itself is: the raw per-vertex normals live only on the one-voxel
+    # shell, same as the raw displacement samples do.
+    normal_image = tools.smooth_deformation_field_transform(
+        _as_field(normals), sigma_mm, weight_image
+    ).GetDisplacementField()
+
     def spread(samples: Any, restrict: bool) -> Any:
-        field = _as_field(samples)
-        transform = tools.smooth_deformation_field_transform(
-            field,
-            sigma_mm,
-            weight_image,
-            normal_image if restrict else None,
-            mask_image if restrict else None,
-        )
-        return itk.array_from_image(transform.GetDisplacementField())
+        field = tools.smooth_deformation_field_transform(
+            _as_field(samples), sigma_mm, weight_image
+        ).GetDisplacementField()
+        if restrict:
+            field = tools.restrict_deformation_field_to_normal_falloff_outside_mask(
+                field,
+                normal_image,
+                mask_image,
+                direction_offset_mm=0.0,
+                direction_transition_mm=0.5,
+                # Effectively disables the falloff, so this test isolates the
+                # normal/tangential split; the decay itself is covered below.
+                falloff_distance_mm=1.0e6,
+            ).GetDisplacementField()
+        return itk.array_from_image(field)
 
     # Well outside the shell but still within reach of the smoothing, and well
     # inside it. Sampling on the shell itself would straddle the mask edge.
@@ -94,41 +107,64 @@ def test_smooth_deformation_field_transform_stops_sliding_outside_the_mask() -> 
     outside = (distance > radius_mm + 2.0) & (distance < radius_mm + 5.0)
     inside = distance < radius_mm - 2.0
 
-    # Tolerances are set by the float32 the samples are rasterized in: the
-    # projection reconstructs a purely normal vector, and annihilates a purely
-    # tangential one, to about 1e-7 of the 3 mm they carry.
+    # A radial field already equals its own normal projection everywhere the
+    # (also spread) normal field is defined, so restricting it should barely
+    # move it; the small residual is the spread normal direction mixing in
+    # neighboring points of the curved surface.
     radial_free, radial_held = spread(radial, False), spread(radial, True)
-    np.testing.assert_allclose(radial_held, radial_free, atol=1e-5)
+    np.testing.assert_allclose(radial_held[inside], radial_free[inside], atol=1e-5)
+    np.testing.assert_allclose(radial_held[outside], radial_free[outside], atol=0.05)
 
     tangential_free, tangential_held = (
         spread(tangential, False),
         spread(tangential, True),
     )
     # The unrestricted spread really does drag the surroundings around, so the
-    # assertion below is not passing on an already-zero field.
+    # assertion below is not passing on an already-zero field. It is not
+    # bit-exact zero either: the spread normal field is only approximately
+    # perpendicular to a pure rotation once curvature mixes in neighboring
+    # points, unlike the exact per-sample normals a mesh vertex carries.
     assert np.abs(tangential_free[outside]).max() > 0.1
-    assert np.abs(tangential_held[outside]).max() < 1e-4
+    assert np.abs(tangential_held[outside]).max() < 0.01
     np.testing.assert_allclose(
         tangential_held[inside], tangential_free[inside], atol=1e-5
     )
 
 
-def test_smooth_deformation_field_transform_rejects_a_lone_normal_or_mask() -> None:
-    """The normals say what to project onto, the mask says where to."""
-    normals, radial, _, weights, interior = _sphere_shell_samples()
+def test_restrict_deformation_field_to_normal_falloff_outside_mask_decays_to_zero() -> (
+    None
+):
+    """The normal-only displacement outside the mask fades to zero with distance."""
+    radius_mm, sigma_mm, falloff_distance_mm = 12.0, 4.0, 6.0
+    normals, radial, _, weights, interior = _sphere_shell_samples(radius_mm)
+    weight_image = itk.image_from_array(weights)
     tools = ProcessTransforms()
 
-    with pytest.raises(ValueError, match="must be given together"):
-        tools.smooth_deformation_field_transform(
-            _as_field(radial), 4.0, itk.image_from_array(weights), _as_field(normals)
-        )
-    with pytest.raises(ValueError, match="must be given together"):
-        tools.smooth_deformation_field_transform(
-            _as_field(radial),
-            4.0,
-            itk.image_from_array(weights),
-            interior_mask=itk.image_from_array(interior),
-        )
+    smoothed = tools.smooth_deformation_field_transform(
+        _as_field(radial), sigma_mm, weight_image
+    )
+    normal_image = tools.smooth_deformation_field_transform(
+        _as_field(normals), sigma_mm, weight_image
+    ).GetDisplacementField()
+    restricted = tools.restrict_deformation_field_to_normal_falloff_outside_mask(
+        smoothed.GetDisplacementField(),
+        normal_image,
+        itk.image_from_array(interior),
+        direction_offset_mm=0.0,
+        direction_transition_mm=0.5,
+        falloff_distance_mm=falloff_distance_mm,
+    )
+    restricted_arr = itk.array_from_image(restricted.GetDisplacementField())
+
+    distance = np.linalg.norm(
+        np.stack(np.meshgrid(*(3 * [np.arange(40.0) - 19.5]), indexing="ij"), axis=3),
+        axis=3,
+    )
+    near = (distance > radius_mm + 1.0) & (distance < radius_mm + 2.0)
+    far = distance > radius_mm + falloff_distance_mm + 3.0
+
+    assert np.abs(restricted_arr[near]).max() > 0.5
+    assert np.abs(restricted_arr[far]).max() < 1e-3
 
 
 def test_generate_grid_image_clamps_boundary_lines() -> None:

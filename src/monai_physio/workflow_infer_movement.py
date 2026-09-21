@@ -201,6 +201,10 @@ class WorkflowInferMovement(MONAIPhysioBase):
         usd_project_name: Optional[str] = None,
         anatomy_type: Optional[str] = None,
         separate_by_connectivity: bool = False,
+        exterior_mask: Optional[itk.Image] = None,
+        exterior_direction_offset_mm: float = 0.0,
+        exterior_direction_transition_mm: float = 5.0,
+        exterior_falloff_distance_mm: float = 20.0,
     ) -> dict[str, Any]:
         """Predict one subject across a whole time series and write its geometry.
 
@@ -237,6 +241,23 @@ class WorkflowInferMovement(MONAIPhysioBase):
             anatomy_type: Anatomy whose materials color that USD.
             separate_by_connectivity: Whether that USD splits each frame into
                 separate objects by connectivity.
+            exterior_mask: Binary or label image on ``reference_image``'s grid
+                marking the anatomy the surface belongs to (e.g. a lung
+                labelmap). When given, the deformation used to warp
+                ``reference_image`` is restricted outside this mask to its
+                component along the surface normal, fading to zero, via
+                :meth:`ProcessTransforms.restrict_deformation_field_to_normal_falloff_outside_mask`,
+                so tissue beyond the organ is pushed and pulled by it without
+                being dragged along tangentially. Omit for the plain isotropic
+                spread every stage otherwise gets.
+            exterior_direction_offset_mm: Passed through as ``direction_offset_mm``.
+                Ignored when ``exterior_mask`` is omitted.
+            exterior_direction_transition_mm: Passed through as
+                ``direction_transition_mm``. Ignored when ``exterior_mask`` is
+                omitted.
+            exterior_falloff_distance_mm: Passed through as ``falloff_distance_mm``
+                -- how far outside ``exterior_mask`` the push and pull reaches.
+                Ignored when ``exterior_mask`` is omitted.
 
         Returns:
             Dict with ``stages``, ``predicted_surfaces``, ``warped_images``,
@@ -300,6 +321,28 @@ class WorkflowInferMovement(MONAIPhysioBase):
                     sigma=smoothing_sigma_mm,
                     weight_image=field["weight_image"],
                 )
+                if exterior_mask is not None:
+                    # The inverse field is indexed in the stage's own frame, so
+                    # the reference-frame mask is resampled into it first
+                    # through the unrestricted transform, exactly as the
+                    # normal image (also on the reference grid) needs to be
+                    # spread the same way the deformation field itself was.
+                    stage_mask = transform_tools.transform_image(
+                        exterior_mask, transform, reference_image
+                    )
+                    stage_normals = transform_tools.smooth_deformation_field_transform(
+                        field["normal_image"],
+                        sigma=smoothing_sigma_mm,
+                        weight_image=field["weight_image"],
+                    )
+                    transform = transform_tools.restrict_deformation_field_to_normal_falloff_outside_mask(
+                        transform.GetDisplacementField(),
+                        stage_normals.GetDisplacementField(),
+                        stage_mask,
+                        exterior_direction_offset_mm,
+                        exterior_direction_transition_mm,
+                        exterior_falloff_distance_mm,
+                    )
                 transforms.append(transform)
                 warped = transform_tools.transform_image(
                     reference_image,

@@ -21,11 +21,10 @@ import logging
 from pathlib import Path
 
 import itk
-from parameters_base import ParametersBase
+from parameters_heart_ct_kcl import HEART_CT_KCL
 
 from monai_physio import (
     ProcessTests,
-    RegisterImagesGreedy,
     WorkflowReconstructHighres4DCT,
 )
 
@@ -42,27 +41,21 @@ if __name__ == "__main__":
 
     class_name = "tutorial_03_heart_reconstruct_highres_4d_ct"
 
-    # Only the shared directory roots are needed here; no dataset-specific
-    # parameters module applies to this tutorial.
-    tutorial_paths = ParametersBase()
     test_mode = ProcessTests.running_as_test()
 
-    output_dir = tutorial_paths.output_directory(test_mode) / "tutorial_03_heart"
+    output_dir = HEART_CT_KCL.output_directory(test_mode) / "tutorial_03_heart"
     baselines_dir = repo_root / "tests" / "baselines"
 
     case_glob = "slice_???.mha"
 
     if test_mode:
-        data_dir = tutorial_paths.data_directory(test_mode) / "slicer_heart_small"
-        number_of_iterations_greedy = [1, 0]
+        data_dir = HEART_CT_KCL.data_directory(test_mode) / "slicer_heart_small"
     else:
-        data_dir = tutorial_paths.data_directory(test_mode) / "Slicer-Heart-CT"
-        number_of_iterations_greedy = [30, 15, 7, 3]
+        data_dir = HEART_CT_KCL.data_directory(test_mode) / "Slicer-Heart-CT"
 
     log_level = logging.INFO
 
-    registration_method = RegisterImagesGreedy(log_level=log_level)
-    registration_method.set_number_of_iterations(number_of_iterations_greedy)
+    registration_method = HEART_CT_KCL.registrar(test_mode, log_level=log_level)
 
     # Directory setup and data reading
 

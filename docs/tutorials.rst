@@ -16,7 +16,9 @@ Tutorials
        that is being released soon.
        Each one drives the real workflow classes end-to-end on downloadable
        data, shows what it produced, and ends with the handful of constants
-       to change so it runs on your own scans.
+       to change so it runs on your own scans. New to the toolkit? Tutorial 00
+       is a self-contained demo notebook that runs the whole lung pipeline
+       from a single clone, with no earlier tutorial required.
      </p>
    </section>
 
@@ -82,6 +84,12 @@ second run is cheap and later tutorials pick up earlier results automatically.
 .. raw:: html
 
    <section class="mphysio-card-grid" aria-label="Tutorial cards">
+     <a class="mphysio-card" href="#tutorial-00-lung-demo-predict-lung-motion-from-a-single-chest-ct">
+       <span class="mphysio-card__number">00</span>
+       <h2>Predict Lung Motion From a Single Chest CT</h2>
+       <p>A self-contained demo: fit the shape model and predict motion with a pretrained network, nothing else to run first.</p>
+       <span class="mphysio-card__meta">Chest-CT &middot; PhysicsNeMo-MGN-Lung-Motion</span>
+     </a>
      <a class="mphysio-card" href="#tutorial-1-gated-4d-ct-to-animated-usd">
        <span class="mphysio-card__number">01</span>
        <h2>Gated 4D CT to Animated USD</h2>
@@ -200,7 +208,8 @@ Tutorials are straightforward Python scripts: run one with
 editor and read it top to bottom. Numbers 1, 4 and 5 are the fastest way to see
 the toolkit
 work end-to-end; 6 through 18 build the statistical-model and AI-surrogate
-pipeline on top.
+pipeline on top. Tutorial 00 sits outside this chain - a notebook demo that
+downloads everything it needs and predicts lung motion end-to-end on its own.
 
 1. **Tutorial 1** - after downloading Slicer-Heart-CT.
 2. **Tutorial 2** - after obtaining TCIA-4DLung. It writes the finetuned ICON
@@ -232,6 +241,82 @@ pipeline on top.
     volume elements, so Tutorial 16 rebuilds the shape model tetrahedrally
     instead of reusing the surface one from Tutorials 6 to 8. Tutorial 17 then
     trains against that energy and Tutorial 18 scores it and reads out stress.
+
+Tutorial 00 (Lung Demo): Predict Lung Motion From a Single Chest CT
+====================================================================
+
+Script
+   ``tutorials/tutorial_00_lung_demo.ipynb``
+
+Workflow
+   :class:`~monai_physio.WorkflowFitStatisticalModelToPatient` and
+   :class:`~monai_physio.WorkflowInferMovement` (``process_time_series``)
+   driving a pretrained :class:`~monai_physio.WorkflowInferPhysicsNeMo`
+   MeshGraphNet, with :class:`~monai_physio.SegmentChestTotalSegmentator`.
+
+Dataset
+   Chest-CT (auto-download): a single ungated chest CT, unlike the gated
+   series the numbered tutorials use. The pretrained
+   PhysicsNeMo-MGN-Lung-Motion checkpoint (auto-download) ships its own PCA
+   shape model, so no Tutorial 6 or Tutorial 9 run is needed first.
+
+Requirements
+   GPU, for segmentation and the MeshGraphNet forward pass.
+
+Preview
+   .. figure:: assets/tutorial_00_lung_usd.gif
+      :alt: Animated lung USD produced by Tutorial 00
+      :width: 90%
+
+      Predicted lung motion across the demo respiratory-stage grid.
+
+Inner API usage
+   .. code-block:: python
+
+      fit_workflow = WorkflowFitStatisticalModelToPatient(
+          template_model=pca_mean_surface,
+          patient_models=[lung_surface],
+          patient_image=patient_image,
+          patient_labelmap=lung_labelmap,
+      )
+      fit_workflow.set_use_pca_registration(
+          use_pca_registration=True,
+          pca_model=pca_model,
+          number_of_pca_components=number_of_pca_components,
+          use_surface=False,
+      )
+      fit_result = fit_workflow.process()
+
+      infer_workflow = WorkflowInferPhysicsNeMo(model_directory=model_dir)
+      infer_result = WorkflowInferMovement(infer_workflow).process_time_series(
+          shape_parameters=pca_coefficients_file,
+          stages=stages,
+          output_directory=output_dir,
+          fitted_reference_mesh=fitted_reference_mesh_file,
+          reference_image=patient_image,
+          anatomy_type="lung",
+      )
+
+Run
+   .. code-block:: bash
+
+      jupyter notebook tutorials/tutorial_00_lung_demo.ipynb
+
+Outputs
+   The per-stage warped CTs, predicted VTP surfaces, and one animated USD,
+   under ``tutorials/output/tutorial_00_lung_demo/``.
+
+Adapt to your data
+   Swap the downloaded ``Chest-CT`` volume for your own ungated chest CT,
+   and point ``model_dir`` at a different lung-motion checkpoint - either
+   the one Tutorial 9 trains, or another pretrained lung checkpoint whose
+   directory also carries a matching ``pca_model.json`` and
+   ``pca_mean_surface.vtp`` - to demo a different cohort. Demoing another
+   anatomy needs more than swapping ``model_dir``: the segmenter
+   (``SegmentChestTotalSegmentator``) and ``anatomy_type="lung"`` passed to
+   ``process_time_series`` are hardcoded to lung and must change too. This
+   is a standalone shortcut, not step one of the numbered series: start at
+   Tutorial 1 for the full pipeline.
 
 Tutorial 1: Gated 4D CT to Animated USD
 =======================================
@@ -448,8 +533,7 @@ Preview
 Inner API usage
    .. code-block:: python
 
-      registration_method = RegisterImagesGreedy()
-      registration_method.set_number_of_iterations([30, 15, 7, 3])
+      registration_method = HEART_CT_KCL.registrar(test_mode, log_level=log_level)
 
       workflow = WorkflowReconstructHighres4DCT(
           time_series_images=time_series,
@@ -475,9 +559,10 @@ Adapt to your data
    Set ``case_glob`` and ``data_dir`` to your series and pick the reference
    with ``reference_time_frame``. If you have a separate breath-hold or
    contrast-enhanced volume, pass it as ``reference_image`` instead of one of
-   the phases - that is what the workflow is really designed for. Tune
-   ``number_of_iterations_greedy`` down for a fast smoke test. The saved
-   ``.hdf`` transforms are reusable:
+   the phases - that is what the workflow is really designed for. The
+   iteration schedule comes from ``HEART_CT_KCL.registrar(test_mode, ...)``,
+   which already shortens it for a fast smoke test when ``test_mode`` is set.
+   The saved ``.hdf`` transforms are reusable:
    :class:`~monai_physio.ProcessTransforms` applies them to meshes and labelmaps.
 
 Tutorial 4: CT Segmentation to VTK Surfaces
