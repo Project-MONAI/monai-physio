@@ -58,6 +58,14 @@ See data/README.md for download instructions and dataset licensing.
 Dataset: TCIA 4D-Lung - see ``data/TCIA-4DLung/README.md``.
 This script expects the ``100_HM10395_g0??.nii.gz`` phase volumes to already
 exist under ``data/TCIA-4DLung/100_HM10395/``.
+
+Segmentation Models
+-------------------
+By default this tutorial uses only TotalSegmentator tasks permitted without a
+separate model license. Lung lobes, vessels, airways, and the body task remain
+available; high-resolution heart chambers and tissue classes are omitted. Set
+``use_totalsegmentator_licensed_tasks`` to ``True`` only after configuring the
+corresponding TotalSegmentator license.
 """
 
 # Imports
@@ -72,7 +80,7 @@ from parameters_tcia_4d_lung import TCIA_4D_LUNG
 from monai_physio import (
     ProcessTests,
     RegisterImagesGreedy,
-    SegmentNVSegmentCTMRI,
+    SegmentChestTotalSegmentator,
     WorkflowConvertImageToUSD,
 )
 
@@ -87,6 +95,7 @@ if __name__ == "__main__":
     # Data directory specification
 
     class_name = "tutorial_01_lung_gated_ct_to_usd"
+    repo_root = Path(__file__).resolve().parent.parent
 
     test_mode = ProcessTests.running_as_test()
 
@@ -102,12 +111,14 @@ if __name__ == "__main__":
         frame_files = sorted(data_dir.glob("100_HM10395_g0??.nii.gz"))
 
     log_level = logging.INFO
+    use_totalsegmentator_licensed_tasks = False
 
     registration_method = RegisterImagesGreedy(log_level=log_level)
     registration_method.set_number_of_iterations(number_of_iterations_greedy)
     registration_method.set_metric("CC")
 
-    segmentation_method = SegmentNVSegmentCTMRI(log_level=log_level)
+    segmentation_method = SegmentChestTotalSegmentator(log_level=log_level)
+    segmentation_method.set_has_academic_license(use_totalsegmentator_licensed_tasks)
 
     # Directory setup and data reading
 
@@ -155,6 +166,7 @@ if __name__ == "__main__":
     tt = ProcessTests(
         class_name=class_name,
         results_dir=output_dir,
+        baselines_dir=repo_root / "tests" / "baselines" / class_name,
         log_level=log_level,
     )
 
