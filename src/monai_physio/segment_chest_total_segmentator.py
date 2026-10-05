@@ -321,12 +321,12 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
             >>> labelmap = segmenter.segmentation_method(preprocessed_ct)
         """
         with tempfile.TemporaryDirectory() as tmp_dir:
-            from totalsegmentator.config import setup_totalseg, set_config_key
+            from totalsegmentator.config import set_config_key, setup_totalseg
             from totalsegmentator.python_api import totalsegmentator
 
             # Ensure config folder/file exist, then disable telemetry.
             setup_totalseg()
-            set_config_key("send_telemetry", False)
+            set_config_key("send_usage_stats", False)
             set_config_key("statistics_disclaimer_shown", True)
 
             # ITK and Nibabel use different coordinate systems (LPS vs RAS).
