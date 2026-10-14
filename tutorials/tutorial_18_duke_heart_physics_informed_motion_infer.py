@@ -52,6 +52,7 @@ then one stress evaluation per frame.  Far cheaper than Tutorials 16 and 17.
 # Imports
 from __future__ import annotations
 
+import contextlib
 import csv
 import logging
 from pathlib import Path
@@ -64,6 +65,7 @@ from parameters_duke_heart_physics_informed import DUKE_HEART_PHYSICS_INFORMED
 from monai_physio import (
     ConvertVTKToUSD,
     EvaluateMovementDukeHeart,
+    InferPhysicsNeMoMGN,
     ProcessTests,
     WorkflowEvaluateMovement,
     WorkflowInferMovement,
@@ -133,11 +135,9 @@ def _render_stress(surface: pv.DataSet, plot_file: Path) -> Path:
     field needs its own plotter.
     """
     xvfb_started = False
-    try:
+    with contextlib.suppress(Exception):
         pv.start_xvfb()
         xvfb_started = True
-    except Exception:
-        pass
     try:
         plotter = pv.Plotter(off_screen=True, window_size=[800, 600])
         plotter.add_mesh(
@@ -154,10 +154,8 @@ def _render_stress(surface: pv.DataSet, plot_file: Path) -> Path:
         # Paired with the guarded start above, so environments without Xvfb
         # (Windows, pyvista >= 0.48) are unaffected.
         if xvfb_started:
-            try:
+            with contextlib.suppress(Exception):
                 pv.stop_xvfb()
-            except Exception:
-                pass
     return plot_file
 
 
@@ -278,7 +276,12 @@ if __name__ == "__main__":
         logger.info("%s", "=" * 48)
 
         infer_workflow = WorkflowInferPhysicsNeMo(
-            model_directory=model_directory, epoch=epoch, log_level=log_level
+            model_directory=model_directory,
+            inference_method=InferPhysicsNeMoMGN(
+                model_tag="physics_informed_motion", log_level=log_level
+            ),
+            epoch=epoch,
+            log_level=log_level,
         )
         evaluate_workflow = WorkflowEvaluateMovement(
             movement_workflow=WorkflowInferMovement(

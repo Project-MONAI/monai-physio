@@ -86,6 +86,7 @@ from .register_images_ants import RegisterImagesANTS
 # Registration classes
 from .register_images_base import RegisterImagesBase
 from .register_images_chain import RegisterImagesChain
+from .register_images_fireants import RegisterImagesFireants
 from .register_images_greedy import RegisterImagesGreedy
 from .register_images_greedy_icon import RegisterImagesGreedyICON
 from .register_images_icon import RegisterImagesICON
@@ -133,34 +134,32 @@ from .workflow_train_physicsnemo import WorkflowTrainPhysicsNeMo
 
 __all__ = [
     "AnatomyGroup",
-    # Anatomy taxonomy (shared between segmenters and USD renderer)
     "AnatomyTaxonomy",
-    "ProcessContours",
-    # Data processing utilities
     "ConvertImage4DTo3D",
     "ConvertVTKToUSD",
-    "DownloadData",
-    # Distributed execution
     "DistributedContext",
+    "DownloadData",
     "EvaluateMovementBase",
     "EvaluateMovementDukeHeart",
     "EvaluateMovementLung",
-    # Utility classes
-    "ProcessImages",
-    # Inference method classes
     "InferPhysicsNeMoBase",
     "InferPhysicsNeMoMGN",
     "InferPhysicsNeMoMLP",
-    "ProcessLabelmaps",
-    "ProcessLandmarks",
-    # Base classes
     "MONAIPhysioBase",
     "MovementGroundTruth",
+    "ProcessContours",
+    "ProcessImages",
+    "ProcessLabelmaps",
+    "ProcessLandmarks",
     "ProcessPhysicsNemo",
+    "ProcessTests",
+    "ProcessTransforms",
+    "ProcessUSD",
+    "ProcessUSDAnatomy",
     "RegisterImagesANTS",
-    # Registration classes
     "RegisterImagesBase",
     "RegisterImagesChain",
+    "RegisterImagesFireants",
     "RegisterImagesGreedy",
     "RegisterImagesGreedyICON",
     "RegisterImagesICON",
@@ -170,7 +169,6 @@ __all__ = [
     "RegisterModelsPCA",
     "RegisterTimeSeriesImages",
     "ReportEvaluateMovement",
-    # Segmentation classes
     "SegmentAnatomyBase",
     "SegmentChestTotalSegmentator",
     "SegmentChestTotalSegmentatorWithContrast",
@@ -178,17 +176,11 @@ __all__ = [
     "SegmentHeartSimplewareTrimmedBranches",
     "SegmentNVSegmentCT",
     "SegmentNVSegmentCTMRI",
-    "ProcessTests",
-    # Training method classes
     "TrainPhysicsNeMoBase",
     "TrainPhysicsNeMoMGN",
     "TrainPhysicsNeMoMLP",
     "TrainPhysicsNeMoPhysicsInformedMotion",
-    "ProcessTransforms",
-    "ProcessUSDAnatomy",
-    "ProcessUSD",
     "WorkflowConvertImageToUSD",
-    # Workflow classes
     "WorkflowConvertImageToVTK",
     "WorkflowConvertVTKToUSD",
     "WorkflowCreateMeanSurface",

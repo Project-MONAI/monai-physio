@@ -223,7 +223,7 @@ if __name__ == "__main__":
     # Fraction of a cardiac cycle advanced per respiratory phase. The heart is
     # decoupled from breathing, so a value < 1 means a single beat continues into
     # the next phase (1.0 locks exactly one full beat to each phase).
-    cardiac_cycles_per_phase = 0.75
+    cardiac_cycles_per_phase = 0.333333333333
     # Gaussian sigma (mm) that spreads each rhythm's surface-sampled
     # displacements into a continuous field. The lung shell is sparse relative
     # to the thorax it has to fill, so it is spread further than the heart.
@@ -588,7 +588,7 @@ if __name__ == "__main__":
                 )
                 for direction in directions
             }
-            pct = int(round(stage * 100))
+            pct = round(stage * 100)
             itk.imwrite(
                 fields["forward"]["deformation_field"],
                 str(output_dir / f"deformation_field_{tag}_s{pct:03d}.mha"),

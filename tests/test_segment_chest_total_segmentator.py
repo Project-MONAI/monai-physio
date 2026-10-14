@@ -5,6 +5,7 @@ This test depends on test_convert_image_4d_to_3d and tests segmentation
 functionality on two time points from the converted 3D data.
 """
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -367,3 +368,40 @@ def test_license_check_tracks_totalsegmentators_own_offline_gate(
         lambda: ("missing_license", "ERROR: A license number has not been set."),
     )
     assert SegmentChestTotalSegmentator._academic_license_is_valid() is False
+
+
+def test_segmentation_method_disables_usage_stats(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """``segmentation_method`` must turn off TotalSegmentator's telemetry.
+
+    Points ``TOTALSEG_HOME_DIR`` at an isolated, empty directory so this
+    does not touch the real machine-wide config, then stops the call right
+    after the config is written (before the GPU-only ``totalsegmentator``
+    call) and reads back ``config.json`` to confirm ``send_usage_stats`` is
+    ``False``. This is the documented key TotalSegmentator's own config and
+    telemetry code reads; a misspelled key (e.g. ``send_telemetry``) would
+    leave usage stats on while this test still passes if it only checked
+    that *some* key was set.
+    """
+    monkeypatch.setenv("TOTALSEG_HOME_DIR", str(tmp_path))
+
+    class _StopBeforeGpuCall(Exception):
+        pass
+
+    def _raise(*args: Any, **kwargs: Any) -> Any:
+        raise _StopBeforeGpuCall
+
+    monkeypatch.setattr("totalsegmentator.python_api.totalsegmentator", _raise)
+
+    segmenter = SegmentChestTotalSegmentator()
+    image = itk.image_from_array(np.zeros((2, 2, 2), dtype=np.float32))
+
+    with pytest.raises(_StopBeforeGpuCall):
+        segmenter.segmentation_method(image)
+
+    config_file = tmp_path / "config.json"
+    assert config_file.exists(), "setup_totalseg did not write a config file"
+    config = json.loads(config_file.read_text())
+    assert config["send_usage_stats"] is False
+    assert config["statistics_disclaimer_shown"] is True

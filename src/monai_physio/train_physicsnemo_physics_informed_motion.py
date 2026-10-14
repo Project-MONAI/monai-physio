@@ -582,6 +582,11 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
         term shape real, non-uniform motion first, before the physics term
         is weighted heavily enough to matter.
 
+        The warmup cannot rescue a target weight that is too large: once the
+        ramp ends, the network collapses anyway if the weighted strain
+        energy of the measured motion outweighs the data loss of predicting
+        no motion. Size the target from those two numbers first.
+
         Args:
             warmup_epochs: Number of epochs to ramp over. ``0`` (default)
                 disables warmup: ``lambda_physics`` is held at the value
@@ -846,8 +851,9 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
                 "physics loss has been ~0 for 5 consecutive epochs while "
                 "lambda_physics=%.4g; the network likely collapsed to the "
                 "trivial uniform-displacement solution described in "
-                "set_lambda_physics_warmup()'s docstring. Consider a longer "
-                "warmup or a lower lambda_physics target.",
+                "set_lambda_physics_warmup()'s docstring. Lower the "
+                "lambda_physics target until the weighted strain energy of "
+                "the measured motion sits below the data loss.",
                 self.lambda_physics,
             )
 

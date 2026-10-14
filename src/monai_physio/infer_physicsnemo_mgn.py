@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -21,7 +22,20 @@ class InferPhysicsNeMoMGN(InferPhysicsNeMoBase):
     training workflow saved next to the checkpoint.
     """
 
-    model_tag = "mgn"
+    def __init__(
+        self, model_tag: str = "mgn", log_level: int | str = logging.INFO
+    ) -> None:
+        """Initialize the MeshGraphNet inference method.
+
+        Args:
+            model_tag: Prefix of the checkpoint files to load
+                (``<model_tag>_stage_model.pt``), e.g.
+                ``"physics_informed_motion"`` for weights written by
+                :class:`monai_physio.TrainPhysicsNeMoPhysicsInformedMotion`.
+                Default: ``"mgn"``.
+            log_level: Logging level. Default: ``logging.INFO``.
+        """
+        super().__init__(model_tag=model_tag, log_level=log_level)
 
     def build_model(self, meta: dict) -> torch.nn.Module:
         MeshGraphNet = ProcessPhysicsNemo.import_meshgraphnet()

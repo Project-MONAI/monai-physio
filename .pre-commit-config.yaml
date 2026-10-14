@@ -4,7 +4,7 @@
 repos:
   # Ruff - fast linter and formatter (replaces black, isort, flake8)
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.20
+    rev: v0.16.6
     hooks:
       # Run the linter with auto-fixes
       - id: ruff-check

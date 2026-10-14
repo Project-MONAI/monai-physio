@@ -35,19 +35,22 @@ class InferPhysicsNeMoBase(MONAIPhysioBase):
 
     Not instantiated directly - use :class:`monai_physio.InferPhysicsNeMoMGN` or
     :class:`monai_physio.InferPhysicsNeMoMLP`. Subclasses implement
-    :meth:`build_model`, :meth:`load_artifacts` and :meth:`predict`, and set the
-    class attribute ``model_tag``.
+    :meth:`build_model`, :meth:`load_artifacts` and :meth:`predict`.
     """
 
-    model_tag: str = "base"
-
-    def __init__(self, log_level: int | str = logging.INFO) -> None:
+    def __init__(
+        self, model_tag: str = "base", log_level: int | str = logging.INFO
+    ) -> None:
         """Initialize the inference method.
 
         Args:
+            model_tag: Prefix of the checkpoint files to load
+                (``<model_tag>_stage_model.pt``); must match the tag of the
+                training method that wrote them. Default: ``"base"``.
             log_level: Logging level. Default: ``logging.INFO``.
         """
         super().__init__(class_name=self.__class__.__name__, log_level=log_level)
+        self.model_tag = model_tag
         self._model: torch.nn.Module
         self._device: torch.device
 
