@@ -114,7 +114,7 @@ def derive_von_mises_from_stress(array: GenericArray) -> list[GenericArray]:
         return []
     try:
         vm = compute_von_mises_stress(array.data)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - derivation is optional
         logger.debug("Skipping VonMises derivation for '%s': %s", array.name, exc)
         return []
     return [

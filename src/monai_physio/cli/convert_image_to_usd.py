@@ -160,7 +160,7 @@ Examples:
             registration_method=registration_method,
             frames_per_second=args.frames_per_second,
         )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - CLI boundary: report and exit nonzero
         print(f"Error initializing workflow: {e}")
         return 1
 
@@ -180,7 +180,7 @@ Examples:
 
         return 0
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - CLI boundary: report and exit nonzero
         print(f"\nError during processing: {e}")
         import traceback
 

@@ -494,7 +494,7 @@ class ProcessImages(MONAIPhysioBase):
         constant = (
             float(background_value)
             if pixel_type in (itk.F, itk.D)
-            else int(round(background_value))
+            else round(background_value)
         )
 
         pad_filter = itk.ConstantPadImageFilter[ImageType, ImageType].New()

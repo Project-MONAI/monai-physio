@@ -40,7 +40,7 @@ Example:
 """
 
 import logging
-from typing import Optional
+from typing import ClassVar, Optional
 
 import itk
 import numpy as np
@@ -140,7 +140,7 @@ class RegisterModelsICP(MONAIPhysioBase):
         self.registered_model: Optional[pv.PolyData] = None
 
     # ICP stages run for each transform type, in order.
-    _ICP_STAGES = {
+    _ICP_STAGES: ClassVar[dict[str, tuple[str, ...]]] = {
         "Rigid": ("Rigid",),
         "Similarity": ("Similarity",),
         "Affine": ("Similarity", "Affine"),

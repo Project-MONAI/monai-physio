@@ -210,6 +210,10 @@ class RegisterImagesFireants(RegisterImagesBase):
     def _scales(self) -> list[float]:
         """Downsampling factor per level, coarse to fine."""
         if self.scales is not None:
+            if len(self.scales) != len(self.number_of_iterations):
+                raise ValueError(
+                    "scales and number_of_iterations must have equal length"
+                )
             return list(self.scales)
         n = len(self.number_of_iterations)
         return [float(2 ** (n - 1 - i)) for i in range(n)]
@@ -220,8 +224,12 @@ class RegisterImagesFireants(RegisterImagesBase):
         """Wrap an ITK image as a batched FireANTs image on the GPU.
 
         When ``masked`` is True the mask is appended as the last channel, as the
-        FireANTs masked losses expect; a missing mask becomes all ones.
+        FireANTs masked losses expect; a missing mask becomes all ones. For the
+        Mattes metric the intensities are first rescaled to [0, 1], the range
+        the FireANTs mutual-information loss clamps to.
         """
+        if self.metric == "Mattes":
+            image = self._rescale_unit_range(image)
         fireants_image = _try_import_fireants("io.image")
         sitk_image = ProcessImages().convert_itk_image_to_sitk(image)
         wrapped = fireants_image.Image(sitk_image, device="cuda")
@@ -235,6 +243,19 @@ class RegisterImagesFireants(RegisterImagesBase):
                     wrapped, fireants_image.Image(sitk_mask, device="cuda")
                 )
         return fireants_image.BatchedImages([wrapped])
+
+    @staticmethod
+    def _rescale_unit_range(image: itk.Image) -> itk.Image:
+        """Return a float32 copy of ``image`` linearly rescaled to [0, 1]."""
+        array = itk.array_from_image(image).astype(np.float32)
+        low, high = float(array.min()), float(array.max())
+        if high > low:
+            array = (array - low) / (high - low)
+        else:
+            array = np.zeros_like(array)
+        rescaled = itk.image_from_array(array)
+        rescaled.CopyInformation(image)
+        return rescaled
 
     @staticmethod
     def _matrix_to_itk_affine(mat_4x4: NDArray[np.float64]) -> itk.Transform:

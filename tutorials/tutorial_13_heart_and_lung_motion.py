@@ -222,8 +222,10 @@ if __name__ == "__main__":
     cardiac_stages = [round(0.1 * k, 2) for k in range(10)]
     # Fraction of a cardiac cycle advanced per respiratory phase. The heart is
     # decoupled from breathing, so a value < 1 means a single beat continues into
-    # the next phase (1.0 locks exactly one full beat to each phase).
-    cardiac_cycles_per_phase = 0.333333333333
+    # the next phase (1.0 locks exactly one full beat to each phase). The product
+    # with the number of respiratory phases must be a whole number of beats, or
+    # the cardiac position jumps where the sequence loops (0.3 x 10 = 3 beats).
+    cardiac_cycles_per_phase = 0.3
     # Gaussian sigma (mm) that spreads each rhythm's surface-sampled
     # displacements into a continuous field. The lung shell is sparse relative
     # to the thorax it has to fill, so it is spread further than the heart.

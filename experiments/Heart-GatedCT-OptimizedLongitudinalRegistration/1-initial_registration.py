@@ -432,9 +432,13 @@ for subject_index, subject_id in enumerate(cohort):
             output_dir = _HERE / f"results{cond}"
             detail_landmarks_file = output_dir / "registration_landmarks_init.csv"
             detail_dice_file = output_dir / "registration_dice_init.csv"
-            if subject_index == 0 and image_index == 0 and cond_index == 0:
-                if output_dir.exists():
-                    shutil.rmtree(output_dir)
+            if (
+                subject_index == 0
+                and image_index == 0
+                and cond_index == 0
+                and output_dir.exists()
+            ):
+                shutil.rmtree(output_dir)
             output_dir.mkdir(parents=True, exist_ok=True)
 
             for method_index, method_name in enumerate(methods):

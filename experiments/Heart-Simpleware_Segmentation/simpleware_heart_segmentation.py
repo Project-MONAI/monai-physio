@@ -225,7 +225,7 @@ if input_image is not None:
         print("Please check the error messages above for details.")
         result = None
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - last-resort handler for the script
         print(f"\nUnexpected error: {e}")
         result = None
 

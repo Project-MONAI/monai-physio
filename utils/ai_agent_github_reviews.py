@@ -470,7 +470,7 @@ def resolve_review_threads(thread_ids: list[str], repo: str) -> None:
     if not thread_ids:
         return
     print(f"[*] Resolving {len(thread_ids)} inline-comment thread(s)...")
-    owner, name = repo.split("/", 1)
+    _owner, _name = repo.split("/", 1)
     for tid in thread_ids:
         try:
             _gh_graphql(_RESOLVE_THREAD_MUTATION, {"threadId": tid})

@@ -48,6 +48,7 @@ def convert_series(series_dir, root, patient_name, pct_counts):
             [DCM2NIIX, "-f", "%d", "-b", "n", "-z", "y", "-o", tmp_dir, series_dir],
             capture_output=True,
             text=True,
+            check=False,
         )
         if result.returncode != 0:
             print(f"  FAILED: {series_dir}\n{result.stderr}")

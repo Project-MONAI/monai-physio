@@ -174,7 +174,7 @@ if __name__ == "__main__":
             reference_image=reference_image,
             fitted_reference_mesh=registered_mesh_file,
         )
-        pct = int(round(stage * 100))
+        pct = round(stage * 100)
         field_path = output_dir / f"deformation_field_s{pct:03d}.mha"
         normal_path = output_dir / f"surface_normal_field_s{pct:03d}.mha"
         surface_path = output_dir / f"deformed_heart_surface_s{pct:03d}.vtp"
@@ -185,7 +185,7 @@ if __name__ == "__main__":
         normal_files.append(normal_path)
         surface_files.append(surface_path)
         deformed_surfaces.append(result["deformed_surface"])
-        logging.info("stage %.2f -> %s", stage, field_path.name)
+        logging.getLogger(__name__).info("stage %.2f -> %s", stage, field_path.name)
 
     # Assemble the ordered per-stage surfaces into one animated 4D USD. The
     # stages loop over one RR interval, so play them back at one beat per second.

@@ -88,7 +88,7 @@ class ProcessLabelmaps(MONAIPhysioBase):
         spacing = labelmap.GetSpacing()
         radius = itk.Size[3]()
         for i in range(3):
-            radius[i] = max(1, int(round(dilation_in_mm / float(spacing[i]))))
+            radius[i] = max(1, round(dilation_in_mm / float(spacing[i])))
         structuring_element = itk.FlatStructuringElement[3].Ball(radius)
         return itk.binary_dilate_image_filter(
             mask, kernel=structuring_element, foreground_value=1

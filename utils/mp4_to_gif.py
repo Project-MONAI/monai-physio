@@ -71,8 +71,10 @@ def convert(mp4_path: Path, gif_path: Path, width: int, fps: int) -> None:
                 "-i",
                 str(palette),
                 "-lavfi",
-                f"{filters}[v];[v][1:v]paletteuse=dither=bayer:bayer_scale=5"
-                ":diff_mode=rectangle",
+                (
+                    f"{filters}[v];[v][1:v]paletteuse=dither=bayer:bayer_scale=5"
+                    ":diff_mode=rectangle"
+                ),
                 "-loop",
                 "0",
                 str(gif_path),

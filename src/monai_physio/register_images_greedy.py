@@ -199,7 +199,7 @@ class RegisterImagesGreedy(RegisterImagesBase):
             return image
         size = image.GetLargestPossibleRegion().GetSize()
         spacing = image.GetSpacing()
-        new_size = [max(1, int(round(int(size[i]) * scale))) for i in range(3)]
+        new_size = [max(1, round(int(size[i]) * scale)) for i in range(3)]
         new_spacing = [float(spacing[i]) * int(size[i]) / new_size[i] for i in range(3)]
         kwargs: dict[str, Any] = {
             "output_origin": image.GetOrigin(),
@@ -337,7 +337,7 @@ class RegisterImagesGreedy(RegisterImagesBase):
         try:
             ml = g.metric_log()
             loss = float(ml[-1]["TotalPerPixelMetric"][-1]) if ml else 0.0
-        except Exception:
+        except (KeyError, IndexError, TypeError, ValueError, RuntimeError):
             loss = 0.0
         self.log_info("Greedy affine/rigid registration loss: %s", loss)
         return mat, loss
@@ -416,7 +416,7 @@ class RegisterImagesGreedy(RegisterImagesBase):
         try:
             ml = g.metric_log()
             loss = float(ml[-1]["TotalPerPixelMetric"][-1]) if ml else 0.0
-        except Exception:
+        except (KeyError, IndexError, TypeError, ValueError, RuntimeError):
             loss = 0.0
         self.log_info("Greedy deformable registration loss: %s", loss)
         return initial_affine, warp_out, loss

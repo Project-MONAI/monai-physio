@@ -72,7 +72,7 @@ def parse_junit(xml_path: Path) -> dict:
             "skipped": skipped,
             "available": True,
         }
-    except Exception as exc:
+    except (ET.ParseError, OSError, ValueError) as exc:
         return {
             "tests": 0,
             "passed": 0,
@@ -118,7 +118,7 @@ def parse_coverage(json_path: Path) -> dict:
         if pct is not None:
             return {"percent": float(pct), "available": True}
         return {"percent": None, "available": False}
-    except Exception as exc:
+    except (OSError, ValueError, TypeError) as exc:
         return {"percent": None, "available": False, "parse_error": str(exc)}
 
 
@@ -168,9 +168,9 @@ def build_html(data: dict) -> str:
     ts = data["timestamp"]
 
     try:
-        dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(ts)
         ts_display = dt.strftime("%Y-%m-%d %H:%M UTC")
-    except Exception:
+    except ValueError:
         ts_display = ts
 
     # Determine overall badge
@@ -313,9 +313,9 @@ def build_summary_md(data: dict) -> str:
     ts = data["timestamp"]
 
     try:
-        dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(ts)
         ts_display = dt.strftime("%Y-%m-%d %H:%M UTC")
-    except Exception:
+    except ValueError:
         ts_display = ts
 
     if not junit.get("available"):

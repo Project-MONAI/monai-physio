@@ -668,12 +668,11 @@ def validate_time_series_topology(
                         f"got {array_size}, expected {n_points} points"
                     )
 
-            elif array.interpolation == "uniform":
-                if array_size != n_faces:
-                    warnings.append(
-                        f"{frame_label}: Cell data '{array.name}' size mismatch - "
-                        f"got {array_size}, expected {n_faces} faces"
-                    )
+            elif array.interpolation == "uniform" and array_size != n_faces:
+                warnings.append(
+                    f"{frame_label}: Cell data '{array.name}' size mismatch - "
+                    f"got {array_size}, expected {n_faces} faces"
+                )
 
     # Log summary
     if topology_changes:

@@ -457,8 +457,8 @@ class RegisterImagesANTS(RegisterImagesBase):
             ...     fixed=fixed_ANTS, moving=moving_ANTS, initial_transform=transform_files
             ... )
         """
-        if isinstance(itk_tfm, itk.DisplacementFieldTransform) or isinstance(
-            itk_tfm, itk.CompositeTransform
+        if isinstance(
+            itk_tfm, (itk.DisplacementFieldTransform, itk.CompositeTransform)
         ):
             transform_tools = ProcessTransforms()
             disp_field_itk = transform_tools.convert_transform_to_displacement_field(

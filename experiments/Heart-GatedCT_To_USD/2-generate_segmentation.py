@@ -1,5 +1,6 @@
 # %%
 import os
+import sys
 
 import itk
 import numpy as np
@@ -36,7 +37,7 @@ if __name__ == "__main__":
             )
         except (FileNotFoundError, OSError):
             print("No image found. Aborting. Please run 1-generate_images.ipynb first.")
-            exit(1)
+            sys.exit(1)
         arr = itk.array_from_image(image)
         print(arr.shape)
         arr = np.where(arr == 0, -1000, arr)

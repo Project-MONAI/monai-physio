@@ -6,7 +6,7 @@ import os
 import sys
 import tomllib
 import warnings
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -30,7 +30,7 @@ sys.modules["icon_registration.network_wrappers"] = Mock()
 
 # -- Project information -----------------------------------------------------
 project = "MONAI Physio"
-copyright = f"{datetime.now().year}, Stephen R. Aylward, NVIDIA Corporation"
+copyright = f"{datetime.now(tz=UTC).year}, Stephen R. Aylward, NVIDIA Corporation"
 author = "Stephen R. Aylward"
 _repo_root = Path(__file__).resolve().parents[1]
 _pyproject = tomllib.loads((_repo_root / "pyproject.toml").read_text(encoding="utf-8"))

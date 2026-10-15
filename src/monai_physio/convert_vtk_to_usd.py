@@ -320,7 +320,7 @@ class ConvertVTKToUSD(MONAIPhysioBase):
                 report = validate_time_series_topology(mesh_data_seq)
                 for w in report.get("warnings", []):
                     instance.log_warning("%s", w)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - validation is advisory only
                 instance.log_debug("Topology validation skipped: %s", exc)
 
         return instance
@@ -443,7 +443,7 @@ class ConvertVTKToUSD(MONAIPhysioBase):
 
             # Get point data arrays
             if hasattr(mesh, "point_data"):
-                for array_name in mesh.point_data.keys():
+                for array_name in mesh.point_data:
                     if array_name not in available_arrays:
                         array_data = mesh.point_data[array_name]
                         available_arrays[array_name] = {
@@ -942,7 +942,7 @@ class ConvertVTKToUSD(MONAIPhysioBase):
             (vtk_mesh.point_data, "vertex"),
             (vtk_mesh.cell_data, "uniform"),
         ):
-            for array_name in source.keys():
+            for array_name in source:
                 array_data = source[array_name]
                 num_components = int(array_data.shape[1] if array_data.ndim > 1 else 1)
 

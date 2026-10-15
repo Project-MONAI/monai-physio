@@ -113,6 +113,7 @@ def test_s1_ac5_return_keys_and_ncc_not_worse(
 
 T_DEF_GAIN = 0.30
 T_INV = 0.5
+T_POINT_MM = 1.0
 
 
 def _smooth_volume(size: int = 64, spacing_mm: float = 2.0) -> itk.Image:
@@ -383,3 +384,100 @@ def test_s4_tuned_options_deformable_gain_on_smooth_warp() -> None:
     assert _one_minus_ncc(fixed, warped) <= (1.0 - T_DEF_GAIN) * _one_minus_ncc(
         fixed, moving
     )
+
+
+@pytest.mark.parametrize("preset", ["configure_for_heart_ct", "configure_for_lung_ct"])
+def test_scales_length_validated_after_preset_iteration_change(preset: str) -> None:
+    """Changing the iteration count after a preset cannot pair mismatched scales."""
+    registrar = RegisterImagesFireants()
+    getattr(registrar, preset)()
+    assert len(registrar._scales()) == len(registrar.number_of_iterations)
+
+    registrar.set_number_of_iterations([1, 0])
+    with pytest.raises(ValueError, match="equal length"):
+        registrar._scales()
+
+    registrar.set_scales([2.0, 1.0])
+    assert registrar._scales() == [2.0, 1.0]
+
+
+def test_mattes_rescale_keeps_negative_intensities_distinct() -> None:
+    """An all-negative CT keeps its contrast after the unit-range rescale."""
+    array = np.linspace(-1000.0, -900.0, 4 * 4 * 4, dtype=np.float32).reshape(4, 4, 4)
+    image = itk.image_from_array(array)
+    image.SetSpacing((2.0, 2.0, 2.0))
+
+    rescaled = RegisterImagesFireants._rescale_unit_range(image)
+
+    values = itk.array_from_image(rescaled)
+    assert values.min() == 0.0
+    assert values.max() == 1.0
+    assert len(np.unique(values)) == len(np.unique(array))
+    assert tuple(rescaled.GetSpacing()) == (2.0, 2.0, 2.0)
+
+
+@pytest.mark.requires_gpu
+def test_mattes_fireants_image_is_unit_range() -> None:
+    """The Mattes metric hands FireANTs intensities inside [0, 1]."""
+    registrar = RegisterImagesFireants()
+    registrar.set_metric("Mattes")
+    array = np.linspace(-1000.0, -900.0, 4 * 4 * 4, dtype=np.float32).reshape(4, 4, 4)
+
+    tensor = registrar._to_fireants_image(itk.image_from_array(array))()
+
+    assert float(tensor.min()) == 0.0
+    assert float(tensor.max()) == 1.0
+
+
+def _known_geometry_pair() -> tuple[itk.Image, itk.Image, itk.Transform]:
+    """Fixed and moving images on different grids related by a known transform.
+
+    The moving grid differs from the fixed one in size, spacing and direction.
+    The returned transform maps fixed physical points to moving physical points,
+    and the moving image samples the fixed content through its inverse.
+    """
+    fixed = _smooth_volume()
+    center = [63.0, 63.0, 63.0]
+    known = itk.Euler3DTransform[itk.D].New()
+    known.SetCenter(center)
+    known.SetRotation(np.deg2rad(5.0), 0.0, np.deg2rad(8.0))
+    known.SetTranslation([6.0, -4.0, 3.0])
+    inverse = known.GetInverseTransform()
+
+    size = np.array([96, 60, 80])
+    spacing = np.array([1.5, 2.5, 2.0])
+    direction = np.array([[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
+    moving_center = np.array(known.TransformPoint(center))
+    origin = moving_center - direction @ (spacing * (size - 1) / 2.0)
+    grid = itk.image_from_array(np.zeros(size[::-1], dtype=np.float32))
+    grid.SetSpacing(spacing.tolist())
+    grid.SetOrigin(origin.tolist())
+    grid.SetDirection(itk.matrix_from_array(direction))
+    moving = ProcessTransforms().transform_image(
+        fixed, inverse, grid, interpolation_method="linear"
+    )
+    return fixed, moving, known
+
+
+@pytest.mark.requires_gpu
+def test_deformable_composition_matches_known_point_mapping_across_geometries() -> None:
+    """Fixed-to-moving and its inverse map physical points as the known transform."""
+    fixed, moving, known = _known_geometry_pair()
+    registrar = _deformable_registrar(fixed)
+    registrar.set_number_of_iterations([100, 50, 25])
+    registrar.set_init_affine("Affine")
+
+    result = registrar.register(moving_image=moving)
+
+    margin = 0.25
+    axis = np.linspace(margin * 126.0, (1.0 - margin) * 126.0, 6)
+    points = np.stack(np.meshgrid(axis, axis, axis, indexing="ij"), -1).reshape(-1, 3)
+    expected = np.array([known.TransformPoint(p.tolist()) for p in points])
+    forward = result["fixed_to_moving_transform"]
+    backward = result["moving_to_fixed_transform"]
+    mapped = np.array([forward.TransformPoint(p.tolist()) for p in points])
+    returned = np.array([backward.TransformPoint(q.tolist()) for q in expected])
+
+    assert np.linalg.norm(expected - points, axis=1).mean() > 5.0
+    assert np.linalg.norm(mapped - expected, axis=1).mean() < T_POINT_MM
+    assert np.linalg.norm(returned - points, axis=1).mean() < T_POINT_MM

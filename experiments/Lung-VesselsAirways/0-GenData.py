@@ -1,5 +1,5 @@
 # %%
-from datetime import datetime
+from datetime import UTC, datetime
 
 import itk
 import matplotlib.pyplot as plt
@@ -296,7 +296,7 @@ if True:
             optimizer.step()
             running_loss += loss.item()
         print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {running_loss / len(dataloader)}")
-    date = datetime.now().strftime("%Y.%m.%d")
+    date = datetime.now(tz=UTC).strftime("%Y.%m.%d")
     model_path = f"vessel_seg_resnet18_{date}.pth"
     torch.save(model, model_path)
 

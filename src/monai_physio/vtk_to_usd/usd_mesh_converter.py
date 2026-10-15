@@ -168,10 +168,13 @@ class UsdMeshConverter:
             self._add_generic_arrays(mesh, mesh_data, time_code, triangulation_face_map)
 
         # Bind material (if material_id is provided and material exists in cache)
-        if bind_material and mesh_data.material_id:
-            if mesh_data.material_id in self.material_mgr.material_cache:
-                material = self.material_mgr.material_cache[mesh_data.material_id]
-                self.material_mgr.bind_material(mesh, material)
+        if (
+            bind_material
+            and mesh_data.material_id
+            and mesh_data.material_id in self.material_mgr.material_cache
+        ):
+            material = self.material_mgr.material_cache[mesh_data.material_id]
+            self.material_mgr.bind_material(mesh, material)
 
         logger.info(
             f"Created mesh with {len(mesh_data.points)} points, "
@@ -307,7 +310,7 @@ class UsdMeshConverter:
                         )
                         create_primvar(mesh, chunk_arr, prefix, time_code)
 
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 - USD raises assorted errors
                     logger.warning("Failed to split primvar %s: %s", array.name, e)
                 continue
 
@@ -333,7 +336,7 @@ class UsdMeshConverter:
 
             try:
                 create_primvar(mesh, array, prefix, time_code)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - USD raises assorted errors
                 logger.warning(f"Failed to create primvar for {array.name}: {e}")
 
     def create_time_varying_mesh(

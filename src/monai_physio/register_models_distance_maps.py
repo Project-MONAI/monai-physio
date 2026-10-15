@@ -227,8 +227,10 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
             return
 
         message = [
-            f"The {description} is constant ({minimum:.6g} everywhere), so there "
-            "is nothing for a registration metric to align."
+            (
+                f"The {description} is constant ({minimum:.6g} everywhere), so there "
+                "is nothing for a registration metric to align."
+            )
         ]
         if greedy_loss is not None:
             message.append(

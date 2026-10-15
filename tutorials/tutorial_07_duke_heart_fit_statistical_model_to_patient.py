@@ -33,6 +33,7 @@ optional -- the stock uniGradICON weights are used when it is absent.
 # Imports
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 from pathlib import Path
@@ -224,10 +225,8 @@ if __name__ == "__main__":
         log_level=log_level,
     )
 
-    try:
+    with contextlib.suppress(Exception):
         pv.start_xvfb()
-    except Exception:
-        pass
 
     screenshots: list[Path] = []
 

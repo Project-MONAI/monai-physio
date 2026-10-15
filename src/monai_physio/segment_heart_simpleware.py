@@ -227,6 +227,7 @@ class SegmentHeartSimpleware(SegmentAnatomyBase):
                         subprocess.run(
                             ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
                             capture_output=True,
+                            check=False,
                         )
                     else:
                         os.killpg(os.getpgid(proc.pid), 9)

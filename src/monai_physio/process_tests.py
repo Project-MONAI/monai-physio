@@ -8,6 +8,7 @@ passed as itk.Image at the API level.
 
 from __future__ import annotations
 
+import contextlib
 import csv
 import json
 import logging
@@ -81,7 +82,7 @@ def _read_metrics(path: Path) -> dict[str, Any]:
             rows = list(csv.DictReader(handle))
         if not rows:
             return {}
-        fieldnames = [name for name in (rows[0].keys()) if name is not None]
+        fieldnames = [name for name in (rows[0]) if name is not None]
         label_column = fieldnames[0]
         labels = [row.get(label_column, "") or "" for row in rows]
         use_labels = len(set(labels)) == len(labels)
@@ -594,11 +595,9 @@ class ProcessTests(MONAIPhysioBase):
         import pyvista as pv
 
         xvfb_started = False
-        try:
+        with contextlib.suppress(Exception):
             pv.start_xvfb()
             xvfb_started = True
-        except Exception:
-            pass
 
         output_path = self._results_dir / filename
         plotter = pv.Plotter(off_screen=True, window_size=list(window_size))

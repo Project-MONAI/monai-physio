@@ -12,7 +12,7 @@ deformable registration with mass preservation constraints.
 
 import logging
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, ClassVar, Optional, Union
 
 import itk
 import numpy as np
@@ -89,7 +89,7 @@ class RegisterImagesICON(RegisterImagesBase):
     # of times in a cohort run, and the freed host arenas are not necessarily
     # returned to the OS -- which is how a long run walks into the Linux OOM
     # killer.
-    _net_cache: dict[tuple[Optional[str], bool, bool], Any] = {}
+    _net_cache: ClassVar[dict[tuple[Optional[str], bool, bool], Any]] = {}
 
     def __init__(self, log_level: int | str = logging.INFO) -> None:
         """Initialize the ICON image registration class.

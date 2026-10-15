@@ -87,9 +87,14 @@ def load_dataset(dataset: str, smoke: bool) -> tuple[list[Path], int]:
     else:
         data_dir = TCIA_4D_LUNG.input_directory(False)
         files = sorted(data_dir.glob("100_HM10395_g0??.nii.gz"))
-        reference = next(i for i, p in enumerate(files) if "g070" in p.name)
+        reference = next((i for i, p in enumerate(files) if "g070" in p.name), -1)
     if not files:
         raise FileNotFoundError(f"No {dataset} phase images found under {data_dir}")
+    if reference < 0:
+        raise FileNotFoundError(
+            f"Lung reference phase g070 not found among {len(files)} phase images "
+            f"under {data_dir}"
+        )
     return files, reference
 
 
