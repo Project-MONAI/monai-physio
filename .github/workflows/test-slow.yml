@@ -60,6 +60,7 @@ jobs:
       # Invoke via python -m uv so uv targets the active venv interpreter.
       run: |
         python -m uv pip install -e ".[dev_cuda13]" --no-build-isolation-package torch-scatter
+        python -m uv pip install fireants --no-deps
 
     - name: Assert CUDA is accessible
       run: |
