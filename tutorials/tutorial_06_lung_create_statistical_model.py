@@ -32,6 +32,7 @@ registrations per case to build the atlas. This is the slowest of Tutorials
 # Imports
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 from pathlib import Path
@@ -271,11 +272,9 @@ if __name__ == "__main__":
 
     mode_surface_files: list[Path] = []
     xvfb_started = False
-    try:
+    with contextlib.suppress(Exception):
         pv.start_xvfb()
         xvfb_started = True
-    except Exception:
-        pass
 
     try:
         for mode_idx in range(mode_count):
@@ -312,10 +311,8 @@ if __name__ == "__main__":
         # Pair start_xvfb with cleanup, guarded like the startup above so
         # environments without Xvfb (e.g. Windows, pyvista >= 0.48) are unaffected.
         if xvfb_started:
-            try:
+            with contextlib.suppress(Exception):
                 pv.stop_xvfb()
-            except Exception:
-                pass
 
     tutorial_results = {
         "pca_model": pca_model,

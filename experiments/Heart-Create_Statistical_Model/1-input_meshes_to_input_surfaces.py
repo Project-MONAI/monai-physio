@@ -46,7 +46,7 @@ for vtk_file in vtk_files:
         print(f"    Original mesh: {mesh.n_cells} cells, {mesh.n_points} points")
         print(f"    Surface mesh: {surface.n_cells} cells, {surface.n_points} points")
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - report and go on to the next mesh
         print(f"  Error processing {vtk_file}: {e!s}")
 
 print("\n" + "=" * 50)

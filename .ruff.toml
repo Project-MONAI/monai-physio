@@ -4,3 +4,7 @@
 [lint]
 # Ignore UP007/UP045: Use Optional[X] instead of X | None for itk.Image compatibility
 ignore = ["UP007", "UP045"]
+
+[lint.per-file-ignores]
+# Simpleware loads this script by file name, so the module name is fixed.
+"src/monai_physio/simpleware_medical/SimplewareScript_heart_segmentation.py" = ["N999"]

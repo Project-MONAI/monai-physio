@@ -5,6 +5,7 @@ Provides helper functions for coordinate conversion, primvar creation, and USD t
 
 from __future__ import annotations
 
+import contextlib
 import logging
 from typing import Any
 
@@ -339,11 +340,9 @@ def create_primvar(
         Sdf.ValueTypeNames.UIntArray,
         Sdf.ValueTypeNames.UCharArray,
     ):
-        try:
+        # Not fatal; continue without elementSize.
+        with contextlib.suppress(Exception):
             primvar.SetElementSize(int(array.num_components))
-        except Exception:
-            # Not fatal; continue without elementSize.
-            pass
 
     # Convert data to VtArray
     vt_array = numpy_to_vt_array(array.data, array.data_type)

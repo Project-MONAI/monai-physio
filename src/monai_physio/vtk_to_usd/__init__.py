@@ -49,38 +49,38 @@ from .vtk_reader import (
 )
 
 __all__ = [
-    # File facade
-    "convert_vtk_file",
     # Data structures
     "ConversionSettings",
     "DataType",
     "GenericArray",
+    "LegacyVTKReader",
     "MaterialData",
-    "MeshData",
-    "TimeStepData",
-    "VolumeData",
     # Managers
     "MaterialManager",
+    "MeshData",
+    "PolyDataReader",
+    "TimeStepData",
+    "UnstructuredGridReader",
     "UsdMeshConverter",
-    # Utilities
-    "lps_to_usd",
-    "lps_points_to_usd",
-    "lps_normals_to_usd",
-    "create_primvar",
-    "sanitize_primvar_name",
-    "triangulate_face",
-    "compute_mesh_extent",
+    # Readers
+    "VTKReader",
+    "VolumeData",
     "add_framing_camera",
     # Mesh utils (cell type split)
     "cell_type_name_for_vertex_count",
+    "compute_mesh_extent",
+    # File facade
+    "convert_vtk_file",
+    "create_primvar",
+    "lps_normals_to_usd",
+    "lps_points_to_usd",
+    # Utilities
+    "lps_to_usd",
+    "read_vtk_file",
+    "sanitize_primvar_name",
     "split_mesh_data_by_cell_type",
     "split_mesh_data_by_connectivity",
-    # Readers
-    "VTKReader",
-    "PolyDataReader",
-    "LegacyVTKReader",
-    "UnstructuredGridReader",
-    "read_vtk_file",
+    "triangulate_face",
     "validate_time_series_topology",
 ]
 

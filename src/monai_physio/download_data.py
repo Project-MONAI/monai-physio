@@ -16,7 +16,7 @@ import tempfile
 import urllib.request
 import zipfile
 from pathlib import Path
-from typing import Optional, Union
+from typing import ClassVar, Optional, Union
 
 import itk
 import numpy as np
@@ -91,7 +91,7 @@ class DownloadData:
         Avoids partial files on interrupt and the indefinite hang that
         urlretrieve has without a timeout.
         """
-        tmp_handle = tempfile.NamedTemporaryFile(
+        tmp_handle = tempfile.NamedTemporaryFile(  # noqa: SIM115 - closed by the with below
             dir=str(target_file.parent),
             prefix=f".{target_file.name}.",
             suffix=".tmp",
@@ -216,7 +216,7 @@ class DownloadData:
     # subdirectory name -> release asset filename. Alterra and TPV25 are
     # each >1 GB (per-frame valve mesh time series); CT is the smaller
     # image/segmentation bundle. See data/CHOP-Valve4D/README.md.
-    CHOP_VALVE4D_ASSETS = {
+    CHOP_VALVE4D_ASSETS: ClassVar[dict[str, str]] = {
         "Alterra": "CHOP-Valve4D-Alterra.zip",
         "CT": "CHOP-Valve4D-CT.zip",
         "TPV25": "CHOP-Valve4D-TPV25.zip",
@@ -360,7 +360,10 @@ class DownloadData:
     TCIA_4D_LUNG_RELEASE_URL = (
         "https://github.com/Project-MONAI/monai-physio/releases/download/2026.07.1/"
     )
-    TCIA_4D_LUNG_ASSETS = ["TCIA-4DLung-Part1.zip", "TCIA-4DLung-Part2.zip"]
+    TCIA_4D_LUNG_ASSETS: ClassVar[list[str]] = [
+        "TCIA-4DLung-Part1.zip",
+        "TCIA-4DLung-Part2.zip",
+    ]
 
     @staticmethod
     def DownloadTCIA4DLungData(dirname: Union[str, Path]) -> Path:

@@ -299,7 +299,7 @@ class TrainPhysicsNeMoBase(MONAIPhysioBase):
                 # shape instead of doing that arithmetic symbolically.
                 model = cast("torch.nn.Module", torch.compile(model, dynamic=False))
                 self._log_main(context, "torch.compile enabled.")
-            except Exception as exc:  # pragma: no cover - platform dependent
+            except Exception as exc:  # noqa: BLE001  # pragma: no cover - platform dependent
                 self._log_main(context, "torch.compile skipped (%s).", exc)
         else:
             self._log_main(context, "torch.compile skipped on Windows.")

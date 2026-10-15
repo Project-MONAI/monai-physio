@@ -54,15 +54,21 @@ class ParametersDukeHeartPhysicsInformed(ParametersDukeHeartLabelmaps):
         lambda_physics: Weight of the physics residual against the displacement
             loss.  The two are not in the same units -- displacement is scored
             normalized, the residual in kilopascals -- so this is a value to
-            sweep rather than a value to trust.
+            sweep rather than a value to trust.  Measured on the training
+            cases, the measured motion itself carries a median strain energy
+            of about 4 kPa (up to about 45 at end systole), while predicting
+            no motion at all costs a data loss of only about 7e-4.  The weighted
+            energy of the true motion must therefore sit well below the data
+            loss the data-only model converges to (about 1e-4), or the cheapest
+            answer is a heart that does not move: 0.1 collapsed to exactly that.
         lambda_physics_warmup_epochs: Epochs over which ``lambda_physics``
             ramps linearly from 0 up to its target value, instead of applying
             full-strength from epoch 0.  Cold-start weights make the strain
-            energy huge relative to the data loss, so without a warmup its
-            gradient can dominate the combined loss and pull the network
-            straight to the energy's own global minimum -- zero strain
-            everywhere -- which trivially zeroes the physics term but ignores
-            the data. ``0`` disables warmup.
+            energy huge relative to the data loss, so the warmup lets the data
+            term shape the motion first.  It only helps the start of training:
+            a target ``lambda_physics`` that is too large still pulls the
+            network to zero strain once the ramp reaches it. ``0`` disables
+            warmup.
         number_of_epochs: Training epochs, matching Tutorial 9 so the two are
             comparable.
         number_of_epochs_test: Same, under ``ProcessTests.running_as_test``.
@@ -78,7 +84,7 @@ class ParametersDukeHeartPhysicsInformed(ParametersDukeHeartLabelmaps):
 
     mu_kpa: float = 10.0
     lambda_lame_kpa: float = 100.0
-    lambda_physics: float = 0.1
+    lambda_physics: float = 1.0e-5
     lambda_physics_warmup_epochs: int = 100
 
     number_of_epochs: int = 1500

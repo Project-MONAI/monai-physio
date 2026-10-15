@@ -213,8 +213,10 @@ class ReportEvaluateMovement(MONAIPhysioBase):
             "## Run",
             "",
             f"- Hold-out case: `{provenance['case_id']}`",
-            f"- Stages evaluated: {len(stages)} "
-            f"({', '.join(f'{stage:.2f}' for stage in stages)})",
+            (
+                f"- Stages evaluated: {len(stages)} "
+                f"({', '.join(f'{stage:.2f}' for stage in stages)})"
+            ),
             f"- Shape parameters: `{provenance['shape_parameters_file']}`",
             "- Shape parameters (standard deviations): "
             + json.dumps([round(value, 4) for value in coefficients]),
@@ -225,20 +227,26 @@ class ReportEvaluateMovement(MONAIPhysioBase):
             f"- Deformation smoothing sigma: {smoothing_sigma_mm:.1f} mm",
             f"- Evaluation grid pitch: {evaluation_spacing_mm:.2f} mm isotropic",
             "",
-            "Every score compares the reference frame carried into that stage "
-            "with the inferred deformation against the frame acquired there.",
+            (
+                "Every score compares the reference frame carried into that stage "
+                "with the inferred deformation against the frame acquired there."
+            ),
             "",
             "## Volume over the stages",
             "",
             f"![Structure volume against stage]({plot_file.name})",
             "",
-            "Solid: the volume acquired at that stage. Dashed: the volume the "
-            "prediction carries there.",
+            (
+                "Solid: the volume acquired at that stage. Dashed: the volume the "
+                "prediction carries there."
+            ),
             "",
             "## Per structure, over the stages",
             "",
-            "Mean beside worst case: the stage a structure is predicted worst at "
-            "is what a plausible mean can hide.",
+            (
+                "Mean beside worst case: the stage a structure is predicted worst at "
+                "is what a plausible mean can hide."
+            ),
             "",
         ]
         metrics = (["Dice"] if has_dice else []) + [
@@ -358,20 +366,24 @@ class ReportEvaluateMovement(MONAIPhysioBase):
             "",
             "## Displacement error",
             "",
-            "Distance between where the network puts each mesh point and where "
-            "the shape model fitted it in the frame acquired at that stage. "
-            "Unlike the labelmap metrics above, this is measured point by point, "
-            "so it does not average a displacement away against its opposite.",
+            (
+                "Distance between where the network puts each mesh point and where "
+                "the shape model fitted it in the frame acquired at that stage. "
+                "Unlike the labelmap metrics above, this is measured point by point, "
+                "so it does not average a displacement away against its opposite."
+            ),
             "",
             f"- RMS over every point and stage: {pooled['rms_mm']:.3f} mm",
             f"- 95th percentile over every point and stage: {pooled['p95_mm']:.3f} mm",
             f"- Max over every point and stage: {pooled['max_mm']:.3f} mm",
             "",
-            "The 95th percentile is the figure to quote: the maximum is one "
-            "point of one stage, so it moves with a single badly placed vertex, "
-            "while the RMS is pulled down by the bulk of the surface that "
-            "hardly moves at all. Every figure here is over the whole shape "
-            "model; the same error split by structure is in the table above.",
+            (
+                "The 95th percentile is the figure to quote: the maximum is one "
+                "point of one stage, so it moves with a single badly placed vertex, "
+                "while the RMS is pulled down by the bulk of the surface that "
+                "hardly moves at all. Every figure here is over the whole shape "
+                "model; the same error split by structure is in the table above."
+            ),
             "",
         ]
         lines += self._table_header(

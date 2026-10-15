@@ -240,14 +240,18 @@ def _write_loo_report(
         f"Folds: {len(held_out_cases)}",
         f"Held-out cases: {', '.join(held_out_cases)}",
         "",
-        "Each fold rebuilt the shape model without its held-out case, refitted "
-        "the cohort, retrained the MeshGraphNet and scored that case against "
-        "its own per-phase segmentations. Every cell is the mean over folds of "
-        "the fold's own mean over phases, plus or minus the standard deviation "
-        "across folds.",
+        (
+            "Each fold rebuilt the shape model without its held-out case, refitted "
+            "the cohort, retrained the MeshGraphNet and scored that case against "
+            "its own per-phase segmentations. Every cell is the mean over folds of "
+            "the fold's own mean over phases, plus or minus the standard deviation "
+            "across folds."
+        ),
         "",
-        "Dice on a lobe is dominated by the size of the lobe rather than by how "
-        "far it moved; surface RMSE is what resolves the motion here.",
+        (
+            "Dice on a lobe is dominated by the size of the lobe rather than by how "
+            "far it moved; surface RMSE is what resolves the motion here."
+        ),
         "",
         "| Structure | " + " | ".join(title for _, title, _ in metrics) + " |",
         "|---|" + "---|" * len(metrics),
@@ -316,10 +320,12 @@ def _displacement_error_lines(
         "",
         "## Displacement error, per fold",
         "",
-        "Distance between where the network puts each mesh point of the held-out "
-        "case and where that fold's own fit put it, pooled over every point and "
-        "phase. Measured point by point, so a lobe predicted the right size in "
-        "the wrong place is scored here and nowhere above.",
+        (
+            "Distance between where the network puts each mesh point of the held-out "
+            "case and where that fold's own fit put it, pooled over every point and "
+            "phase. Measured point by point, so a lobe predicted the right size in "
+            "the wrong place is scored here and nowhere above."
+        ),
         "",
         f"- RMS across folds: {mean:.3f} +/- {std:.3f} mm",
         f"- 95th percentile across folds: {p95_mean:.3f} +/- {p95_std:.3f} mm",

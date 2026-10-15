@@ -8,7 +8,7 @@ in the tests directory via pytest's automatic fixture discovery.
 import logging
 import os
 import shutil
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
@@ -170,7 +170,7 @@ def pytest_configure(config: pytest.Config) -> None:
     config._test_timings = {  # type: ignore[attr-defined]
         "tests": [],
         "total_time": 0.0,
-        "start_time": datetime.now(),
+        "start_time": datetime.now(tz=UTC),
     }
 
 
@@ -297,7 +297,7 @@ def pytest_terminal_summary(
         return
 
     # Calculate session duration
-    session_duration = datetime.now() - timings["start_time"]
+    session_duration = datetime.now(tz=UTC) - timings["start_time"]
 
     # Separate regular and tutorial tests
     regular_tests = [t for t in tests if not t["is_tutorial"]]
@@ -497,7 +497,7 @@ def test_images(
             input_spacing = list(img.GetSpacing())
             input_size = list(itk.size(img))
             output_size = [
-                int(round(input_size[i] * input_spacing[i] / target_spacing[i]))
+                round(input_size[i] * input_spacing[i] / target_spacing[i])
                 for i in range(3)
             ]
             interpolator = itk.LinearInterpolateImageFunction.New(img)
@@ -539,7 +539,7 @@ def _downsample_image(source: Path, destination: Path, spacing_mm: float) -> Non
     input_spacing = list(image.GetSpacing())
     input_size = list(itk.size(image))
     output_size = [
-        max(1, int(round(input_size[i] * input_spacing[i] / target_spacing[i])))
+        max(1, round(input_size[i] * input_spacing[i] / target_spacing[i]))
         for i in range(3)
     ]
     resampler = itk.ResampleImageFilter.New(Input=image)
@@ -560,7 +560,7 @@ def _downsample_labelmap(source: Path, destination: Path, spacing_mm: float) -> 
     input_spacing = list(image.GetSpacing())
     input_size = list(itk.size(image))
     output_size = [
-        max(1, int(round(input_size[i] * input_spacing[i] / target_spacing[i])))
+        max(1, round(input_size[i] * input_spacing[i] / target_spacing[i]))
         for i in range(3)
     ]
     resampler = itk.ResampleImageFilter.New(Input=image)
@@ -782,7 +782,7 @@ def test_transforms(
                 "moving_to_fixed_transform": moving_to_fixed_transform,
                 "fixed_to_moving_transform": fixed_to_moving_transform,
             }
-        except (RuntimeError, Exception) as e:
+        except Exception as e:  # noqa: BLE001 - any unreadable cache is regenerated
             logger.warning("Error loading transforms: %s; regenerating", e)
             moving_to_fixed_transform_path.unlink(missing_ok=True)
             fixed_to_moving_transform_path.unlink(missing_ok=True)

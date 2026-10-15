@@ -363,7 +363,7 @@ class ProcessTransforms(MONAIPhysioBase):
         """
         try:
             analytic = tfm.GetInverseTransform()
-        except Exception:  # pragma: no cover - transform type dependent
+        except Exception:  # noqa: BLE001  # pragma: no cover - transform type dependent
             analytic = None
         if analytic is not None:
             return cast(itk.Transform, analytic)
@@ -555,7 +555,7 @@ class ProcessTransforms(MONAIPhysioBase):
         dtype = itk.GetArrayViewFromImage(image).dtype
         default_pixel_value: Union[int, float]
         if np.issubdtype(dtype, np.integer) or np.issubdtype(dtype, np.bool_):
-            default_pixel_value = int(round(background_value))
+            default_pixel_value = round(background_value)
             low, high = (
                 (0, 1)
                 if np.issubdtype(dtype, np.bool_)

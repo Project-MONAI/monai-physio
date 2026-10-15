@@ -8,7 +8,7 @@ template exactly on itself and records none of the subject's shape.
 from __future__ import annotations
 
 import inspect
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 
 import itk
 import numpy as np
@@ -49,7 +49,7 @@ class _IdentityRegistrar:
     thresholds the projection tests assert.
     """
 
-    reference_images: list[itk.Image] = []
+    reference_images: ClassVar[list[itk.Image]] = []
 
     def __init__(
         self,

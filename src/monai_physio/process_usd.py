@@ -12,6 +12,7 @@ anatomical structures need to be organized and visualized together.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 from collections.abc import Sequence
 from pathlib import Path
@@ -502,7 +503,7 @@ class ProcessUSD(MONAIPhysioBase):
                             if value is not None:
                                 try:
                                     new_attr.Set(value)
-                                except Exception as e:
+                                except Exception as e:  # noqa: BLE001 - USD raises assorted errors
                                     self.log_warning(
                                         f"Failed to copy attribute {attr.GetName()}: {e}"
                                     )
@@ -818,7 +819,7 @@ class ProcessUSD(MONAIPhysioBase):
                                 )
                         except (TypeError, ValueError):
                             pass  # Skip range for non-numeric data
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - USD raises assorted errors
                 self.log_debug(
                     f"Could not get value for primvar {pv_info['name']}: {e}"
                 )
@@ -1120,14 +1121,12 @@ class ProcessUSD(MONAIPhysioBase):
         )
         # If we're rewriting displayColor, clear any previously-authored time samples first.
         # This prevents leaving behind stale/corrupt samples at times we no longer author.
-        try:
+        # Silently ignore errors (e.g., if attribute doesn't exist yet or has no samples).
+        # This is expected on first-time creation or when no time samples are present.
+        with contextlib.suppress(Exception):
             dc_attr = display_color_pv.GetAttr()
             for t in list(dc_attr.GetTimeSamples()):
                 dc_attr.ClearAtTime(t)
-        except Exception:
-            # Silently ignore errors (e.g., if attribute doesn't exist yet or has no samples).
-            # This is expected on first-time creation or when no time samples are present.
-            pass
 
         for idx, (tc, scalar) in enumerate(scalar_samples):
             # Normalize to [0, 1]
@@ -1407,7 +1406,7 @@ class ProcessUSD(MONAIPhysioBase):
                         "new_elementSize": int(inferred),
                     }
                 )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - USD raises assorted errors
                 skipped.append(
                     {"name": pv.GetName(), "reason": f"SetElementSize failed: {e}"}
                 )

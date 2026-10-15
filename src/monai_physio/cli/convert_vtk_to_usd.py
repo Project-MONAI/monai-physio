@@ -183,8 +183,8 @@ Examples:
                         "Color values must all be in [0, 1] or all in [0, 255]."
                     )
             else:
-                raise ValueError("Color must be specified as a list of 3 float values")
-        except ValueError as e:
+                raise TypeError("Color must be specified as a list of 3 float values")
+        except (TypeError, ValueError) as e:
             print(f"Error: {e}")
             return 1
 
@@ -237,7 +237,7 @@ Examples:
         print("\nConversion completed successfully.")
         print(f"Output: {result['usd_file']}")
         return 0
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - CLI boundary: report and exit nonzero
         print(f"\nError during conversion: {e}")
         import traceback
 

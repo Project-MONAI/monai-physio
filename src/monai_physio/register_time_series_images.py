@@ -589,8 +589,8 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         # Calculate new size to cover the same physical extent with isotropic spacing
         new_size = itk.Size[3]()
         for i in range(3):
-            new_size[i] = int(
-                round((moving_size[i] * moving_spacing[i]) / isotropic_spacing[i])
+            new_size[i] = round(
+                (moving_size[i] * moving_spacing[i]) / isotropic_spacing[i]
             )
 
         # Create reference image with combined properties

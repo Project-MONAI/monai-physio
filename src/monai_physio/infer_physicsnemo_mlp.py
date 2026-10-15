@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -16,8 +17,19 @@ if TYPE_CHECKING:  # typed for mypy; imported lazily at runtime
 class InferPhysicsNeMoMLP(InferPhysicsNeMoBase):
     """Predict mesh stages with a trained PhysicsNeMo FullyConnected model."""
 
-    model_tag = "mlp"
     _INFER_CHUNK = 262144
+
+    def __init__(
+        self, model_tag: str = "mlp", log_level: int | str = logging.INFO
+    ) -> None:
+        """Initialize the MLP inference method.
+
+        Args:
+            model_tag: Prefix of the checkpoint files to load
+                (``<model_tag>_stage_model.pt``). Default: ``"mlp"``.
+            log_level: Logging level. Default: ``logging.INFO``.
+        """
+        super().__init__(model_tag=model_tag, log_level=log_level)
 
     def build_model(self, meta: dict) -> torch.nn.Module:
         try:

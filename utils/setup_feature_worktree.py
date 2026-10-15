@@ -178,6 +178,7 @@ def get_current_branch() -> str:
         ["git", "symbolic-ref", "--short", "HEAD"],
         text=True,
         capture_output=True,
+        check=False,
     )
     if result.returncode == 0:
         return result.stdout.strip()
@@ -197,6 +198,7 @@ def branch_exists(branch_name: str) -> bool:
         ["git", "branch", "--list", branch_name],
         text=True,
         capture_output=True,
+        check=False,
     )
     return bool(result.stdout.strip())
 
