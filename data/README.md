@@ -16,12 +16,13 @@ the source of truth.
 | `KCL-Heart-Model/` | Statistical shape model of the heart | King's College London (KCL) | Automatic | [KCL-Heart-Model/README.md](KCL-Heart-Model/README.md) |
 | `CHOP-Valve4D/` | 4D valve reconstruction models | Jolley Lab, CHOP (original FEBio model) | Automatic | [CHOP-Valve4D/README.md](CHOP-Valve4D/README.md) |
 | `Chest-CT/` | Ungated 3D chest CT, single static volume | AREN0534 trial, The Cancer Imaging Archive (TCIA) | Automatic | [Chest-CT/README.md](Chest-CT/README.md) |
+| `Duke-Heart-4DLabelmaps/` | Gated 4D cardiac labelmaps and landmarks from PROMISE study CT, segmented with Simpleware ASCardio | Duke University (Dr. Paul Segars' lab) | Automatic | [Duke-Heart-4DLabelmaps/README.md](Duke-Heart-4DLabelmaps/README.md) |
 | `test/` | pytest-managed cache; not a downloadable dataset | - | N/A | [test/README.md](test/README.md) |
 
 ## Automatic Download
 
-`Slicer-Heart-CT`, `KCL-Heart-Model`, `CHOP-Valve4D`, `Chest-CT`, and
-`TCIA-4DLung` can be fetched with the `monai-physio-download-data` CLI or
+`Slicer-Heart-CT`, `KCL-Heart-Model`, `CHOP-Valve4D`, `Chest-CT`,
+`TCIA-4DLung`, and `Duke-Heart-4DLabelmaps` can be fetched with the `monai-physio-download-data` CLI or
 `DownloadData`; see each dataset's README for the exact command.
 `TCIA-4DLung`'s automatic download is a converted tutorial subset (the
 `.nii.gz` phases the tutorials read); the full TCIA 4D-Lung collection is

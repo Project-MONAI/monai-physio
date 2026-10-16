@@ -33,6 +33,13 @@ Supported Datasets
        Physio GitHub release. See ``data/TCIA-4DLung/README.md`` for the
        data source, the full-collection manual download, and required
        citation.
+   * - ``Duke-Heart-4DLabelmaps``
+     - Gated 4D cardiac labelmaps and JSON landmark files from the PROMISE
+       study CT data (Duke University, Dr. Paul Segars' lab), segmented with
+       the ASCardio module of Simpleware, from the MONAI Physio GitHub
+       release. Models trained on them should only be applied to labelmaps
+       also generated with ASCardio (``SegmentHeartSimplewareTrimmedBranches``).
+       See ``data/Duke-Heart-4DLabelmaps/README.md``.
    * - ``PhysicsNeMo-MGN-Lung-Motion``
      - Pretrained PhysicsNeMo MeshGraphNet checkpoint for lung motion, from
        the MONAI Physio GitHub release. Used by Lung Tutorial 10 and later
@@ -55,12 +62,12 @@ Options
 
 .. code-block:: bash
 
-   monai-physio-download-data [Slicer-Heart-CT|KCL-Heart-Model|CHOP-Valve4D|Chest-CT|TCIA-4DLung|PhysicsNeMo-MGN-Lung-Motion] [--directory DIRECTORY]
+   monai-physio-download-data [Slicer-Heart-CT|KCL-Heart-Model|CHOP-Valve4D|Chest-CT|TCIA-4DLung|Duke-Heart-4DLabelmaps|PhysicsNeMo-MGN-Lung-Motion] [--directory DIRECTORY]
 
 ``data_name``
    Dataset to download. One of ``Slicer-Heart-CT``, ``KCL-Heart-Model``,
-   ``CHOP-Valve4D``, ``Chest-CT``, ``TCIA-4DLung``, or
-   ``PhysicsNeMo-MGN-Lung-Motion``. Required - omitting it prints help and
+   ``CHOP-Valve4D``, ``Chest-CT``, ``TCIA-4DLung``, ``Duke-Heart-4DLabelmaps``,
+   or ``PhysicsNeMo-MGN-Lung-Motion``. Required - omitting it prints help and
    exits.
 
 ``--directory``
@@ -136,6 +143,18 @@ the download entirely once any case's phase volumes are already present -
 this is a converted tutorial subset; see ``data/TCIA-4DLung/README.md`` for
 how to obtain the full TCIA 4D-Lung collection manually.
 
+For ``Duke-Heart-4DLabelmaps``, the command downloads, extracts, and reuses:
+
+.. code-block:: text
+
+   data/Duke-Heart-4DLabelmaps/pm0002/*_labelmap.nii.gz
+   data/Duke-Heart-4DLabelmaps/pm0002/*_landmark.mrk.json ...
+
+The command uses
+:meth:`monai_physio.download_data.DownloadData.DownloadDukeHeart4DLabelmapsData`,
+which fetches ``Duke-Heart-4DLabelmaps.zip`` from the MONAI Physio GitHub
+release and skips the download once any case's labelmaps are already present.
+
 For ``PhysicsNeMo-MGN-Lung-Motion``, the command downloads, extracts, and
 reuses:
 
@@ -162,7 +181,7 @@ See Also
   ``monai-physio-download-data`` entry - DIR-Lab distributes each case
   individually and may require registration, so it is manual-only, see
   ``data/DirLab-4DCT/README.md``. ``Duke-Heart-4DLabelmaps``, which drives the
-  ten ``duke_heart`` variants, is being released soon; see
+  ten ``duke_heart`` variants, is downloaded with the CLI; see
   ``data/Duke-Heart-4DLabelmaps/README.md``. ``PhysicsNeMo-MGN-Lung-Motion``
   is the pretrained-checkpoint shortcut for Lung Tutorial 10 (and everything
   downstream of it: 11-14), letting a reader skip running Tutorial 9's

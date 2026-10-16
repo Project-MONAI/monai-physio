@@ -69,6 +69,9 @@ Then fetch the sample datasets, again from the top level of the clone:
    # Lung Tutorial 7
    monai-physio-download-data Chest-CT --directory data/Chest-CT
 
+   # Duke heart tutorials 2 and 4 through 12
+   monai-physio-download-data Duke-Heart-4DLabelmaps --directory data/Duke-Heart-4DLabelmaps
+
    # No tutorial - transcatheter pulmonary valve experiments only, >2 GB
    monai-physio-download-data CHOP-Valve4D --directory data/CHOP-Valve4D
 
@@ -97,7 +100,7 @@ Which dataset each tutorial needs:
      - CLI
      - Lung Tutorial 7, and Tutorial 13
    * - ``Duke-Heart-4DLabelmaps``
-     - Releasing soon
+     - CLI
      - The ten ``duke_heart`` variants, Tutorials 2 and 4 through 12
    * - ``CHOP-Valve4D``
      - CLI
@@ -106,9 +109,11 @@ Which dataset each tutorial needs:
 Tutorials 5 and 9 need no dataset of their own: they consume the outputs of
 Tutorials 4 and 8 respectively.
 
-``Duke-Heart-4DLabelmaps`` is scheduled for public release soon. Until then the
-ten ``duke_heart`` variants cannot be run; contact Stephen Aylward
-(saylward@nvidia.com) to request access, and see
+``Duke-Heart-4DLabelmaps`` downloads as labelmaps and JSON landmark files
+created from the PROMISE study CT data (Duke University, Dr. Paul Segars' lab)
+with the ASCardio module of Simpleware. Models trained on them should only be
+applied to labelmaps also generated with ASCardio, which MONAI Physio runs via
+``SegmentHeartSimplewareTrimmedBranches``; see
 ``data/Duke-Heart-4DLabelmaps/README.md``.
 
 ``TCIA-4DLung``'s CLI download is a converted tutorial subset; the full TCIA
