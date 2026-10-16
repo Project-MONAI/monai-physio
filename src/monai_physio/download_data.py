@@ -1,8 +1,8 @@
 """
 Dataset download and verification helpers.
 
-Slicer-Heart-CT, KCL-Heart-Model, CHOP-Valve4D, Chest-CT, and TCIA-4DLung
-are downloaded automatically. Other datasets require manual download, and
+Slicer-Heart-CT, KCL-Heart-Model, CHOP-Valve4D, Chest-CT, TCIA-4DLung, and
+Duke-Heart-4DLabelmaps are downloaded automatically. Other datasets require manual download, and
 the verification helpers check the file layouts used by the repository
 tutorials, experiments, and tests.
 """
@@ -396,6 +396,46 @@ class DownloadData:
     def VerifyTCIA4DLungData(dirname: Union[str, Path]) -> bool:
         """Return True when TCIA-4DLung has at least one case's phase volumes."""
         return any(Path(dirname).glob("*_HM10395/*_g0??.nii.gz"))
+
+    DUKE_HEART_4D_LABELMAPS_URL = (
+        "https://github.com/Project-MONAI/monai-physio/releases/download/2026.07.1/"
+        "Duke-Heart-4DLabelmaps.zip"
+    )
+
+    @staticmethod
+    def DownloadDukeHeart4DLabelmapsData(dirname: Union[str, Path]) -> Path:
+        """Download the Duke-Heart-4DLabelmaps release into ``dirname``.
+
+        Fetches ``Duke-Heart-4DLabelmaps.zip`` from the MONAI Physio 2026.07.1
+        GitHub release and extracts it directly into ``dirname``, giving the
+        per-case ``pm00*/`` directories of ``*_labelmap.nii.gz`` and
+        ``*_landmark.mrk.json`` files. The labelmaps were generated with the
+        ASCardio module of Simpleware (``SegmentHeartSimplewareTrimmedBranches``);
+        models trained on them should only be applied to labelmaps generated
+        the same way. See ``data/Duke-Heart-4DLabelmaps/README.md``.
+        Already-populated data is left alone, so re-running is a no-op once
+        the data is present.
+
+        Args:
+            dirname: Directory where the Duke-Heart-4DLabelmaps dataset should
+                live.
+
+        Returns:
+            Path to ``dirname``.
+        """
+        data_dir = Path(dirname)
+        if DownloadData.VerifyDukeHeart4DLabelmapsData(data_dir):
+            return data_dir
+        DownloadData._DownloadAndExtractZip(
+            DownloadData.DUKE_HEART_4D_LABELMAPS_URL, data_dir, extract_dir=data_dir
+        )
+        _logger.info("Downloaded Duke-Heart-4DLabelmaps.zip")
+        return data_dir
+
+    @staticmethod
+    def VerifyDukeHeart4DLabelmapsData(dirname: Union[str, Path]) -> bool:
+        """Return True when Duke-Heart-4DLabelmaps has at least one labelmap."""
+        return any(Path(dirname).glob("pm*/*_labelmap.nii.gz"))
 
     @staticmethod
     def _MetaImageHeaderHasBackingData(mhd_file: Path) -> bool:

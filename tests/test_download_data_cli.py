@@ -118,3 +118,23 @@ def test_download_data_cli_routes_tcia_4d_lung(
     assert result == 0
     assert calls == [Path("data/TCIA-4DLung")]
     assert "Downloaded TCIA-4DLung" in capsys.readouterr().out
+
+
+def test_download_data_cli_routes_duke_heart_4d_labelmaps(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Duke-Heart-4DLabelmaps routes to its own downloader and default directory."""
+    calls: list[Path] = []
+
+    def fake_download(dirname: Union[str, Path]) -> Path:
+        calls.append(Path(dirname))
+        return Path(dirname)
+
+    monkeypatch.setattr(DownloadData, "DownloadDukeHeart4DLabelmapsData", fake_download)
+
+    result = download_data.main(["Duke-Heart-4DLabelmaps"])
+
+    assert result == 0
+    assert calls == [Path("data/Duke-Heart-4DLabelmaps")]
+    assert "Downloaded Duke-Heart-4DLabelmaps" in capsys.readouterr().out

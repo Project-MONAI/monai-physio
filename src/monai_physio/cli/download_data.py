@@ -14,6 +14,7 @@ KCL_HEART_MODEL = "KCL-Heart-Model"
 CHOP_VALVE4D = "CHOP-Valve4D"
 CHEST_CT = "Chest-CT"
 TCIA_4D_LUNG = "TCIA-4DLung"
+DUKE_HEART_4D_LABELMAPS = "Duke-Heart-4DLabelmaps"
 PHYSICSNEMO_MGN_LUNG_MOTION = "PhysicsNeMo-MGN-Lung-Motion"
 
 
@@ -29,6 +30,7 @@ Examples:
   %(prog)s {CHOP_VALVE4D} --directory data/CHOP-Valve4D
   %(prog)s {CHEST_CT} --directory data/Chest-CT
   %(prog)s {TCIA_4D_LUNG} --directory data/TCIA-4DLung
+  %(prog)s {DUKE_HEART_4D_LABELMAPS} --directory data/Duke-Heart-4DLabelmaps
   %(prog)s {PHYSICSNEMO_MGN_LUNG_MOTION} --directory tutorials/network_weights
         """,
     )
@@ -41,6 +43,7 @@ Examples:
             CHOP_VALVE4D,
             CHEST_CT,
             TCIA_4D_LUNG,
+            DUKE_HEART_4D_LABELMAPS,
             PHYSICSNEMO_MGN_LUNG_MOTION,
         ],
         default=None,
@@ -88,6 +91,11 @@ Examples:
     if args.data_name == TCIA_4D_LUNG:
         data_dir = DownloadData.DownloadTCIA4DLungData(output_dir)
         print(f"Downloaded {TCIA_4D_LUNG} to: {data_dir}")
+        return 0
+
+    if args.data_name == DUKE_HEART_4D_LABELMAPS:
+        data_dir = DownloadData.DownloadDukeHeart4DLabelmapsData(output_dir)
+        print(f"Downloaded {DUKE_HEART_4D_LABELMAPS} to: {data_dir}")
         return 0
 
     if args.data_name == PHYSICSNEMO_MGN_LUNG_MOTION:

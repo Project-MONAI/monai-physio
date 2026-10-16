@@ -1,14 +1,37 @@
 # Duke-Heart-4DLabelmaps
 
-Gated 4D cardiac labelmaps acquired at Duke University by Dr. Paul Segars.
+Gated 4D cardiac labelmaps and landmark files derived from the PROMISE study
+CT data acquired at Duke University, Dr. Paul Segars' lab.
+
+## Provenance
+
+The labelmaps were created from the original PROMISE study CT data using the
+AS Cardio (ASCardio) segmentation module in Synopsys' Simpleware application.
+MONAI Physio calls that module through the `SegmentHeartSimplewareTrimmedBranches`
+class.
+
+**Important:** any AI physiological simulation model trained using these
+labelmaps must be applied to labelmaps that were also generated with the
+ASCardio module in Simpleware (for example via
+`SegmentHeartSimplewareTrimmedBranches`). Applying such a model to labelmaps
+from a different segmenter will degrade the results.
 
 ## Availability
 
-This dataset is **scheduled for public release soon**. It is not distributed
-with this repository and has no automatic downloader yet.
+The labelmaps (`*_labelmap.nii.gz`) and landmark files (`*_landmark.mrk.json`)
+can be downloaded automatically:
 
-In the meantime, contact Stephen Aylward (<saylward@nvidia.com>) to request
-access.
+```bash
+monai-physio-download-data Duke-Heart-4DLabelmaps --directory data/Duke-Heart-4DLabelmaps
+```
+
+or from Python with `DownloadData.DownloadDukeHeart4DLabelmapsData`. The archive
+is fetched from
+<https://github.com/Project-MONAI/monai-physio/releases/download/2026.07.1/Duke-Heart-4DLabelmaps.zip>
+and extracted into this directory, creating the `pm00*/` case subdirectories.
+Re-running is a no-op once the data is present.
+
+The original PROMISE CT images are not distributed with this repository.
 
 ## Effect on the tutorials
 
@@ -20,17 +43,12 @@ their organ field, for example:
 There are ten of them. Nine form their own chain: Tutorial 4 (duke heart) -> 5
 -> 6 -> 7 -> 8 -> 9 -> 10 -> 11 -> 12. The tenth, Tutorial 2 (duke heart), is a
 separate optional ICON finetuning variant that the chain does not require.
-They will not run until the data is
-available. The other 19 tutorial scripts use publicly available datasets and are
-unaffected - see [../README.md](../README.md) for download instructions.
-
-Downstream tutorials that consume `duke_heart` outputs (such as the finetuned
-distance-map ICON weights used by
-`tutorials/tutorial_07_heart_fit_statistical_model_to_patient.py`) fall back to
-stock weights and still run, with reduced accuracy.
+Download the data before running them. The other 19 tutorial scripts use
+publicly available datasets and are unaffected - see [../README.md](../README.md)
+for download instructions.
 
 ## Expected layout
 
-When available, the data is expected under `data/Duke-Heart-4DLabelmaps/` as
-one directory per case (`pm0002/`, `pm0003/`, ...), each holding one labelmap
-per gated frame.
+The data is placed under `data/Duke-Heart-4DLabelmaps/` as one directory per
+case (`pm0002/`, `pm0003/`, ...), each holding one labelmap and one landmark
+file per gated frame.
