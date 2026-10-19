@@ -21,6 +21,19 @@ repository root (`<repo>/data/<dataset>`), while
 `monai-physio-download-data` writes to `data/<dataset>` relative to the
 current working directory.
 
+## Docker
+
+The lung image includes CUDA, PhysicsNeMo, segmentation, registration, OpenUSD,
+and Trame. Data, checkpoints, outputs, and caches remain on the host.
+
+```bash
+docker build -t monai-physio:tutorials .
+./docker/tutorial-shell.sh
+```
+
+See [LUNG_TUTORIAL_COMMANDS.md](LUNG_TUTORIAL_COMMANDS.md) for bundle download,
+processing, visualization, and remote port-forwarding commands.
+
 ## Tutorial Index
 
 | # | Script | Primary API | Dataset |

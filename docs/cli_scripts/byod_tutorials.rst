@@ -293,7 +293,7 @@ Open **Omniverse USD Composer**, drag your ``.usd`` file onto the viewport,
 then press **Play** (spacebar) to watch the animation. For 4D cardiac data,
 use the **Timeline** panel to scrub through phases. Set the viewport renderer
 to RTX and switch to the scene's ``/World/Camera`` first -
-:doc:`../viewing_usd` covers why both matter.
+:doc:`../viewing_meshes` covers why both matter.
 
 See Also
 --------
@@ -305,4 +305,3 @@ See Also
 - :doc:`/api/workflows`
 - :doc:`/tutorials`
 - :doc:`/troubleshooting`
-
