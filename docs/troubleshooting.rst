@@ -83,7 +83,7 @@ version than the one present on the system.
 
 .. code-block:: bash
 
-   uv pip install "monai-physio[cuda12]"   # CUDA 12.6, nothing compiles
+   uv pip install "monai-physio[cuda12]" -f https://data.pyg.org/whl/torch-2.12.0+cu126.html   # CUDA 12.6, nothing compiles
    uv pip install "monai-physio[cuda13]"   # CUDA 13, builds torch-scatter
 
 Each extra installs CuPy and pins PyTorch to the matching wheel index.

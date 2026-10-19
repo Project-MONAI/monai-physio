@@ -13,7 +13,7 @@ from scipy.optimize import minimize
 from scipy.spatial import cKDTree
 
 from .monai_physio_base import MONAIPhysioBase
-from .process_contours import ProcessContours
+from .process_surface_mesh import ProcessSurfaceMesh
 from .process_transforms import ProcessTransforms
 
 
@@ -180,7 +180,7 @@ class RegisterModelsPCA(MONAIPhysioBase):
 
         self.post_pca_transform = post_pca_transform
 
-        self._contour_tools = ProcessContours()
+        self._contour_tools = ProcessSurfaceMesh()
 
         self.fixed_model: Optional[pv.DataSet] = fixed_model
         self.fixed_distance_map = fixed_distance_map

@@ -63,8 +63,8 @@ In-Memory Meshes
 Labeled Meshes with Anatomy Grouping
 ------------------------------------
 
-When the input has anatomical labels (``mask_ids`` and a ``boundary_labels``
-cell array), pass a :class:`monai_physio.SegmentAnatomyBase` instance
+When the input has anatomical labels (``mask_ids`` and a
+``SegmentationLabelIds`` cell array), pass a :class:`monai_physio.SegmentAnatomyBase` instance
 through the ``segmenter`` argument so labeled prims are grouped by anatomy
 type. The output layout becomes:
 

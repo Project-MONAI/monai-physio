@@ -24,7 +24,7 @@ import pyvista as pv
 
 # Import from MONAI Physio package
 from monai_physio import (
-    ProcessContours,
+    ProcessSurfaceMesh,
     ProcessTransforms,
     RegisterModelsICPITK,
 )
@@ -125,8 +125,10 @@ itk.imwrite(
 # ## Convert Segmentation Mask to a Surface
 
 # %%
-contour_tools = ProcessContours()
-patient_heart_surface = contour_tools.extract_contours(patient_heart_mask)
+contour_tools = ProcessSurfaceMesh()
+patient_heart_surface = contour_tools.combine_surfaces(
+    contour_tools.extract_label_surfaces(patient_heart_mask)
+)
 
 # %% [markdown]
 # ## Perform Initial ICP Rigid Registration

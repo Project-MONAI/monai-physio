@@ -60,6 +60,8 @@ import pyvista as pv
 from parameters_duke_heart_labelmaps import DUKE_HEART
 
 from monai_physio import (
+    EvaluateMovementDukeHeart,
+    MONAIPhysioBase,
     ProcessTests,
     WorkflowInferMovement,
     WorkflowInferPhysicsNeMo,
@@ -69,14 +71,6 @@ from monai_physio import (
 # interval; this is what a per-frame SSM surface is matched and staged by.
 PHASE_SURFACE_PATTERN = "*_g[0-9][0-9][0-9]_*_ssm_surface.vtp"
 LABELMAP_SUFFIX = "_labelmap.nii.gz"
-
-
-def _cardiac_stage_from_filename(surface_file: Path) -> float:
-    """Extract the normalized cardiac stage [0, 1] from a ``g{PPP}`` filename stem."""
-    for part in surface_file.stem.split("_"):
-        if part.startswith("g") and part[1:].isdigit():
-            return int(part[1:]) / 100.0
-    raise ValueError(f"Cannot parse cardiac gate from filename: {surface_file}")
 
 
 # Only run if this script is not imported as a module
@@ -109,8 +103,7 @@ if __name__ == "__main__":
     log_level = logging.INFO
 
     class_name = "tutorial_10_duke_heart_infer_physicsnemo_mgn"
-    logging.basicConfig(level=log_level)
-    logger = logging.getLogger(class_name)
+    logger = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
     labelmap_dir = DUKE_HEART.hold_out_directory(test_mode) / case_id
 
@@ -148,8 +141,9 @@ if __name__ == "__main__":
 
     # Step 1: read every gated frame of the case and its ground-truth surface,
     # in gate order.
-    stages = [_cardiac_stage_from_filename(f) for f in phase_files]
-    logger.info("Case %s: predicting %d gated frames", case_id, len(stages))
+    evaluator = EvaluateMovementDukeHeart(log_level=log_level)
+    stages = [evaluator.stage_from_filename(f) for f in phase_files]
+    logger.log_info("Case %s: predicting %d gated frames", case_id, len(stages))
 
     # Step 2 and 3: predict the whole cycle, warp the reference frame through
     # each stage's deformation, and write the animated USD.  The SSM is one

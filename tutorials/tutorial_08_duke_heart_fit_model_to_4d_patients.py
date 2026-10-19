@@ -50,7 +50,6 @@ Outputs (per case, under ``output/tutorial_08_duke_heart/<case>/``)
   * ``<case>_ssm_pca_surface.vtp``        - PCA template before the final warp
   * ``<case>_ssm_surface.vtp``            - fitted reference-frame SSM surface
   * ``<frame_stem>_ssm_surface.vtp``      - SSM warped to that gated frame
-  * ``<frame_stem>_heart_surface.vtp``    - contoured frame surface, cached
 """
 
 # Imports
@@ -62,19 +61,15 @@ from pathlib import Path
 from typing import Any, cast
 
 import itk
-import numpy as np
 import pyvista as pv
 from parameters_duke_heart_labelmaps import DUKE_HEART
 
 from monai_physio import (
-    ProcessContours,
+    MONAIPhysioBase,
     ProcessTests,
-    RegisterModelsDistanceMaps,
     WorkflowFitStatisticalModelToPatient,
 )
 
-# Structure name Tutorial 4 (Duke Heart) writes its whole-heart surfaces under.
-WHOLE_HEART_NAME = "heart_minus_interior_chambers"
 LABELMAP_SUFFIX = "_labelmap.nii.gz"
 
 # Only run if this script is not imported as a module
@@ -92,14 +87,11 @@ if __name__ == "__main__":
     test_mode = ProcessTests.running_as_test()
 
     output_dir = DUKE_HEART.output_directory(test_mode) / "tutorial_08_duke_heart"
-    weights_dir = DUKE_HEART.weights_directory(test_mode)
 
     baselines_dir = repo_root / "tests" / "baselines"
 
     # The gated labelmaps, one directory per case.
     data_dir = DUKE_HEART.hold_out_directory(test_mode)
-    # Tutorial 4's surfaces, read when its "full" pass wrote the frame.
-    tutorial_04_dir = DUKE_HEART.input_directory(test_mode)
 
     # PCA model + mean surface produced by Tutorial 6 (Duke Heart).
     pca_model_file = DUKE_HEART.pca_model_file(test_mode)
@@ -111,30 +103,14 @@ if __name__ == "__main__":
     # 6 and 7 drop, so the frames and the model describe the same structure.
     interior_object_ids = DUKE_HEART.interior_object_ids
 
-    # Contouring grid, shared with Tutorial 4 so every surface here carries the
-    # same level of detail as the model's training surfaces.
-    surface_spacing_mm = DUKE_HEART.surface_spacing_mm
-    smoothing_iterations = DUKE_HEART.surface_smoothing_iterations
-
-    # Pitch of the grid the phase distance maps are rasterized on.  Coarser than
-    # the contouring pitch: it carries a distance field, not a boundary.
-    registration_spacing_mm = 1.0
-
     # Distance-map weights finetuned by
     # tutorial_02_duke_heart_distancemap_finetune_icon.py, used both by the
     # labelmap-to-labelmap stage of the SSM fit and by the phase registrations.
-    icon_weights_path = (
-        weights_dir
-        / "icon_duke_heart_distancemap"
-        / "icon_duke_heart_distancemap_model"
-        / "checkpoints"
-        / "network_weights_final.trch"
-    )
+    icon_weights_path = DUKE_HEART.distancemap_icon_weights_file(test_mode)
 
     log_level = logging.INFO
 
-    logging.basicConfig(level=log_level)
-    logger = logging.getLogger(class_name)
+    logger = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
     # Directory setup and data reading
 
@@ -155,12 +131,12 @@ if __name__ == "__main__":
     # the tutorial still runs, on the stock uniGradICON weights.
     use_finetuned_weights = icon_weights_path.exists()
     if use_finetuned_weights:
-        logger.info(
+        logger.log_info(
             "Registering with finetuned distance-map ICON weights: %s",
             icon_weights_path,
         )
     else:
-        logger.warning(
+        logger.log_warning(
             "Finetuned distance-map ICON weights not found at %s; registering "
             "with the stock uniGradICON weights. Run "
             "tutorials/tutorial_02_duke_heart_distancemap_finetune_icon.py to "
@@ -177,42 +153,6 @@ if __name__ == "__main__":
             "See data/Duke-Heart-4DLabelmaps/README.md."
         )
 
-    contour_tools = ProcessContours(log_level=log_level)
-
-    def heart_surface_for(labelmap_file: Path, case_output_dir: Path) -> pv.PolyData:
-        """Return one frame's whole heart, minus its chamber cavities.
-
-        Tutorial 4's ``"full"`` pass contours this surface for every gated
-        frame, so its output is read when present.  Otherwise the surface is
-        contoured here and cached beside this tutorial's other outputs, so a
-        re-run pays for it once.
-        """
-        stem = labelmap_file.name[: -len(LABELMAP_SUFFIX)]
-        tutorial_04_file = tutorial_04_dir / f"{stem}_{WHOLE_HEART_NAME}.vtp"
-        if tutorial_04_file.exists():
-            return cast(pv.PolyData, pv.read(str(tutorial_04_file)))
-
-        surface_file = case_output_dir / f"{stem}_heart_surface.vtp"
-        if not surface_file.exists():
-            labelmap = itk.imread(str(labelmap_file))
-            labels = itk.GetArrayViewFromImage(labelmap)
-            heart_ids = [
-                int(value)
-                for value in np.unique(labels)
-                if value != 0 and int(value) not in interior_object_ids
-            ]
-            heart_mask = itk.GetImageFromArray(
-                np.isin(labels, heart_ids).astype(np.uint8)
-            )
-            heart_mask.CopyInformation(labelmap)
-            heart_surface = contour_tools.extract_label_surfaces(
-                heart_mask,
-                isotropic_spacing_mm=surface_spacing_mm,
-                smoothing_iterations=smoothing_iterations,
-            )[1]
-            heart_surface.save(str(surface_file))
-        return cast(pv.PolyData, pv.read(str(surface_file)))
-
     tutorial_results: dict[str, Any] = {"cases": {}, "screenshots": []}
 
     for case_dir in case_dirs:
@@ -222,20 +162,22 @@ if __name__ == "__main__":
             path for path in frame_files if path.name.endswith(f"_ref{LABELMAP_SUFFIX}")
         ]
         if not reference_files:
-            logger.warning("Skipping %s: no *_ref_labelmap.nii.gz frame", case_id)
+            logger.log_warning("Skipping %s: no *_ref_labelmap.nii.gz frame", case_id)
             continue
         reference_file = reference_files[0]
 
-        logger.info("%s", "=" * 48)
-        logger.info("Processing case %s: %d gated frames", case_id, len(frame_files))
-        logger.info("%s", "=" * 48)
+        logger.log_section(
+            "Processing case %s: %d gated frames", case_id, len(frame_files), width=48
+        )
 
         case_output_dir = output_dir / case_id
         case_output_dir.mkdir(parents=True, exist_ok=True)
 
         # Step 1: contour the reference frame's heart.
         reference_labelmap = itk.imread(str(reference_file))
-        reference_surface = heart_surface_for(reference_file, case_output_dir)
+        reference_surface = DUKE_HEART.whole_heart_surface(
+            reference_file, test_mode, log_level
+        )
 
         # Step 2: fit the statistical model to the reference frame.  This data
         # carries no intensity image, so the workflow rasterizes its own
@@ -285,39 +227,26 @@ if __name__ == "__main__":
         fitted_reference_mesh_file = case_output_dir / f"{case_id}_ssm_surface.vtp"
         fitted_reference_mesh.save(str(fitted_reference_mesh_file))
 
-        # Step 3: warp the fitted SSM surface onto every gated frame.  One grid
-        # is built around the reference frame's heart and reused by every frame,
-        # so the whole case is registered in a common space; its buffer holds
-        # the frames the heart moves into.
-        registration_grid = contour_tools.create_reference_image(
-            mesh=reference_surface,
-            spatial_resolution=registration_spacing_mm,
-            buffer_factor=0.25,
-            ptype=itk.F,
-        )
+        # Step 3: warp the fitted SSM surface onto every gated frame, all on one
+        # grid built around the reference frame's heart.
+        registration_grid = DUKE_HEART.frame_registration_grid(reference_surface)
 
         phase_outputs = []
         for frame_file in frame_files:
             stem = frame_file.name[: -len(LABELMAP_SUFFIX)]
             if frame_file == reference_file:
                 # The fit already placed the SSM on this frame.
-                logger.info("Case %s: reference frame %s", case_id, stem)
+                logger.log_info("Case %s: reference frame %s", case_id, stem)
                 phase_surface = fitted_reference_mesh
             else:
-                logger.info("Case %s: warping to frame %s", case_id, stem)
-                registrar = RegisterModelsDistanceMaps(
-                    moving_model=fitted_reference_mesh,
-                    fixed_model=heart_surface_for(frame_file, case_output_dir),
-                    reference_image=registration_grid,
-                    distance_squared_max=DUKE_HEART.distancemap_squared_max,
-                    mask_dilation_mm=DUKE_HEART.mask_dilation_mm,
-                    log_level=log_level,
+                logger.log_info("Case %s: warping to frame %s", case_id, stem)
+                phase_surface = DUKE_HEART.register_to_frame(
+                    fitted_reference_mesh,
+                    DUKE_HEART.whole_heart_surface(frame_file, test_mode, log_level),
+                    registration_grid,
+                    test_mode,
+                    log_level,
                 )
-                if use_finetuned_weights:
-                    registrar.set_icon_weights_path(str(icon_weights_path))
-                phase_surface = registrar.register(transform_type="Deformable")[
-                    "registered_model"
-                ]
 
             surface_file = case_output_dir / f"{stem}_ssm_surface.vtp"
             phase_surface.save(str(surface_file))

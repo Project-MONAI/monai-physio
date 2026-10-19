@@ -95,7 +95,6 @@ Image to VTK
    import itk
 
    from monai_physio import (
-       ProcessContours,
        SegmentChestTotalSegmentatorWithContrast,
        WorkflowConvertImageToVTK,
    )
@@ -109,7 +108,7 @@ Image to VTK
        anatomy_groups=["heart", "major_vessels"],
    )
 
-   ProcessContours.save_combined_surfaces(
+   WorkflowConvertImageToVTK.save_combined_surfaces(
        result["surfaces"],
        "./output/patient01_surfaces.vtp",
    )

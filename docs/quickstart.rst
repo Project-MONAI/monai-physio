@@ -9,14 +9,24 @@ Prerequisites
 
 Before starting, ensure you have:
 
-* MONAI Physio installed (see :doc:`installation`)
 * NVIDIA GPU with CUDA 12.6 or CUDA 13 - recommended for production
-  performance; see :doc:`installation` for the ``[cuda12]`` extra
-  (recommended, installs entirely from prebuilt wheels), ``[cuda13]``, or
-  ``--torch-backend=auto``. A CPU-only PyPI install works for evaluation but
-  is significantly slower.
+  performance. A CPU-only install works for evaluation but is significantly
+  slower.
 * Disk space for the sample datasets (~10-20 GB for the full set; each dataset
   README lists its own size)
+
+Install
+=======
+
+.. code-block:: bash
+
+   uv pip install "monai-physio[cuda12]" -f https://data.pyg.org/whl/torch-2.12.0+cu126.html
+
+This installs entirely from prebuilt wheels. The ``-f`` option points uv at
+the PyG wheel index that hosts ``torch-scatter``; without it, uv falls back to
+a ``torch-scatter`` source build, which needs a matching CUDA toolkit and a
+C++ toolchain. See :doc:`installation` for CUDA 13, ``--torch-backend=auto``,
+pip, source installs, and CPU-only.
 
 .. _tutorial_scripts:
 

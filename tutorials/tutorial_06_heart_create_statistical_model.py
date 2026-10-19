@@ -27,7 +27,7 @@ import pyvista as pv
 from parameters_heart_ct_kcl import HEART_CT_KCL
 
 from monai_physio import (
-    ProcessContours,
+    ProcessSurfaceMesh,
     ProcessTests,
     WorkflowCreateStatisticalModel,
 )
@@ -108,7 +108,7 @@ if __name__ == "__main__":
             "See data/README.md for download instructions."
         )
 
-    contour_tools = ProcessContours(log_level=log_level)
+    contour_tools = ProcessSurfaceMesh(log_level=log_level)
 
     def read_model_surface(path: Path) -> pv.DataSet:
         """Read a mesh, reduced to ``model_points`` when a budget is set."""

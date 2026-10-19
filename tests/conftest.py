@@ -18,8 +18,9 @@ import pytest
 from parameters_base import ParametersBase
 
 from monai_physio.download_data import DownloadData
-from monai_physio.process_contours import ProcessContours
+from monai_physio.process_surface_mesh import ProcessSurfaceMesh
 from monai_physio.process_transforms import ProcessTransforms
+from monai_physio.process_volumetric_mesh import ProcessVolumetricMesh
 from monai_physio.register_images_ants import RegisterImagesANTS
 from monai_physio.register_images_greedy import RegisterImagesGreedy
 from monai_physio.register_images_icon import RegisterImagesICON
@@ -842,9 +843,15 @@ def segmenter_simpleware() -> SegmentHeartSimpleware:
 
 
 @pytest.fixture(scope="session")
-def contour_tools() -> ProcessContours:
-    """Create a ProcessContours instance."""
-    return ProcessContours()
+def contour_tools() -> ProcessSurfaceMesh:
+    """Create a ProcessSurfaceMesh instance."""
+    return ProcessSurfaceMesh()
+
+
+@pytest.fixture(scope="session")
+def volume_tools() -> ProcessVolumetricMesh:
+    """Create a ProcessVolumetricMesh instance."""
+    return ProcessVolumetricMesh()
 
 
 @pytest.fixture(scope="session")

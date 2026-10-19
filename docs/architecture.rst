@@ -31,7 +31,7 @@ Data Flow
    SegmentNVSegmentCT (CT only)
           |
           v
-   ProcessContours + ProcessTransforms
+   ProcessSurfaceMesh + ProcessVolumetricMesh + ProcessTransforms
           |
           v
    WorkflowConvertImageToVTK / ConvertVTKToUSD / WorkflowConvertVTKToUSD

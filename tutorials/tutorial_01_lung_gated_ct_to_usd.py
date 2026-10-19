@@ -29,12 +29,13 @@ Outputs (under ``tutorials/output/tutorial_01_lung/``)
 Strengths
 ---------
 - Single call (``WorkflowConvertImageToUSD.process()``) runs the full pipeline.
-- Registers on the CPU with ``RegisterImagesICON``; no GPU needed for this stage.
+- Registers on the CPU with ``RegisterImagesGreedy``; no GPU needed for this
+  stage.
 - Output is Omniverse-ready with anatomical materials (ProcessUSDAnatomy).
 
 Weaknesses / Limitations
 ------------------------
-- Segmentation quality depends on TotalSegmentator's training distribution;
+- Segmentation quality depends on the segmenter's training distribution;
   unusual pathologies or pediatric anatomy may degrade results.
 - Large 4D datasets (>20 phases, high resolution) can require 32 GB+ RAM.
 
@@ -43,11 +44,11 @@ Classes Used
 - WorkflowConvertImageToUSD (workflow_convert_image_to_usd.py):
     Orchestrates the full pipeline: CT phases -> segmentation -> registration ->
     contour extraction -> USD export.
-- SegmentChestTotalSegmentator (segment_chest_total_segmentator.py):
-    Deep-learning segmentation of 117 anatomical structures (used internally).
-- RegisterImagesICON (register_images_icon.py):
-    Frame-to-frame image registration (used internally).
-- ProcessContours (process_contours.py):
+- SegmentNVSegmentCTMRI (segment_nv_segment_ct_mri.py):
+    Deep-learning anatomy segmentation (``TCIA_4D_LUNG.segmenter``).
+- RegisterImagesGreedy (register_images_greedy.py):
+    Frame-to-frame image registration (``TCIA_4D_LUNG.registrar``).
+- ProcessSurfaceMesh (process_surface_mesh.py):
     Extracts and transforms surface meshes from segmentation masks (used internally).
 - ProcessUSDAnatomy (process_usd_anatomy.py):
     Applies clinical material colours to USD prims (used internally).
@@ -69,12 +70,7 @@ from pathlib import Path
 import itk
 from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
-from monai_physio import (
-    ProcessTests,
-    RegisterImagesGreedy,
-    SegmentNVSegmentCTMRI,
-    WorkflowConvertImageToUSD,
-)
+from monai_physio import ProcessTests, WorkflowConvertImageToUSD
 
 # Only run if this script is not imported as a module
 
@@ -95,19 +91,14 @@ if __name__ == "__main__":
     data_dir = TCIA_4D_LUNG.input_directory(test_mode)
 
     if test_mode:
-        number_of_iterations_greedy = [1, 0]
         frame_files = sorted(data_dir.glob("100_HM10395_g0??.nii.gz"))[0:2]
     else:
-        number_of_iterations_greedy = [100, 100, 10, 5]
         frame_files = sorted(data_dir.glob("100_HM10395_g0??.nii.gz"))
 
     log_level = logging.INFO
 
-    registration_method = RegisterImagesGreedy(log_level=log_level)
-    registration_method.set_number_of_iterations(number_of_iterations_greedy)
-    registration_method.set_metric("CC")
-
-    segmentation_method = SegmentNVSegmentCTMRI(log_level=log_level)
+    registration_method = TCIA_4D_LUNG.registrar(test_mode, log_level=log_level)
+    segmentation_method = TCIA_4D_LUNG.segmenter(test_mode, log_level=log_level)
 
     # Directory setup and data reading
 

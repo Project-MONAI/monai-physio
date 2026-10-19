@@ -35,7 +35,9 @@ Class Boundaries
 * Registration classes estimate transforms.
 * Segmentation classes return ITK images or dictionaries of ITK masks.
 * ``ProcessTransforms`` applies transforms to images and PyVista contours.
-* ``ProcessContours`` creates and transforms VTK/PyVista surface data.
+* ``ProcessSurfaceMesh`` creates and transforms VTK/PyVista surface data;
+  ``ProcessVolumetricMesh`` builds and relaxes tetrahedral meshes; both run
+  their GPU work through ``ProcessMeshKernels``.
 * ``ProcessUSD`` and ``ProcessUSDAnatomy`` operate on USD stages and files.
 
 Public APIs should be documented in ``docs/api``.

@@ -451,7 +451,6 @@ def install_dependencies(
             + [
                 "torch",
                 "torchvision",
-                "torchaudio",
                 "--index-url",
                 "https://download.pytorch.org/whl/cu130",
             ],

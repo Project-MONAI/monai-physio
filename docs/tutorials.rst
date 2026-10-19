@@ -252,7 +252,7 @@ Workflow
    :class:`~monai_physio.WorkflowFitStatisticalModelToPatient` and
    :class:`~monai_physio.WorkflowInferMovement` (``process_time_series``)
    driving a pretrained :class:`~monai_physio.WorkflowInferPhysicsNeMo`
-   MeshGraphNet, with :class:`~monai_physio.SegmentChestTotalSegmentator`.
+   MeshGraphNet, with :class:`~monai_physio.SegmentNVSegmentCTMRI`.
 
 Dataset
    Chest-CT (auto-download): a single ungated chest CT, unlike the gated
@@ -313,7 +313,7 @@ Adapt to your data
    directory also carries a matching ``pca_model.json`` and
    ``pca_mean_surface.vtp`` - to demo a different cohort. Demoing another
    anatomy needs more than swapping ``model_dir``: the segmenter
-   (``SegmentChestTotalSegmentator``) and ``anatomy_type="lung"`` passed to
+   (``SegmentNVSegmentCTMRI``) and ``anatomy_type="lung"`` passed to
    ``process_time_series`` are hardcoded to lung and must change too. This
    is a standalone shortcut, not step one of the numbered series: start at
    Tutorial 1 for the full pipeline.
@@ -578,9 +578,9 @@ Script
    Duke-Heart-4DLabelmaps (see `Before You Start`_).
 
 Workflow
-   :class:`~monai_physio.WorkflowConvertImageToVTK` with
-   :class:`~monai_physio.SegmentChestTotalSegmentatorWithContrast` (heart) or
-   :class:`~monai_physio.SegmentChestTotalSegmentator` (lung).
+   :class:`~monai_physio.WorkflowConvertImageToVTK`, with each dataset's
+   segmenter from its parameters module. The ``duke_heart`` variant passes
+   its labelmaps through ``labelmap_image`` instead of segmenting a CT.
 
 Dataset
    One frame of Slicer-Heart-CT or TCIA-4DLung - a single static volume is enough.
@@ -613,12 +613,15 @@ Inner API usage
    .. code-block:: python
 
       workflow = WorkflowConvertImageToVTK(
-          segmentation_method=segmentation_method,
+          segmentation_method=HEART_CT_KCL.segmenter(test_mode),
       )
       result = workflow.process(
           input_image=ct_image,
           surface_reduction_rate=HEART_CT_KCL.surface_reduction_rate,
-          extract_label_surfaces=save_label_surfaces,
+          extract_label_surfaces=True,
+      )
+      WorkflowConvertImageToVTK.save_combined_surfaces(
+          result["label_surfaces"], "patient_surfaces.vtp"
       )
 
 Run
@@ -1119,7 +1122,7 @@ Script
 Workflow
    :class:`~monai_physio.WorkflowEvaluateMovement`, driving
    :class:`~monai_physio.WorkflowInferMovement` and, for the lung variant,
-   :class:`~monai_physio.SegmentChestTotalSegmentator`.
+   :class:`~monai_physio.SegmentNVSegmentCTMRI`.
 
 Dataset
    The gated sequence itself - TCIA-4DLung for the lung, Duke-Heart-4DLabelmaps
@@ -1206,7 +1209,7 @@ Script
 
 Workflow
    :class:`~monai_physio.WorkflowConvertImageToVTK` (lung) or
-   :class:`~monai_physio.ProcessContours` (heart),
+   :class:`~monai_physio.ProcessSurfaceMesh` (heart),
    :class:`~monai_physio.WorkflowFitStatisticalModelToPatient`, then
    :meth:`~monai_physio.WorkflowInferMovement.process_time_series`.
 
@@ -1534,8 +1537,8 @@ Script
 Workflow
    :class:`~monai_physio.WorkflowCreateStatisticalModel` with
    ``solve_for_surface_pca=False`` on a tetrahedral template built by
-   :meth:`~monai_physio.ProcessContours.extract_tetrahedra` and
-   :meth:`~monai_physio.ProcessContours.trim_tetrahedra_to_surface`, then
+   :meth:`~monai_physio.ProcessVolumetricMesh.extract_tetrahedra` and
+   :meth:`~monai_physio.ProcessVolumetricMesh.trim_tetrahedra_to_surface`, then
    :class:`~monai_physio.WorkflowFitStatisticalModelToPatient` per case and
    gated frame.
 

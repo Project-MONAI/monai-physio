@@ -45,10 +45,10 @@ per-chamber scores possible at all.
 
 What is *not* recomputed per fold
 ---------------------------------
-The per-frame heart contours and the remeshed model-population surfaces do not
-depend on which case is held out, so they are contoured once into ``shared/``
-and reused by every fold.  Tutorial 4's surfaces are read in place of the cache
-when they exist.
+The remeshed model-population surfaces do not depend on which case is held
+out, so they are made once into ``shared/`` and reused by every fold.  The
+per-frame heart contours are Tutorial 4's when it wrote them; otherwise each
+fold contours the frames it registers to.
 
 Unlike the lung variant, the *phase propagation* here cannot be hoisted: it
 registers the fold's own fitted SSM surface to each frame, and that surface
@@ -81,7 +81,7 @@ Outputs (under ``tutorials/output/tutorial_15_duke_heart/``)
     displacement 95th percentile included, plus each fold's whole-model error
   * ``loo_metrics_by_label.png``  - the same, as a per-chamber box plot
   * ``fold_<case>/``              - that fold's shape model, fits and weights
-  * ``shared/``                   - the fold-independent contours
+  * ``shared/``                   - the fold-independent population surfaces
 
 Runtime
 -------
@@ -109,10 +109,10 @@ from parameters_duke_heart_labelmaps import DUKE_HEART
 from monai_physio import (
     DistributedContext,
     EvaluateMovementDukeHeart,
-    ProcessContours,
+    MONAIPhysioBase,
     ProcessPhysicsNemo,
+    ProcessSurfaceMesh,
     ProcessTests,
-    RegisterModelsDistanceMaps,
     TrainPhysicsNeMoMGN,
     WorkflowCreateMeanSurface,
     WorkflowCreateStatisticalModel,
@@ -123,8 +123,6 @@ from monai_physio import (
     WorkflowTrainPhysicsNeMo,
 )
 
-# Structure name Tutorial 4 (Duke Heart) writes its whole-heart surfaces under.
-WHOLE_HEART_NAME = "heart_minus_interior_chambers"
 LABELMAP_SUFFIX = "_labelmap.nii.gz"
 
 # The four chambers, plus the myocardium and the whole heart for context: 5 and
@@ -133,20 +131,9 @@ LABELMAP_SUFFIX = "_labelmap.nii.gz"
 # between frames and are not part of the model.
 HEART_LABEL_IDS = [1, 2, 3, 4, 5, 6]
 
-# Point-data array the tutorial writes its targets into and the manifests name.
-TARGET_ARRAY = "displacement"
-
 # Gated frames carry a ``g{PPP}`` tag naming their percentage of the R-R
 # interval; this is what a per-frame SSM surface is matched and staged by.
 PHASE_SURFACE_PATTERN = "*_g[0-9][0-9][0-9]_*_ssm_surface.vtp"
-
-
-def _cardiac_stage_from_filename(frame_file: Path) -> float:
-    """Extract the normalized cardiac stage [0, 1] from a ``g{PPP}`` filename stem."""
-    for part in frame_file.name.split("_"):
-        if part.startswith("g") and part[1:].isdigit():
-            return int(part[1:]) / 100.0
-    raise ValueError(f"Cannot parse cardiac gate from filename: {frame_file}")
 
 
 def _rank_share(items: list[Any], context: DistributedContext) -> list[Any]:
@@ -156,51 +143,6 @@ def _rank_share(items: list[Any], context: DistributedContext) -> list[Any]:
     barrier afterwards, so the ranks never contend for a file.
     """
     return items[context.rank :: context.world_size]
-
-
-def _write_target_mesh(
-    phase_file: Path, ref_points: np.ndarray, targets_dir: Path
-) -> Path:
-    """Write one frame's training target and return the mesh path.
-
-    The target is the per-vertex displacement from the case's reference surface,
-    stored as the ``TARGET_ARRAY`` point-data array on a copy of the frame
-    surface.  The training workflow reads whatever array the manifest names and
-    never derives one.
-    """
-    phase_mesh = pv.read(str(phase_file))
-    phase_points = np.asarray(phase_mesh.points, dtype=np.float32)
-    phase_mesh.point_data[TARGET_ARRAY] = phase_points - ref_points
-    target_path = targets_dir / f"{phase_file.stem}_target.vtp"
-    phase_mesh.save(str(target_path))
-    return target_path
-
-
-def _write_case_manifest(case_dir: Path, manifests_dir: Path) -> Path:
-    """Write one case's training manifest and return its path."""
-    case_id = case_dir.name
-    fitted_reference_mesh_file = case_dir / f"{case_id}_ssm_surface.vtp"
-    phase_files = sorted(case_dir.glob(PHASE_SURFACE_PATTERN))
-    manifests_dir.mkdir(parents=True, exist_ok=True)
-    ref_points = np.asarray(
-        pv.read(str(fitted_reference_mesh_file)).points, dtype=np.float32
-    )
-    manifest = {
-        "subject_id": case_id,
-        "fitted_reference_mesh": str(fitted_reference_mesh_file),
-        "pca_coefficients": str(case_dir / f"{case_id}_ssm_pca_coefficients.json"),
-        "target_array": TARGET_ARRAY,
-        "phases": [
-            {
-                "mesh": str(_write_target_mesh(phase_file, ref_points, manifests_dir)),
-                "stage": _cardiac_stage_from_filename(phase_file),
-            }
-            for phase_file in phase_files
-        ],
-    }
-    manifest_path = manifests_dir / f"{case_id}_manifest.json"
-    manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    return manifest_path
 
 
 def _summarize(values: list[float]) -> tuple[float, float, int]:
@@ -406,10 +348,6 @@ if __name__ == "__main__":
     hidden_dim = 128
     num_layers = 2  # MLP layers inside each encoder / processor / decoder block
 
-    # Pitch of the grid the frame distance maps are rasterized on. Coarser than
-    # the contouring pitch: it carries a distance field, not a boundary.
-    registration_spacing_mm = 1.0
-
     # Gaussian sigma, in mm, that spreads the predicted surface displacements
     # into the continuous field the labelmap is resampled through.
     smoothing_sigma_mm = 10.0
@@ -420,14 +358,11 @@ if __name__ == "__main__":
 
     test_mode = ProcessTests.running_as_test()
     # Keep a test run out of the directories a full run reads and writes.
-    weights_dir = DUKE_HEART.weights_directory(test_mode)
-
     output_dir = DUKE_HEART.output_directory(test_mode) / "tutorial_15_duke_heart"
     shared_dir = output_dir / "shared"
     log_level = logging.INFO
 
-    logging.basicConfig(level=log_level)
-    logger = logging.getLogger(class_name)
+    logger = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
     # Under torchrun / SLURM / mpirun this is one rank of many; started plainly
     # it reports a world of one and every branch below collapses to a single
@@ -435,7 +370,6 @@ if __name__ == "__main__":
     context = ProcessPhysicsNemo.distributed_context()
 
     data_dir = DUKE_HEART.hold_out_directory(test_mode)
-    tutorial_04_dir = DUKE_HEART.input_directory(test_mode)
     number_of_pca_components = DUKE_HEART.pca_components(test_mode)
 
     # Labels left out of the whole-heart structure, the same ones Tutorials 4,
@@ -452,21 +386,13 @@ if __name__ == "__main__":
     # Distance-map weights finetuned by
     # tutorial_02_duke_heart_distancemap_finetune_icon.py, used both by the
     # labelmap-to-labelmap stage of the SSM fit and by the frame registrations.
-    icon_weights_path = (
-        weights_dir
-        / "icon_duke_heart_distancemap"
-        / "icon_duke_heart_distancemap_model"
-        / "checkpoints"
-        / "network_weights_final.trch"
-    )
+    icon_weights_path = DUKE_HEART.distancemap_icon_weights_file(test_mode)
 
     # Directory setup and data reading
 
-    contour_dir = shared_dir / "contours"
     samples_dir = shared_dir / "model_samples"
     if context.is_main:
-        for directory in (contour_dir, samples_dir):
-            directory.mkdir(parents=True, exist_ok=True)
+        samples_dir.mkdir(parents=True, exist_ok=True)
     context.barrier()
 
     case_dirs = sorted(
@@ -506,7 +432,7 @@ if __name__ == "__main__":
             f"only {len(case_ids)} cases are available under {data_dir}."
         )
     held_out_cases = case_ids[:number_of_leave_one_out_runs]
-    logger.info(
+    logger.log_info(
         "%d cases, %d folds; holding out %s",
         len(case_ids),
         len(held_out_cases),
@@ -515,7 +441,7 @@ if __name__ == "__main__":
 
     use_finetuned_weights = icon_weights_path.exists()
     if not use_finetuned_weights:
-        logger.warning(
+        logger.log_warning(
             "Finetuned distance-map ICON weights not found at %s; registering "
             "with the stock uniGradICON weights. Run "
             "tutorials/tutorial_02_duke_heart_distancemap_finetune_icon.py to "
@@ -523,62 +449,24 @@ if __name__ == "__main__":
             icon_weights_path,
         )
 
-    contour_tools = ProcessContours(log_level=log_level)
+    contour_tools = ProcessSurfaceMesh(log_level=log_level)
 
     # The cohort names the structures every fold reports and, in Step 5, reads
     # each fold's ground truth: the acquired labelmaps and this fold's own fits.
     cohort = EvaluateMovementDukeHeart(log_level=log_level)
     heart_names = cohort.label_names()
 
-    def heart_surface_for(labelmap_file: Path) -> Path:
-        """Return the path to one frame's whole heart, minus its chamber cavities.
-
-        Tutorial 4's ``"full"`` pass contours this surface for every gated
-        frame, so its output is used when present.  Otherwise the surface is
-        contoured into the shared cache, which no fold recomputes: the contour
-        of an acquired frame does not depend on which case was held out.
-        """
-        stem = labelmap_file.name[: -len(LABELMAP_SUFFIX)]
-        tutorial_04_file = tutorial_04_dir / f"{stem}_{WHOLE_HEART_NAME}.vtp"
-        if tutorial_04_file.exists():
-            return tutorial_04_file
-
-        surface_file = contour_dir / f"{stem}_heart_surface.vtp"
-        if not surface_file.exists():
-            labelmap = itk.imread(str(labelmap_file))
-            labels = itk.GetArrayViewFromImage(labelmap)
-            heart_ids = [
-                int(value)
-                for value in np.unique(labels)
-                if value != 0 and int(value) not in interior_object_ids
-            ]
-            heart_mask = itk.GetImageFromArray(
-                np.isin(labels, heart_ids).astype(np.uint8)
-            )
-            heart_mask.CopyInformation(labelmap)
-            contour_tools.extract_label_surfaces(
-                heart_mask,
-                isotropic_spacing_mm=DUKE_HEART.surface_spacing_mm,
-                smoothing_iterations=DUKE_HEART.surface_smoothing_iterations,
-            )[1].save(str(surface_file))
-        return surface_file
-
-    # Step 1: the shared cache. Contouring a frame and remeshing a case's
-    # reference surface to the model's point budget are both independent of
-    # which case is held out, so they happen once. Cases are split across the
-    # ranks; the barrier below is what lets every rank read every case's files.
+    # Step 1: the shared cache. Remeshing a case's reference surface to the
+    # model's point budget is independent of which case is held out, so it
+    # happens once. Cases are split across the ranks; the barrier below is what
+    # lets every rank read every case's files.
     for case_id in _rank_share(case_ids, context):
-        case_dir = case_dir_by_id[case_id]
-        for frame_file in sorted(case_dir.glob(f"*{LABELMAP_SUFFIX}")):
-            heart_surface_for(frame_file)
-
         # The population surface: the model's fixed point budget, which the
         # contours carry thirty times over. See the parameters module.
         sample_file = samples_dir / f"{case_id}_ref_model_surface.vtp"
         if not sample_file.exists():
-            surface = cast(
-                pv.PolyData,
-                pv.read(str(heart_surface_for(reference_frame_file(case_dir)))),
+            surface = DUKE_HEART.whole_heart_surface(
+                reference_frame_file(case_dir_by_id[case_id]), test_mode, log_level
             )
             contour_tools.remesh_and_smooth_surface(
                 surface, 1.0 - DUKE_HEART.model_points / surface.n_points, 0
@@ -590,14 +478,13 @@ if __name__ == "__main__":
     fold_results: dict[str, Any] = {}
 
     for fold_index, held_out_case in enumerate(held_out_cases):
-        logger.info("%s", "=" * 48)
-        logger.info(
+        logger.log_section(
             "Fold %d/%d: holding out %s",
             fold_index + 1,
             len(held_out_cases),
             held_out_case,
+            width=48,
         )
-        logger.info("%s", "=" * 48)
 
         fold_dir = output_dir / f"fold_{held_out_case}"
         fits_dir = fold_dir / "fits"
@@ -671,13 +558,13 @@ if __name__ == "__main__":
             )
 
             reference_file = reference_frame_file(case_dir)
-            reference_surface = cast(
-                pv.PolyData, pv.read(str(heart_surface_for(reference_file)))
+            reference_surface = DUKE_HEART.whole_heart_surface(
+                reference_file, test_mode, log_level
             )
             if not (
                 fitted_reference_mesh_file.exists() and pca_coefficients_file.exists()
             ):
-                logger.info("Fold %s: fitting %s", held_out_case, case_id)
+                logger.log_info("Fold %s: fitting %s", held_out_case, case_id)
                 # This data carries no intensity image, so the workflow
                 # rasterizes its own reference grid from the patient surface.
                 fit_workflow = WorkflowFitStatisticalModelToPatient(
@@ -720,14 +607,8 @@ if __name__ == "__main__":
             )
 
             # One grid built around the reference frame's heart and reused by
-            # every frame, so the whole case is registered in a common space;
-            # its buffer holds the frames the heart moves into.
-            registration_grid = contour_tools.create_reference_image(
-                mesh=reference_surface,
-                spatial_resolution=registration_spacing_mm,
-                buffer_factor=0.25,
-                ptype=itk.F,
-            )
+            # every frame, so the whole case is registered in a common space.
+            registration_grid = DUKE_HEART.frame_registration_grid(reference_surface)
             for frame_file in sorted(case_dir.glob(f"*{LABELMAP_SUFFIX}")):
                 stem = frame_file.name[: -len(LABELMAP_SUFFIX)]
                 frame_surface_file = case_fit_dir / f"{stem}_ssm_surface.vtp"
@@ -737,22 +618,16 @@ if __name__ == "__main__":
                     # The fit already placed the SSM on this frame.
                     fitted_reference_mesh.save(str(frame_surface_file))
                     continue
-                logger.info("Fold %s: %s warping to %s", held_out_case, case_id, stem)
-                registrar = RegisterModelsDistanceMaps(
-                    moving_model=fitted_reference_mesh,
-                    fixed_model=cast(
-                        pv.PolyData, pv.read(str(heart_surface_for(frame_file)))
-                    ),
-                    reference_image=registration_grid,
-                    distance_squared_max=DUKE_HEART.distancemap_squared_max,
-                    mask_dilation_mm=DUKE_HEART.mask_dilation_mm,
-                    log_level=log_level,
+                logger.log_info(
+                    "Fold %s: %s warping to %s", held_out_case, case_id, stem
                 )
-                if use_finetuned_weights:
-                    registrar.set_icon_weights_path(str(icon_weights_path))
-                registrar.register(transform_type="Deformable")[
-                    "registered_model"
-                ].save(str(frame_surface_file))
+                DUKE_HEART.register_to_frame(
+                    fitted_reference_mesh,
+                    DUKE_HEART.whole_heart_surface(frame_file, test_mode, log_level),
+                    registration_grid,
+                    test_mode,
+                    log_level,
+                ).save(str(frame_surface_file))
 
         context.barrier()
 
@@ -761,7 +636,16 @@ if __name__ == "__main__":
         # having to be told which ones the others wrote.
         manifests_dir = fold_dir / "manifests_mgn"
         for case_id in _rank_share(case_ids, context):
-            _write_case_manifest(fits_dir / case_id, manifests_dir)
+            case_fit_dir = fits_dir / case_id
+            phase_files = sorted(case_fit_dir.glob(PHASE_SURFACE_PATTERN))
+            ProcessPhysicsNemo.write_manifest(
+                subject_id=case_id,
+                fitted_reference_mesh=case_fit_dir / f"{case_id}_ssm_surface.vtp",
+                pca_coefficients=case_fit_dir / f"{case_id}_ssm_pca_coefficients.json",
+                phase_meshes=phase_files,
+                stages=[cohort.stage_from_filename(path) for path in phase_files],
+                output_directory=manifests_dir,
+            )
         context.barrier()
 
         manifests = {
@@ -868,8 +752,8 @@ if __name__ == "__main__":
         plot_file = _plot_metrics_by_label(
             all_rows, heart_names, output_dir / "loo_metrics_by_label.png"
         )
-        logger.info("Metrics: %s", metrics_file)
-        logger.info("Report: %s", report_file)
+        logger.log_info("Metrics: %s", metrics_file)
+        logger.log_info("Report: %s", report_file)
 
         tutorial_results["metrics_file"] = metrics_file
         tutorial_results["report_file"] = report_file
@@ -903,4 +787,4 @@ if __name__ == "__main__":
                 color="steelblue",
             ),
         ]
-        logger.info("Last fold report: %s", fold_results[last_case]["report_file"])
+        logger.log_info("Last fold report: %s", fold_results[last_case]["report_file"])

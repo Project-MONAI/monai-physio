@@ -22,7 +22,9 @@ src/monai_physio/
   segment_chest_*.py          - TotalSegmentator, VISTA-3D, NIM, Ensemble
   register_images_*.py        - ICON, ANTs, Greedy, time-series wrappers
   register_models_*.py        - ICP, PCA, distance-map registerers
-  process_contours.py            - surface extraction from ITK masks
+  process_surface_mesh.py        - surface extraction from ITK masks
+  process_volumetric_mesh.py     - tetrahedral meshes from ITK masks
+  process_mesh_kernels.py        - GPU primitives for both mesh modules
   convert_vtk_to_usd.py       - high-level VTK→USD (in-memory, PyVista)
   vtk_to_usd/                 - file-based VTK→USD subpackage
   process_usd.py / process_usd_anatomy.py - USD stage utilities

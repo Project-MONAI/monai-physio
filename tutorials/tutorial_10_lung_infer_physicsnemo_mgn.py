@@ -58,19 +58,12 @@ import pyvista as pv
 from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
+    EvaluateMovementLung,
+    MONAIPhysioBase,
     ProcessTests,
     WorkflowInferMovement,
     WorkflowInferPhysicsNeMo,
 )
-
-
-def _respiratory_stage_from_filename(surface_file: Path) -> float:
-    """Extract the normalized respiratory stage [0, 1] from a ``g{PPP}`` filename stem."""
-    for part in surface_file.stem.split("_"):
-        if part.startswith("g") and len(part) == 4 and part[1:].isdigit():
-            return int(part[1:]) / 100.0
-    raise ValueError(f"Cannot parse respiratory phase from filename: {surface_file}")
-
 
 # Only run if this script is not imported as a module
 
@@ -106,8 +99,7 @@ if __name__ == "__main__":
     log_level = logging.INFO
 
     class_name = "tutorial_10_lung_infer_physicsnemo_mgn"
-    logging.basicConfig(level=log_level)
-    logger = logging.getLogger(class_name)
+    logger = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
     # Directory setup and data reading
 
@@ -148,8 +140,9 @@ if __name__ == "__main__":
 
     # Step 1: read every respiratory phase of the case and its ground-truth
     # surface, in phase order.
-    stages = [_respiratory_stage_from_filename(f) for f in phase_files]
-    logger.info("Case %s: predicting %d respiratory phases", case_id, len(stages))
+    cohort = EvaluateMovementLung(reference_phase=reference_phase, log_level=log_level)
+    stages = [cohort.stage_from_filename(f) for f in phase_files]
+    logger.log_info("Case %s: predicting %d respiratory phases", case_id, len(stages))
 
     # Step 2 and 3: predict the whole cycle, warp the reference CT through each
     # stage's deformation, and write the animated USD. The network predicts

@@ -9,11 +9,11 @@ is fitted to one Duke-Heart-4DLabelmaps case, whose reference frame plays the
 patient.
 
 Duke-Heart-4DLabelmaps ships labelmaps rather than CT, so there is nothing to
-segment: the patient surface is contoured straight from the case's labelmap,
-with the same labels dropped that Tutorial 4 drops, so the patient and the model
-describe the same structure.  Nothing being segmented also means there
-is no patient intensity image; the workflow then rasterizes its own reference
-grid from the patient surface.
+segment: the patient surface is the whole-heart surface Tutorial 4 writes for
+the case's labelmap (extracted the same way when it is absent), so the patient
+and the model describe the same structure.  Nothing being segmented also means
+there is no patient intensity image; the workflow then rasterizes its own
+reference grid from the patient surface.
 
 The patient is ``ParametersDukeHeartLabelmaps.hold_out_case``, which Tutorial 6
 leaves out of the population it builds the model from, so this fit measures
@@ -40,12 +40,10 @@ from pathlib import Path
 from typing import Any, cast
 
 import itk
-import numpy as np
 import pyvista as pv
 from parameters_duke_heart_labelmaps import DUKE_HEART
 
 from monai_physio import (
-    ProcessContours,
     ProcessTests,
     WorkflowFitStatisticalModelToPatient,
 )
@@ -60,7 +58,6 @@ if __name__ == "__main__":
     test_mode = ProcessTests.running_as_test()
 
     output_dir = DUKE_HEART.output_directory(test_mode) / project_name
-    weights_dir = DUKE_HEART.weights_directory(test_mode)
 
     baselines_dir = repo_root / "tests" / "baselines"
 
@@ -80,27 +77,14 @@ if __name__ == "__main__":
     # and the model describe the same structure.
     interior_object_ids = DUKE_HEART.interior_object_ids
 
-    # Contouring grid, shared with Tutorial 4 so the patient surface carries the
-    # same level of detail as the model's training surfaces.
-    surface_spacing_mm = DUKE_HEART.surface_spacing_mm
-    smoothing_iterations = DUKE_HEART.surface_smoothing_iterations
-
     # Distance-map weights finetuned by
     # tutorial_02_duke_heart_distancemap_finetune_icon.py.  The heart has its
     # own finetuning run rather than reusing the lung one's: the heart
     # registration mask is far tighter, so heart distance maps saturate over a
     # shorter radius and do not share an intensity distribution with lung ones.
-    icon_weights_path = (
-        weights_dir
-        / "icon_duke_heart_distancemap"
-        / "icon_duke_heart_distancemap_model"
-        / "checkpoints"
-        / "network_weights_final.trch"
-    )
+    icon_weights_path = DUKE_HEART.distancemap_icon_weights_file(test_mode)
 
     log_level = logging.INFO
-
-    contour_tools = ProcessContours(log_level=log_level)
 
     # Directory setup and data reading
 
@@ -133,25 +117,11 @@ if __name__ == "__main__":
         )
     patient_labelmap = itk.imread(str(patient_labelmap_files[0]))
 
-    # The patient surface, contoured once and cached: the whole heart minus its
-    # chamber cavities, which is the structure the model describes.
-    heart_surface_file = output_dir / f"{project_name}_heart_surface.vtp"
-    if not heart_surface_file.exists():
-        labels = itk.GetArrayViewFromImage(patient_labelmap)
-        heart_ids = [
-            int(value)
-            for value in np.unique(labels)
-            if value != 0 and int(value) not in interior_object_ids
-        ]
-        heart_mask = itk.GetImageFromArray(np.isin(labels, heart_ids).astype(np.uint8))
-        heart_mask.CopyInformation(patient_labelmap)
-        heart_surface = contour_tools.extract_label_surfaces(
-            heart_mask,
-            isotropic_spacing_mm=surface_spacing_mm,
-            smoothing_iterations=smoothing_iterations,
-        )[1]
-        heart_surface.save(str(heart_surface_file))
-    heart_surface = cast(pv.PolyData, pv.read(str(heart_surface_file)))
+    # The patient surface: the whole heart minus its chamber cavities, which is
+    # the structure the model describes.
+    heart_surface = DUKE_HEART.whole_heart_surface(
+        patient_labelmap_files[0], test_mode, log_level
+    )
 
     # Workflow initialization
 

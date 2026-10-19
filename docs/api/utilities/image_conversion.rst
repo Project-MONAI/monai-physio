@@ -19,4 +19,4 @@ Module Reference
 
 .. rubric:: Navigation
 
-:doc:`process_contours` | :doc:`index` | :doc:`../index`
+:doc:`process_mesh_kernels` | :doc:`index` | :doc:`../index`

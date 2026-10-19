@@ -23,7 +23,7 @@ from monai_physio import (
     RegisterImagesBase,
     RegisterImagesGreedy,
     SegmentAnatomyBase,
-    SegmentChestTotalSegmentator,
+    SegmentNVSegmentCTMRI,
 )
 
 
@@ -88,7 +88,7 @@ class ParametersTCIA4DLung(ParametersBase):
     number_of_pca_components: int = 6
     number_of_pca_components_test: int = 5
 
-    segmenter_class: type[SegmentAnatomyBase] = SegmentChestTotalSegmentator
+    segmenter_class: type[SegmentAnatomyBase] = SegmentNVSegmentCTMRI
     registration_class: type[RegisterImagesBase] = RegisterImagesGreedy
     anatomy_group: str = "lung"
 
@@ -138,7 +138,7 @@ class ParametersTCIA4DLung(ParametersBase):
     def segmenter(
         self, test_mode: bool, log_level: int | str = logging.INFO
     ) -> SegmentAnatomyBase:
-        """Return the shared lung segmenter, fast mode enabled.
+        """Return the shared lung segmenter, fast mode enabled where it has one.
 
         Args:
             test_mode: Unused today (fast mode is always on); kept for

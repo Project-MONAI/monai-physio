@@ -148,6 +148,37 @@ def test_parse_manifest_round_trips_the_new_schema(tmp_path: Path) -> None:
     ]
 
 
+def test_write_manifest_stores_displacements_parse_manifest_reads(
+    tmp_path: Path,
+) -> None:
+    reference = _sphere()
+    reference_file = tmp_path / "reference.vtp"
+    reference.save(str(reference_file))
+    phase_files = []
+    for index, offset in enumerate((0.0, 2.0)):
+        phase = reference.copy()
+        phase.points = np.asarray(phase.points) + offset
+        phase_files.append(tmp_path / f"phase_{index}.vtp")
+        phase.save(str(phase_files[-1]))
+
+    manifest_path = pnt.ProcessPhysicsNemo.write_manifest(
+        "subject_01",
+        reference_file,
+        tmp_path / "coefficients.json",
+        phase_files,
+        [0.0, 0.5],
+        tmp_path / "manifests",
+    )
+    manifest = pnt.ProcessPhysicsNemo.parse_manifest(manifest_path)
+
+    assert manifest.subject_id == "subject_01"
+    assert [phase.stage for phase in manifest.phases] == [0.0, 0.5]
+    targets = pnt.ProcessPhysicsNemo.load_target_array(
+        manifest.phases[1].mesh, manifest.target_array
+    )
+    assert np.allclose(targets, 2.0)
+
+
 def test_parse_manifest_requires_the_target_array(tmp_path: Path) -> None:
     n_points = _sphere().n_points
     manifest_path = _write_subject(tmp_path, [_targets(n_points, 3, 0.0)] * 2)

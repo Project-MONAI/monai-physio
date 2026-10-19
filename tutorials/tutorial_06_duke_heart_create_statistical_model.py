@@ -48,7 +48,7 @@ import pyvista as pv
 from parameters_duke_heart_labelmaps import DUKE_HEART
 
 from monai_physio import (
-    ProcessContours,
+    ProcessSurfaceMesh,
     ProcessTests,
     WorkflowCreateMeanSurface,
     WorkflowCreateStatisticalModel,
@@ -98,7 +98,7 @@ if __name__ == "__main__":
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    contour_tools = ProcessContours(log_level=log_level)
+    contour_tools = ProcessSurfaceMesh(log_level=log_level)
 
     # One reference-frame surface per case, less the held-out one: Tutorial 7
     # fits this model to that case, so the model must not have seen it.

@@ -7,7 +7,7 @@ import pyvista as pv
 from data_dirlab_4d_ct import DataDirLab4DCT
 
 from monai_physio import ConvertVTKToUSD
-from monai_physio.process_contours import ProcessContours
+from monai_physio.process_surface_mesh import ProcessSurfaceMesh
 from monai_physio.segment_chest_total_segmentator import SegmentChestTotalSegmentator
 
 # Defensive: today this script only reads `seg.all_mask_ids`, but if anyone
@@ -29,7 +29,7 @@ if __name__ == "__main__":
         """
         Transform a list of contours to a list of transformed contours.
         """
-        con_tools = ProcessContours()
+        con_tools = ProcessSurfaceMesh()
         new_contours = []
         for i in range(10):
             moving_to_fixed_transform = itk.transformread(
@@ -70,7 +70,9 @@ if __name__ == "__main__":
         label_labelmap_image = itk.image_from_array(label_labelmap_arr)
         label_labelmap_image.CopyInformation(labelmap_image)
 
-        contours = con_tools.extract_contours(label_labelmap_image)
+        contours = con_tools.combine_surfaces(
+            con_tools.extract_label_surfaces(label_labelmap_image)
+        )
         contours.save(
             f"{output_dir}/{case_name}_T{base_timepoint}_{label}_lungGatedBase.vtp",
             binary=True,
@@ -96,7 +98,7 @@ if __name__ == "__main__":
         )
 
     # %%
-    con_tools = ProcessContours()
+    con_tools = ProcessSurfaceMesh()
 
     seg = SegmentChestTotalSegmentator()
     for case_name in case_names:

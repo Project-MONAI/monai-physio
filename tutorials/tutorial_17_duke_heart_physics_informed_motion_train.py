@@ -79,7 +79,7 @@ import numpy as np
 import pyvista as pv
 from parameters_duke_heart_physics_informed import DUKE_HEART_PHYSICS_INFORMED
 
-from monai_physio import ProcessTests, WorkflowTrainPhysicsNeMo
+from monai_physio import MONAIPhysioBase, ProcessTests, WorkflowTrainPhysicsNeMo
 from monai_physio.train_physicsnemo_physics_informed_motion import (
     PhysicsInformedMotion,
     TrainPhysicsNeMoPhysicsInformedMotion,
@@ -87,7 +87,7 @@ from monai_physio.train_physicsnemo_physics_informed_motion import (
 
 
 def _report_reference_mesh_quality(
-    reference_meshes: dict[str, Path], tets: np.ndarray, logger: logging.Logger
+    reference_meshes: dict[str, Path], tets: np.ndarray, logger: MONAIPhysioBase
 ) -> None:
     """Log which subjects' fitted reference meshes still have inverted or
     degenerate tetrahedra, and which specific elements, before training
@@ -105,7 +105,7 @@ def _report_reference_mesh_quality(
                 print_bad = bad[:100].tolist()
             else:
                 print_bad = bad.tolist()
-            logger.warning(
+            logger.log_warning(
                 "%s (%s): %d of %d tetrahedra inverted or degenerate before repair: %s",
                 subject_id,
                 mesh_path,
@@ -199,8 +199,7 @@ if __name__ == "__main__":
     log_level = logging.INFO
 
     # Directory setup and data reading
-    logging.basicConfig(level=log_level)
-    logger = logging.getLogger(class_name)
+    logger = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
     for required_file in (template_file, mean_volume_file):
         if not required_file.exists():
@@ -243,7 +242,7 @@ if __name__ == "__main__":
         for case_id, manifest_path in manifests.items()
         if case_id not in test_cases and case_id not in val_cases
     ]
-    logger.info(
+    logger.log_info(
         "Case split - train: %d, val: %d, test: %d",
         len(train_manifests),
         len(val_manifests),
@@ -253,8 +252,8 @@ if __name__ == "__main__":
     # The template's own cells are the physics elements: every subject and phase
     # inherits its topology, so one set of node ids is valid for all of them.
     template_mesh = cast(pv.UnstructuredGrid, pv.read(str(template_file)))
-    tets = template_mesh.cells_dict[np.uint8(pv.CellType.TETRA)]
-    logger.info(
+    tets = cast(np.ndarray, template_mesh.cells_dict[np.uint8(pv.CellType.TETRA)])
+    logger.log_info(
         "Physics elements: %d tetrahedra over %d nodes",
         len(tets),
         template_mesh.n_points,
@@ -276,9 +275,9 @@ if __name__ == "__main__":
         weight_of_physics: float, output_directory: Path, label: str
     ) -> dict[str, Any]:
         """Train one model and return the workflow's result."""
-        logger.info("%s", "=" * 48)
-        logger.info("Training %s (lambda_physics=%.4g)", label, weight_of_physics)
-        logger.info("%s", "=" * 48)
+        logger.log_info("%s", "=" * 48)
+        logger.log_info("Training %s (lambda_physics=%.4g)", label, weight_of_physics)
+        logger.log_info("%s", "=" * 48)
 
         training_method = TrainPhysicsNeMoPhysicsInformedMotion(log_level=log_level)
         training_method.set_epochs(epochs)
@@ -321,7 +320,7 @@ if __name__ == "__main__":
         result: dict[str, Any] = workflow.process()
         inverted = training_method.inverted_element_count
         if inverted:
-            logger.warning(
+            logger.log_warning(
                 "%s: %d element evaluations inverted during training; the "
                 "clamp kept them finite, but the predicted motion turns tissue "
                 "inside out somewhere.",
@@ -354,7 +353,7 @@ if __name__ == "__main__":
     tutorial_results["model_directory"] = physics_result["output_directory"]
     tutorial_results["checkpoint"] = physics_result["checkpoint"]
     tutorial_results["plot_file"] = plot_file
-    logger.info("Physics-informed model: %s", physics_result["output_directory"])
+    logger.log_info("Physics-informed model: %s", physics_result["output_directory"])
 
     # Testing
     tt = ProcessTests(

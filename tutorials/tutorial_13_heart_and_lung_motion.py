@@ -89,12 +89,11 @@ wrap, so the sequence loops.
 
 Anatomy materials
 -----------------
-The per-cell ``boundary_labels`` produced by contouring the labelmap propagate
-unchanged through every warp (each frame is a deep copy with only its points
-moved; remeshing carries them over to the new cells when enabled).
-``ConvertVTKToUSD``,
-given ``segmenter.taxonomy.all_labels()`` and the segmenter, splits each frame
-into per-organ prims, and ``ProcessUSDAnatomy.enhance_meshes`` then binds the
+The per-cell ``SegmentationLabelIds`` that ``ProcessSurfaceMesh.combine_surfaces``
+tags the contoured labels with propagate unchanged through every warp (each
+frame is a deep copy with only its points moved). ``ConvertVTKToUSD``, given
+``segmenter.taxonomy.all_labels()`` and the segmenter, splits each frame into
+per-organ prims, and ``ProcessUSDAnatomy.enhance_meshes`` then binds the
 matching OmniSurface material (diffuse color, subsurface scattering, etc.).
 
 Prerequisites
@@ -147,8 +146,9 @@ from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
     ConvertVTKToUSD,
-    ProcessContours,
+    MONAIPhysioBase,
     ProcessImages,
+    ProcessSurfaceMesh,
     ProcessTests,
     ProcessTransforms,
     ProcessUSDAnatomy,
@@ -167,15 +167,14 @@ from monai_physio import (
 # restart the whole pipeline in every worker.
 if __name__ == "__main__":
     log_level = logging.INFO
-    logging.basicConfig(level=log_level)
-    logger = logging.getLogger("tutorial_13_heart_and_lung_motion")
+    logger = MONAIPhysioBase(
+        class_name="tutorial_13_heart_and_lung_motion", log_level=log_level
+    )
 
     tutorials_dir = Path(__file__).resolve().parent
 
     # ---- Inputs ------------------------------------------------------------
     test_mode = ProcessTests.running_as_test()
-    # Keep a test run out of the directories a full run reads and writes.
-    weights_dir = DUKE_HEART.weights_directory(test_mode)
 
     # The ungated clinical scan every rhythm is inferred onto.
     patient_image_file = (
@@ -202,13 +201,7 @@ if __name__ == "__main__":
     # Distance-map weights finetuned by
     # tutorial_02_duke_heart_distancemap_finetune_icon.py, used by the heart fit
     # below; optional, the stock uniGradICON weights are used without them.
-    heart_icon_weights_path = (
-        weights_dir
-        / "icon_duke_heart_distancemap"
-        / "icon_duke_heart_distancemap_model"
-        / "checkpoints"
-        / "network_weights_final.trch"
-    )
+    heart_icon_weights_path = DUKE_HEART.distancemap_icon_weights_file(test_mode)
 
     # Needs about 43 GB free: a hundred frames of warped CT is 40 GB of it,
     # since resampling costs the compression the original scan had.
@@ -258,16 +251,17 @@ if __name__ == "__main__":
     # full-resolution field of a 512x512x526 scan costs 1.6 GB and the frame loop
     # blends four of them at a time. Raise it toward 1.0 to sample them finer.
     deformation_field_scale = 0.3
-    # Pitch the animated surface is contoured at. ProcessContours.extract_contours
-    # works on an isotropic grid of the labelmap's finest pitch, which for this
-    # scan is 0.6 mm and yields a 4.5-million-point thorax: a hundred frames of
-    # it is 5.5 GB of warped points held at once and 135 MB per frame on disk.
-    # Coarsening the labelmap first sets that pitch instead, and the cost falls
-    # with its square. Lower it for a finer animation, if the memory is there.
+    # Pitch the animated surface is contoured at.
+    # ProcessSurfaceMesh.extract_label_surfaces otherwise contours on an
+    # isotropic grid of the labelmap's finest pitch, which for this scan is
+    # 0.6 mm and yields a 4.5-million-point thorax: a hundred frames of it is
+    # 5.5 GB of warped points held at once and 135 MB per frame on disk. The
+    # cost falls with the square of this pitch. Lower it for a finer animation,
+    # if the memory is there.
     surface_spacing_mm = 2.0
     # One-time conditioning of the patient surface, reused for every frame.
     surface_reduction_rate = 0.0  # fraction of triangles removed by remeshing
-    surface_smoothing_iterations = 0  # Taubin (non-shrinking) iterations
+    surface_smoothing_iterations = 20  # Taubin (non-shrinking) iterations
     # USD playback rate; 10 stages/second ~= one heartbeat per second.
     frames_per_second = 10.0
 
@@ -303,7 +297,7 @@ if __name__ == "__main__":
                 f"Required input not found: {required}\nRun tutorials/{hint} first."
             )
 
-    contour_tools = ProcessContours(log_level=log_level)
+    contour_tools = ProcessSurfaceMesh(log_level=log_level)
     transform_tools = ProcessTransforms(log_level=log_level)
     image_tools = ProcessImages(log_level=log_level)
 
@@ -315,7 +309,7 @@ if __name__ == "__main__":
     deformation_grid = image_tools.resample_image_by_scale(
         patient_image, deformation_field_scale
     )
-    logger.info(
+    logger.log_info(
         "Deformation grid: %s voxels at %s mm (scan is %s at %s mm)",
         list(itk.size(deformation_grid)),
         [round(s, 2) for s in deformation_grid.GetSpacing()],
@@ -421,21 +415,9 @@ if __name__ == "__main__":
         # The whole heart minus its chamber cavities and the vessels whose
         # extent varies too much between patients: the structure the shape
         # model describes, named by DUKE_HEART.interior_object_ids.
-        heart_labels = itk.GetArrayViewFromImage(heart_labelmap)
-        wall_ids = [
-            int(value)
-            for value in np.unique(heart_labels)
-            if value != 0 and int(value) not in DUKE_HEART.interior_object_ids
-        ]
-        heart_mask = itk.GetImageFromArray(
-            np.isin(heart_labels, wall_ids).astype(np.uint8)
+        heart_surface = DUKE_HEART.whole_heart_surface(
+            heart_labelmap_file, test_mode, log_level
         )
-        heart_mask.CopyInformation(heart_labelmap)
-        heart_surface = contour_tools.extract_label_surfaces(
-            heart_mask,
-            isotropic_spacing_mm=DUKE_HEART.surface_spacing_mm,
-            smoothing_iterations=DUKE_HEART.surface_smoothing_iterations,
-        )[1]
 
         with heart_pca_json.open(encoding="utf-8") as f:
             heart_pca_model: dict[str, Any] = json.load(f)
@@ -485,7 +467,7 @@ if __name__ == "__main__":
         heart_fit_result["fitted_reference_mesh"].save(
             str(heart_fitted_reference_mesh_file)
         )
-        logger.info("Fitted the Duke heart model to %s", patient_image_file.name)
+        logger.log_info("Fitted the Duke heart model to %s", patient_image_file.name)
 
     # ========================================================================
     # Interior masks: where the whole field propagates, vs. only its normal
@@ -668,7 +650,7 @@ if __name__ == "__main__":
                 )
                 - reference_points
             )
-            logger.info(
+            logger.log_info(
                 "%s stage %.2f: max %.2f mm predicted, %.2f mm after smoothing",
                 tag,
                 stage,
@@ -717,23 +699,22 @@ if __name__ == "__main__":
     # ========================================================================
     # Stage 3: combine the two rhythms.
     # ========================================================================
-    # Labeled contour surface: each cell carries `boundary_labels`, which survive
-    # the warps (deep copies) and let ConvertVTKToUSD split the USD by anatomy so
-    # ProcessUSDAnatomy.enhance_meshes can bind per-organ OmniSurface materials.
-    # Contoured from a coarsened copy of the labelmap, so the animated surface
-    # is sampled at surface_spacing_mm rather than at the scan's finest pitch.
-    # Its heart cells come from the Simpleware segmentation merged in at Stage 0.
-    # The full-resolution labelmap is still what gets warped per frame below.
-    surface_labelmap = image_tools.resample_image_by_scale(
-        chest_labelmap,
-        min(1.0, float(np.min(chest_labelmap.GetSpacing())) / surface_spacing_mm),
-        interpolate=False,
+    # Labeled contour surface: each cell carries `SegmentationLabelIds`, which
+    # survive the warps (deep copies) and let ConvertVTKToUSD split the USD by
+    # anatomy so ProcessUSDAnatomy.enhance_meshes can bind per-organ OmniSurface
+    # materials. Contoured at surface_spacing_mm rather than at the scan's
+    # finest pitch. Its heart cells come from the Simpleware segmentation merged
+    # in at Stage 0. The full-resolution labelmap is still what gets warped per
+    # frame below.
+    patient_surface = ProcessSurfaceMesh.combine_surfaces(
+        contour_tools.extract_label_surfaces(
+            chest_labelmap,
+            isotropic_spacing_mm=surface_spacing_mm,
+            smoothing_iterations=surface_smoothing_iterations,
+            surface_reduction_rate=surface_reduction_rate,
+        )
     )
-    patient_surface = contour_tools.extract_contours(surface_labelmap)
-    patient_surface = contour_tools.remesh_and_smooth_surface(
-        patient_surface, surface_reduction_rate, surface_smoothing_iterations
-    )
-    logger.info(
+    logger.log_info(
         "Patient surface: %d points, %d cells (reduction=%.2f, smoothing_iters=%d)",
         patient_surface.n_points,
         patient_surface.n_cells,
@@ -754,7 +735,7 @@ if __name__ == "__main__":
     # resp_points[phase][stage] = forward_phase(cardiac_surface[stage]).points.
     # All of them are held at once, so this is the run's memory high-water mark;
     # raise surface_reduction_rate if it does not fit.
-    logger.info(
+    logger.log_info(
         "Precomputed warped points: %d x %d x %d vertices, %.1f GB",
         n_phases,
         n_stages,
@@ -774,7 +755,7 @@ if __name__ == "__main__":
                 for cardiac_surface in cardiac_surfaces
             ]
         )
-        logger.info("respiratory warp phase %d/%d done", phase_idx + 1, n_phases)
+        logger.log_info("respiratory warp phase %d/%d done", phase_idx + 1, n_phases)
 
     for pattern in (
         "combined_frame_*.vtp",
@@ -897,14 +878,14 @@ if __name__ == "__main__":
             del field_cache[key]
 
     del resp_points
-    logger.info(
+    logger.log_info(
         "Wrote %d combined-motion surfaces, CT and labelmap volumes to %s",
         len(combined_files),
         output_dir,
     )
 
     # Assemble the ordered frames into a single animated 4D USD, split by anatomy
-    # label (via the mesh `boundary_labels`) so each organ becomes its own prim
+    # label (via the mesh `SegmentationLabelIds`) so each organ becomes its own prim
     # under /World/heart_and_lung_motion/{group}/{label}. enhance_meshes then
     # binds the per-organ OmniSurface materials (colors, subsurface scatter, ...).
     # The segmenter is the one Stage 0 wrote the labelmap with, so its taxonomy
@@ -921,7 +902,7 @@ if __name__ == "__main__":
     stage = converter.convert(str(usd_file))
     ProcessUSDAnatomy(stage).enhance_meshes(segmenter)
     stage.Save()
-    logger.info("Wrote 4D USD with anatomy materials: %s", usd_file)
+    logger.log_info("Wrote 4D USD with anatomy materials: %s", usd_file)
 
     # Testing: the first combined frame, as geometry and as the labelmap the
     # same frame rasterizes to.

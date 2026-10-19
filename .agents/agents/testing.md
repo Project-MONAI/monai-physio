@@ -32,7 +32,7 @@ to the project interpreter. If activation is impossible, use
 ```powershell
 python -m pytest tests/ -v                                        # fast, recommended (slow/GPU/etc auto-skipped)
 python -m pytest tests/test_contour_tools.py -v                   # single file
-python -m pytest tests/test_contour_tools.py::TestProcessContours -v # single class
+python -m pytest tests/test_process_surface_mesh.py::TestProcessSurfaceMesh -v # single class
 python -m pytest tests/ -v --run-slow                             # opt into slow tests
 # typical local GPU profile; CI adds --run-simpleware --run-tutorials
 python -m pytest tests/ -v --run-gpu --run-slow

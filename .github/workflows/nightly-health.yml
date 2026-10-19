@@ -115,11 +115,11 @@ jobs:
         # installed before ANY monai-physio extra is resolved, since
         # torch-scatter is now a base dependency and is pulled in immediately.
         #
-        # torch, torchvision, and torchaudio are all pinned to the pytorch-cu130
+        # torch and torchvision are both pinned to the pytorch-cu130
         # index here because the uv pip interface ignores tool.uv.sources.
-        # Pinning torch alone is not enough: the [cuda13] extra leaves the other
-        # two unconstrained, so they would resolve from PyPI and be built
-        # against a different CUDA runtime than torch. Installing all three up
+        # Pinning torch alone is not enough: the [cuda13] extra leaves
+        # torchvision unconstrained, so it would resolve from PyPI and be built
+        # against a different CUDA runtime than torch. Installing both up
         # front means [cuda13] finds them already satisfied. --index-url (not
         # --index) replaces PyPI for this command and matches the flag used in
         # .readthedocs.yaml; the pytorch index also serves the transitive deps.
@@ -132,7 +132,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m uv pip install setuptools wheel
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu130
+          python -m uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu130
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -c "import torch; print(f'build-time torch {torch.__version__} (CUDA {torch.version.cuda})')"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

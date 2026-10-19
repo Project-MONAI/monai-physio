@@ -44,7 +44,7 @@ import pyvista as pv
 from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
-    ProcessContours,
+    ProcessSurfaceMesh,
     ProcessTests,
     WorkflowConvertImageToVTK,
     WorkflowCreateMeanSurface,
@@ -110,7 +110,7 @@ if __name__ == "__main__":
         segmentation_method=segmentation_method, log_level=log_level
     )
 
-    contour_tools = ProcessContours(log_level=log_level)
+    contour_tools = ProcessSurfaceMesh(log_level=log_level)
 
     # Tutorial 7 fits this model to the held-out study, so the model must not
     # have seen it.  That study lives in another dataset, so this drops nothing
@@ -121,25 +121,26 @@ if __name__ == "__main__":
         if case_dir.name != TCIA_4D_LUNG.hold_out_case
         and (case_dir / f"{case_dir.name}_g070.nii.gz").exists()
     ]
-    sample_surfaces = []
+    sample_surfaces: list[pv.DataSet] = []
     for sample_image_file in sample_image_files:
         # ``.stem`` only strips ``.gz``, leaving a stray ``.nii`` in the name,
         # since these are ``.nii.gz`` (TCIA) rather than ``.mha`` (DIR-Lab).
         sample_image_stem = sample_image_file.name.removesuffix(".nii.gz")
         sample_surface_file = output_dir / f"{sample_image_stem}.vtp"
+        # Cached for Tutorials 8 and 15, which read these instead of segmenting.
         if not sample_surface_file.exists():
-            sample_image = itk.imread(str(sample_image_file))
             result = workflow_method.process(
-                input_image=sample_image,
-                anatomy_groups=["lung"],
+                input_image=itk.imread(str(sample_image_file)),
+                anatomy_groups=[TCIA_4D_LUNG.anatomy_group],
+                surface_reduction_rate=TCIA_4D_LUNG.surface_reduction_rate,
                 extract_label_surfaces=True,
+                extract_group_surfaces=False,
             )
-            surfaces = result["label_surfaces"]
-            contour_tools.save_combined_surfaces(surfaces, str(sample_surface_file))
-
-            sample_labelmap = result["labelmap"]
+            WorkflowConvertImageToVTK.save_combined_surfaces(
+                result["label_surfaces"], str(sample_surface_file)
+            )
             sample_labelmap_file = output_dir / f"{sample_image_stem}_labelmap.nii.gz"
-            itk.imwrite(sample_labelmap, str(sample_labelmap_file), compression=True)
+            itk.imwrite(result["labelmap"], str(sample_labelmap_file), compression=True)
         sample_surface = cast(pv.PolyData, pv.read(str(sample_surface_file)))
         if model_points:
             sample_surface = contour_tools.remesh_and_smooth_surface(

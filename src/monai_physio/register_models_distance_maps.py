@@ -49,8 +49,8 @@ import itk
 import pyvista as pv
 
 from .monai_physio_base import MONAIPhysioBase
-from .process_contours import ProcessContours
 from .process_labelmaps import ProcessLabelmaps
+from .process_surface_mesh import ProcessSurfaceMesh
 from .process_transforms import ProcessTransforms
 from .register_images_greedy import RegisterImagesGreedy
 from .register_images_icon import RegisterImagesICON
@@ -88,7 +88,7 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
         mask_dilation_mm (float): Dilation amount in mm for binary registration masks
         distance_squared_max (float): Maximum squared distance for distance map normalization
         transform_tools (ProcessTransforms): Transform utility instance
-        contour_tools (ProcessContours): Model utility instance
+        contour_tools (ProcessSurfaceMesh): Model utility instance
         registrar_Greedy (RegisterImagesGreedy): Greedy registration instance
         registrar_ICON (RegisterImagesICON): ICON registration instance
         fixed_to_moving_transform (itk.CompositeTransform): Optimized fixed-to-moving transform
@@ -156,7 +156,7 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
 
         # Utilities
         self.transform_tools = ProcessTransforms()
-        self.contour_tools = ProcessContours()
+        self.contour_tools = ProcessSurfaceMesh()
         self.labelmap_tools = ProcessLabelmaps(log_level=log_level)
 
         # Registration instances

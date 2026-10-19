@@ -42,8 +42,21 @@ Use ``uv``. It selects the CUDA wheel and applies this project's
 
 .. code-block:: bash
 
-   uv pip install "monai-physio[cuda12]"     # runtime
-   uv pip install -e ".[dev_cuda12]"         # plus dev/test/docs tooling
+   uv pip install "monai-physio[cuda12]" \
+       -f https://data.pyg.org/whl/torch-2.12.0+cu126.html     # runtime
+   uv pip install -e ".[dev_cuda12]" \
+       -f https://data.pyg.org/whl/torch-2.12.0+cu126.html     # plus dev tooling
+
+The ``-f`` (find-links) option points uv at the PyG wheel index, which is
+where the prebuilt ``torch-scatter`` lives. Without it uv falls back to a
+source build, which fails whenever the CUDA toolkit on ``PATH`` differs from
+the one torch was built for (``The detected CUDA version ... mismatches the
+version that was used to compile PyTorch``). To install just that package into
+an existing environment:
+
+.. code-block:: bash
+
+   uv pip install torch-scatter -f https://data.pyg.org/whl/torch-2.12.0+cu126.html
 
 **CUDA 13 - same, plus a** ``torch-scatter`` **source build:**
 
@@ -51,6 +64,11 @@ Use ``uv``. It selects the CUDA wheel and applies this project's
 
    uv pip install "monai-physio[cuda13]"
    uv pip install -e ".[dev_cuda13]"
+
+PyG publishes no CUDA 13.1 wheel index. Its CUDA 13.0 index
+(``https://data.pyg.org/whl/torch-2.12.0+cu130.html``) has Linux wheels only,
+so on Linux you can add ``-f`` with that URL to skip the source build. On
+Windows, or for any other torch version, the source build below applies.
 
 That build needs a CUDA toolkit with ``nvcc`` on ``PATH`` matching the
 installed torch, and a C++ toolchain (MSVC Build Tools on Windows, gcc/g++ on
@@ -101,7 +119,7 @@ the compiled CUDA extension behind PhysicsNeMo's MeshGraphNet. Its wheels
    * - Install
      - Linux
      - Windows
-   * - ``[cuda12]`` (CUDA 12.6, torch < 2.13)
+   * - ``[cuda12]`` (CUDA 12.6, torch < 2.13), with ``-f``
      - Prebuilt wheel
      - Prebuilt wheel
    * - ``[cuda13]`` (CUDA 13)
@@ -113,7 +131,9 @@ the compiled CUDA extension behind PhysicsNeMo's MeshGraphNet. Its wheels
 
 No wheel covers torch 2.13 or newer on any platform, and the CUDA 13.0 wheels
 are Linux-only. ``[cuda12]`` pins torch below 2.13 to stay inside the
-prebuilt-wheel range, which is why it is the recommended install.
+prebuilt-wheel range, which is why it is the recommended install. PyPI hosts
+only a source distribution of ``torch-scatter``, so the wheels are found only
+when ``-f https://data.pyg.org/whl/torch-2.12.0+cu126.html`` is passed.
 
 Installing with pip
 --------------------
@@ -123,8 +143,8 @@ PyTorch first, then the package:
 
 .. code-block:: bash
 
-   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
-   pip install "monai-physio[cuda12]"
+   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+   pip install "monai-physio[cuda12]" -f https://data.pyg.org/whl/torch-2.12.0+cu126.html
 
 See https://pytorch.org/get-started/locally/ for the PyTorch selector.
 Importing ``monai_physio`` from a pip install emits a ``UserWarning``
@@ -136,7 +156,7 @@ the whole install, where ``uv`` scopes it to the one package:
 
 .. code-block:: bash
 
-   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu130
+   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu130
    pip install setuptools
    pip install "monai-physio[cuda13]" --no-build-isolation
 
@@ -263,8 +283,8 @@ with pip:
 PyTorch with CUDA
 -----------------
 
-The ``[cuda12]`` and ``[cuda13]`` extras pin PyTorch, torchvision, and
-torchaudio to the ``cu126`` and ``cu130`` wheel indexes respectively. To
+The ``[cuda12]`` and ``[cuda13]`` extras pin PyTorch and torchvision to the
+``cu126`` and ``cu130`` wheel indexes respectively. To
 verify the active build:
 
 .. code-block:: python

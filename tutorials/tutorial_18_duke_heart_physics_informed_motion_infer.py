@@ -66,6 +66,7 @@ from monai_physio import (
     ConvertVTKToUSD,
     EvaluateMovementDukeHeart,
     InferPhysicsNeMoMGN,
+    MONAIPhysioBase,
     ProcessTests,
     WorkflowEvaluateMovement,
     WorkflowInferMovement,
@@ -209,8 +210,7 @@ if __name__ == "__main__":
     log_level = logging.INFO
 
     # Directory setup and data reading
-    logging.basicConfig(level=log_level)
-    logger = logging.getLogger(class_name)
+    logger = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
     # A GPU is assumed. Every registration, fit and network pass below runs on
     # one, so fail here rather than hours into the cohort at the first call.
@@ -246,7 +246,7 @@ if __name__ == "__main__":
     if ablation_directory.exists():
         model_directories["ablation"] = ablation_directory
     else:
-        logger.warning(
+        logger.log_warning(
             "No ablation model at %s; scoring the physics-informed model alone. "
             "Set train_ablation_baseline and re-run Tutorial 17 to compare.",
             ablation_directory,
@@ -271,9 +271,9 @@ if __name__ == "__main__":
     # Step 2: predict and score with each model in turn.
     tutorial_results: dict[str, Any] = {"models": {}}
     for name, model_directory in model_directories.items():
-        logger.info("%s", "=" * 48)
-        logger.info("Scoring %s model from %s", name, model_directory)
-        logger.info("%s", "=" * 48)
+        logger.log_info("%s", "=" * 48)
+        logger.log_info("Scoring %s model from %s", name, model_directory)
+        logger.log_info("%s", "=" * 48)
 
         infer_workflow = WorkflowInferPhysicsNeMo(
             model_directory=model_directory,
@@ -314,13 +314,13 @@ if __name__ == "__main__":
             for row in rows:
                 writer.writerow({"model": name, **row})
     tutorial_results["comparison_file"] = comparison_file
-    logger.info("Comparison: %s", comparison_file)
+    logger.log_info("Comparison: %s", comparison_file)
 
     # Step 4: the stress the physics-informed prediction implies.  The
     # deformation gradient is formed against the case's own fitted reference,
     # which is the configuration its displacements are measured from.
     template_mesh = cast(pv.UnstructuredGrid, pv.read(str(template_file)))
-    tets = template_mesh.cells_dict[np.uint8(pv.CellType.TETRA)]
+    tets = cast(np.ndarray, template_mesh.cells_dict[np.uint8(pv.CellType.TETRA)])
     reference_model = cast(pv.DataSet, pv.read(str(fitted_reference_model_file)))
     law = NeoHookeanResidual(mu_kpa, lambda_lame_kpa, log_level=log_level)
 
@@ -348,7 +348,7 @@ if __name__ == "__main__":
         stress_files.append(stress_file)
 
     if law.inverted_element_count:
-        logger.warning(
+        logger.log_warning(
             "%d element evaluations inverted across the predicted phases; the "
             "predicted motion turns tissue inside out somewhere.",
             law.inverted_element_count,
@@ -369,7 +369,7 @@ if __name__ == "__main__":
     converter.set_colormap("von_mises_stress", "rainbow", STRESS_RANGE_KPA)
     converter.convert(str(usd_file))
     tutorial_results["usd_file"] = usd_file
-    logger.info("USD: %s", usd_file)
+    logger.log_info("USD: %s", usd_file)
 
     # Testing
     tt = ProcessTests(

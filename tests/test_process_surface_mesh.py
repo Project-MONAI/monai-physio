@@ -13,21 +13,23 @@ import numpy as np
 import pytest
 import pyvista as pv
 
-from monai_physio.process_contours import ProcessContours
+from monai_physio.process_surface_mesh import ProcessSurfaceMesh
 
 
 @pytest.mark.slow
-class TestProcessContours:
-    """Test suite for ProcessContours functionality."""
+class TestProcessSurfaceMesh:
+    """Test suite for ProcessSurfaceMesh functionality."""
 
-    def test_contour_tools_initialization(self, contour_tools: ProcessContours) -> None:
-        """Test that ProcessContours initializes correctly."""
-        assert contour_tools is not None, "ProcessContours not initialized"
-        print("\nProcessContours initialized successfully")
+    def test_contour_tools_initialization(
+        self, contour_tools: ProcessSurfaceMesh
+    ) -> None:
+        """Test that ProcessSurfaceMesh initializes correctly."""
+        assert contour_tools is not None, "ProcessSurfaceMesh not initialized"
+        print("\nProcessSurfaceMesh initialized successfully")
 
     def test_extract_contours_from_heart_mask(
         self,
-        contour_tools: ProcessContours,
+        contour_tools: ProcessSurfaceMesh,
         test_labelmaps: list[dict[str, Any]],
         test_directories: dict[str, Path],
     ) -> None:
@@ -42,7 +44,9 @@ class TestProcessContours:
         print("\nExtracting contours from heart mask...")
         print(f"  Heart mask size: {itk.size(heart_mask)}")
 
-        contours = contour_tools.extract_contours(heart_mask)
+        contours = contour_tools.combine_surfaces(
+            contour_tools.extract_label_surfaces(heart_mask)
+        )
 
         # Verify contours
         assert contours is not None, "Contours not extracted"
@@ -60,7 +64,7 @@ class TestProcessContours:
 
     def test_extract_contours_from_lung_mask(
         self,
-        contour_tools: ProcessContours,
+        contour_tools: ProcessSurfaceMesh,
         test_labelmaps: list[dict[str, Any]],
         test_directories: dict[str, Path],
     ) -> None:
@@ -73,7 +77,9 @@ class TestProcessContours:
         lung_mask = test_labelmaps[0]["lung"]
 
         print("\nExtracting contours from lung mask...")
-        contours = contour_tools.extract_contours(lung_mask)
+        contours = contour_tools.combine_surfaces(
+            contour_tools.extract_label_surfaces(lung_mask)
+        )
 
         assert contours is not None, "Lung contours not extracted"
         assert contours.n_points > 0, "Lung contours should have points"
@@ -89,7 +95,7 @@ class TestProcessContours:
 
     def test_extract_contours_multiple_anatomy(
         self,
-        contour_tools: ProcessContours,
+        contour_tools: ProcessSurfaceMesh,
         test_labelmaps: list[dict[str, Any]],
         test_directories: dict[str, Path],
     ) -> None:
@@ -109,7 +115,9 @@ class TestProcessContours:
             mask_arr = itk.array_from_image(mask)
             if np.sum(mask_arr > 0) > 100:  # Only extract if sufficient voxels
                 print(f"\nExtracting contours from {group} mask...")
-                contours = contour_tools.extract_contours(mask)
+                contours = contour_tools.combine_surfaces(
+                    contour_tools.extract_label_surfaces(mask)
+                )
                 contours_dict[group] = contours
 
                 print(
@@ -127,7 +135,7 @@ class TestProcessContours:
 
     def test_create_mask_from_mesh(
         self,
-        contour_tools: ProcessContours,
+        contour_tools: ProcessSurfaceMesh,
         test_labelmaps: list[dict[str, Any]],
         test_images: list[Any],
         test_directories: dict[str, Path],
@@ -139,7 +147,9 @@ class TestProcessContours:
 
         # Extract contours from heart mask
         heart_mask = test_labelmaps[0]["heart"]
-        contours = contour_tools.extract_contours(heart_mask)
+        contours = contour_tools.combine_surfaces(
+            contour_tools.extract_label_surfaces(heart_mask)
+        )
 
         # Create mask from the extracted mesh
         print("\nCreating mask from extracted heart contours...")
@@ -168,7 +178,7 @@ class TestProcessContours:
 
     def test_merge_meshes(
         self,
-        contour_tools: ProcessContours,
+        contour_tools: ProcessSurfaceMesh,
         test_labelmaps: list[dict[str, Any]],
         test_directories: dict[str, Path],
     ) -> None:
@@ -186,7 +196,9 @@ class TestProcessContours:
             mask_arr = itk.array_from_image(mask)
 
             if np.sum(mask_arr > 0) > 100:
-                contours = contour_tools.extract_contours(mask)
+                contours = contour_tools.combine_surfaces(
+                    contour_tools.extract_label_surfaces(mask)
+                )
                 meshes.append(contours)
 
         if len(meshes) >= 2:
@@ -218,7 +230,7 @@ class TestProcessContours:
 
     def test_transform_contours_identity(
         self,
-        contour_tools: ProcessContours,
+        contour_tools: ProcessSurfaceMesh,
         test_labelmaps: list[dict[str, Any]],
         test_directories: dict[str, Path],
     ) -> None:
@@ -229,7 +241,9 @@ class TestProcessContours:
 
         # Extract contours
         heart_mask = test_labelmaps[0]["heart"]
-        contours = contour_tools.extract_contours(heart_mask)
+        contours = contour_tools.combine_surfaces(
+            contour_tools.extract_label_surfaces(heart_mask)
+        )
 
         # Create identity transform
         identity_tfm = itk.AffineTransform[itk.D, 3].New()
@@ -264,7 +278,7 @@ class TestProcessContours:
 
     def test_transform_contours_with_deformation(
         self,
-        contour_tools: ProcessContours,
+        contour_tools: ProcessSurfaceMesh,
         test_labelmaps: list[dict[str, Any]],
         test_directories: dict[str, Path],
     ) -> None:
@@ -275,7 +289,9 @@ class TestProcessContours:
 
         # Extract contours
         heart_mask = test_labelmaps[0]["heart"]
-        contours = contour_tools.extract_contours(heart_mask)
+        contours = contour_tools.combine_surfaces(
+            contour_tools.extract_label_surfaces(heart_mask)
+        )
 
         # Create a translation transform (10mm in each direction)
         translation_tfm = itk.TranslationTransform[itk.D, 3].New()
@@ -313,7 +329,7 @@ class TestProcessContours:
 
     def test_contours_from_both_time_points(
         self,
-        contour_tools: ProcessContours,
+        contour_tools: ProcessSurfaceMesh,
         test_labelmaps: list[dict[str, Any]],
         test_directories: dict[str, Path],
     ) -> None:
@@ -326,7 +342,9 @@ class TestProcessContours:
 
         for i, result in enumerate(test_labelmaps):
             heart_mask = result["heart"]
-            contours = contour_tools.extract_contours(heart_mask)
+            contours = contour_tools.combine_surfaces(
+                contour_tools.extract_label_surfaces(heart_mask)
+            )
 
             print(f"  Time point {i}: {contours.n_points} points")
 
@@ -337,8 +355,8 @@ class TestProcessContours:
         print(f"Extracted contours from {len(test_labelmaps)} time points")
 
 
-class TestSaveCombinedSurfaces:
-    """Structure identity must survive merging into one file."""
+class TestCombineSurfaces:
+    """Structure identity must survive merging into one mesh."""
 
     @staticmethod
     def _annotated_sphere(
@@ -350,19 +368,14 @@ class TestSaveCombinedSurfaces:
         )
         return surface
 
-    def test_per_cell_label_ids_from_single_label_surfaces(
-        self, tmp_path: Path
-    ) -> None:
+    def test_per_cell_label_ids_from_single_label_surfaces(self) -> None:
         """Each merged cell carries the label ID of the surface it came from."""
         surfaces = {
             "atrium_left": self._annotated_sphere((0.0, 0.0, 0.0), 141),
             "ventricle_left": self._annotated_sphere((3.0, 0.0, 0.0), 142),
         }
 
-        output_file = tmp_path / "combined.vtp"
-        ProcessContours.save_combined_surfaces(surfaces, str(output_file))
-
-        merged = pv.read(str(output_file))
+        merged = ProcessSurfaceMesh.combine_surfaces(surfaces)
         label_ids = merged.cell_data["SegmentationLabelIds"]
         assert set(np.unique(label_ids)) == {141, 142}
         for name, surface in surfaces.items():
@@ -374,19 +387,14 @@ class TestSaveCombinedSurfaces:
         for surface in surfaces.values():
             assert "SegmentationLabelIds" not in surface.cell_data
 
-    def test_multi_label_surfaces_tagged_unknown(self, tmp_path: Path) -> None:
+    def test_multi_label_surfaces_tagged_unknown(self) -> None:
         """Per-group surfaces list several labels, so no cell can be attributed."""
         group_surface = pv.Sphere(radius=1.0)
         group_surface.field_data["SegmentationLabelIds"] = np.array(
             [141, 142], dtype=np.int32
         )
 
-        output_file = tmp_path / "combined_group.vtp"
-        ProcessContours.save_combined_surfaces(
-            {"heart": group_surface}, str(output_file)
-        )
-
-        merged = pv.read(str(output_file))
+        merged = ProcessSurfaceMesh.combine_surfaces({"heart": group_surface})
         assert set(np.unique(merged.cell_data["SegmentationLabelIds"])) == {0}
 
 
@@ -395,7 +403,7 @@ class TestRemeshCarriesCellLabels:
 
     @staticmethod
     def _two_label_sphere() -> pv.PolyData:
-        """A sphere whose cells carry two structure ids and their label pairs.
+        """A sphere whose cells carry two structure ids.
 
         Split by the sign of the cell centre's x, so both labels own a large,
         contiguous patch that uniform re-tiling cannot absorb.
@@ -410,15 +418,12 @@ class TestRemeshCarriesCellLabels:
         surface.cell_data["SegmentationLabelIds"] = np.where(left, 141, 142).astype(
             np.int32
         )
-        surface.cell_data["boundary_labels"] = np.column_stack(
-            (np.where(left, 141, 142), np.zeros(surface.n_cells))
-        ).astype(np.int32)
         return surface
 
-    def test_remeshing_carries_both_cell_arrays(
-        self, contour_tools: ProcessContours
+    def test_remeshing_carries_the_cell_labels(
+        self, contour_tools: ProcessSurfaceMesh
     ) -> None:
-        """Anatomy splitting downstream reads these off the remeshed surface."""
+        """Anatomy splitting downstream reads them off the remeshed surface."""
         original = self._two_label_sphere()
 
         remeshed = contour_tools.remesh_and_smooth_surface(
@@ -426,17 +431,11 @@ class TestRemeshCarriesCellLabels:
         )
 
         assert remeshed.n_cells < original.n_cells
-        for name in ("SegmentationLabelIds", "boundary_labels"):
-            assert name in remeshed.cell_data, f"{name} did not survive remeshing"
-            carried = np.asarray(remeshed.cell_data[name])
-            assert len(carried) == remeshed.n_cells
-            # Nearest-cell transfer, so every value is one the source carried
-            # rather than an interpolation between two of them.
-            source = np.asarray(original.cell_data[name])
-            assert set(np.unique(carried).tolist()) <= set(np.unique(source).tolist())
+        carried = np.asarray(remeshed.cell_data["SegmentationLabelIds"])
+        assert len(carried) == remeshed.n_cells
 
-        # Both structures survive: a transfer that collapsed onto one label
-        # would still satisfy the membership check above.
+        # Nearest-cell transfer, so the values are the source's own, and both
+        # structures survive it.
         assert set(np.unique(remeshed.cell_data["SegmentationLabelIds"])) == {141, 142}
 
 

@@ -34,23 +34,26 @@ Strengths
 - Registers on the CPU with ``RegisterImagesGreedy``; no GPU needed for this
   stage.
 - Inverted or degenerate elements introduced by large deformations are
-  repaired per frame via ``ProcessContours.repair_inverted_tetrahedra``.
+  repaired per frame via ``ProcessVolumetricMesh.repair_inverted_tetrahedra``.
 
 Weaknesses / Limitations
 ------------------------
-- Segmentation quality depends on TotalSegmentator's training distribution;
+- Segmentation quality depends on the segmenter's training distribution;
   unusual pathologies or pediatric anatomy may degrade results.
 - Large 4D datasets (>20 phases, high resolution) can require 32 GB+ RAM.
 
 Classes Used
 ------------
-- SegmentChestTotalSegmentator (segment_chest_total_segmentator.py):
-    Deep-learning segmentation of the lung from the reference phase.
-- RegisterImagesGreedy (register_images_greedy.py):
-    Frame-to-frame image registration.
-- ProcessContours (process_contours.py):
-    Extracts the reference lung surface and tetmesh, and warps/repairs the
-    tetmesh per phase.
+- WorkflowConvertImageToVTK (workflow_convert_image_to_vtk.py):
+    Segments the reference phase with ``TCIA_4D_LUNG.segmenter``
+    (SegmentNVSegmentCTMRI) and builds its lung surface and tetmesh.
+- WorkflowReconstructHighres4DCT (workflow_reconstruct_highres_4d_ct.py):
+    Registers every phase to the reference with ``TCIA_4D_LUNG.registrar``
+    (RegisterImagesGreedy).
+- ProcessTransforms (process_transforms.py):
+    Warps the reference tetmesh to each phase.
+- ProcessVolumetricMesh (process_volumetric_mesh.py):
+    Repairs the warped tetmesh per phase.
 
 Data Required
 -------------
@@ -71,8 +74,11 @@ from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
     MONAIPhysioBase,
-    ProcessContours,
     ProcessTests,
+    ProcessTransforms,
+    ProcessVolumetricMesh,
+    WorkflowConvertImageToVTK,
+    WorkflowReconstructHighres4DCT,
 )
 
 # Only run if this script is not imported as a module
@@ -104,7 +110,8 @@ if __name__ == "__main__":
     registration_method = TCIA_4D_LUNG.registrar(test_mode, log_level=log_level)
     segmentation_method = TCIA_4D_LUNG.segmenter(test_mode, log_level=log_level)
 
-    contour_tools = ProcessContours(log_level=log_level)
+    transform_tools = ProcessTransforms(log_level=log_level)
+    volume_tools = ProcessVolumetricMesh(log_level=log_level)
 
     # Directory setup and data reading
 
@@ -127,24 +134,16 @@ if __name__ == "__main__":
 
     # Reference-frame segmentation and tetmesh construction
 
-    reporter.log_section("Segmenting reference frame")
-    seg_result = segmentation_method.segment(reference_image)
-    lung_mask = seg_result["lung"]
-
-    reporter.log_section("Building reference lung tetmesh")
-    reference_surface = contour_tools.extract_watertight_surface(
-        lung_mask,
+    lung_result = WorkflowConvertImageToVTK(
+        segmentation_method=segmentation_method, log_level=log_level
+    ).process(
+        input_image=reference_image,
+        anatomy_groups=[TCIA_4D_LUNG.anatomy_group],
         surface_reduction_rate=TCIA_4D_LUNG.surface_reduction_rate,
-        anatomy_names=["lung"],
+        tetrahedra_element_size_mm=TCIA_4D_LUNG.mesh_element_size_mm,
     )
-    reference_tetmesh = contour_tools.extract_tetrahedra(
-        lung_mask,
-        element_size_mm=TCIA_4D_LUNG.mesh_element_size_mm,
-        anatomy_names=["lung"],
-    )
-    reference_tetmesh = contour_tools.trim_tetrahedra_to_surface(
-        reference_tetmesh, reference_surface
-    )
+    reference_surface = lung_result["surfaces"][TCIA_4D_LUNG.anatomy_group]
+    reference_tetmesh = lung_result["tetrahedra"][TCIA_4D_LUNG.anatomy_group]
     reporter.log_info(
         "Reference tetmesh: %d points, %d cells",
         reference_tetmesh.n_points,
@@ -153,22 +152,22 @@ if __name__ == "__main__":
 
     # Registration and per-phase tetmesh warping
 
-    registration_method.set_fixed_image(reference_image)
+    fixed_to_moving_transforms = WorkflowReconstructHighres4DCT(
+        time_series_images=time_series_images,
+        reference_image=reference_image,
+        reference_time_frame=reference_index,
+        register_reference_time_frame_to_reference_image=False,
+        registration_method=registration_method,
+        log_level=log_level,
+    ).register_time_series()["fixed_to_moving_transforms"]
 
     tetmesh_files: list[Path] = []
-    for i, moving_image in enumerate(time_series_images):
-        reporter.log_progress(
-            i + 1, len(time_series_images), prefix="Registering and warping phases"
-        )
-        if i == reference_index:
-            phase_tetmesh = reference_tetmesh
-        else:
-            reg_results = registration_method.register(moving_image)
-            phase_tetmesh = contour_tools.transform_contours(
-                reference_tetmesh, reg_results["fixed_to_moving_transform"]
+    for i, fixed_to_moving_transform in enumerate(fixed_to_moving_transforms):
+        phase_tetmesh = volume_tools.repair_inverted_tetrahedra(
+            transform_tools.transform_pvcontour(
+                reference_tetmesh, fixed_to_moving_transform
             )
-            phase_tetmesh = contour_tools.repair_inverted_tetrahedra(phase_tetmesh)
-
+        )
         tetmesh_file = output_dir / f"lung_tetmesh_{i:03d}.vtu"
         phase_tetmesh.save(tetmesh_file)
         tetmesh_files.append(tetmesh_file)

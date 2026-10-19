@@ -50,7 +50,7 @@ Classes Used
     Deep-learning segmentation of 117 anatomical structures (used internally).
 - RegisterImagesGreedy (register_images_greedy.py):
     Frame-to-frame image registration (used internally).
-- ProcessContours (process_contours.py):
+- ProcessSurfaceMesh (process_surface_mesh.py):
     Extracts and transforms surface meshes from segmentation masks (used internally).
 - ProcessUSDAnatomy (process_usd_anatomy.py):
     Applies clinical material colours to USD prims (used internally).

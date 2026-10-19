@@ -18,7 +18,7 @@ or the CPU-only variant:
 .. code-block:: bash
 
    # Recommended - CUDA 12.6, everything installs from prebuilt wheels
-   uv pip install "monai-physio[cuda12]"
+   uv pip install "monai-physio[cuda12]" -f https://data.pyg.org/whl/torch-2.12.0+cu126.html
 
    # CUDA 13 - same, but torch-scatter compiles from source
    uv pip install "monai-physio[cuda13]"

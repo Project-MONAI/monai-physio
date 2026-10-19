@@ -57,7 +57,8 @@ import pyvista as pv
 from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
-    ProcessContours,
+    MONAIPhysioBase,
+    ProcessSurfaceMesh,
     ProcessTests,
     ProcessTransforms,
     WorkflowConvertImageToVTK,
@@ -112,8 +113,7 @@ if __name__ == "__main__":
 
     log_level = logging.INFO
 
-    logging.basicConfig(level=log_level)
-    logger = logging.getLogger(class_name)
+    logger = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
     # Directory setup and data reading
 
@@ -133,12 +133,12 @@ if __name__ == "__main__":
     # the tutorial still runs, on the stock uniGradICON weights.
     use_finetuned_distancemap_weights = icon_distancemap_weights_path.exists()
     if use_finetuned_distancemap_weights:
-        logger.info(
+        logger.log_info(
             "Fitting the SSM with finetuned distance-map ICON weights: %s",
             icon_distancemap_weights_path,
         )
     else:
-        logger.warning(
+        logger.log_warning(
             "Finetuned distance-map ICON weights not found at %s; fitting the SSM "
             "with the stock uniGradICON weights. Run "
             "tutorials/tutorial_02_lung_distancemap_finetune_icon.py to create "
@@ -159,7 +159,6 @@ if __name__ == "__main__":
     segmentation_workflow = WorkflowConvertImageToVTK(
         segmentation_method=segmentation_method, log_level=log_level
     )
-    contour_tools = ProcessContours(log_level=log_level)
     transform_tools = ProcessTransforms(log_level=log_level)
 
     tutorial_results: dict[str, Any] = {"cases": {}, "screenshots": []}
@@ -168,9 +167,9 @@ if __name__ == "__main__":
         # The case directory name (e.g. "107a_HM10395") is the case id; TCIA
         # nests each case's phases under one, unlike DIR-Lab's flat layout.
         case_id = reference_file.parent.name
-        logger.info("%s", "=" * 48)
-        logger.info("Processing case %s", case_id)
-        logger.info("%s", "=" * 48)
+        logger.log_info("%s", "=" * 48)
+        logger.log_info("Processing case %s", case_id)
+        logger.log_info("%s", "=" * 48)
 
         case_output_dir = output_dir / case_id
         case_output_dir.mkdir(parents=True, exist_ok=True)
@@ -188,25 +187,21 @@ if __name__ == "__main__":
         # present.
         lung_surface_file = tutorial_06_dir / f"{reference_stem}.vtp"
         lung_labelmap_file = tutorial_06_dir / f"{reference_stem}_labelmap.nii.gz"
-        if not (lung_surface_file.exists() and lung_labelmap_file.exists()):
-            lung_surface_file = case_output_dir / f"{reference_stem}.vtp"
-            lung_labelmap_file = case_output_dir / f"{reference_stem}_labelmap.nii.gz"
+        if lung_surface_file.exists() and lung_labelmap_file.exists():
+            lung_surface = cast(pv.PolyData, pv.read(str(lung_surface_file)))
+            lung_labelmap = itk.imread(str(lung_labelmap_file))
+        else:
             segmentation_result = segmentation_workflow.process(
                 input_image=reference_image,
-                anatomy_groups=["lung"],
+                anatomy_groups=[TCIA_4D_LUNG.anatomy_group],
                 surface_reduction_rate=TCIA_4D_LUNG.surface_reduction_rate,
                 extract_label_surfaces=True,
+                extract_group_surfaces=False,
             )
-            contour_tools.save_combined_surfaces(
-                segmentation_result["label_surfaces"], str(lung_surface_file)
+            lung_surface = ProcessSurfaceMesh.combine_surfaces(
+                segmentation_result["label_surfaces"]
             )
-            itk.imwrite(
-                segmentation_result["labelmap"],
-                str(lung_labelmap_file),
-                compression=True,
-            )
-        lung_surface = cast(pv.PolyData, pv.read(str(lung_surface_file)))
-        lung_labelmap = itk.imread(str(lung_labelmap_file))
+            lung_labelmap = segmentation_result["labelmap"]
 
         # Step 2: fit the statistical model to the reference phase
         fit_workflow = WorkflowFitStatisticalModelToPatient(
@@ -277,7 +272,7 @@ if __name__ == "__main__":
         # Step 4: warp the fitted SSM surface to every respiratory phase
         phase_outputs = []
         for phase_index, phase_id in enumerate(phase_ids):
-            logger.info("Case %s: warping to phase %s", case_id, phase_id)
+            logger.log_info("Case %s: warping to phase %s", case_id, phase_id)
 
             itk.imwrite(
                 reg_result["reconstructed_images"][phase_index],

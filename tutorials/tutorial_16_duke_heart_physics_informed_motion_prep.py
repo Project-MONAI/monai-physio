@@ -15,7 +15,7 @@ This tutorial therefore builds the same model volumetrically:
 1. Build the unbiased mean surface of the population, exactly as Tutorial 6
    does.
 2. Fill that surface with tetrahedra
-   (``ProcessContours.extract_tetrahedra`` then ``trim_tetrahedra_to_surface``).
+   (``ProcessVolumetricMesh.extract_tetrahedra`` then ``trim_tetrahedra_to_surface``).
    Those cells become the elements the strain energy is summed over, and
    because every subject and phase inherits the template's topology, one set of
    element node ids stays valid across the whole cohort.
@@ -81,60 +81,39 @@ import pyvista as pv
 from parameters_duke_heart_physics_informed import DUKE_HEART_PHYSICS_INFORMED
 
 from monai_physio import (
-    ProcessContours,
+    EvaluateMovementDukeHeart,
+    MONAIPhysioBase,
+    ProcessPhysicsNemo,
+    ProcessSurfaceMesh,
     ProcessTests,
-    RegisterModelsDistanceMaps,
+    ProcessVolumetricMesh,
     WorkflowCreateMeanSurface,
     WorkflowCreateStatisticalModel,
     WorkflowFitStatisticalModelToPatient,
 )
 
-# Structure name Tutorial 4 (Duke Heart) writes its whole-heart surfaces under.
-WHOLE_HEART_NAME = "heart_minus_interior_chambers"
 LABELMAP_SUFFIX = "_labelmap.nii.gz"
-
-# Point-data array this tutorial writes its targets into and the manifests name.
-TARGET_ARRAY = "displacement"
 
 # Gated frames carry a ``g{PPP}`` tag naming their percentage of the R-R
 # interval; this is what a per-frame model is matched and staged by.
 PHASE_MODEL_PATTERN = "*_g[0-9][0-9][0-9]_*_ssm_model.vtu"
 
 
-def _cardiac_stage_from_filename(model_file: Path) -> float:
-    """Extract the normalized cardiac stage [0, 1] from a ``g{PPP}`` filename stem."""
-    for part in model_file.stem.split("_"):
-        if part.startswith("g") and part[1:].isdigit():
-            return int(part[1:]) / 100.0
-    raise ValueError(f"Cannot parse cardiac gate from filename: {model_file}")
-
-
-def _write_target_mesh(
-    phase_file: Path, reference_points: np.ndarray, targets_dir: Path
-) -> Path:
-    """Write one frame's training target and return the mesh path.
-
-    The target is the per-vertex displacement from the case's own fitted
-    reference model, stored as the ``TARGET_ARRAY`` point-data array on a copy
-    of the frame's mesh.  Written as a volume, so the network's outputs land on
-    the same nodes the physics elements are indexed against.
-    """
-    phase_mesh = pv.read(str(phase_file))
-    phase_points = np.asarray(phase_mesh.points, dtype=np.float32)
-    phase_mesh.point_data[TARGET_ARRAY] = phase_points - reference_points
-    target_path = targets_dir / f"{phase_file.stem}_target.vtu"
-    phase_mesh.save(str(target_path))
-    return target_path
-
-
 def _write_case_manifest(
-    case_dir: Path, manifests_dir: Path, logger: logging.Logger
+    case_dir: Path,
+    manifests_dir: Path,
+    logger: MONAIPhysioBase,
+    evaluator: EvaluateMovementDukeHeart,
 ) -> Optional[Path]:
     """Write a per-case manifest JSON; return its path (or None if incomplete).
 
     A case needs a fitted reference model, a PCA coefficient file and at least
     two gated frames.  One missing any of them is skipped with the reason
     logged, so a half-finished run is distinguishable from one that never ran.
+    Each frame's target is its per-node displacement from the case's own
+    fitted reference model, written as a volume so the network's outputs land
+    on the nodes the physics elements are indexed against; *evaluator* stages
+    it by its ``g{PPP}`` tag.
     """
     case_id = case_dir.name
     fitted_reference_model_file = case_dir / f"{case_id}_ssm_model.vtu"
@@ -148,30 +127,17 @@ def _write_case_manifest(
     if len(phase_files) < 2:
         missing.append(f"at least 2 frame models (found {len(phase_files)})")
     if missing:
-        logger.warning("Skipping %s: missing %s", case_id, "; ".join(missing))
+        logger.log_warning("Skipping %s: missing %s", case_id, "; ".join(missing))
         return None
 
-    manifests_dir.mkdir(parents=True, exist_ok=True)
-    reference_points = np.asarray(
-        pv.read(str(fitted_reference_model_file)).points, dtype=np.float32
+    manifest_path: Path = ProcessPhysicsNemo.write_manifest(
+        subject_id=case_id,
+        fitted_reference_mesh=fitted_reference_model_file,
+        pca_coefficients=pca_file,
+        phase_meshes=phase_files,
+        stages=[evaluator.stage_from_filename(path) for path in phase_files],
+        output_directory=manifests_dir,
     )
-    manifest = {
-        "subject_id": case_id,
-        "fitted_reference_mesh": str(fitted_reference_model_file),
-        "pca_coefficients": str(pca_file),
-        "target_array": TARGET_ARRAY,
-        "phases": [
-            {
-                "mesh": str(
-                    _write_target_mesh(phase_file, reference_points, manifests_dir)
-                ),
-                "stage": _cardiac_stage_from_filename(phase_file),
-            }
-            for phase_file in phase_files
-        ],
-    }
-    manifest_path = manifests_dir / f"{case_id}_manifest.json"
-    manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return manifest_path
 
 
@@ -191,7 +157,6 @@ if __name__ == "__main__":
     parameters = DUKE_HEART_PHYSICS_INFORMED
 
     output_dir = parameters.prep_directory(test_mode)
-    weights_dir = parameters.weights_directory(test_mode)
     baselines_dir = repo_root / "tests" / "baselines"
 
     # Tutorial 4's reference-frame surfaces, which the model is built from.
@@ -222,33 +187,17 @@ if __name__ == "__main__":
     # and 6 drop, so the frames and the model describe the same structure.
     interior_object_ids = parameters.interior_object_ids
 
-    # Contouring grid, shared with Tutorial 4 so every surface here carries the
-    # same level of detail as the model's training surfaces.
-    surface_spacing_mm = parameters.surface_spacing_mm
-    smoothing_iterations = parameters.surface_smoothing_iterations
-
-    # Pitch of the grid the phase distance maps are rasterized on.  Coarser than
-    # the contouring pitch: it carries a distance field, not a boundary.
-    registration_spacing_mm = 1.0
-
     # Distance-map weights finetuned by
     # tutorial_02_duke_heart_distancemap_finetune_icon.py.  Stock uniGradICON
     # weights are out of distribution for distance maps, so without these the
     # correspondences barely move off the template and the modes come out far
     # too tight.
-    icon_weights_path = (
-        weights_dir
-        / "icon_duke_heart_distancemap"
-        / "icon_duke_heart_distancemap_model"
-        / "checkpoints"
-        / "network_weights_final.trch"
-    )
+    icon_weights_path = parameters.distancemap_icon_weights_file(test_mode)
 
     log_level = logging.INFO
 
     # Directory setup and data reading
-    logging.basicConfig(level=log_level)
-    logger = logging.getLogger(class_name)
+    logger = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
     # A GPU is assumed. Every registration, fit and network pass below runs on
     # one, so fail here rather than hours into the cohort at the first call.
@@ -261,7 +210,8 @@ if __name__ == "__main__":
         )
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    contour_tools = ProcessContours(log_level=log_level)
+    contour_tools = ProcessSurfaceMesh(log_level=log_level)
+    volume_tools = ProcessVolumetricMesh(log_level=log_level)
 
     tutorial_results: dict[str, Any] = {"cases": {}, "screenshots": []}
 
@@ -269,7 +219,7 @@ if __name__ == "__main__":
     # scores the surrogate on that case, so the model must not have seen it.
     sample_files = [
         path
-        for path in sorted(input_dir.glob(f"*_ref_{WHOLE_HEART_NAME}.vtp"))
+        for path in sorted(input_dir.glob(f"*_ref_{parameters.whole_heart_name}.vtp"))
         if not path.name.startswith(parameters.hold_out_case)
     ]
     if test_mode:
@@ -352,8 +302,8 @@ if __name__ == "__main__":
         reference_mask = contour_tools.create_mask_from_mesh(
             reference_surface, voxelization_grid
         )
-        template_mesh = contour_tools.trim_tetrahedra_to_surface(
-            contour_tools.extract_tetrahedra(
+        template_mesh = volume_tools.trim_tetrahedra_to_surface(
+            volume_tools.extract_tetrahedra(
                 reference_mask, element_size_mm=ssm_element_size_mm
             ),
             reference_surface,
@@ -366,7 +316,7 @@ if __name__ == "__main__":
     element_quality = np.asarray(
         template_mesh.cell_quality(["scaled_jacobian"]).cell_data["scaled_jacobian"]
     )
-    logger.info(
+    logger.log_info(
         "Template: %d nodes, %d elements, %.0f mm^3 (%.1f%% of the %.0f mm^3 the "
         "mean surface encloses), scaled Jacobian min %.3f mean %.3f",
         template_mesh.n_points,
@@ -432,38 +382,6 @@ if __name__ == "__main__":
             "See data/Duke-Heart-4DLabelmaps/README.md."
         )
 
-    def heart_surface_for(labelmap_file: Path, case_output_dir: Path) -> pv.PolyData:
-        """Return one frame's whole heart, minus its chamber cavities.
-
-        Tutorial 4's ``"full"`` pass contours this surface for every gated
-        frame, so its output is read when present.  Otherwise the surface is
-        contoured here and cached, so a re-run pays for it once.
-        """
-        stem = labelmap_file.name[: -len(LABELMAP_SUFFIX)]
-        tutorial_04_file = input_dir / f"{stem}_{WHOLE_HEART_NAME}.vtp"
-        if tutorial_04_file.exists():
-            return cast(pv.PolyData, pv.read(str(tutorial_04_file)))
-
-        surface_file = case_output_dir / f"{stem}_heart_surface.vtp"
-        if not surface_file.exists():
-            labelmap = itk.imread(str(labelmap_file))
-            labels = itk.GetArrayViewFromImage(labelmap)
-            heart_ids = [
-                int(value)
-                for value in np.unique(labels)
-                if value != 0 and int(value) not in interior_object_ids
-            ]
-            heart_mask = itk.GetImageFromArray(
-                np.isin(labels, heart_ids).astype(np.uint8)
-            )
-            heart_mask.CopyInformation(labelmap)
-            contour_tools.extract_label_surfaces(
-                heart_mask,
-                isotropic_spacing_mm=surface_spacing_mm,
-                smoothing_iterations=smoothing_iterations,
-            )[1].save(str(surface_file))
-        return cast(pv.PolyData, pv.read(str(surface_file)))
-
     for case_dir in case_dirs:
         case_id = case_dir.name
         frame_files = sorted(case_dir.glob(f"*{LABELMAP_SUFFIX}"))
@@ -471,19 +389,21 @@ if __name__ == "__main__":
             path for path in frame_files if path.name.endswith(f"_ref{LABELMAP_SUFFIX}")
         ]
         if not reference_files:
-            logger.warning("Skipping %s: no *_ref_labelmap.nii.gz frame", case_id)
+            logger.log_warning("Skipping %s: no *_ref_labelmap.nii.gz frame", case_id)
             continue
         reference_file = reference_files[0]
 
-        logger.info("%s", "=" * 48)
-        logger.info("Processing case %s: %d gated frames", case_id, len(frame_files))
-        logger.info("%s", "=" * 48)
+        logger.log_section(
+            "Processing case %s: %d gated frames", case_id, len(frame_files), width=48
+        )
 
         case_output_dir = output_dir / case_id
         case_output_dir.mkdir(parents=True, exist_ok=True)
 
         reference_labelmap = itk.imread(str(reference_file))
-        reference_frame_surface = heart_surface_for(reference_file, case_output_dir)
+        reference_frame_surface = parameters.whole_heart_surface(
+            reference_file, test_mode, log_level
+        )
 
         fitted_reference_model_file = case_output_dir / f"{case_id}_ssm_model.vtu"
         pca_coefficients_file = case_output_dir / f"{case_id}_ssm_pca_coefficients.json"
@@ -539,11 +459,11 @@ if __name__ == "__main__":
             # that dies on it -- skip the subject and keep the population
             # going rather than losing every case after it.
             try:
-                fitted_reference_model = contour_tools.repair_inverted_tetrahedra(
+                fitted_reference_model = volume_tools.repair_inverted_tetrahedra(
                     cast(pv.UnstructuredGrid, fit_result["fitted_reference_model"])
                 )
             except ValueError as error:
-                logger.warning(
+                logger.log_warning(
                     "Skipping %s: fitted reference model could not be repaired: %s",
                     case_id,
                     error,
@@ -554,17 +474,12 @@ if __name__ == "__main__":
                 str(case_output_dir / f"{case_id}_ssm_surface.vtp")
             )
         fitted_reference_model = cast(
-            pv.DataSet, pv.read(str(fitted_reference_model_file))
+            pv.UnstructuredGrid, pv.read(str(fitted_reference_model_file))
         )
 
         # One grid is built around the reference frame's heart and reused by
         # every frame, so the whole case is registered in a common space.
-        registration_grid = contour_tools.create_reference_image(
-            mesh=reference_frame_surface,
-            spatial_resolution=registration_spacing_mm,
-            buffer_factor=0.25,
-            ptype=itk.F,
-        )
+        registration_grid = parameters.frame_registration_grid(reference_frame_surface)
 
         phase_outputs = []
         for frame_file in frame_files:
@@ -578,26 +493,22 @@ if __name__ == "__main__":
             if not (model_path.exists() and surface_path.exists()):
                 if frame_file == reference_file:
                     # The fit already placed the model on this frame.
-                    logger.info("Case %s: reference frame %s", case_id, stem)
-                    phase_model = fitted_reference_model
+                    logger.log_info("Case %s: reference frame %s", case_id, stem)
+                    phase_model: pv.DataSet = fitted_reference_model
                 else:
-                    logger.info("Case %s: warping to frame %s", case_id, stem)
-                    registrar = RegisterModelsDistanceMaps(
-                        moving_model=cast(pv.PolyData, fitted_reference_model),
-                        fixed_model=heart_surface_for(frame_file, case_output_dir),
-                        reference_image=registration_grid,
-                        distance_squared_max=parameters.distancemap_squared_max,
-                        mask_dilation_mm=parameters.mask_dilation_mm,
-                        log_level=log_level,
-                    )
-                    if use_finetuned_weights:
-                        registrar.set_icon_weights_path(str(icon_weights_path))
+                    logger.log_info("Case %s: warping to frame %s", case_id, stem)
                     # The transform is applied point-wise, so the tetrahedra
                     # ride along and the warped frame keeps the template's
                     # topology.
-                    phase_model = registrar.register(transform_type="Deformable")[
-                        "registered_model"
-                    ]
+                    phase_model = parameters.register_to_frame(
+                        fitted_reference_model,
+                        parameters.whole_heart_surface(
+                            frame_file, test_mode, log_level
+                        ),
+                        registration_grid,
+                        test_mode,
+                        log_level,
+                    )
                 phase_model.save(str(model_path))
                 phase_model.extract_surface(algorithm="dataset_surface").save(
                     str(surface_path)
@@ -624,9 +535,10 @@ if __name__ == "__main__":
     # Step 5: one manifest per case, which is what Tutorial 17 trains from.
     manifests_dir = output_dir / "manifests"
     manifests: dict[str, Path] = {}
+    evaluator = EvaluateMovementDukeHeart(log_level=log_level)
     for case_id in tutorial_results["cases"]:
         manifest_path = _write_case_manifest(
-            output_dir / case_id, manifests_dir, logger
+            output_dir / case_id, manifests_dir, logger, evaluator
         )
         if manifest_path is not None:
             manifests[case_id] = manifest_path
@@ -639,7 +551,7 @@ if __name__ == "__main__":
     tutorial_results["template_file"] = template_file
     tutorial_results["model_file"] = model_file
     tutorial_results["mean_volume_file"] = mean_volume_file
-    logger.info("Wrote %d manifests under %s", len(manifests), manifests_dir)
+    logger.log_info("Wrote %d manifests under %s", len(manifests), manifests_dir)
 
     # Testing
     tt = ProcessTests(

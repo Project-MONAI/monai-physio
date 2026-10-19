@@ -733,9 +733,18 @@ class ProcessUSD(MONAIPhysioBase):
         self.log_info("Exporting to %s", output_filename)
         output_stage.Export(output_filename)
 
+    def open_stage(self, usd_file: str | Path) -> Usd.Stage:
+        """Open *usd_file* for editing; write it back with :meth:`save_stage`."""
+        return Usd.Stage.Open(str(usd_file))
+
+    def save_stage(self, stage: Usd.Stage) -> None:
+        """Write *stage*'s edits back to the file it was opened from."""
+        stage.Save()
+        self.log_info("Saved USD file: %s", stage.GetRootLayer().realPath)
+
     def list_mesh_primvars(
         self,
-        stage_or_path: Usd.Stage | str,
+        stage: Usd.Stage,
         mesh_path: str,
         time_code: float | None = None,
     ) -> list[dict]:
@@ -748,7 +757,7 @@ class ProcessUSD(MONAIPhysioBase):
         the mesh for visualization.
 
         Args:
-            stage_or_path: USD Stage or path to USD file
+            stage: USD stage, e.g. from :meth:`open_stage`
             mesh_path: Path to mesh prim (e.g., "/World/Meshes/MyMesh")
             time_code: Optional time code to sample values. If None, uses default.
 
@@ -763,16 +772,11 @@ class ProcessUSD(MONAIPhysioBase):
 
         Example:
             >>> usd_tools = ProcessUSD()
-            >>> primvars = usd_tools.list_mesh_primvars("valve.usd", "/World/Meshes/Valve")
+            >>> stage = usd_tools.open_stage("valve.usd")
+            >>> primvars = usd_tools.list_mesh_primvars(stage, "/World/Meshes/Valve")
             >>> for pv in primvars:
             ...     print(f"{pv['name']}: {pv['interpolation']}, {pv['elements']} elements")
         """
-        # Open stage if needed
-        if isinstance(stage_or_path, str):
-            stage = Usd.Stage.Open(stage_or_path)
-        else:
-            stage = stage_or_path
-
         # Get mesh prim
         mesh_prim = stage.GetPrimAtPath(mesh_path)
         if not mesh_prim.IsValid():
@@ -854,7 +858,7 @@ class ProcessUSD(MONAIPhysioBase):
             str | None: Name of selected primvar, or None if no candidates found
 
         Example:
-            >>> primvars = usd_tools.list_mesh_primvars("valve.usd", "/World/Meshes/Valve")
+            >>> primvars = usd_tools.list_mesh_primvars(stage, "/World/Meshes/Valve")
             >>> color_primvar = usd_tools.pick_color_primvar(primvars)
             >>> print(f"Selected for coloring: {color_primvar}")
         """
@@ -884,7 +888,7 @@ class ProcessUSD(MONAIPhysioBase):
 
     def apply_colormap_from_primvar(
         self,
-        stage_or_path: Usd.Stage | str,
+        stage: Usd.Stage,
         mesh_path: str,
         source_primvar: str,
         *,
@@ -915,7 +919,7 @@ class ProcessUSD(MONAIPhysioBase):
         - Writes both default and time-sampled displayColor for Omniverse compatibility
 
         Args:
-            stage_or_path: USD Stage or path to USD file
+            stage: USD stage, e.g. from :meth:`open_stage`; not saved here
             mesh_path: Path to mesh prim (e.g., "/World/Meshes/MyMesh")
             source_primvar: Name of primvar to visualize (e.g., "vtk_cell_stress")
             cmap: Matplotlib colormap name (default: "viridis")
@@ -932,12 +936,14 @@ class ProcessUSD(MONAIPhysioBase):
 
         Example:
             >>> usd_tools = ProcessUSD()
+            >>> stage = usd_tools.open_stage("valve.usd")
             >>> usd_tools.apply_colormap_from_primvar(
-            ...     "valve.usd",
+            ...     stage,
             ...     "/World/Meshes/Valve",
             ...     "vtk_cell_stress",
             ...     cmap="plasma"
             ... )
+            >>> usd_tools.save_stage(stage)
         """
         # Check matplotlib availability
         try:
@@ -947,14 +953,6 @@ class ProcessUSD(MONAIPhysioBase):
                 "matplotlib is required for colormap coloring. "
                 "Install with: pip install matplotlib"
             )
-
-        # Open stage if needed
-        if isinstance(stage_or_path, str):
-            stage = Usd.Stage.Open(stage_or_path)
-            stage_path = stage_or_path
-        else:
-            stage = stage_or_path
-            stage_path = None
 
         # Get mesh prim
         mesh_prim = stage.GetPrimAtPath(mesh_path)
@@ -1171,14 +1169,9 @@ class ProcessUSD(MONAIPhysioBase):
         if bind_vertex_color_material:
             self._ensure_vertex_color_material(stage, mesh_prim)
 
-        # Save stage if we opened it from a path
-        if stage_path:
-            stage.Save()
-            self.log_info(f"Saved USD file: {stage_path}")
-
     def set_solid_display_color(
         self,
-        stage_or_path: Usd.Stage | str,
+        stage: Usd.Stage,
         mesh_path: str,
         color: tuple[float, float, float],
         *,
@@ -1193,20 +1186,13 @@ class ProcessUSD(MONAIPhysioBase):
         color material so the color is visible in Omniverse.
 
         Args:
-            stage_or_path: USD Stage or path to USD file
+            stage: USD stage, e.g. from :meth:`open_stage`; not saved here
             mesh_path: Path to mesh prim (e.g., "/World/Meshes/MyMesh")
             color: RGB tuple in [0, 1] (e.g., (1, 0, 0) for red)
             time_codes: If provided, set displayColor at each time. If None, set default only.
             bind_vertex_color_material: If True, bind material that uses displayColor
         """
         from pxr import Gf, Sdf, Vt
-
-        if isinstance(stage_or_path, str):
-            stage = Usd.Stage.Open(stage_or_path)
-            stage_path = stage_or_path
-        else:
-            stage = stage_or_path
-            stage_path = None
 
         mesh_prim = stage.GetPrimAtPath(mesh_path)
         if not mesh_prim.IsValid() or not mesh_prim.IsA(UsdGeom.Mesh):
@@ -1265,12 +1251,10 @@ class ProcessUSD(MONAIPhysioBase):
 
         if bind_vertex_color_material:
             self._ensure_vertex_color_material(stage, mesh_prim)
-        if stage_path:
-            stage.Save()
         self.log_info(f"Set solid displayColor on {mesh_path}")
 
     def list_mesh_paths_under(
-        self, stage_or_path: Usd.Stage | str, parent_path: str = "/World/Meshes"
+        self, stage: Usd.Stage, parent_path: str = "/World/Meshes"
     ) -> list[str]:
         """
         List paths of all mesh prims at any depth under a parent path.
@@ -1280,17 +1264,12 @@ class ProcessUSD(MONAIPhysioBase):
         ``/World/{basename}/{anatomy_group}/{structure}`` - are found too.
 
         Args:
-            stage_or_path: USD Stage or path to USD file
+            stage: USD stage, e.g. from :meth:`open_stage`
             parent_path: Parent prim path (default: /World/Meshes)
 
         Returns:
             List of mesh prim paths (e.g. ["/World/Meshes/Mesh0", "/World/Meshes/Mesh1"])
         """
-        if isinstance(stage_or_path, str):
-            stage = Usd.Stage.Open(stage_or_path)
-        else:
-            stage = stage_or_path
-
         parent = stage.GetPrimAtPath(parent_path)
         if not parent.IsValid():
             return []
@@ -1302,11 +1281,10 @@ class ProcessUSD(MONAIPhysioBase):
 
     def repair_mesh_primvar_element_sizes(
         self,
-        stage_or_path: Usd.Stage | str,
+        stage: Usd.Stage,
         mesh_path: str,
         *,
         time_code: float | None = None,
-        save: bool = True,
     ) -> dict:
         """
         Repair missing/incorrect primvar elementSize metadata for a mesh.
@@ -1321,16 +1299,11 @@ class ProcessUSD(MONAIPhysioBase):
         - For uniform primvars: infer elementSize if raw_len % n_faces == 0
         - Only updates when inferred elementSize > 1
 
+        The stage is not saved here; see :meth:`save_stage`.
+
         Returns:
             dict with keys: updated (list), skipped (list)
         """
-        if isinstance(stage_or_path, str):
-            stage = Usd.Stage.Open(stage_or_path)
-            stage_path = stage_or_path
-        else:
-            stage = stage_or_path
-            stage_path = None
-
         mesh_prim = stage.GetPrimAtPath(mesh_path)
         if not mesh_prim.IsValid() or not mesh_prim.IsA(UsdGeom.Mesh):
             raise ValueError(f"Invalid mesh prim at path: {mesh_path}")
@@ -1410,10 +1383,6 @@ class ProcessUSD(MONAIPhysioBase):
                 skipped.append(
                     {"name": pv.GetName(), "reason": f"SetElementSize failed: {e}"}
                 )
-
-        if stage_path and save:
-            stage.Save()
-            self.log_info(f"Saved USD file: {stage_path}")
 
         return {"updated": updated, "skipped": skipped}
 

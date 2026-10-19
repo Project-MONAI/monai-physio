@@ -15,4 +15,4 @@ Module Reference
 
 .. rubric:: Navigation
 
-:doc:`process_images` | :doc:`index` | :doc:`process_contours`
+:doc:`process_images` | :doc:`index` | :doc:`process_surface_mesh`

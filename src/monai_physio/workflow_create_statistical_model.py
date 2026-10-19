@@ -17,7 +17,7 @@ import pyvista as pv
 from sklearn.decomposition import PCA
 
 from .monai_physio_base import MONAIPhysioBase
-from .process_contours import ProcessContours
+from .process_surface_mesh import ProcessSurfaceMesh
 from .process_transforms import ProcessTransforms
 from .register_models_distance_maps import RegisterModelsDistanceMaps
 from .register_models_icp import RegisterModelsICP
@@ -125,7 +125,7 @@ class WorkflowCreateStatisticalModel(MONAIPhysioBase):
         self.projection_max_distance_mm = projection_max_distance_mm
         self.icon_weights_path: Optional[str] = None
 
-        self.contour_tools = ProcessContours()
+        self.contour_tools = ProcessSurfaceMesh()
         self.transform_tools = ProcessTransforms()
 
         # Set by pipeline

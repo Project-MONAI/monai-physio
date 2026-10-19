@@ -19,20 +19,20 @@ if __name__ == "__main__":
         # Segment chest from CT images to generate vtk files
         import itk
 
-        from monai_physio.process_contours import ProcessContours
+        from monai_physio.process_surface_mesh import ProcessSurfaceMesh
         from monai_physio.segment_chest_total_segmentator_with_contrast import (
             SegmentChestTotalSegmentatorWithContrast,
         )
 
         input_images = sorted(glob.glob(os.path.join(_DATA_DIR, "slice_*.mha")))
         seg = SegmentChestTotalSegmentatorWithContrast()
-        con = ProcessContours()
+        con = ProcessSurfaceMesh()
         for i, img_path in enumerate(input_images):
             print(f"Segmenting {img_path}...")
             img = itk.imread(img_path)
             result = seg.segment(img)
             labelmap_mask = result["labelmap"]
-            img_con = con.extract_contours(labelmap_mask)
+            img_con = con.combine_surfaces(con.extract_label_surfaces(labelmap_mask))
             img_con.save(os.path.join(_DATA_DIR, f"slice_{i:03d}.vtp"))
 
     # %%

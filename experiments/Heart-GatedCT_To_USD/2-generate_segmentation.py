@@ -6,7 +6,7 @@ import itk
 import numpy as np
 import pyvista as pv
 
-from monai_physio.process_contours import ProcessContours
+from monai_physio.process_surface_mesh import ProcessSurfaceMesh
 from monai_physio.segment_chest_total_segmentator_with_contrast import (
     SegmentChestTotalSegmentatorWithContrast,
 )
@@ -91,8 +91,8 @@ if __name__ == "__main__":
     contrast_mask = result["contrast"]
 
     # %%
-    con = ProcessContours()
-    all_contours = con.extract_contours(labelmap_image)
+    con = ProcessSurfaceMesh()
+    all_contours = con.combine_surfaces(con.extract_label_surfaces(labelmap_image))
     all_contours.save(os.path.join(output_dir, f"{outname}.all_mask.vtp"))
 
     # %%
@@ -117,7 +117,7 @@ if __name__ == "__main__":
         compression=True,
     )
 
-    contours = con.extract_contours(dynamic_anatomy_image)
+    contours = con.combine_surfaces(con.extract_label_surfaces(dynamic_anatomy_image))
     contours.save(os.path.join(output_dir, f"{outname}.dynamic_anatomy_mask.vtp"))
 
     # %%
@@ -131,7 +131,7 @@ if __name__ == "__main__":
         compression=True,
     )
 
-    contours = con.extract_contours(static_anatomy_image)
+    contours = con.combine_surfaces(con.extract_label_surfaces(static_anatomy_image))
     contours.save(os.path.join(output_dir, f"{outname}.static_anatomy_mask.vtp"))
 
     # %%

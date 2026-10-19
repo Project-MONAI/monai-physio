@@ -48,7 +48,7 @@ Outputs (under ``output/tutorial_12_lung/<case>/``)
 The directory is deleted and rebuilt on every run: nothing is reused, so the
 runtimes below are the cost of the whole pipeline from scratch.
 
-  * ``<case>_g070.vtp``, ``<case>_g070_labelmap.nii.gz`` - reference segmentation
+  * ``<case>_g070_labelmap.nii.gz``      - reference segmentation
   * ``<case>_ssm_pca_coefficients.json`` - this patient's shape parameters
   * ``<case>_ssm_surface.vtp``           - the model fitted to the reference phase
   * ``<case>_ssm_pca_coefficients_s{TTT}_pred.vtp``   - predicted surface per stage
@@ -73,25 +73,15 @@ import pyvista as pv
 from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
-    ProcessContours,
+    EvaluateMovementLung,
+    MONAIPhysioBase,
+    ProcessSurfaceMesh,
     ProcessTests,
     WorkflowConvertImageToVTK,
     WorkflowFitStatisticalModelToPatient,
     WorkflowInferMovement,
     WorkflowInferPhysicsNeMo,
 )
-
-
-def _respiratory_stage_from_filename(image_file: Path) -> float:
-    """Extract the normalized respiratory stage [0, 1] from a ``g{PPP}`` filename.
-
-    ``.stem`` only strips ``.gz``, leaving a stray ``.nii`` in the name, since
-    these are ``.nii.gz`` (TCIA) rather than ``.mha`` (DIR-Lab).
-    """
-    for part in image_file.name.removesuffix(".nii.gz").split("_"):
-        if part.startswith("g") and len(part) == 4 and part[1:].isdigit():
-            return int(part[1:]) / 100.0
-    raise ValueError(f"Cannot parse respiratory phase from filename: {image_file}")
 
 
 def _record_step(times_s: dict[str, float], step: str, started: float) -> float:
@@ -151,8 +141,7 @@ if __name__ == "__main__":
     output_dir = TCIA_4D_LUNG.output_directory(test_mode) / "tutorial_12_lung" / case_id
     log_level = logging.INFO
 
-    logging.basicConfig(level=log_level)
-    logger = logging.getLogger(class_name)
+    logger = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
     # Wall-clock per step. Every run starts from an empty output directory, so
     # these are the cost of computing each step, not of re-reading it.
@@ -201,7 +190,7 @@ if __name__ == "__main__":
     # the tutorial still runs, on the stock uniGradICON weights.
     use_finetuned_distancemap_weights = icon_distancemap_weights_path.exists()
     if not use_finetuned_distancemap_weights:
-        logger.warning(
+        logger.log_warning(
             "Finetuned distance-map ICON weights not found at %s; fitting the SSM "
             "with the stock uniGradICON weights. Run "
             "tutorials/tutorial_02_lung_distancemap_finetune_icon.py to create "
@@ -210,9 +199,10 @@ if __name__ == "__main__":
         )
 
     # Step 1: the acquisition says which stages there are to predict.
-    stages = [_respiratory_stage_from_filename(path) for path in frame_files]
+    cohort = EvaluateMovementLung(reference_phase=reference_phase, log_level=log_level)
+    stages = [cohort.stage_from_filename(path) for path in frame_files]
     reference_image = itk.imread(str(reference_file))
-    logger.info("Case %s: %d respiratory phases", case_id, len(stages))
+    logger.log_info("Case %s: %d respiratory phases", case_id, len(stages))
     step_start = _record_step(step_times_s, "read_inputs", step_start)
 
     # Step 2: segment the lungs in the reference phase. This is the segmenter the
@@ -221,10 +211,8 @@ if __name__ == "__main__":
     # ``.stem`` only strips ``.gz``, leaving a stray ``.nii`` in the name, since
     # these are ``.nii.gz`` (TCIA) rather than ``.mha`` (DIR-Lab).
     reference_stem = reference_file.name.removesuffix(".nii.gz")
-    lung_surface_file = output_dir / f"{reference_stem}.vtp"
     lung_labelmap_file = output_dir / f"{reference_stem}_labelmap.nii.gz"
-    logger.info("Segmenting the reference phase %s", reference_file.name)
-    contour_tools = ProcessContours(log_level=log_level)
+    logger.log_info("Segmenting the reference phase %s", reference_file.name)
     segmentation_method = TCIA_4D_LUNG.segmenter(test_mode, log_level=log_level)
     segmentation_result = WorkflowConvertImageToVTK(
         segmentation_method=segmentation_method,
@@ -234,15 +222,13 @@ if __name__ == "__main__":
         anatomy_groups=[TCIA_4D_LUNG.anatomy_group],
         surface_reduction_rate=TCIA_4D_LUNG.surface_reduction_rate,
         extract_label_surfaces=True,
+        extract_group_surfaces=False,
     )
-    contour_tools.save_combined_surfaces(
-        segmentation_result["label_surfaces"], str(lung_surface_file)
+    lung_surface = ProcessSurfaceMesh.combine_surfaces(
+        segmentation_result["label_surfaces"]
     )
     lung_labelmap = segmentation_result["labelmap"]
     itk.imwrite(lung_labelmap, str(lung_labelmap_file), compression=True)
-    # Read back rather than combining in memory: save_combined_surfaces is what
-    # merges the per-label surfaces into the one surface the fit is given.
-    lung_surface = cast(pv.PolyData, pv.read(str(lung_surface_file)))
     step_start = _record_step(step_times_s, "segment_reference", step_start)
 
     # Step 3: fit the shape model to the reference phase. The coefficients are
@@ -280,7 +266,7 @@ if __name__ == "__main__":
     # model *is* a surface here: only the .vtp is written.
     fitted_reference_mesh_file = output_dir / f"{case_id}_ssm_surface.vtp"
     fit_result["fitted_reference_mesh"].save(str(fitted_reference_mesh_file))
-    logger.info("Fitted the lung model to %s", reference_file.name)
+    logger.log_info("Fitted the lung model to %s", reference_file.name)
     step_start = _record_step(step_times_s, "fit_shape_model", step_start)
 
     # Step 4: predict the whole cycle, warp the reference CT through each stage's
@@ -305,7 +291,7 @@ if __name__ == "__main__":
         anatomy_type="lung",
         separate_by_connectivity=True,
     )
-    logger.info("USD: %s", infer_result["usd_file"])
+    logger.log_info("USD: %s", infer_result["usd_file"])
     step_start = _record_step(step_times_s, "predict_and_warp", step_start)
 
     tutorial_results: dict[str, Any] = dict(infer_result)
@@ -345,10 +331,10 @@ if __name__ == "__main__":
             [case_id, step, f"{seconds:.3f}"] for step, seconds in step_times_s.items()
         )
 
-    logger.info("Runtime, seconds")
+    logger.log_info("Runtime, seconds")
     for step, seconds in step_times_s.items():
-        logger.info("  %-18s %8.1f", step, seconds)
-    logger.info("Runtime CSV: %s", runtime_file)
+        logger.log_info("  %-18s %8.1f", step, seconds)
+    logger.log_info("Runtime CSV: %s", runtime_file)
 
     tutorial_results["step_times_s"] = step_times_s
     tutorial_results["runtime_file"] = runtime_file

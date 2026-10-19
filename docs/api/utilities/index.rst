@@ -28,7 +28,9 @@ Quick Links
    * :doc:`process_labelmaps` - Labelmap to registration-mask conversion
    * :doc:`process_transforms` - Transform operations
    * :doc:`process_landmarks` - Landmark-based registration validation
-   * :doc:`process_contours` - Contour processing
+   * :doc:`process_surface_mesh` - Surface mesh extraction and processing
+   * :doc:`process_volumetric_mesh` - Tetrahedral mesh extraction and relaxation
+   * :doc:`process_mesh_kernels` - GPU mesh and distance-map primitives
    * :doc:`image_conversion` - 4D image to 3D time-series utilities
    * :doc:`process_tests` - Baseline / result comparison helpers
    * :doc:`download_data` - Optional dataset download helpers
@@ -43,7 +45,9 @@ Module Documentation
    process_labelmaps
    process_transforms
    process_landmarks
-   process_contours
+   process_surface_mesh
+   process_volumetric_mesh
+   process_mesh_kernels
    image_conversion
    process_tests
    download_data

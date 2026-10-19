@@ -31,9 +31,9 @@ import numpy as np
 import pyvista as pv
 
 from .monai_physio_base import MONAIPhysioBase
-from .process_contours import ProcessContours
 from .process_images import ProcessImages
 from .process_labelmaps import ProcessLabelmaps
+from .process_surface_mesh import ProcessSurfaceMesh
 from .process_transforms import ProcessTransforms
 from .register_images_greedy import RegisterImagesGreedy
 from .register_images_icon import RegisterImagesICON
@@ -218,7 +218,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
 
         # Utilities (needed for create_reference_image when patient_image is None)
         self.transform_tools = ProcessTransforms()
-        self.contour_tools = ProcessContours()
+        self.contour_tools = ProcessSurfaceMesh()
         self.labelmap_tools = ProcessLabelmaps()
 
         if patient_image is not None:

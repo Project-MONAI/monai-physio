@@ -29,13 +29,19 @@ registered entry, so any group present in the segmenter's
 :class:`monai_physio.AnatomyTaxonomy` will still render *something*.
 """
 
-import logging
-from collections.abc import Mapping
-from typing import Any, Optional
+from __future__ import annotations
 
+import logging
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Optional
+
+import numpy as np
 from pxr import Sdf, UsdGeom, UsdShade
 
 from .monai_physio_base import MONAIPhysioBase
+
+if TYPE_CHECKING:
+    import pyvista as pv
 
 # Brain grey matter: cortical gyri and deep nuclei alike. Shared by the
 # brain_parcellation group entry and the "basal_forebrain" override below,
@@ -892,6 +898,53 @@ class ProcessUSDAnatomy(MONAIPhysioBase):
             )
         color = params["diffuse_reflection_color"]
         return (float(color[0]), float(color[1]), float(color[2]))
+
+    def select_anatomy_type(self, anatomy_names: Sequence[str]) -> str:
+        """Return the first of *anatomy_names* that resolves, else ``"other"``.
+
+        Args:
+            anatomy_names: Names tried in order, most specific first, e.g. an
+                organ name followed by its anatomy group.  Some organs carry
+                their own entry (``myocardium``) and others do not
+                (``left_ventricle``), so a group name is the usual second entry.
+
+        Returns:
+            The selected name, or ``"other"`` (with a warning) when none of
+            *anatomy_names* resolves.
+        """
+        for name in anatomy_names:
+            if self.resolve_anatomy_type(name) is not None:
+                return name
+        self.log_warning(
+            "No anatomy entry matches %s; using 'other'", " or ".join(anatomy_names)
+        )
+        return "other"
+
+    def apply_anatomy_color(
+        self, mesh: pv.DataSet, anatomy_names: Sequence[str]
+    ) -> None:
+        """Attach the color :meth:`select_anatomy_type` picks to *mesh* **in-place**.
+
+        Sets, so the mesh colors the same way in Paraview, PyVista, and the USD
+        exporter:
+
+        - ``field_data['AnatomyColor']`` - RGB float32 color.
+        - ``cell_data['Color']`` - RGBA uint8 solid color (n_cells x 4).
+
+        Args:
+            mesh: Surface or volume mesh to annotate.
+            anatomy_names: Names tried in order, most specific first; see
+                :meth:`select_anatomy_type`.
+        """
+        color_rgb = self.get_anatomy_diffuse_color(
+            self.select_anatomy_type(anatomy_names)
+        )
+        mesh.field_data["AnatomyColor"] = np.array(color_rgb, dtype=np.float32)
+        rgba = np.array(
+            [int(channel * 255) for channel in color_rgb] + [255], dtype=np.uint8
+        )
+        if mesh.n_cells > 0:
+            mesh.cell_data["Color"] = np.tile(rgba, (mesh.n_cells, 1))
 
     def apply_anatomy_material_to_mesh(self, mesh_path: str, anatomy_type: str) -> None:
         """Apply an anatomic OmniSurface material to a single mesh prim by type.

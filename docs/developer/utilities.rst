@@ -43,11 +43,11 @@ Contour Tools
 
    import itk
 
-   from monai_physio import ProcessContours
+   from monai_physio import ProcessSurfaceMesh
 
    mask = itk.imread("heart_mask.nrrd")
-   contour = ProcessContours().extract_contours(mask)
-   contour.save("heart_surface.vtp")
+   surface = ProcessSurfaceMesh().extract_label_surfaces(mask)[1]
+   surface.save("heart_surface.vtp")
 
 USD Tools
 =========

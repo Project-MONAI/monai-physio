@@ -50,7 +50,7 @@ default in all standard Python runs):
    NumPy and run significantly slower. Every workflow still runs. Re-install
    with uv to get CuPy and CUDA-enabled PyTorch in one step (pip alone will
    not select the correct CUDA wheel):
-     uv pip install 'monai-physio[cuda12]'  # CUDA 12.6
+     uv pip install 'monai-physio[cuda12]' -f https://data.pyg.org/whl/torch-2.12.0+cu126.html  # CUDA 12.6
      uv pip install 'monai-physio[cuda13]'  # CUDA 13
 
 CPU-only mode is suitable for evaluation and small datasets. For production
@@ -61,14 +61,15 @@ Which CUDA version is required?
 
 Both CUDA 13 and CUDA 12.6 are supported. CUDA 12.6 is the smoothest
 install, because it is the newest combination with prebuilt ``torch-scatter``
-wheels on every supported platform - nothing compiles:
+wheels on every supported platform - nothing compiles when the PyG wheel index
+is passed with ``-f``:
 
 .. code-block:: bash
 
-   uv pip install "monai-physio[cuda12]"   # CUDA 12.6
+   uv pip install "monai-physio[cuda12]" -f https://data.pyg.org/whl/torch-2.12.0+cu126.html
    uv pip install "monai-physio[cuda13]"   # CUDA 13, builds torch-scatter
 
-Each extra installs CuPy and pins PyTorch, torchvision, and torchaudio to the
+Each extra installs CuPy and pins PyTorch and torchvision to the
 matching wheel index (``https://download.pytorch.org/whl/cu126`` or
 ``cu130``). On CUDA 13 there is no prebuilt ``torch-scatter`` wheel, so it
 compiles from source and needs a CUDA toolkit plus a C++ toolchain; see

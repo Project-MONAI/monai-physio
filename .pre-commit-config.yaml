@@ -12,24 +12,26 @@ repos:
       # Run the formatter
       - id: ruff-format
 
-  # Type checking with mypy
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.1.0
-    hooks:
-      - id: mypy
-        # Pass only the staged files pre-commit selects (via the files regex);
-        # do not scan whole src/ and tutorials/ trees, which would include
-        # untracked files.
-        args: [--config-file=pyproject.toml]
-        additional_dependencies:
-          - types-setuptools
-          - scipy-stubs
-          - types-requests
-        files: ^(src/|tutorials/)
-
-  # Local tests (optional - can be disabled if too slow)
+  # Local hooks run from the active project venv
   - repo: local
     hooks:
+      # Type checking with mypy. Runs in the project venv rather than an
+      # isolated hook env: the GPU modules are typed against the installed
+      # torch, warp and pyvista, which an isolated env would lack.
+      # Pass only the staged files pre-commit selects (via the files regex);
+      # do not scan whole src/ and tutorials/ trees, which would include
+      # untracked files.
+      - id: mypy
+        name: mypy
+        entry: mypy
+        # pre-commit checks files in batches, so per-module config sections for
+        # files outside a batch would be reported as unused.
+        args: [--config-file=pyproject.toml, --no-warn-unused-configs]
+        language: system
+        types: [python]
+        files: ^(src/|tutorials/)
+
+      # Local tests (optional - can be disabled if too slow)
       - id: fast-unit-tests
         name: Run Fast Unit Tests
         entry: pytest tests/ -m "not slow" -v --maxfail=3

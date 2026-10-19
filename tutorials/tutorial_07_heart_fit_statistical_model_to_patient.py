@@ -27,8 +27,8 @@ import pyvista as pv
 from parameters_heart_ct_kcl import HEART_CT_KCL
 
 from monai_physio import (
-    ProcessContours,
     ProcessTests,
+    WorkflowConvertImageToVTK,
     WorkflowFitStatisticalModelToPatient,
 )
 
@@ -76,6 +76,9 @@ if __name__ == "__main__":
     log_level = logging.INFO
 
     segmentation_method = HEART_CT_KCL.segmenter(test_mode, log_level=log_level)
+    segmentation_workflow = WorkflowConvertImageToVTK(
+        segmentation_method=segmentation_method, log_level=log_level
+    )
 
     # Directory setup and data reading
 
@@ -100,45 +103,25 @@ if __name__ == "__main__":
         )
     patient_image = itk.imread(str(patient_image_file))
 
-    if not (output_dir / f"{project_name}_patient_image.nii.gz").exists():
-        itk.imwrite(
-            patient_image,
-            output_dir / f"{project_name}_patient_image.nii.gz",
-            compression=True,
-        )
-
-        segmentation_result = segmentation_method.segment(patient_image)
-        patient_labelmap = segmentation_result["labelmap"]
-        itk.imwrite(
-            patient_labelmap,
-            output_dir / f"{project_name}_patient_labelmap.nii.gz",
-            compression=True,
-        )
-
-        heart_labelmap = segmentation_result["heart"]
-        itk.imwrite(
-            heart_labelmap,
-            output_dir / f"{project_name}_heart_labelmap.nii.gz",
-            compression=True,
-        )
-
-        contour_tools = ProcessContours()
-        heart_surface = contour_tools.extract_contours(
-            labelmap_image=heart_labelmap,
+    heart_surface_file = output_dir / f"{project_name}_heart_surface.vtp"
+    heart_labelmap_file = output_dir / f"{project_name}_heart_labelmap.nii.gz"
+    if not (heart_surface_file.exists() and heart_labelmap_file.exists()):
+        segmentation_result = segmentation_workflow.process(
+            input_image=patient_image,
+            anatomy_groups=[HEART_CT_KCL.anatomy_group],
             surface_reduction_rate=HEART_CT_KCL.surface_reduction_rate,
         )
-        heart_surface.save(output_dir / f"{project_name}_heart_surface.vtp")
-
-    else:
-        patient_labelmap = itk.imread(
-            output_dir / f"{project_name}_patient_labelmap.nii.gz"
+        segmentation_result["surfaces"][HEART_CT_KCL.anatomy_group].save(
+            str(heart_surface_file)
         )
-        heart_labelmap = itk.imread(
-            output_dir / f"{project_name}_heart_labelmap.nii.gz"
-        )
-        heart_surface = cast(
-            pv.PolyData, pv.read(output_dir / f"{project_name}_heart_surface.vtp")
-        )
+        # Only the heart's labels, so the fit's distance map measures to the
+        # heart and not to the rest of the chest.
+        heart_labelmap = segmentation_method.create_anatomy_group_labelmaps(
+            segmentation_result["labelmap"]
+        )[HEART_CT_KCL.anatomy_group]
+        itk.imwrite(heart_labelmap, str(heart_labelmap_file), compression=True)
+    heart_surface = cast(pv.PolyData, pv.read(str(heart_surface_file)))
+    heart_labelmap = itk.imread(str(heart_labelmap_file))
 
     # Workflow initialization
 
