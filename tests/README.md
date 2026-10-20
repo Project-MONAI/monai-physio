@@ -106,7 +106,7 @@ Each flag enables one marker family. Flags compose, so you can stack them.
 | `--run-simpleware` | `requires_simpleware` | Need a licensed Synopsys Simpleware Medical install (also marked `requires_gpu`) |
 | `--run-physicsnemo` | `requires_physicsnemo` | PhysicsNeMo-dependent tests |
 | `--run-tutorials` | `tutorial` | Tutorial scripts run end-to-end (hours to run) |
-| `--run-all` | every bucket above | Equivalent to passing all `--run-*` flags at once |
+| `--run-all` | every bucket above | Equivalent to passing all `--run-*` flags at once, plus `--require-tutorial-data` |
 
 ```bash
 # Slow tests
@@ -167,7 +167,8 @@ tests.
 - `@pytest.mark.tutorial` - Tutorial scripts run end-to-end (SLOW, never in
   CI). Opt in: `--run-tutorials`.
 
-`--run-all` is a convenience flag that turns on every `--run-*` bucket at once.
+`--run-all` is a convenience flag that turns on every `--run-*` bucket at once,
+and implies `--require-tutorial-data`, so missing datasets fail instead of skip.
 - `@pytest.mark.integration` - Integration tests vs unit tests (filter-only).
 - `@pytest.mark.timeout(seconds)` - Per-test timeout override.
 

@@ -97,7 +97,11 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         "--run-all",
         action="store_true",
         default=False,
-        help=("Enable every --run-* bucket: " + ", ".join(_RUN_BUCKET_FLAGS) + "."),
+        help=(
+            "Enable every --run-* bucket: "
+            + ", ".join(_RUN_BUCKET_FLAGS)
+            + "; also implies --require-tutorial-data."
+        ),
     )
     parser.addoption(
         "--create-baselines",
@@ -123,22 +127,25 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         help=(
             "Fail rather than skip when a tutorial's dataset is missing. For "
             "runners that are supposed to have every dataset, where a skip "
-            "would report a green run that tested nothing."
+            "would report a green run that tested nothing. Implied by --run-all."
         ),
     )
 
 
 def tutorial_data_is_required() -> bool:
-    """True when --require-tutorial-data turns missing-data skips into failures."""
+    """True when --require-tutorial-data or --run-all makes missing data fail."""
     if _pytest_config is None:
         return False
-    return bool(_pytest_config.getoption("--require-tutorial-data", default=False))
+    return bool(
+        _pytest_config.getoption("--require-tutorial-data", default=False)
+        or _pytest_config.getoption("--run-all", default=False)
+    )
 
 
 def skip_or_fail_missing_data(reason: str) -> None:
     """Skip because a dataset is absent, or fail if the run demands it be there."""
     if tutorial_data_is_required():
-        pytest.fail(f"{reason} (--require-tutorial-data is set)")
+        pytest.fail(f"{reason} (--require-tutorial-data or --run-all is set)")
     pytest.skip(reason)
 
 

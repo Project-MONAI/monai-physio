@@ -415,8 +415,12 @@ class ProcessTests(MONAIPhysioBase):
 
         diff_magnitude = np.abs(arr_result - arr_baseline)
         total_absolute_error = float(np.sum(diff_magnitude))
+        pixel_error = diff_magnitude
+        if image_result.GetNumberOfComponentsPerPixel() > 1:
+            # A pixel counts once, however many of its channels exceed the tolerance.
+            pixel_error = diff_magnitude.max(axis=-1)
         number_of_pixels_above_tol = int(
-            np.sum(diff_magnitude > per_pixel_absolute_error_tol)
+            np.sum(pixel_error > per_pixel_absolute_error_tol)
         )
 
         self._last_image_per_pixel_absolute_error_tol = per_pixel_absolute_error_tol

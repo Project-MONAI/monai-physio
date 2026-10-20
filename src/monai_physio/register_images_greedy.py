@@ -24,6 +24,10 @@ from .process_images import ProcessImages
 from .process_transforms import ProcessTransforms
 from .register_images_base import RegisterImagesBase
 
+# Greedy jitters its affine sample points, and its default seed (0) draws a new
+# random seed every run; a fixed seed makes registrations reproducible.
+_GREEDY_COMMAND_PREFIX = "-d 3 -seed 1"
+
 
 def _try_import_greedy() -> Any:
     """Import picsl_greedy; raise with helpful message if missing."""
@@ -313,7 +317,7 @@ class RegisterImagesGreedy(RegisterImagesBase):
         Greedy3D = _try_import_greedy()
         g = Greedy3D()
 
-        cmd = "-d 3"
+        cmd = _GREEDY_COMMAND_PREFIX
         if fixed_labelmap_sitk is not None and moving_labelmap_sitk is not None:
             cmd += " -w 0.60"
         cmd += " -i fixed moving"
@@ -359,7 +363,7 @@ class RegisterImagesGreedy(RegisterImagesBase):
 
         # Greedy seeds its own deformable stage with an affine pass, using the
         # configured metric.
-        cmd_aff = "-d 3"
+        cmd_aff = _GREEDY_COMMAND_PREFIX
         if fixed_labelmap_sitk is not None and moving_labelmap_sitk is not None:
             cmd_aff += " -w 0.60 -sv"
         cmd_aff += " -i fixed moving"
@@ -385,7 +389,7 @@ class RegisterImagesGreedy(RegisterImagesBase):
         # Greedy crashes (heap corruption) when the affine init is passed as an
         # in-memory matrix via -it; write it to a temp file and pass the path.
         initial_affine_file = self._write_affine_matrix_file(initial_affine)
-        cmd_def = "-d 3"
+        cmd_def = _GREEDY_COMMAND_PREFIX
         if fixed_labelmap_sitk is not None and moving_labelmap_sitk is not None:
             cmd_def += " -w 0.60"
         cmd_def += " -i fixed moving"

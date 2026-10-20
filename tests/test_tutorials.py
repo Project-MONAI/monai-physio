@@ -56,6 +56,10 @@ from .conftest import skip_or_fail_missing_data, tutorial_data_is_required
 # differences across OS / GPU / driver versions.
 _PX_TOL = 10.0  # per-pixel absolute error (0-255 range)
 _MAX_PX = 2000  # maximum number of pixels allowed above _PX_TOL
+# Renderings of meshes from a GPU segmentation: nnU-Net's GPU inference is not
+# bit-reproducible, so boundary voxels flip between runs and about 1% of an
+# 800x600 screenshot moves along mesh edges. 2% still catches a real change.
+_MAX_PX_GPU_SEGMENTATION = 9600
 _TOT_TOL = float("inf")  # use the pixel-count criterion only
 # Tolerances for the numeric metrics each tutorial reports.  Loose enough to
 # survive the nondeterminism of GPU reductions and a driver change, tight
@@ -82,6 +86,7 @@ def _enable_tutorial_test_mode(monkeypatch: pytest.MonkeyPatch) -> None:
 def _compare_screenshots(
     screenshots: list[Path],
     tt: ProcessTests,
+    max_pixels: int = _MAX_PX,
 ) -> None:
     """Read each PNG as itk.Image and compare against baseline."""
     if not screenshots:
@@ -93,7 +98,7 @@ def _compare_screenshots(
         assert tt.compare_result_to_baseline_image(
             png_path.name,
             per_pixel_absolute_error_tol=_PX_TOL,
-            max_number_of_pixels_above_tol=_MAX_PX,
+            max_number_of_pixels_above_tol=max_pixels,
             total_absolute_error_tol=_TOT_TOL,
         ), f"Screenshot baseline mismatch: {png_path.name}"
 
@@ -172,7 +177,9 @@ class TestTutorial01HeartGatedCTToUSD:
             results_dir=out_dir,
             baselines_dir=test_directories["baselines"] / self._class_name,
         )
-        _compare_screenshots(results["screenshots"], tt)
+        _compare_screenshots(
+            results["screenshots"], tt, max_pixels=_MAX_PX_GPU_SEGMENTATION
+        )
 
 
 @pytest.mark.tutorial
@@ -493,7 +500,9 @@ class TestTutorial05HeartVTKToUSD:
             results_dir=out_dir,
             baselines_dir=test_directories["baselines"] / self._class_name,
         )
-        _compare_screenshots(results["screenshots"], tt)
+        _compare_screenshots(
+            results["screenshots"], tt, max_pixels=_MAX_PX_GPU_SEGMENTATION
+        )
 
 
 @pytest.mark.tutorial
@@ -861,7 +870,7 @@ def _require_physicsnemo() -> None:
             "monai-physio; the environment may be broken."
         )
         if tutorial_data_is_required():
-            pytest.fail(f"{reason} (--require-tutorial-data is set)")
+            pytest.fail(f"{reason} (--require-tutorial-data or --run-all is set)")
         pytest.skip(reason)
     if importlib.util.find_spec("torch_geometric") is None:
         reason = (
@@ -869,7 +878,7 @@ def _require_physicsnemo() -> None:
             "of monai-physio; the environment may be broken."
         )
         if tutorial_data_is_required():
-            pytest.fail(f"{reason} (--require-tutorial-data is set)")
+            pytest.fail(f"{reason} (--require-tutorial-data or --run-all is set)")
         pytest.skip(reason)
 
 

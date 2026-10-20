@@ -281,6 +281,11 @@ class ParametersDukeHeartLabelmaps(ParametersBase):
         weights_file = self.distancemap_icon_weights_file(test_mode)
         if weights_file.exists():
             registrar.set_icon_weights_path(str(weights_file))
+        if test_mode:
+            # A test run registers every frame of every hold-out case, so the
+            # registrations are kept as light as the other test-mode registrars.
+            registrar.registrar_Greedy.set_number_of_iterations([1, 0])
+            registrar.registrar_ICON.set_number_of_iterations(5)
         return cast(
             pv.DataSet,
             registrar.register(transform_type="Deformable")["registered_model"],
