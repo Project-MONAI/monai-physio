@@ -195,6 +195,7 @@ if __name__ == "__main__":
         # runs and reports, not that the grid is finely sampled.
         number_of_modes_to_vary = 1
         perturbation_range = 1.0
+        perturbation_step = 1.0
 
     # Directory setup and data reading
 

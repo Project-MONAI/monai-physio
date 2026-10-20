@@ -49,6 +49,7 @@ import pyvista as pv
 from parameters_base import ParametersBase
 
 from monai_physio.process_tests import ProcessTests
+from monai_physio.register_images_icon import RegisterImagesICON
 
 from .conftest import skip_or_fail_missing_data, tutorial_data_is_required
 
@@ -67,6 +68,14 @@ _TOT_TOL = float("inf")  # use the pixel-count criterion only
 # covers the metrics that sit near zero, where a relative one never triggers.
 _METRIC_REL_TOL = 0.05
 _METRIC_ABS_TOL = 1.0e-3
+# Provenance WorkflowEvaluateMovement writes beside the metrics: absolute paths
+# and file dates that differ on every run and every machine.
+_METRIC_IGNORE_KEYS = [
+    "shape_parameters_file",
+    "network_weights_file",
+    "network_weights_created",
+    "network_weights_modified",
+]
 _REPO_ROOT = Path(__file__).parent.parent
 # Where every tutorial writes under ``MONAI_PHYSIO_RUNNING_AS_TEST``, and where
 # Tutorial 9 trains its networks to.  Kept apart from the ``output`` and
@@ -78,9 +87,35 @@ _TUTORIAL_WEIGHTS = _TUTORIAL_PATHS.weights_directory(test_mode=True)
 
 
 @pytest.fixture(autouse=True)
-def _enable_tutorial_test_mode(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Run tutorials against repo data/test through ProcessTests mode switching."""
+def _enable_tutorial_test_mode(
+    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Run tutorials against repo data/test through ProcessTests mode switching.
+
+    ICON is made reproducible too. Its per-pair finetuning and Tutorial 2's
+    training both back-propagate through 3-D ``grid_sample``, which has no
+    deterministic CUDA kernel, so their results change from run to run and no
+    screenshot baseline could hold. Every ICON registration therefore runs the
+    network forward only, and every tutorial after Tutorial 2 keeps the stock
+    uniGradICON weights rather than the ones Tutorial 2 retrains each run.
+    """
     monkeypatch.setenv("MONAI_PHYSIO_RUNNING_AS_TEST", "1")
+
+    registration_method = RegisterImagesICON.registration_method
+
+    def forward_only(self: RegisterImagesICON, *args: Any, **kwargs: Any) -> Any:
+        self.number_of_iterations = None
+        return registration_method(self, *args, **kwargs)
+
+    monkeypatch.setattr(RegisterImagesICON, "registration_method", forward_only)
+
+    test_class = request.node.cls
+    if test_class is not None and not test_class.__name__.startswith("TestTutorial02"):
+
+        def keep_stock_weights(self: RegisterImagesICON, weights_path: str) -> None:
+            return None
+
+        monkeypatch.setattr(RegisterImagesICON, "set_weights_path", keep_stock_weights)
 
 
 def _compare_screenshots(
@@ -114,6 +149,7 @@ def _compare_metrics(tt: ProcessTests, filenames: list[str]) -> None:
             filename,
             relative_tol=_METRIC_REL_TOL,
             absolute_tol=_METRIC_ABS_TOL,
+            ignore_keys=_METRIC_IGNORE_KEYS,
         ), f"Metrics baseline mismatch: {filename}"
 
 

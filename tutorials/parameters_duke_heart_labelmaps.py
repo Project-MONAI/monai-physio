@@ -256,6 +256,28 @@ class ParametersDukeHeartLabelmaps(ParametersBase):
             ptype=itk.F,
         )
 
+    def frames_to_register(
+        self,
+        frame_files: list[Path],
+        reference_file: Path,
+        test_mode: bool,
+        scored: bool,
+    ) -> list[Path]:
+        """Return the gated frames a case is registered to.
+
+        Every frame costs a contour, two distance maps and a registration, so a
+        test run keeps every other frame; the reference frame, which every fit
+        starts from, is always kept.  A *scored* case keeps every frame, as its
+        ground truth needs a fit for each one.
+        """
+        if not test_mode or scored:
+            return frame_files
+        return [
+            path
+            for index, path in enumerate(frame_files)
+            if index % 2 == 0 or path == reference_file
+        ]
+
     def register_to_frame(
         self,
         model: pv.DataSet,
@@ -282,10 +304,9 @@ class ParametersDukeHeartLabelmaps(ParametersBase):
         if weights_file.exists():
             registrar.set_icon_weights_path(str(weights_file))
         if test_mode:
-            # A test run registers every frame of every hold-out case, so the
-            # registrations are kept as light as the other test-mode registrars.
+            # A test run registers many frames, so the affine stage is kept as
+            # light as the other test-mode registrars.
             registrar.registrar_Greedy.set_number_of_iterations([1, 0])
-            registrar.registrar_ICON.set_number_of_iterations(5)
         return cast(
             pv.DataSet,
             registrar.register(transform_type="Deformable")["registered_model"],

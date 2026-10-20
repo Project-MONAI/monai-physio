@@ -392,6 +392,12 @@ if __name__ == "__main__":
             logger.log_warning("Skipping %s: no *_ref_labelmap.nii.gz frame", case_id)
             continue
         reference_file = reference_files[0]
+        frame_files = parameters.frames_to_register(
+            frame_files,
+            reference_file,
+            test_mode,
+            scored=case_id == parameters.hold_out_case,
+        )
 
         logger.log_section(
             "Processing case %s: %d gated frames", case_id, len(frame_files), width=48

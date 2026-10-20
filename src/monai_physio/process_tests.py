@@ -497,7 +497,9 @@ class ProcessTests(MONAIPhysioBase):
             relative_tol: Allowed fractional difference per value.
             absolute_tol: Allowed absolute difference per value.
             ignore_keys: Metric names to skip, for values that legitimately
-                differ between runs (wall-clock timings, host paths).
+                differ between runs (wall-clock timings, host paths).  A name
+                matches a flattened key exactly or as its last component, so
+                a CSV column is skipped in every row.
 
         Returns:
             True if every compared value is within tolerance.
@@ -528,7 +530,7 @@ class ProcessTests(MONAIPhysioBase):
 
         failures: list[str] = []
         for key in sorted(set(result_values) | set(baseline_values)):
-            if key in skip:
+            if key in skip or key.rsplit(".", 1)[-1] in skip:
                 continue
             if key not in result_values:
                 failures.append(f"{key}: missing from result")

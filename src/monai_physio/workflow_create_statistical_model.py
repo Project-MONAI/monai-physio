@@ -403,7 +403,7 @@ class WorkflowCreateStatisticalModel(MONAIPhysioBase):
             data_rows.append(model.points.flatten())
         data_matrix = np.array(data_rows)
 
-        if data_matrix.shape[0] - 1 < 2:
+        if data_matrix.shape[0] < 2:
             raise ValueError(
                 f"At least 2 samples are required for PCA. Got {data_matrix.shape[0]} samples."
             )

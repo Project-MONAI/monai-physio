@@ -609,7 +609,12 @@ if __name__ == "__main__":
             # One grid built around the reference frame's heart and reused by
             # every frame, so the whole case is registered in a common space.
             registration_grid = DUKE_HEART.frame_registration_grid(reference_surface)
-            for frame_file in sorted(case_dir.glob(f"*{LABELMAP_SUFFIX}")):
+            for frame_file in DUKE_HEART.frames_to_register(
+                sorted(case_dir.glob(f"*{LABELMAP_SUFFIX}")),
+                reference_file,
+                test_mode,
+                scored=case_id == held_out_case,
+            ):
                 stem = frame_file.name[: -len(LABELMAP_SUFFIX)]
                 frame_surface_file = case_fit_dir / f"{stem}_ssm_surface.vtp"
                 if frame_surface_file.exists():

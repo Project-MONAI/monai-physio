@@ -165,14 +165,12 @@ if __name__ == "__main__":
             logger.log_warning("Skipping %s: no *_ref_labelmap.nii.gz frame", case_id)
             continue
         reference_file = reference_files[0]
-        if test_mode:
-            # Every frame costs a contour, two distance maps and a registration;
-            # half of them still give every downstream tutorial phases to use.
-            frame_files = [
-                path
-                for index, path in enumerate(frame_files)
-                if index % 2 == 0 or path == reference_file
-            ]
+        frame_files = DUKE_HEART.frames_to_register(
+            frame_files,
+            reference_file,
+            test_mode,
+            scored=case_id == DUKE_HEART.hold_out_case,
+        )
 
         logger.log_section(
             "Processing case %s: %d gated frames", case_id, len(frame_files), width=48
