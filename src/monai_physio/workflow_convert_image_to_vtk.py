@@ -46,6 +46,18 @@ from .segment_chest_total_segmentator_with_contrast import (
 )
 
 
+def _save_whole(dataset: pv.DataSet, path: str) -> None:
+    """Write *dataset* beside *path*, then rename it into place.
+
+    A reader never sees a half-written file, even if the writing process dies
+    partway through, as a worker in a process pool can.
+    """
+    root, suffix = os.path.splitext(path)
+    partial = f"{root}.partial{suffix}"
+    dataset.save(partial)
+    os.replace(partial, path)
+
+
 class WorkflowConvertImageToVTK(MONAIPhysioBase):
     """Turn a CT image or a labelmap into per-group and per-label VTK surfaces.
 
@@ -369,7 +381,7 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
             stem = f"{prefix}_{name}" if prefix else name
             suffix = ".vtp" if isinstance(surface, pv.PolyData) else ".vtu"
             path = os.path.join(output_dir, f"{stem}{suffix}")
-            surface.save(path)
+            _save_whole(surface, path)
             saved[name] = path
         return saved
 
@@ -399,5 +411,5 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
         output_dir = os.path.dirname(output_filename)
         if output_dir:
             os.makedirs(output_dir, exist_ok=True)
-        combined.save(output_filename)
+        _save_whole(combined, output_filename)
         return output_filename

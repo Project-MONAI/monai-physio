@@ -12,6 +12,10 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
+# cuBLAS reads this when CUDA starts; deterministic cuBLAS needs it, and the
+# tutorial tests turn deterministic algorithms on.
+os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+
 import itk
 import numpy as np
 import pytest

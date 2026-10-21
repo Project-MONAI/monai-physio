@@ -56,6 +56,7 @@ import multiprocessing
 import os
 import sys
 from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -302,17 +303,39 @@ if __name__ == "__main__":
         f"{len(pending_files)} of {len(labelmap_files)} labelmaps to convert"
     )
 
-    # Extraction
-    with workers:
-        frame_displacements = list(
-            workers.map(
-                functools.partial(
-                    convert_frame, output_dir=output_dir, full=full, log_level=log_level
-                ),
-                pending_files,
+    # Extraction.  A worker that dies takes the whole pool with it, so the
+    # frames it left unfinished are retried once in a fresh pool of half the
+    # size; the frames that did finish keep their results.
+    convert = functools.partial(
+        convert_frame, output_dir=output_dir, full=full, log_level=log_level
+    )
+    frame_displacements: dict[Path, list[float]] = {}
+    remaining = list(pending_files)
+    for attempt in (1, 2):
+        futures = {}
+        try:
+            with workers:
+                futures = {path: workers.submit(convert, path) for path in remaining}
+                for path, future in futures.items():
+                    frame_displacements[path] = future.result()
+            break
+        except BrokenProcessPool:
+            if attempt == 2:
+                raise
+            for path, future in futures.items():
+                if future.done() and not future.cancelled() and not future.exception():
+                    frame_displacements[path] = future.result()
+            remaining = [path for path in remaining if path not in frame_displacements]
+            retry_count = max(1, worker_count(available_memory_bytes()) // 2)
+            reporter.log_warning(
+                "A worker process died; retrying %d frame(s) with %d worker(s)",
+                len(remaining),
+                retry_count,
             )
-        )
-    displacements = [value for frame in frame_displacements for value in frame]
+            workers = start_workers(retry_count)
+    displacements = [
+        value for path in pending_files for value in frame_displacements[path]
+    ]
     mean_displacement = float(np.mean(displacements)) if displacements else 0.0
     reporter.log_section(
         f"Wrote {len(displacements)} tetrahedral meshes, mean surface-to-mesh "

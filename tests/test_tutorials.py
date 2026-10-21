@@ -40,14 +40,17 @@ from __future__ import annotations
 import importlib.util
 import runpy
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pytest
 import pyvista as pv
+import torch
 from parameters_base import ParametersBase
 
+from monai_physio import register_images_greedy
 from monai_physio.process_tests import ProcessTests
 from monai_physio.register_images_icon import RegisterImagesICON
 
@@ -89,7 +92,7 @@ _TUTORIAL_WEIGHTS = _TUTORIAL_PATHS.weights_directory(test_mode=True)
 @pytest.fixture(autouse=True)
 def _enable_tutorial_test_mode(
     request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
-) -> None:
+) -> Iterator[None]:
     """Run tutorials against repo data/test through ProcessTests mode switching.
 
     ICON is made reproducible too. Its per-pair finetuning and Tutorial 2's
@@ -98,8 +101,22 @@ def _enable_tutorial_test_mode(
     screenshot baseline could hold. Every ICON registration therefore runs the
     network forward only, and every tutorial after Tutorial 2 keeps the stock
     uniGradICON weights rather than the ones Tutorial 2 retrains each run.
+    PyTorch's deterministic algorithms make that forward pass bit-identical;
+    ops without a deterministic kernel only warn. Greedy runs single-threaded:
+    its multithreaded metric sums change with thread timing, and its optimizer
+    turns that into registrations millimeters apart.
     """
     monkeypatch.setenv("MONAI_PHYSIO_RUNNING_AS_TEST", "1")
+    monkeypatch.setattr(
+        register_images_greedy,
+        "_GREEDY_COMMAND_PREFIX",
+        register_images_greedy._GREEDY_COMMAND_PREFIX + " -threads 1",
+    )
+    monkeypatch.setattr(torch.backends.cudnn, "benchmark", False)
+    monkeypatch.setattr(torch.backends.cudnn, "deterministic", True)
+    deterministic = torch.are_deterministic_algorithms_enabled()
+    warn_only = torch.is_deterministic_algorithms_warn_only_enabled()
+    torch.use_deterministic_algorithms(True, warn_only=True)
 
     registration_method = RegisterImagesICON.registration_method
 
@@ -116,6 +133,9 @@ def _enable_tutorial_test_mode(
             return None
 
         monkeypatch.setattr(RegisterImagesICON, "set_weights_path", keep_stock_weights)
+
+    yield
+    torch.use_deterministic_algorithms(deterministic, warn_only=warn_only)
 
 
 def _compare_screenshots(
