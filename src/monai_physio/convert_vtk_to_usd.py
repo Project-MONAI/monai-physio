@@ -256,6 +256,7 @@ class ConvertVTKToUSD(MONAIPhysioBase):
         mask_ids: Optional[dict[int, str]] = None,
         segmenter: Optional[SegmentAnatomyBase] = None,
         log_level: int | str = logging.INFO,
+        output_tet_mesh: bool = False,
     ) -> ConvertVTKToUSD:
         """Create a converter by loading VTK files from disk.
 
@@ -279,6 +280,9 @@ class ConvertVTKToUSD(MONAIPhysioBase):
             segmenter: Optional SegmentAnatomyBase used to group labeled prims
                        by anatomy type. See the ConvertVTKToUSD constructor.
             log_level: Logging level.
+            output_tet_mesh: If True, keep tetrahedral unstructured grids whole
+                and write them as UsdGeomTetMesh; the surface is then not
+                extracted. See the ConvertVTKToUSD constructor.
 
         Returns:
             ConvertVTKToUSD instance ready to call .convert().
@@ -290,7 +294,11 @@ class ConvertVTKToUSD(MONAIPhysioBase):
         meshes: list[pv.DataSet | vtk.vtkDataSet] = []
         for path in file_list:
             mesh = pv.read(str(path))
-            if extract_surface and isinstance(mesh, pv.UnstructuredGrid):
+            if (
+                extract_surface
+                and not output_tet_mesh
+                and isinstance(mesh, pv.UnstructuredGrid)
+            ):
                 mesh = mesh.extract_surface(algorithm="dataset_surface")
             meshes.append(mesh)
 
@@ -312,6 +320,7 @@ class ConvertVTKToUSD(MONAIPhysioBase):
             time_codes=resolved_time_codes,
             segmenter=segmenter,
             log_level=log_level,
+            output_tet_mesh=output_tet_mesh,
         )
 
         # Validate topology consistency for multi-frame time series and cache the

@@ -93,12 +93,10 @@ STRESS_RANGE_KPA = (1.0, 100.0)
 # do not dominate the scale.
 LOG_STRESS_ARRAY = "log10_von_mises_stress"
 STRESS_COLORMAP = "heart_heat"
-matplotlib.colormaps.register(
-    LinearSegmentedColormap.from_list(
-        STRESS_COLORMAP, ["#5a0a10", "#a01418", "#e0481c", "#ffd23c"]
-    ),
-    force=True,
+_stress_cmap = LinearSegmentedColormap.from_list(
+    STRESS_COLORMAP, ["#5a0a10", "#a01418", "#e0481c", "#ffd23c"]
 )
+matplotlib.colormaps.register(_stress_cmap, force=True)
 
 # Fraction of the log range the colormap is shifted up by, which moves more of
 # the surface toward the red end.
@@ -123,7 +121,7 @@ def _cell_edges(cells: np.ndarray) -> np.ndarray:
     edges = np.concatenate(
         [cells[:, [a, b]] for a, b in itertools.combinations(range(cells.shape[1]), 2)]
     )
-    return np.concatenate([edges, edges[:, ::-1]])
+    return np.unique(np.concatenate([edges, edges[:, ::-1]]), axis=0)
 
 
 def _median_filter_points(points: np.ndarray, cells: np.ndarray) -> np.ndarray:
@@ -209,7 +207,7 @@ def _render_stress(surface: pv.DataSet, plot_file: Path) -> Path:
         plotter.add_mesh(
             surface,
             scalars=LOG_STRESS_ARRAY,
-            cmap=STRESS_COLORMAP,
+            cmap=_stress_cmap,
             clim=LOG_STRESS_RANGE,
             scalar_bar_args={"title": "log10 von Mises (kPa)"},
         )
@@ -404,6 +402,10 @@ if __name__ == "__main__":
                 f"the fitted reference carries {reference_model.n_points}; the "
                 "deformation gradient needs them on the same nodes."
             )
+        # compute_von_mises_stress reads cell data before point data, so a
+        # stale per-cell tensor of the same name would shadow the nodal one.
+        if STRESS_ARRAY in predicted_mesh.cell_data:
+            del predicted_mesh.cell_data[STRESS_ARRAY]
         predicted_mesh.point_data[STRESS_ARRAY] = _stress_at_points(
             reference_model, predicted_mesh, tets, law
         )

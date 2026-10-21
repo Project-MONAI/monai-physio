@@ -119,7 +119,7 @@ dependencies = [
 
   # Visualization and USD
   "pyvista[all]>=0.47.0",
-  "usd-core>=23.11",
+  "usd-core>=24.5",
   "trimesh>=4.0.0",
   "pyacvd>=0.4.0",
 
