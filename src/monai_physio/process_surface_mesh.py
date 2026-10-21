@@ -12,6 +12,7 @@ deformation fields).  Tetrahedral meshes live in
 from __future__ import annotations
 
 import logging
+import warnings
 from collections.abc import Mapping, Sequence
 from typing import Any, Optional, cast
 
@@ -318,16 +319,19 @@ class ProcessSurfaceMesh(MONAIPhysioBase):
                 piece = regions.threshold(
                     (region_id, region_id), scalars="RegionId", preference="cell"
                 ).extract_surface(algorithm="geometry")
-                clustering = pyacvd.Clustering(piece)
-                # One cluster per retained point.  A closed surface carries
-                # about twice as many triangles as points, so scaling the
-                # point count by (1 - rate) scales the triangle count by the
-                # same fraction; four is the fewest clusters that can still
-                # close a surface.
-                clustering.cluster(
-                    max(4, round(piece.n_points * (1.0 - surface_reduction_rate)))
-                )
-                remeshed_pieces.append(clustering.create_mesh())
+                # pyacvd 0.4.0 still uses a pyvista-deprecated private API.
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", message=".*_connectivity_array.*")
+                    clustering = pyacvd.Clustering(piece)
+                    # One cluster per retained point.  A closed surface carries
+                    # about twice as many triangles as points, so scaling the
+                    # point count by (1 - rate) scales the triangle count by the
+                    # same fraction; four is the fewest clusters that can still
+                    # close a surface.
+                    clustering.cluster(
+                        max(4, round(piece.n_points * (1.0 - surface_reduction_rate)))
+                    )
+                    remeshed_pieces.append(clustering.create_mesh())
             conditioned = pv.merge(remeshed_pieces)
             if "SegmentationLabelIds" in original.cell_data:
                 nearest = original.find_closest_cell(conditioned.cell_centers().points)

@@ -54,12 +54,15 @@ from __future__ import annotations
 
 import contextlib
 import csv
+import itertools
 import logging
 from pathlib import Path
 from typing import Any, Optional, cast
 
+import matplotlib
 import numpy as np
 import pyvista as pv
+from matplotlib.colors import LinearSegmentedColormap
 from parameters_duke_heart_physics_informed import DUKE_HEART_PHYSICS_INFORMED
 
 from monai_physio import (
@@ -84,7 +87,61 @@ STRESS_ARRAY = "stress"
 
 # Range the stress colormap is stretched over, in kilopascals.  Fixed rather
 # than per-frame, so a color means the same thing throughout the animation.
-STRESS_RANGE_KPA = (0.0, 50.0)
+STRESS_RANGE_KPA = (1.0, 100.0)
+
+# Colored on log10 of the stress so the low end is resolved and a few hot spots
+# do not dominate the scale.
+LOG_STRESS_ARRAY = "log10_von_mises_stress"
+STRESS_COLORMAP = "heart_heat"
+matplotlib.colormaps.register(
+    LinearSegmentedColormap.from_list(
+        STRESS_COLORMAP, ["#5a0a10", "#a01418", "#e0481c", "#ffd23c"]
+    ),
+    force=True,
+)
+
+# Fraction of the log range the colormap is shifted up by, which moves more of
+# the surface toward the red end.
+COLORMAP_SHIFT = 0.2
+_log_low = float(np.log10(STRESS_RANGE_KPA[0]))
+_log_high = float(np.log10(STRESS_RANGE_KPA[1]))
+_log_shift = COLORMAP_SHIFT * (_log_high - _log_low)
+LOG_STRESS_RANGE = (_log_low + _log_shift, _log_high + _log_shift)
+
+# Passes of neighbor averaging over the tetrahedral mesh edges applied to the
+# nodal stress tensor, which removes element-to-element noise.
+STRESS_SMOOTHING_ITERATIONS = 20
+
+# Passes of a median filter over each node's mesh neighbors applied to the
+# point positions of the rendered surface, which removes isolated spikes.  It
+# can fold elements, so it is applied to the surface only, never the tet mesh.
+POSITION_MEDIAN_PASSES = 4
+
+
+def _cell_edges(cells: np.ndarray) -> np.ndarray:
+    """Return the ``(n_edges, 2)`` directed node pairs of simplex ``cells``."""
+    edges = np.concatenate(
+        [cells[:, [a, b]] for a, b in itertools.combinations(range(cells.shape[1]), 2)]
+    )
+    return np.concatenate([edges, edges[:, ::-1]])
+
+
+def _median_filter_points(points: np.ndarray, cells: np.ndarray) -> np.ndarray:
+    """Return ``points`` with each node set to the per-axis median of itself
+    and its edge neighbors in ``cells``."""
+    points = np.asarray(points, dtype=np.float64)
+    edges = _cell_edges(cells)
+    edges = edges[np.argsort(edges[:, 0], kind="stable")]
+    source = edges[:, 0]
+    degree = np.bincount(source, minlength=len(points))
+    starts = np.cumsum(degree) - degree
+    slot = np.arange(len(source)) - starts[source]
+    for _ in range(POSITION_MEDIAN_PASSES):
+        window = np.full((len(points), degree.max() + 1, 3), np.nan)
+        window[:, 0] = points
+        window[source, slot + 1] = points[edges[:, 1]]
+        points = np.nanmedian(window, axis=1)
+    return points
 
 
 def _stress_at_points(
@@ -126,7 +183,15 @@ def _stress_at_points(
         np.repeat(element_stress, 4, axis=0) * weights[:, None],
     )
     np.add.at(nodal_weight, flat_nodes, weights)
-    return nodal_stress / np.maximum(nodal_weight, 1.0e-12)[:, None]
+    nodal_stress /= np.maximum(nodal_weight, 1.0e-12)[:, None]
+
+    edges = _cell_edges(tets)
+    degree = np.maximum(np.bincount(edges[:, 0], minlength=len(nodal_stress)), 1)
+    for _ in range(STRESS_SMOOTHING_ITERATIONS):
+        neighbor_sum = np.zeros_like(nodal_stress)
+        np.add.at(neighbor_sum, edges[:, 0], nodal_stress[edges[:, 1]])
+        nodal_stress = 0.5 * nodal_stress + 0.5 * neighbor_sum / degree[:, None]
+    return nodal_stress
 
 
 def _render_stress(surface: pv.DataSet, plot_file: Path) -> Path:
@@ -143,10 +208,10 @@ def _render_stress(surface: pv.DataSet, plot_file: Path) -> Path:
         plotter = pv.Plotter(off_screen=True, window_size=[800, 600])
         plotter.add_mesh(
             surface,
-            scalars="von_mises_stress",
-            cmap="rainbow",
-            clim=STRESS_RANGE_KPA,
-            scalar_bar_args={"title": "von Mises (kPa)"},
+            scalars=LOG_STRESS_ARRAY,
+            cmap=STRESS_COLORMAP,
+            clim=LOG_STRESS_RANGE,
+            scalar_bar_args={"title": "log10 von Mises (kPa)"},
         )
         plotter.camera_position = "iso"
         plotter.screenshot(str(plot_file))
@@ -364,9 +429,14 @@ if __name__ == "__main__":
         stress_meshes,
         frames_per_second=float(len(stress_meshes)),
         log_level=log_level,
+        output_tet_mesh=True,
     )
     converter.compute_von_mises_stress(STRESS_ARRAY)
-    converter.set_colormap("von_mises_stress", "rainbow", STRESS_RANGE_KPA)
+    for mesh in stress_meshes:
+        mesh.point_data[LOG_STRESS_ARRAY] = np.log10(
+            np.maximum(mesh.point_data["von_mises_stress"], STRESS_RANGE_KPA[0])
+        )
+    converter.set_colormap(LOG_STRESS_ARRAY, STRESS_COLORMAP, LOG_STRESS_RANGE)
     converter.convert(str(usd_file))
     tutorial_results["usd_file"] = usd_file
     logger.log_info("USD: %s", usd_file)
@@ -379,6 +449,9 @@ if __name__ == "__main__":
         log_level=log_level,
     )
     stress_surface = stress_meshes[-1].extract_surface(algorithm="dataset_surface")
+    stress_surface.points = _median_filter_points(
+        stress_surface.points, stress_surface.faces.reshape(-1, 4)[:, 1:]
+    )
     tutorial_results["screenshots"] = [
         _render_stress(stress_surface, output_dir / "von_mises_stress.png"),
         tt.save_screenshot_mesh(

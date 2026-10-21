@@ -95,8 +95,14 @@ class UsdMeshConverter:
         """
         logger.info(f"Creating USD mesh at: {mesh_path}")
 
+        is_tet_mesh = mesh_data.tet_vertex_indices is not None
+
         # Create mesh prim
-        mesh = UsdGeom.Mesh.Define(self.stage, mesh_path)
+        mesh = (
+            UsdGeom.TetMesh.Define(self.stage, mesh_path)
+            if is_tet_mesh
+            else UsdGeom.Mesh.Define(self.stage, mesh_path)
+        )
 
         # Convert points to USD coordinates
         usd_points = lps_points_to_usd(mesh_data.points)
@@ -112,8 +118,15 @@ class UsdMeshConverter:
 
         # Set topology as the default value. create_time_varying_mesh() adds
         # time samples on top of this when a series changes topology.
-        mesh.CreateFaceVertexCountsAttr(face_counts_vt)
-        mesh.CreateFaceVertexIndicesAttr(face_indices_vt)
+        if is_tet_mesh:
+            mesh.CreateTetVertexIndicesAttr(
+                Vt.Vec4iArray.FromNumpy(
+                    np.asarray(mesh_data.tet_vertex_indices, dtype=np.int32)
+                )
+            )
+        else:
+            mesh.CreateFaceVertexCountsAttr(face_counts_vt)
+            mesh.CreateFaceVertexIndicesAttr(face_indices_vt)
 
         # Set points (time-varying if time_code provided). Also author a
         # default value for readers that inspect the prim without a time code.
@@ -136,7 +149,21 @@ class UsdMeshConverter:
             extent_attr.Set(extent)
 
         # Set mesh attributes
-        mesh.CreateSubdivisionSchemeAttr("none")  # No subdivision
+        if is_tet_mesh:
+            # The viewer draws only surfaceFaceVertexIndices, so author them
+            # from the tetrahedra, and pick the orientation that leaves the
+            # tetrahedra uninverted.
+            tet_mesh = UsdGeom.TetMesh(mesh)
+            default_time = Usd.TimeCode.Default()
+            if len(UsdGeom.TetMesh.FindInvertedElements(tet_mesh, time_code or 0.0)) > (
+                len(np.asarray(mesh_data.tet_vertex_indices)) // 2
+            ):
+                tet_mesh.CreateOrientationAttr(UsdGeom.Tokens.leftHanded)
+            tet_mesh.CreateSurfaceFaceVertexIndicesAttr(
+                UsdGeom.TetMesh.ComputeSurfaceFaces(tet_mesh, default_time)
+            )
+        else:
+            mesh.CreateSubdivisionSchemeAttr("none")  # No subdivision
         mesh.CreateDoubleSidedAttr(True)  # Visible from both sides
 
         # Handle normals
@@ -176,9 +203,13 @@ class UsdMeshConverter:
             material = self.material_mgr.material_cache[mesh_data.material_id]
             self.material_mgr.bind_material(mesh, material)
 
+        element_count = (
+            f"{len(mesh_data.tet_vertex_indices)} tetrahedra"
+            if mesh_data.tet_vertex_indices is not None
+            else f"{len(face_counts)} faces"
+        )
         logger.info(
-            f"Created mesh with {len(mesh_data.points)} points, "
-            f"{len(face_counts)} faces"
+            f"Created mesh with {len(mesh_data.points)} points, {element_count}"
         )
 
         return mesh
