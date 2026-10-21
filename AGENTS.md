@@ -82,8 +82,8 @@ python -m pre_commit run --all-files
 python -m pytest tests/ -v
 
 # Single test file or test by name
-python -m pytest tests/test_contour_tools.py -v
-python -m pytest tests/test_contour_tools.py::test_extract_surface -v
+python -m pytest tests/test_process_surface_mesh.py -v
+python -m pytest tests/test_process_surface_mesh.py::TestProcessSurfaceMesh::test_extract_contours_from_heart_mask -v
 
 # Opt-in test buckets
 python -m pytest tests/ -v --run-slow

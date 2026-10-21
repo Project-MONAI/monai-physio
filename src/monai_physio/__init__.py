@@ -66,21 +66,23 @@ from .infer_physicsnemo_mlp import InferPhysicsNeMoMLP
 
 # Base classes
 from .monai_physio_base import MONAIPhysioBase
-from .process_contours import ProcessContours
 
 # Utility classes
 from .process_images import ProcessImages
 from .process_labelmaps import ProcessLabelmaps
 from .process_landmarks import ProcessLandmarks
+from .process_mesh_kernels import ProcessMeshKernels
 from .process_physicsnemo import (
     DistributedContext,
     ProcessPhysicsNemo,
     distributed_context,
 )
+from .process_surface_mesh import ProcessSurfaceMesh
 from .process_tests import ProcessTests
 from .process_transforms import ProcessTransforms
 from .process_usd import ProcessUSD
 from .process_usd_anatomy import ProcessUSDAnatomy
+from .process_volumetric_mesh import ProcessVolumetricMesh
 from .register_images_ants import RegisterImagesANTS
 
 # Registration classes
@@ -147,15 +149,17 @@ __all__ = [
     "InferPhysicsNeMoMLP",
     "MONAIPhysioBase",
     "MovementGroundTruth",
-    "ProcessContours",
     "ProcessImages",
     "ProcessLabelmaps",
     "ProcessLandmarks",
+    "ProcessMeshKernels",
     "ProcessPhysicsNemo",
+    "ProcessSurfaceMesh",
     "ProcessTests",
     "ProcessTransforms",
     "ProcessUSD",
     "ProcessUSDAnatomy",
+    "ProcessVolumetricMesh",
     "RegisterImagesANTS",
     "RegisterImagesBase",
     "RegisterImagesChain",

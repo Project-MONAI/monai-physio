@@ -32,7 +32,8 @@ Flags compose. A typical local GPU profile is:
    pytest tests/ -v --run-gpu --run-slow
 
 ``--run-all`` is a convenience flag that turns on every ``--run-*`` bucket at
-once. The self-hosted CI GPU runner uses it (after installing
+once and implies ``--require-tutorial-data``, so a missing dataset fails the
+run instead of skipping its tests. The self-hosted CI GPU runner uses it (after installing
 ``.[dev,cuda13]``):
 
 .. code-block:: bash

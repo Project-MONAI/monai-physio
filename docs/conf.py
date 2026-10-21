@@ -184,7 +184,6 @@ myst_enable_extensions = [
 autodoc_mock_imports = [
     "torch",
     "torchvision",
-    "torchaudio",
     "monai",
     "totalsegmentator",
     "icon_registration",

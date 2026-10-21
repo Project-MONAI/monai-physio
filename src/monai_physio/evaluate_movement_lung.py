@@ -16,7 +16,7 @@ from typing import Optional
 import itk
 
 from .evaluate_movement_base import EvaluateMovementBase, MovementGroundTruth
-from .segment_chest_total_segmentator import SegmentChestTotalSegmentator
+from .segment_nv_segment_ct_mri import SegmentNVSegmentCTMRI
 
 
 class EvaluateMovementLung(EvaluateMovementBase):
@@ -29,10 +29,10 @@ class EvaluateMovementLung(EvaluateMovementBase):
         log_level: Logging level. Default: ``logging.INFO``.
     """
 
-    segmenter_class = SegmentChestTotalSegmentator
-    # The five lobes of ``SegmentChestTotalSegmentator``. Its "lung" group also carries
+    segmenter_class = SegmentNVSegmentCTMRI
+    # The five lobes of ``SegmentNVSegmentCTMRI``. Its "lung" group also carries
     # whole-lung, tumor and airway labels, which are not lobes.
-    label_ids = (10, 11, 12, 13, 14)
+    label_ids = (28, 29, 30, 31, 32)
     # A lobe barely changes shape over a breath compared to how big it is, so
     # Dice says more about the lobe than about the motion. Volume difference and
     # surface RMSE are what resolve it here.

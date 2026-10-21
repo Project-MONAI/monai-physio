@@ -11,7 +11,7 @@ import pytest
 import pyvista as pv
 from pxr import Usd, UsdGeom, UsdShade
 
-from monai_physio import SegmentHeartSimpleware, WorkflowConvertVTKToUSD
+from monai_physio import ProcessUSD, SegmentHeartSimpleware, WorkflowConvertVTKToUSD
 
 
 def _labeled_sphere(
@@ -339,3 +339,23 @@ class TestLabelTimeSeries:
         )
         with pytest.raises(ValueError, match="static_merge with mask_ids"):
             workflow.process()
+
+
+class TestSolidAppearance:
+    """Edits made on the converter's stage reach the file once it is saved."""
+
+    def test_solid_color_is_saved_to_file(self, tmp_path: Path) -> None:
+        workflow = WorkflowConvertVTKToUSD(
+            input_meshes=[_labeled_sphere((0.0, 0.0, 0.0), "blob")],
+            usd_project_name="solid",
+            output_directory=tmp_path,
+            appearance="solid",
+            solid_color=(0.0, 1.0, 0.0),
+            static_merge=True,
+        )
+        result = workflow.process()
+
+        stage = ProcessUSD().open_stage(result["usd_file"])
+        mesh = UsdGeom.Mesh(stage.GetPrimAtPath("/World/solid/blob_object1"))
+        colors = np.asarray(mesh.GetDisplayColorPrimvar().Get())
+        assert np.allclose(colors, [0.0, 1.0, 0.0])

@@ -35,7 +35,7 @@ import pyvista as pv
 from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
-    ProcessContours,
+    ProcessSurfaceMesh,
     ProcessTests,
     WorkflowConvertImageToVTK,
     WorkflowFitStatisticalModelToPatient,
@@ -91,7 +91,6 @@ if __name__ == "__main__":
     segmentation_workflow = WorkflowConvertImageToVTK(
         segmentation_method=segmentation_method, log_level=log_level
     )
-    contour_tools = ProcessContours(log_level=log_level)
 
     # Directory setup and data reading
 
@@ -116,23 +115,17 @@ if __name__ == "__main__":
         )
     patient_image = itk.imread(str(patient_image_file))
 
-    lung_surface_file = output_dir / f"{project_name}_lung_surface.vtp"
-    lung_labelmap_file = output_dir / f"{project_name}_lung_labelmap.nii.gz"
-    if not (lung_surface_file.exists() and lung_labelmap_file.exists()):
-        segmentation_result = segmentation_workflow.process(
-            input_image=patient_image,
-            anatomy_groups=["lung"],
-            surface_reduction_rate=TCIA_4D_LUNG.surface_reduction_rate,
-            extract_label_surfaces=True,
-        )
-        contour_tools.save_combined_surfaces(
-            segmentation_result["label_surfaces"], str(lung_surface_file)
-        )
-        itk.imwrite(
-            segmentation_result["labelmap"], str(lung_labelmap_file), compression=True
-        )
-    lung_surface = cast(pv.PolyData, pv.read(str(lung_surface_file)))
-    lung_labelmap = itk.imread(str(lung_labelmap_file))
+    segmentation_result = segmentation_workflow.process(
+        input_image=patient_image,
+        anatomy_groups=[TCIA_4D_LUNG.anatomy_group],
+        surface_reduction_rate=TCIA_4D_LUNG.surface_reduction_rate,
+        extract_label_surfaces=True,
+        extract_group_surfaces=False,
+    )
+    lung_surface = ProcessSurfaceMesh.combine_surfaces(
+        segmentation_result["label_surfaces"]
+    )
+    lung_labelmap = segmentation_result["labelmap"]
 
     # Workflow initialization
 
@@ -193,14 +186,6 @@ if __name__ == "__main__":
     registered_surface = workflow_results["fitted_reference_mesh"]
     registered_surface.save(
         str(output_dir / f"{project_name}_template_surface_registered.vtp")
-    )
-
-    registered_pca_surface = workflow.pca_template_model_surface
-    assert registered_pca_surface is not None, (
-        "pca_template_model_surface must be set after process()"
-    )
-    registered_pca_surface.save(
-        str(output_dir / f"{project_name}_pca_surface_registered.vtp")
     )
 
     # Testing

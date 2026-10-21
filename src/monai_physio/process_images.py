@@ -515,6 +515,47 @@ class ProcessImages(MONAIPhysioBase):
         result.DisconnectPipeline()
         return result
 
+    def crop_to_nonzero(
+        self, labelmap_image: itk.Image, pad_voxels: int = 0
+    ) -> itk.Image:
+        """Return *labelmap_image* cropped to its nonzero voxels, then zero-padded.
+
+        The voxels keep their physical positions: the origin moves with the
+        crop and the pad, while spacing and direction are unchanged.
+
+        Args:
+            labelmap_image: Labelmap or mask holding at least one nonzero voxel.
+            pad_voxels: Zero voxels added around the crop on every side.
+
+        Returns:
+            The cropped labelmap, as uint16.
+        """
+        labels = itk.GetArrayViewFromImage(labelmap_image)
+        nonzero = labels != 0
+        # The array's axes are reversed relative to the image, so the crop's
+        # start comes out as (z, y, x) and is flipped for the origin.
+        start, stop = [], []
+        for axis in range(labels.ndim):
+            others = tuple(other for other in range(labels.ndim) if other != axis)
+            hits = np.flatnonzero(nonzero.any(axis=others))
+            start.append(int(hits[0]))
+            stop.append(int(hits[-1]) + 1)
+        cropped_arr = np.pad(
+            labels[tuple(slice(a, b) for a, b in zip(start, stop))], pad_voxels
+        )
+        cropped = itk.GetImageFromArray(
+            np.ascontiguousarray(cropped_arr.astype(np.uint16))
+        )
+        spacing = np.asarray(labelmap_image.GetSpacing(), dtype=np.float64)
+        direction = itk.array_from_matrix(labelmap_image.GetDirection())
+        cropped.SetSpacing(labelmap_image.GetSpacing())
+        cropped.SetDirection(labelmap_image.GetDirection())
+        cropped.SetOrigin(
+            np.asarray(labelmap_image.GetOrigin(), dtype=np.float64)
+            + direction @ (spacing * (np.array(start[::-1]) - pad_voxels))
+        )
+        return cropped
+
     def binary_dilate_image(
         self,
         image: itk.Image,

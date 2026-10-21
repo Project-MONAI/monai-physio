@@ -89,16 +89,17 @@ that directory instead, which is what ``tutorial_results`` reports as
 # Imports
 from __future__ import annotations
 
-import json
 import logging
 from pathlib import Path
 from typing import Any, Optional, cast
 
-import numpy as np
 import pyvista as pv
 from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
+    EvaluateMovementLung,
+    MONAIPhysioBase,
+    ProcessPhysicsNemo,
     ProcessTests,
     TrainPhysicsNeMoMGN,
     WorkflowInferMovement,
@@ -106,45 +107,21 @@ from monai_physio import (
     WorkflowTrainPhysicsNeMo,
 )
 
-# Point-data array the tutorial writes its targets into and the manifests name.
-TARGET_ARRAY = "displacement"
-
-
-def _respiratory_stage_from_filename(surface_file: Path) -> float:
-    """Extract the normalized respiratory stage [0, 1] from a ``g{PPP}`` filename stem."""
-    for part in surface_file.stem.split("_"):
-        if part.startswith("g") and len(part) == 4 and part[1:].isdigit():
-            return int(part[1:]) / 100.0
-    raise ValueError(f"Cannot parse respiratory phase from filename: {surface_file}")
-
-
-def _write_target_mesh(
-    phase_file: Path, ref_points: np.ndarray, targets_dir: Path
-) -> Path:
-    """Write one phase's training target and return the mesh path.
-
-    The target is the per-vertex displacement from the case's reference surface,
-    stored as the ``TARGET_ARRAY`` point-data array on a copy of the phase
-    surface. Any other per-vertex quantity could be written here instead - the
-    training workflow reads whatever array the manifest names.
-    """
-    phase_mesh = pv.read(str(phase_file))
-    phase_points = np.asarray(phase_mesh.points, dtype=np.float32)
-    phase_mesh.point_data[TARGET_ARRAY] = phase_points - ref_points
-    target_path = targets_dir / f"{phase_file.stem}_target.vtp"
-    phase_mesh.save(str(target_path))
-    return target_path
-
 
 def _write_case_manifest(
-    case_dir: Path, manifests_dir: Path, logger: logging.Logger
+    case_dir: Path,
+    manifests_dir: Path,
+    cohort: EvaluateMovementLung,
+    logger: MONAIPhysioBase,
 ) -> Optional[Path]:
     """Write a per-case manifest JSON; return its path (or None if incomplete).
 
     A case needs a reference SSM surface, a PCA coefficient file, and at least
     two respiratory-phase surfaces. A case that is missing any of them is skipped
     with the reason logged, so a half-finished Tutorial 8 run is distinguishable
-    from one that never ran.
+    from one that never ran.  Each phase's training target is its per-vertex
+    displacement from the reference surface, and its stage is read from its
+    ``g{PPP}`` filename by *cohort*.
     """
     case_id = case_dir.name
     fitted_reference_mesh_file = case_dir / f"{case_id}_ssm_surface.vtp"
@@ -158,29 +135,17 @@ def _write_case_manifest(
     if len(phase_files) < 2:
         missing.append(f"at least 2 phase surfaces (found {len(phase_files)})")
     if missing:
-        logger.warning("Skipping %s: missing %s", case_id, "; ".join(missing))
+        logger.log_warning("Skipping %s: missing %s", case_id, "; ".join(missing))
         return None
 
-    manifests_dir.mkdir(parents=True, exist_ok=True)
-    ref_points = np.asarray(
-        pv.read(str(fitted_reference_mesh_file)).points, dtype=np.float32
+    return ProcessPhysicsNemo.write_manifest(
+        subject_id=case_id,
+        fitted_reference_mesh=fitted_reference_mesh_file,
+        pca_coefficients=pca_file,
+        phase_meshes=phase_files,
+        stages=[cohort.stage_from_filename(path) for path in phase_files],
+        output_directory=manifests_dir,
     )
-    manifest = {
-        "subject_id": case_id,
-        "fitted_reference_mesh": str(fitted_reference_mesh_file),
-        "pca_coefficients": str(pca_file),
-        "target_array": TARGET_ARRAY,
-        "phases": [
-            {
-                "mesh": str(_write_target_mesh(phase_file, ref_points, manifests_dir)),
-                "stage": _respiratory_stage_from_filename(phase_file),
-            }
-            for phase_file in phase_files
-        ],
-    }
-    manifest_path = manifests_dir / f"{case_id}_manifest.json"
-    manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    return manifest_path
 
 
 # Only run if this script is not imported as a module
@@ -232,8 +197,7 @@ if __name__ == "__main__":
     log_level = logging.INFO
 
     class_name = "tutorial_09_lung_train_physicsnemo_mgn"
-    logging.basicConfig(level=log_level)
-    logger = logging.getLogger(class_name)
+    logger = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
     # In test mode, train for a couple of epochs to keep the run tractable.
     if test_mode:
@@ -246,9 +210,10 @@ if __name__ == "__main__":
         )
 
     # Step 1: build one manifest per valid case and partition into splits.
+    cohort = EvaluateMovementLung(log_level=log_level)
     manifests: dict[str, Path] = {}
     for case_dir in sorted(p for p in data_dir.glob("*_HM10395") if p.is_dir()):
-        manifest_path = _write_case_manifest(case_dir, manifests_dir, logger)
+        manifest_path = _write_case_manifest(case_dir, manifests_dir, cohort, logger)
         if manifest_path is not None:
             manifests[case_dir.name] = manifest_path
 
@@ -273,7 +238,7 @@ if __name__ == "__main__":
         for case_id, manifest_path in manifests.items()
         if case_id not in test_cases and case_id not in val_cases
     ]
-    logger.info(
+    logger.log_info(
         "Case split - train: %d, val: %d, test: %d",
         len(train_manifests),
         len(val_manifests),
@@ -320,7 +285,7 @@ if __name__ == "__main__":
         "cases": {},
     }
     for case_id in test_cases:
-        logger.info("Evaluating held-out case %s", case_id)
+        logger.log_info("Evaluating held-out case %s", case_id)
         tutorial_results["cases"][case_id] = displacement_workflow.process(
             manifests[case_id],
             output_directory=output_dir / "eval_mgn" / case_id,

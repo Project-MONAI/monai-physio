@@ -24,7 +24,7 @@ Architecture Diagram
       +--------------+-------------+-------------+
                          |
                          v
-               ProcessContours / ProcessTransforms
+     ProcessSurfaceMesh / ProcessVolumetricMesh / ProcessTransforms
                          |
                          v
               ConvertVTKToUSD / vtk_to_usd

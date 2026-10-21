@@ -20,13 +20,19 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import cast
 
+import itk
+import numpy as np
+import pyvista as pv
 from parameters_base import ParametersBase
 
 from monai_physio import (
+    ProcessSurfaceMesh,
     RegisterImagesBase,
     RegisterImagesGreedy,
+    RegisterModelsDistanceMaps,
     SegmentAnatomyBase,
     SegmentHeartSimplewareTrimmedBranches,
+    WorkflowConvertImageToVTK,
 )
 
 
@@ -77,6 +83,13 @@ class ParametersDukeHeartLabelmaps(ParametersBase):
             coronaries (7-10) vary too much in extent between patients to be
             part of a shape model.  What remains is the myocardium (5) and the
             heart wall (6).
+        whole_heart_name: Name of the structure the labels outside
+            ``interior_object_ids`` form, and of the surface files Tutorial 4
+            writes for it.
+        frame_registration_spacing_mm: Pitch of the grid a case's frame
+            distance maps are rasterized on.  Coarser than
+            ``surface_spacing_mm``: it carries a distance field, not a
+            boundary.
         hold_out_case: Case held out of every fit: Tutorial 6 builds the shape
             model without it and Tutorial 7 fits that model to it, so the fit
             measures generalization rather than reconstruction.  Tutorial 2
@@ -102,6 +115,9 @@ class ParametersDukeHeartLabelmaps(ParametersBase):
     interior_object_ids: list[int] = field(
         default_factory=lambda: [1, 2, 3, 4, 7, 8, 9, 10]
     )
+    whole_heart_name: str = "heart_minus_interior_chambers"
+
+    frame_registration_spacing_mm: float = 1.0
 
     hold_out_case: str = "pm0027"
 
@@ -174,6 +190,127 @@ class ParametersDukeHeartLabelmaps(ParametersBase):
         registrar.set_number_of_iterations([1, 0] if test_mode else [30, 15, 7, 3])
         registrar.set_metric("CC")
         return registrar
+
+    def distancemap_icon_weights_file(self, test_mode: bool) -> Path:
+        """Return the distance-map ICON weights Tutorial 2 (Duke Heart) trains."""
+        return (
+            self.weights_directory(test_mode)
+            / "icon_duke_heart_distancemap"
+            / "icon_duke_heart_distancemap_model"
+            / "checkpoints"
+            / "network_weights_final.trch"
+        )
+
+    def surface_groups(self, labelmap: itk.Image) -> dict[str, list[int]]:
+        """Return the whole-heart structure of *labelmap* as a surface group.
+
+        For ``WorkflowConvertImageToVTK.process(groups=...)``: the labels present
+        in *labelmap* outside ``interior_object_ids``, extracted as one surface.
+        """
+        labels = itk.GetArrayViewFromImage(labelmap)
+        return {
+            self.whole_heart_name: [
+                int(value)
+                for value in np.unique(labels)
+                if value != 0 and int(value) not in self.interior_object_ids
+            ]
+        }
+
+    def whole_heart_surface(
+        self, labelmap_file: Path, test_mode: bool, log_level: int | str = logging.INFO
+    ) -> pv.PolyData:
+        """Return the whole-heart surface of one ``*_labelmap.nii.gz`` frame.
+
+        Tutorial 4 (Duke Heart) writes this surface, so its file is read when
+        present; otherwise the surface is extracted the way Tutorial 4 does.
+        """
+        stem = labelmap_file.name.split(".", 1)[0].removesuffix("_labelmap")
+        surface_file = (
+            self.input_directory(test_mode) / f"{stem}_{self.whole_heart_name}.vtp"
+        )
+        if surface_file.exists():
+            return cast(pv.PolyData, pv.read(str(surface_file)))
+        labelmap = itk.imread(str(labelmap_file))
+        workflow = WorkflowConvertImageToVTK(
+            self.segmenter(test_mode, log_level), log_level=log_level
+        )
+        result = workflow.process(
+            labelmap_image=labelmap,
+            groups=self.surface_groups(labelmap),
+            isotropic_spacing_mm=self.surface_spacing_mm,
+            smoothing_iterations=self.surface_smoothing_iterations,
+        )
+        return cast(pv.PolyData, result["surfaces"][self.whole_heart_name])
+
+    def frame_registration_grid(self, reference_surface: pv.DataSet) -> itk.Image:
+        """Return the grid a case's frames are registered on.
+
+        Built once around the reference frame's heart and reused by every
+        frame, so the whole case is registered in a common space; its buffer
+        holds the frames the heart moves into.
+        """
+        return ProcessSurfaceMesh.create_reference_image(
+            mesh=reference_surface,
+            spatial_resolution=self.frame_registration_spacing_mm,
+            buffer_factor=0.25,
+            ptype=itk.F,
+        )
+
+    def frames_to_register(
+        self,
+        frame_files: list[Path],
+        reference_file: Path,
+        test_mode: bool,
+        scored: bool,
+    ) -> list[Path]:
+        """Return the gated frames a case is registered to.
+
+        Every frame costs a contour, two distance maps and a registration, so a
+        test run keeps every other frame; the reference frame, which every fit
+        starts from, is always kept.  A *scored* case keeps every frame, as its
+        ground truth needs a fit for each one.
+        """
+        if not test_mode or scored:
+            return frame_files
+        return [
+            path
+            for index, path in enumerate(frame_files)
+            if index % 2 == 0 or path == reference_file
+        ]
+
+    def register_to_frame(
+        self,
+        model: pv.DataSet,
+        frame_surface: pv.PolyData,
+        registration_grid: itk.Image,
+        test_mode: bool,
+        log_level: int | str = logging.INFO,
+    ) -> pv.DataSet:
+        """Warp *model* onto one frame's whole-heart surface.
+
+        Greedy affine, then ICON, on the two distance maps; the finetuned
+        Tutorial 2 weights are used when they exist.  The transform is applied
+        point-wise, so *model* keeps its topology, tetrahedra included.
+        """
+        registrar = RegisterModelsDistanceMaps(
+            moving_model=cast(pv.PolyData, model),
+            fixed_model=frame_surface,
+            reference_image=registration_grid,
+            distance_squared_max=self.distancemap_squared_max,
+            mask_dilation_mm=self.mask_dilation_mm,
+            log_level=log_level,
+        )
+        weights_file = self.distancemap_icon_weights_file(test_mode)
+        if weights_file.exists():
+            registrar.set_icon_weights_path(str(weights_file))
+        if test_mode:
+            # A test run registers many frames, so the affine stage is kept as
+            # light as the other test-mode registrars.
+            registrar.registrar_Greedy.set_number_of_iterations([1, 0])
+        return cast(
+            pv.DataSet,
+            registrar.register(transform_type="Deformable")["registered_model"],
+        )
 
 
 #: The single instance every Duke heart tutorial imports.

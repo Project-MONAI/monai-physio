@@ -5,7 +5,7 @@ import itk
 import pyvista as pv
 
 from monai_physio import ConvertVTKToUSD
-from monai_physio.process_contours import ProcessContours
+from monai_physio.process_surface_mesh import ProcessSurfaceMesh
 from monai_physio.process_usd_anatomy import ProcessUSDAnatomy
 from monai_physio.segment_chest_total_segmentator import SegmentChestTotalSegmentator
 
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     def transform_contours(
         contours, transform_filenames, frame_indices, base_name, output_dir
     ):
-        con = ProcessContours()
+        con = ProcessSurfaceMesh()
         for i, transform_filename in zip(frame_indices, transform_filenames):
             fixed_to_moving_transform = itk.transformread(transform_filename)[0]
             print(f"Applying transform {transform_filename} to {base_name}")

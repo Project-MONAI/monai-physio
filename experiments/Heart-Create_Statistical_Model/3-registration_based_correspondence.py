@@ -25,13 +25,13 @@ import numpy as np
 import pandas as pd
 import pyvista as pv
 
-from monai_physio.process_contours import ProcessContours
+from monai_physio.process_surface_mesh import ProcessSurfaceMesh
 from monai_physio.register_models_distance_maps import RegisterModelsDistanceMaps
 
 _HERE = Path(__file__).parent
 
-# Initialize ProcessContours
-contour_tools = ProcessContours()
+# Initialize ProcessSurfaceMesh
+contour_tools = ProcessSurfaceMesh()
 
 # Setup paths
 input_dir = _HERE / "kcl-heart-model/surfaces_aligned"

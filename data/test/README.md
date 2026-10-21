@@ -43,7 +43,7 @@ Every subdirectory is created on demand by `tests/conftest.py` fixtures
 the first time a test needs them, and is `.gitignore`d - do not commit
 their contents. The subsets derived from another dataset are only built
 when that source dataset is present under the input root; otherwise the tests
-that need them skip, or fail if `--require-tutorial-data` was passed.
+that need them skip, or fail if `--require-tutorial-data` (or `--run-all`) was passed.
 
 The tutorials read these directories rather than the full datasets whenever
 `MONAI_PHYSIO_RUNNING_AS_TEST` is set, and write to the matching `test` subtree of

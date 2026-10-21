@@ -7,7 +7,7 @@ import pyvista as pv
 from scipy.optimize import minimize
 
 from .monai_physio_base import MONAIPhysioBase
-from .process_contours import ProcessContours
+from .process_surface_mesh import ProcessSurfaceMesh
 from .process_transforms import ProcessTransforms
 
 
@@ -81,7 +81,7 @@ class RegisterModelsICPITK(MONAIPhysioBase):
         self.final_mean_distance = 0
 
         # Transform utilities
-        self._contour_tools = ProcessContours()
+        self._contour_tools = ProcessSurfaceMesh()
         self._transform_tools = ProcessTransforms()
 
         # Image interpolator (created when needed)

@@ -58,7 +58,7 @@ from parameters_duke_heart_labelmaps import DUKE_HEART
 
 from monai_physio import (
     MONAIPhysioBase,
-    ProcessContours,
+    ProcessSurfaceMesh,
     ProcessTests,
     ProcessTransforms,
     RegisterImagesBase,
@@ -119,12 +119,8 @@ if __name__ == "__main__":
 
     derived_dir.mkdir(parents=True, exist_ok=True)
 
-    contour_tools = ProcessContours(log_level=log_level)
+    contour_tools = ProcessSurfaceMesh(log_level=log_level)
     transform_tools = ProcessTransforms()
-
-    # Labels left out of the surface a distance map is measured to; see the
-    # parameters module.
-    interior_object_ids = DUKE_HEART.interior_object_ids
 
     # Cohort discovery
     case_dirs = sorted(path for path in data_dir.glob("pm*") if path.is_dir())
@@ -163,19 +159,9 @@ if __name__ == "__main__":
 
         reporter.log_info("Rasterizing distance map for %s", stem)
         labelmap_image = itk.imread(str(labelmap_file))
-        labels = itk.GetArrayViewFromImage(labelmap_image)
-        # The chamber labels cover the cavities rather than their walls, so a
-        # distance measured to them would be a distance to the inside of the
-        # heart.  Dropping them leaves the myocardium and vessels, whose
-        # boundary is the surface RegisterModelsDistanceMaps measures to at
-        # inference.
-        heart_mask = itk.GetImageFromArray(
-            np.where((labels > 0) & ~np.isin(labels, interior_object_ids), 1, 0).astype(
-                np.uint8
-            )
-        )
-        heart_mask.CopyInformation(labelmap_image)
-        surface = contour_tools.extract_contours(heart_mask)
+        # The heart without its chamber cavities: the surface
+        # RegisterModelsDistanceMaps measures to at inference.
+        surface = DUKE_HEART.whole_heart_surface(labelmap_file, test_mode, log_level)
         distance_map = contour_tools.create_distance_map(
             surface,
             labelmap_image,
@@ -269,12 +255,7 @@ if __name__ == "__main__":
         )
         weights_path = workflow.process()
     else:
-        weights_path = (
-            experiment_dir
-            / f"{finetune_name}_model"
-            / "checkpoints"
-            / "network_weights_final.trch"
-        )
+        weights_path = DUKE_HEART.distancemap_icon_weights_file(test_mode)
         # Checked here rather than at the first set_weights_path() call, which
         # only happens after the greedy and stock-ICON rows have already run.
         if not weights_path.exists():

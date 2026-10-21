@@ -156,7 +156,7 @@ else:
     vessel_path = "/World/TPV25Valve/Mesh"
 
 # Select primvar for coloring
-primvars = usd_tools.list_mesh_primvars(str(output_usd), vessel_path)
+primvars = usd_tools.list_mesh_primvars(stage, vessel_path)
 color_primvar = usd_tools.pick_color_primvar(
     primvars, keywords=tuple(colormap_primvar_substrs)
 )
@@ -165,7 +165,7 @@ print(f"Chosen primvar = {color_primvar}")
 if color_primvar:
     print(f"\nApplying colormap to '{color_primvar}' using {colormap_name}")
     usd_tools.apply_colormap_from_primvar(
-        str(output_usd),
+        stage,
         vessel_path,
         color_primvar,
         cmap=colormap_name,
@@ -173,3 +173,4 @@ if color_primvar:
         use_sigmoid_scale=True,
         bind_vertex_color_material=True,
     )
+    usd_tools.save_stage(stage)

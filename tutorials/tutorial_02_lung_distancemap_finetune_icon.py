@@ -78,12 +78,11 @@ from typing import Any, Optional, cast
 
 import itk
 import numpy as np
-import pyvista as pv
 from parameters_tcia_4d_lung import TCIA_4D_LUNG
 
 from monai_physio import (
     MONAIPhysioBase,
-    ProcessContours,
+    ProcessSurfaceMesh,
     ProcessTests,
     ProcessTransforms,
     RegisterImagesBase,
@@ -179,15 +178,15 @@ if __name__ == "__main__":
     lung_label_ids = np.array(
         sorted(segmenter.taxonomy.labels_in_group("lung")), dtype=np.uint16
     )
-    contour_tools = ProcessContours(log_level=log_level)
+    contour_tools = ProcessSurfaceMesh(log_level=log_level)
     transform_tools = ProcessTransforms()
 
     def segment_phase(image_file: Path) -> tuple[Path, Path]:
         """Segment one phase's lungs and rasterize their distance map.
 
-        Returns the distance map and lung labelmap paths.  Both, plus the
-        combined lung surface, are cached under ``derived_dir``; an existing
-        pair short-circuits the segmentation.
+        Returns the distance map and lung labelmap paths.  Both are cached
+        under ``derived_dir``; an existing pair short-circuits the
+        segmentation.
         """
         # ``.stem`` only strips ``.gz``, leaving a stray ``.nii`` in the name,
         # since these are ``.nii.gz`` (TCIA) rather than ``.mha`` (DIR-Lab).
@@ -199,7 +198,6 @@ if __name__ == "__main__":
         cache_stem = f"{image_stem}_{segmenter_name}"
         distance_map_file = derived_dir / f"{cache_stem}_distance_map.mha"
         labelmap_file = derived_dir / f"{cache_stem}_lung_labelmap.nii.gz"
-        surface_file = derived_dir / f"{cache_stem}_lung_surface.vtp"
         if distance_map_file.exists() and labelmap_file.exists():
             return distance_map_file, labelmap_file
 
@@ -207,11 +205,13 @@ if __name__ == "__main__":
         image = itk.imread(str(image_file), pixel_type=itk.F)
         segmentation_result = segmentation_workflow.process(
             input_image=image,
-            anatomy_groups=["lung"],
+            anatomy_groups=[TCIA_4D_LUNG.anatomy_group],
+            surface_reduction_rate=TCIA_4D_LUNG.surface_reduction_rate,
             extract_label_surfaces=True,
+            extract_group_surfaces=False,
         )
-        contour_tools.save_combined_surfaces(
-            segmentation_result["label_surfaces"], str(surface_file)
+        surface = ProcessSurfaceMesh.combine_surfaces(
+            segmentation_result["label_surfaces"]
         )
         whole_body_labelmap = segmentation_result["labelmap"]
         whole_body_arr = itk.GetArrayViewFromImage(whole_body_labelmap)
@@ -220,7 +220,6 @@ if __name__ == "__main__":
         )
         lung_labelmap.CopyInformation(whole_body_labelmap)
         itk.imwrite(lung_labelmap, str(labelmap_file), compression=True)
-        surface = cast(pv.PolyData, pv.read(str(surface_file)))
         # Rasterize the lung surface into ICON's distance-map representation,
         # mirroring ``RegisterModelsDistanceMaps._create_masks_from_models`` so
         # the finetuning inputs match what that class feeds ICON at inference:

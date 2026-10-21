@@ -113,12 +113,10 @@ from parameters_tcia_4d_lung import TCIA_4D_LUNG
 from monai_physio import (
     DistributedContext,
     EvaluateMovementLung,
-    ProcessContours,
+    MONAIPhysioBase,
     ProcessPhysicsNemo,
     ProcessTests,
     ProcessTransforms,
-    RegisterImagesGreedy,
-    SegmentNVSegmentCTMRI,
     TrainPhysicsNeMoMGN,
     WorkflowConvertImageToVTK,
     WorkflowCreateMeanSurface,
@@ -135,17 +133,6 @@ from monai_physio import (
 # whole-lung, tumor and airway labels, which are not lobes.
 LOBE_LABEL_IDS = [28, 29, 30, 31, 32]
 
-# Point-data array the tutorial writes its targets into and the manifests name.
-TARGET_ARRAY = "displacement"
-
-
-def _respiratory_stage_from_filename(surface_file: Path) -> float:
-    """Extract the normalized respiratory stage [0, 1] from a ``g{PPP}`` filename stem."""
-    for part in surface_file.stem.split("_"):
-        if part.startswith("g") and len(part) == 4 and part[1:].isdigit():
-            return int(part[1:]) / 100.0
-    raise ValueError(f"Cannot parse respiratory phase from filename: {surface_file}")
-
 
 def _rank_share(items: list[Any], context: DistributedContext) -> list[Any]:
     """Return the slice of ``items`` this rank is responsible for.
@@ -154,51 +141,6 @@ def _rank_share(items: list[Any], context: DistributedContext) -> list[Any]:
     barrier afterwards, so the ranks never contend for a file.
     """
     return items[context.rank :: context.world_size]
-
-
-def _write_target_mesh(
-    phase_file: Path, ref_points: np.ndarray, targets_dir: Path
-) -> Path:
-    """Write one phase's training target and return the mesh path.
-
-    The target is the per-vertex displacement from the case's reference surface,
-    stored as the ``TARGET_ARRAY`` point-data array on a copy of the phase
-    surface.  The training workflow reads whatever array the manifest names and
-    never derives one.
-    """
-    phase_mesh = pv.read(str(phase_file))
-    phase_points = np.asarray(phase_mesh.points, dtype=np.float32)
-    phase_mesh.point_data[TARGET_ARRAY] = phase_points - ref_points
-    target_path = targets_dir / f"{phase_file.stem}_target.vtp"
-    phase_mesh.save(str(target_path))
-    return target_path
-
-
-def _write_case_manifest(case_dir: Path, manifests_dir: Path) -> Path:
-    """Write one case's training manifest and return its path."""
-    case_id = case_dir.name
-    fitted_reference_mesh_file = case_dir / f"{case_id}_ssm_surface.vtp"
-    phase_files = sorted(case_dir.glob(f"{case_id}_g0??_ssm_surface.vtp"))
-    manifests_dir.mkdir(parents=True, exist_ok=True)
-    ref_points = np.asarray(
-        pv.read(str(fitted_reference_mesh_file)).points, dtype=np.float32
-    )
-    manifest = {
-        "subject_id": case_id,
-        "fitted_reference_mesh": str(fitted_reference_mesh_file),
-        "pca_coefficients": str(case_dir / f"{case_id}_ssm_pca_coefficients.json"),
-        "target_array": TARGET_ARRAY,
-        "phases": [
-            {
-                "mesh": str(_write_target_mesh(phase_file, ref_points, manifests_dir)),
-                "stage": _respiratory_stage_from_filename(phase_file),
-            }
-            for phase_file in phase_files
-        ],
-    }
-    manifest_path = manifests_dir / f"{case_id}_manifest.json"
-    manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    return manifest_path
 
 
 def _summarize(values: list[float]) -> tuple[float, float, int]:
@@ -429,8 +371,7 @@ if __name__ == "__main__":
     shared_dir = output_dir / "shared"
     log_level = logging.INFO
 
-    logging.basicConfig(level=log_level)
-    logger = logging.getLogger(class_name)
+    logger = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
     # Under torchrun / SLURM / mpirun this is one rank of many; started plainly
     # it reports a world of one and every branch below collapses to a single
@@ -496,7 +437,7 @@ if __name__ == "__main__":
             f"only {len(case_ids)} cases are available under {cases_dir}."
         )
     held_out_cases = case_ids[:number_of_leave_one_out_runs]
-    logger.info(
+    logger.log_info(
         "%d cases, %d folds; holding out %s",
         len(case_ids),
         len(held_out_cases),
@@ -505,7 +446,7 @@ if __name__ == "__main__":
 
     use_finetuned_distancemap_weights = icon_distancemap_weights_path.exists()
     if not use_finetuned_distancemap_weights:
-        logger.warning(
+        logger.log_warning(
             "Finetuned distance-map ICON weights not found at %s; fitting the "
             "SSM with the stock uniGradICON weights. Run "
             "tutorials/tutorial_02_lung_distancemap_finetune_icon.py to create "
@@ -513,11 +454,10 @@ if __name__ == "__main__":
             icon_distancemap_weights_path,
         )
 
-    segmentation_method = SegmentNVSegmentCTMRI(log_level=log_level)
+    segmentation_method = TCIA_4D_LUNG.segmenter(test_mode, log_level=log_level)
     segmentation_workflow = WorkflowConvertImageToVTK(
         segmentation_method=segmentation_method, log_level=log_level
     )
-    contour_tools = ProcessContours(log_level=log_level)
     transform_tools = ProcessTransforms(log_level=log_level)
 
     # The cohort names the structures every fold reports and, in Step 5, reads
@@ -556,14 +496,15 @@ if __name__ == "__main__":
     for case_id in _rank_share(case_ids, context):
         surface_file, labelmap_file = shared_segmentation_files(case_id)
         if not (surface_file.exists() and labelmap_file.exists()):
-            logger.info("Segmenting %s %s", case_id, reference_phase)
+            logger.log_info("Segmenting %s %s", case_id, reference_phase)
             segmentation_result = segmentation_workflow.process(
                 input_image=itk.imread(str(case_phase_file(case_id, reference_phase))),
-                anatomy_groups=["lung"],
+                anatomy_groups=[TCIA_4D_LUNG.anatomy_group],
                 surface_reduction_rate=TCIA_4D_LUNG.surface_reduction_rate,
                 extract_label_surfaces=True,
+                extract_group_surfaces=False,
             )
-            contour_tools.save_combined_surfaces(
+            WorkflowConvertImageToVTK.save_combined_surfaces(
                 segmentation_result["label_surfaces"], str(surface_file)
             )
             itk.imwrite(
@@ -592,11 +533,13 @@ if __name__ == "__main__":
                 for p in phase_ids
             ]
             if all(path.exists() for path in existing):
-                logger.info("Reusing Tutorial 8 phase transforms for %s", case_id)
+                logger.log_info("Reusing Tutorial 8 phase transforms for %s", case_id)
                 for source, destination in zip(existing, wanted):
                     destination.write_bytes(source.read_bytes())
             else:
-                logger.info("Registering %d phases of %s", len(phase_files), case_id)
+                logger.log_info(
+                    "Registering %d phases of %s", len(phase_files), case_id
+                )
                 reg_workflow = WorkflowReconstructHighres4DCT(
                     time_series_images=[itk.imread(str(path)) for path in phase_files],
                     reference_image=itk.imread(
@@ -604,7 +547,9 @@ if __name__ == "__main__":
                     ),
                     reference_time_frame=phase_ids.index(reference_phase),
                     register_reference_time_frame_to_reference_image=False,
-                    registration_method=RegisterImagesGreedy(log_level=log_level),
+                    registration_method=TCIA_4D_LUNG.registrar(
+                        test_mode, log_level=log_level
+                    ),
                     log_level=log_level,
                 )
                 reg_workflow.set_modality("ct")
@@ -626,7 +571,7 @@ if __name__ == "__main__":
             labelmap_file = case_ground_truth_dir / f"{frame_stem}_labelmap.nii.gz"
             if labelmap_file.exists():
                 continue
-            logger.info("Segmenting ground-truth frame %s", frame_file.name)
+            logger.log_info("Segmenting ground-truth frame %s", frame_file.name)
             itk.imwrite(
                 segmentation_method.segment(itk.imread(str(frame_file)))["labelmap"],
                 str(labelmap_file),
@@ -639,14 +584,14 @@ if __name__ == "__main__":
     fold_results: dict[str, Any] = {}
 
     for fold_index, held_out_case in enumerate(held_out_cases):
-        logger.info("%s", "=" * 48)
-        logger.info(
+        logger.log_info("%s", "=" * 48)
+        logger.log_info(
             "Fold %d/%d: holding out %s",
             fold_index + 1,
             len(held_out_cases),
             held_out_case,
         )
-        logger.info("%s", "=" * 48)
+        logger.log_info("%s", "=" * 48)
 
         fold_dir = output_dir / f"fold_{held_out_case}"
         fits_dir = fold_dir / "fits"
@@ -719,7 +664,7 @@ if __name__ == "__main__":
             if not (
                 fitted_reference_mesh_file.exists() and pca_coefficients_file.exists()
             ):
-                logger.info("Fold %s: fitting %s", held_out_case, case_id)
+                logger.log_info("Fold %s: fitting %s", held_out_case, case_id)
                 surface_file, labelmap_file = shared_segmentation_files(case_id)
                 fit_workflow = WorkflowFitStatisticalModelToPatient(
                     template_model=pca_mean_surface,
@@ -793,7 +738,16 @@ if __name__ == "__main__":
         # having to be told which ones the others wrote.
         manifests_dir = fold_dir / "manifests_mgn"
         for case_id in _rank_share(case_ids, context):
-            _write_case_manifest(fits_dir / case_id, manifests_dir)
+            case_fit_dir = fits_dir / case_id
+            phase_files = sorted(case_fit_dir.glob(f"{case_id}_g0??_ssm_surface.vtp"))
+            ProcessPhysicsNemo.write_manifest(
+                subject_id=case_id,
+                fitted_reference_mesh=case_fit_dir / f"{case_id}_ssm_surface.vtp",
+                pca_coefficients=case_fit_dir / f"{case_id}_ssm_pca_coefficients.json",
+                phase_meshes=phase_files,
+                stages=[cohort.stage_from_filename(path) for path in phase_files],
+                output_directory=manifests_dir,
+            )
         context.barrier()
 
         manifests = {
@@ -903,8 +857,8 @@ if __name__ == "__main__":
         plot_file = _plot_metrics_by_label(
             all_rows, lobe_names, output_dir / "loo_metrics_by_label.png"
         )
-        logger.info("Metrics: %s", metrics_file)
-        logger.info("Report: %s", report_file)
+        logger.log_info("Metrics: %s", metrics_file)
+        logger.log_info("Report: %s", report_file)
 
         tutorial_results["metrics_file"] = metrics_file
         tutorial_results["report_file"] = report_file
@@ -938,4 +892,4 @@ if __name__ == "__main__":
                 color="steelblue",
             ),
         ]
-        logger.info("Last fold report: %s", last_fold["report_file"])
+        logger.log_info("Last fold report: %s", last_fold["report_file"])

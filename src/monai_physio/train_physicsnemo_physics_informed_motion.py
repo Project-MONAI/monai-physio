@@ -39,8 +39,8 @@ import numpy as np
 import pyvista as pv
 
 from .monai_physio_base import MONAIPhysioBase
-from .process_contours import ProcessContours
 from .process_physicsnemo import DistributedContext, PhaseSampleDataset
+from .process_volumetric_mesh import ProcessVolumetricMesh
 from .train_physicsnemo_mgn import TrainPhysicsNeMoMGN
 
 if TYPE_CHECKING:  # typed for mypy; imported lazily at runtime
@@ -98,7 +98,7 @@ def tet_volumes(points: np.ndarray, tets: np.ndarray) -> tuple[np.ndarray, np.nd
 
     Raises:
         ValueError: If any element is inverted or degenerate.  Templates come
-            from :meth:`monai_physio.ProcessContours.trim_tetrahedra_to_surface`,
+            from :meth:`monai_physio.ProcessVolumetricMesh.trim_tetrahedra_to_surface`,
             which holds every cell above a scaled Jacobian of 0.1, so a
             violation here means the template is broken rather than merely
             tight.
@@ -726,7 +726,7 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
         assert self._tets is not None
         self._reference_cache = {}
         device = context.device
-        contour_tools = ProcessContours(log_level=self.log_level)
+        volume_tools = ProcessVolumetricMesh(log_level=self.log_level)
         for subject_id in sorted(set(self._sample_subjects)):
             mesh = cast(
                 "pv.UnstructuredGrid", pv.read(str(self._reference_meshes[subject_id]))
@@ -746,7 +746,7 @@ class TrainPhysicsNeMoPhysicsInformedMotion(TrainPhysicsNeMoMGN):
             # elements inverted.
             tet_grid = pv.UnstructuredGrid({pv.CellType.TETRA: self._tets}, mesh.points)
             try:
-                repaired = contour_tools.repair_inverted_tetrahedra(tet_grid)
+                repaired = volume_tools.repair_inverted_tetrahedra(tet_grid)
             except ValueError as error:
                 raise ValueError(
                     f"Subject {subject_id!r} "

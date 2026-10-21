@@ -133,7 +133,7 @@ class _RecordingMGN(TrainPhysicsNeMoMGN):
 
     def build_checkpoint(self, model: Any, stats: dict) -> dict[str, Any]:
         self.snapshots.append({path.name for path in self.model_directory.iterdir()})
-        return cast("dict[str, Any]", super().build_checkpoint(model, stats))
+        return super().build_checkpoint(model, stats)
 
 
 def _train(tmp_path: Path) -> tuple[Path, _RecordingMGN]:
@@ -169,15 +169,7 @@ def _train(tmp_path: Path) -> tuple[Path, _RecordingMGN]:
 
 @pytest.mark.requires_gpu
 def test_first_checkpoint_has_its_companions(tmp_path: Path) -> None:
-    """Inference's inputs are on disk before the first checkpoint is written.
-
-    Fails under pytest specifically (not as a standalone script, with the
-    identical code) with ``CUBLAS_STATUS_NOT_INITIALIZED`` on this dev box's
-    GPU (Blackwell, sm_120) with CUDA 13.2 -- cov, timeout, output capture,
-    faulthandler, import order and env vars were all ruled out as the cause.
-    Likely a pytest-harness / very-new-GPU-driver-combo interaction rather
-    than a code bug; real (non-pytest) training runs are unaffected.
-    """
+    """Inference's inputs are on disk before the first checkpoint is written."""
     _, method = _train(tmp_path)
 
     assert len(method.snapshots) > 1, "expected intermittent checkpoints, not just one"
@@ -193,11 +185,7 @@ def test_first_checkpoint_has_its_companions(tmp_path: Path) -> None:
 
 @pytest.mark.requires_gpu
 def test_an_intermittent_checkpoint_can_be_inferred_from(tmp_path: Path) -> None:
-    """The model directory loads at an epoch, not only at the final weights.
-
-    See :func:`test_first_checkpoint_has_its_companions` -- same probable
-    pytest-harness / GPU-driver-combo bug, not a code issue.
-    """
+    """The model directory loads at an epoch, not only at the final weights."""
     model_directory, _ = _train(tmp_path)
 
     infer = WorkflowInferPhysicsNeMo(model_directory=model_directory, epoch=1)

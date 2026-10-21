@@ -17,8 +17,8 @@ import pyvista as pv
 
 from .convert_vtk_to_usd import ConvertVTKToUSD
 from .monai_physio_base import MONAIPhysioBase
-from .process_contours import ProcessContours
 from .process_images import ProcessImages
+from .process_surface_mesh import ProcessSurfaceMesh
 from .process_transforms import ProcessTransforms
 from .process_usd_anatomy import ProcessUSDAnatomy
 from .register_images_base import RegisterImagesBase
@@ -134,7 +134,7 @@ class WorkflowConvertImageToUSD(MONAIPhysioBase):
         os.makedirs(output_directory, exist_ok=True)
 
         # Initialize processing components
-        self.contour_tools = ProcessContours()
+        self.contour_tools = ProcessSurfaceMesh()
         self.image_tools = ProcessImages()
         self.transform_tools = ProcessTransforms()
 
@@ -357,44 +357,29 @@ class WorkflowConvertImageToUSD(MONAIPhysioBase):
         assert self.reference_segmentation_results is not None, (
             "reference segmentation results must be set"
         )
-        labelmap = self.reference_segmentation_results["labelmap"]
-
-        # Generate all anatomy contours
-        all_contours = self.contour_tools.extract_contours(
-            labelmap, surface_reduction_rate=self.surface_reduction_rate
+        surfaces = self.contour_tools.extract_label_surfaces(
+            self.reference_segmentation_results["labelmap"],
+            surface_reduction_rate=self.surface_reduction_rate,
         )
-        self.reference_contours = {
-            "all": all_contours,
-        }
 
+        # One extraction, split by label, so the dynamic and static structures
+        # still share the walls between them.
         if len(self.dynamic_labelmap_ids) > 0:
-            dynamic_labelmap_arr = itk.GetArrayFromImage(labelmap)
-            dynamic_labelmap_arr = np.where(
-                np.isin(dynamic_labelmap_arr, self.dynamic_labelmap_ids),
-                dynamic_labelmap_arr,
-                0,
-            )
-            dynamic_labelmap = itk.GetImageFromArray(dynamic_labelmap_arr)
-            dynamic_labelmap.CopyInformation(labelmap)
-            dynamic_contours = self.contour_tools.extract_contours(
-                dynamic_labelmap, surface_reduction_rate=self.surface_reduction_rate
-            )
-
-            static_labelmap_arr = itk.GetArrayFromImage(labelmap)
-            static_labelmap_arr = np.where(
-                np.isin(static_labelmap_arr, self.dynamic_labelmap_ids),
-                0,
-                static_labelmap_arr,
-            )
-            static_labelmap = itk.GetImageFromArray(static_labelmap_arr)
-            static_labelmap.CopyInformation(labelmap)
-            static_contours = self.contour_tools.extract_contours(
-                static_labelmap, surface_reduction_rate=self.surface_reduction_rate
-            )
-
-            # Store reference contours
-            self.reference_contours["dynamic"] = dynamic_contours
-            self.reference_contours["static"] = static_contours
+            is_dynamic = {
+                label_id: label_id in self.dynamic_labelmap_ids for label_id in surfaces
+            }
+            self.reference_contours = {
+                "dynamic": self.contour_tools.combine_surfaces(
+                    {i: s for i, s in surfaces.items() if is_dynamic[i]}
+                ),
+                "static": self.contour_tools.combine_surfaces(
+                    {i: s for i, s in surfaces.items() if not is_dynamic[i]}
+                ),
+            }
+        else:
+            self.reference_contours = {
+                "all": self.contour_tools.combine_surfaces(surfaces)
+            }
 
     def _transform_all_contours(self) -> None:
         """Transform contours for all time points using registration transforms."""

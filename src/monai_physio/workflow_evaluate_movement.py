@@ -40,8 +40,8 @@ import pyvista as pv
 
 from .evaluate_movement_base import EvaluateMovementBase, MovementGroundTruth
 from .monai_physio_base import MONAIPhysioBase
-from .process_contours import ProcessContours
 from .process_physicsnemo import ProcessPhysicsNemo
+from .process_surface_mesh import ProcessSurfaceMesh
 from .report_evaluate_movement import ReportEvaluateMovement
 from .workflow_infer_movement import WorkflowInferMovement
 
@@ -87,7 +87,7 @@ class WorkflowEvaluateMovement(MONAIPhysioBase):
     )
 
     # Per-cell structure ids a shape model may carry, written by
-    # ``ProcessContours.save_combined_surfaces``.
+    # ``ProcessSurfaceMesh.combine_surfaces``.
     _MESH_LABEL_ARRAY = "SegmentationLabelIds"
 
     def __init__(
@@ -110,7 +110,7 @@ class WorkflowEvaluateMovement(MONAIPhysioBase):
             if label_names is not None
             else cast(EvaluateMovementBase, cohort).label_names()
         )
-        self.contour_tools = ProcessContours(log_level=log_level)
+        self.contour_tools = ProcessSurfaceMesh(log_level=log_level)
         self.displacement_data_file: Optional[Path] = None
         self.report_tools = ReportEvaluateMovement(log_level=log_level)
 
@@ -640,7 +640,7 @@ class WorkflowEvaluateMovement(MONAIPhysioBase):
         that. A mesh that does not --- the heart is one surface, its chambers
         being cavities the model excludes --- is partitioned by nearest label
         surface instead, the same nearest-label rule
-        :meth:`ProcessContours.extract_label_surfaces` already scores the labelmap
+        :meth:`ProcessSurfaceMesh.extract_label_surfaces` already scores the labelmap
         metrics under. A chamber is then scored on the piece of wall bounding
         it. Either way a point belongs to at most one structure, and the
         partition is decided once, at the reference frame.

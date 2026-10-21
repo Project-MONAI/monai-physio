@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import cast
 
 import pyvista as pv
 from parameters_base import ParametersBase
@@ -72,7 +73,7 @@ if __name__ == "__main__":
     meshes: list[pv.PolyData] = []
     structure_names: list[str] = []
     for vtk_file in sorted(input_dir.glob("patient_*.vtp")):
-        mesh = pv.read(str(vtk_file))
+        mesh = cast(pv.PolyData, pv.read(str(vtk_file)))
         label_names = mesh.field_data.get("SegmentationLabelNames")
         if label_names is None or len(label_names) != 1:
             continue

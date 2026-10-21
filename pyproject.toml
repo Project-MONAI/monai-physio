@@ -6,130 +6,127 @@ build-backend = "setuptools.build_meta"
 name = "monai-physio"
 version = "2026.09.1"
 description = "Methods, workflows, tutorials, and CLI for creating personalized physiological digital twins from 3D/4D medical images"
-authors = [
-    {name = "Stephen R. Aylward", email = "saylward@nvidia.com"}
-]
-maintainers = [
-    {name = "Stephen R. Aylward", email = "saylward@nvidia.com"}
-]
-readme = {file = "README.md", content-type = "text/markdown"}
-license = {text = "Apache-2.0"}
+authors = [{ name = "Stephen R. Aylward", email = "saylward@nvidia.com" }]
+maintainers = [{ name = "Stephen R. Aylward", email = "saylward@nvidia.com" }]
+readme = { file = "README.md", content-type = "text/markdown" }
+license = { text = "Apache-2.0" }
 # 3.11 is the floor because the base dependency nvidia-physicsnemo needs it,
 # supporting >=3.11,<3.14. Declaring 3.10 made that dependency unresolvable
 # there while claiming otherwise.
 requires-python = ">=3.11"
 classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Healthcare Industry",
-    "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: Apache Software License",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Topic :: Scientific/Engineering :: Medical Science Apps.",
-    "Topic :: Scientific/Engineering :: Image Processing",
-    "Topic :: Scientific/Engineering :: Visualization",
-    "Topic :: Multimedia :: Graphics :: 3D Modeling",
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Healthcare Industry",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Medical Science Apps.",
+  "Topic :: Scientific/Engineering :: Image Processing",
+  "Topic :: Scientific/Engineering :: Visualization",
+  "Topic :: Multimedia :: Graphics :: 3D Modeling",
 ]
 keywords = [
-    "medical-imaging",
-    "4d-ct",
-    "cardiac-imaging",
-    "lung-imaging",
-    "omniverse",
-    "usd",
-    "monai",
-    "segmentation",
-    "registration",
-    "deformable-registration",
-    "image-registration",
-    "model-registration",
-    "visualization",
-    "ai",
-    "deep-learning",
-    "totalsegmentator",
-    "ICON",
-    "ANTS",
-    "physiological-motion",
-    "4d-visualization",
-    "digital-twin",
-    "statistical-shape-model",
-    "physicsnemo",
-    "meshgraphnet"
+  "medical-imaging",
+  "4d-ct",
+  "cardiac-imaging",
+  "lung-imaging",
+  "omniverse",
+  "usd",
+  "monai",
+  "segmentation",
+  "registration",
+  "deformable-registration",
+  "image-registration",
+  "model-registration",
+  "visualization",
+  "ai",
+  "deep-learning",
+  "totalsegmentator",
+  "ICON",
+  "ANTS",
+  "physiological-motion",
+  "4d-visualization",
+  "digital-twin",
+  "statistical-shape-model",
+  "physicsnemo",
+  "meshgraphnet",
 ]
 dependencies = [
-    # Core medical imaging
-    "itk>=5.3.0,<6.0.0",
-    "nibabel>=4.0.0",
-    "numpy>=1.21.0",
-    "pydicom>=2.4.0",
-    "pynrrd>=1.0.0",
-    "vtk>=9.2.0",
+  # Core medical imaging
+  "itk>=5.3.0,<6.0.0",
+  "nibabel>=4.0.0",
+  "numpy>=1.21.0",
+  "pydicom>=2.4.0",
+  "pynrrd>=1.0.0",
+  "vtk>=9.2.0",
 
-    # AI/ML and segmentation
-    # monai>=1.4 is required for monai.networks.nets.vista3d132 and
-    # monai.apps.vista3d, used by the NV-Segment-CTMR bundle.
-    "monai>=1.4.0",
-    "torch>=2.0.0",
-    "transformers>=4.21.0",
-    "totalsegmentator>=2.0.0",
-    "huggingface_hub>=0.24.0",
-    "einops>=0.6.1",
+  # AI/ML and segmentation
+  # monai>=1.4 is required for monai.networks.nets.vista3d132 and
+  # monai.apps.vista3d, used by the NV-Segment-CTMR bundle.
+  "monai>=1.4.0",
+  "torch>=2.0.0",
+  "transformers>=4.21.0",
+  "totalsegmentator>=2.0.0",
+  "huggingface_hub>=0.24.0",
+  "einops>=0.6.1",
 
-    # AI surrogates (PhysicsNeMo MeshGraphNet workflows, Tutorial 9). All
-    # three are CPU-capable (physicsnemo falls back to PyTorch/CPU;
-    # torch-geometric/torch-scatter ship CPU wheel builds), so they are base
-    # dependencies rather than a CUDA-gated extra -- every install, including
-    # the CPU-only fallback, can run the AI-surrogate workflows, just slower
-    # without a GPU.
-    #
-    # torch-scatter is the one dependency here that can require a source
-    # build. It compiles against torch but declares no build-system
-    # dependency, so its build environment must be the project environment:
-    # torch and setuptools must already be installed before it resolves. See
-    # [tool.uv] no-build-isolation-package below (uv) or the installation
-    # guide's explicit pip sequence.
-    #
-    # This is self-imposed by physicsnemo, not by PyG: torch_geometric's own
-    # ``torch_geometric.utils.scatter`` runs on native torch.scatter_reduce_
-    # and treats torch_scatter as an optional accelerator, but physicsnemo
-    # hard-imports the compiled package (physicsnemo/nn/module/gnn_layers/
-    # utils.py: ``importlib.import_module("torch_scatter")``). A one-line
-    # upstream switch to torch_geometric.utils.scatter would remove this
-    # dependency entirely; when that lands in physicsnemo, this requirement
-    # and the no-build-isolation ceremony around it can both go away.
-    #
-    # Prebuilt wheel availability (https://data.pyg.org/whl/) is the reason
-    # the cuda12 extra pins torch below 2.13; see that extra's comment.
-    "nvidia-physicsnemo>=2.0.0",
-    "torch-geometric>=2.5.0",
-    "torch-scatter>=2.1.0",
+  # AI surrogates (PhysicsNeMo MeshGraphNet workflows, Tutorial 9). All
+  # three are CPU-capable (physicsnemo falls back to PyTorch/CPU;
+  # torch-geometric/torch-scatter ship CPU wheel builds), so they are base
+  # dependencies rather than a CUDA-gated extra -- every install, including
+  # the CPU-only fallback, can run the AI-surrogate workflows, just slower
+  # without a GPU.
+  #
+  # torch-scatter is the one dependency here that can require a source
+  # build. It compiles against torch but declares no build-system
+  # dependency, so its build environment must be the project environment:
+  # torch and setuptools must already be installed before it resolves. See
+  # [tool.uv] no-build-isolation-package below (uv) or the installation
+  # guide's explicit pip sequence.
+  #
+  # This is self-imposed by physicsnemo, not by PyG: torch_geometric's own
+  # ``torch_geometric.utils.scatter`` runs on native torch.scatter_reduce_
+  # and treats torch_scatter as an optional accelerator, but physicsnemo
+  # hard-imports the compiled package (physicsnemo/nn/module/gnn_layers/
+  # utils.py: ``importlib.import_module("torch_scatter")``). A one-line
+  # upstream switch to torch_geometric.utils.scatter would remove this
+  # dependency entirely; when that lands in physicsnemo, this requirement
+  # and the no-build-isolation ceremony around it can both go away.
+  #
+  # Prebuilt wheel availability (https://data.pyg.org/whl/) is the reason
+  # the cuda12 extra pins torch below 2.13; see that extra's comment.
+  "nvidia-physicsnemo>=2.0.0",
+  "torch-geometric>=2.5.0",
+  "torch-scatter>=2.1.0",
+  "warp-lang>=1.0.0",
 
-    # Registration
-    # 0.6.1 is the first release with a CPython 3.13 Windows wheel. Below it the
-    # solver is free to pick 0.5.3, whose newest Windows wheel is 3.12, and on
-    # 3.13 that means building ANTs and ITK from source -- which fails.
-    "antspyx>=0.6.1",
-    "icon-registration>=1.0.0",
-    "picsl-greedy>=0.0.12",
-    "scipy>=1.10.0",
-    # Finetuning (``unigradicon.finetuning``, used by
-    # WorkflowFinetuneICONRegistration and Tutorial 2) only exists on the
-    # uniGradICON ``feat-add-finetuning`` branch; see [tool.uv.sources] below.
-    "unigradicon>=1.0.0",
+  # Registration
+  # 0.6.1 is the first release with a CPython 3.13 Windows wheel. Below it the
+  # solver is free to pick 0.5.3, whose newest Windows wheel is 3.12, and on
+  # 3.13 that means building ANTs and ITK from source -- which fails.
+  "antspyx>=0.6.1",
+  "icon-registration>=1.0.0",
+  "picsl-greedy>=0.0.12",
+  "scipy>=1.10.0",
+  # Finetuning (``unigradicon.finetuning``, used by
+  # WorkflowFinetuneICONRegistration and Tutorial 2) only exists on the
+  # uniGradICON ``feat-add-finetuning`` branch; see [tool.uv.sources] below.
+  "unigradicon>=1.0.0",
 
-    # Visualization and USD
-    "pyvista[all]>=0.47.0",
-    "usd-core>=23.11",
-    "trimesh>=4.0.0",
-    "pyacvd>=0.4.0",
+  # Visualization and USD
+  "pyvista[all]>=0.47.0",
+  "usd-core>=23.11",
+  "trimesh>=4.0.0",
+  "pyacvd>=0.4.0",
 
-    # Utilities
-    "ipykernel>=6.0.0",
-    "matplotlib>=3.5.0",
-    "typing-extensions>=4.0.0",
+  # Utilities
+  "ipykernel>=6.0.0",
+  "matplotlib>=3.5.0",
+  "typing-extensions>=4.0.0",
 
 ]
 
@@ -146,7 +143,7 @@ no-build-isolation-package = ["torch-scatter"]
 # fallback to a doomed source build into an immediate resolution error naming
 # the interpreter that has no wheel.
 no-build-package = ["antspyx"]
-# cuda12 and cuda13 both pin torch/torchvision/torchaudio but to different
+# cuda12 and cuda13 both pin torch/torchvision but to different
 # wheel indexes (see [tool.uv.sources] below) -- installing both together in
 # one command is not meaningful.
 conflicts = [[{ extra = "cuda12" }, { extra = "cuda13" }]]
@@ -157,7 +154,7 @@ conflicts = [[{ extra = "cuda12" }, { extra = "cuda13" }]]
 [tool.uv.extra-build-dependencies]
 torch-scatter = ["torch"]
 
-# torch/torchvision/torchaudio route to the cuda13 or cuda12 PyTorch wheel
+# torch/torchvision route to the cuda13 or cuda12 PyTorch wheel
 # index depending on which extra is requested. Best-effort: the uv pip
 # interface has been observed to ignore tool.uv.sources for index routing
 # (see .github/workflows/nightly-health.yml), so this is not relied upon as
@@ -167,16 +164,12 @@ torch-scatter = ["torch"]
 # extras or this source config.
 [tool.uv.sources]
 torch = [
-    { index = "pytorch-cu126", extra = "cuda12" },
-    { index = "pytorch-cu130", extra = "cuda13" },
+  { index = "pytorch-cu126", extra = "cuda12" },
+  { index = "pytorch-cu130", extra = "cuda13" },
 ]
 torchvision = [
-    { index = "pytorch-cu126", extra = "cuda12" },
-    { index = "pytorch-cu130", extra = "cuda13" },
-]
-torchaudio = [
-    { index = "pytorch-cu126", extra = "cuda12" },
-    { index = "pytorch-cu130", extra = "cuda13" },
+  { index = "pytorch-cu126", extra = "cuda12" },
+  { index = "pytorch-cu130", extra = "cuda13" },
 ]
 # The PyPI unigradicon release ships no ``unigradicon.finetuning`` module, so
 # finetuning (WorkflowFinetuneICONRegistration, Tutorial 2) needs this branch.
@@ -197,7 +190,7 @@ url = "https://download.pytorch.org/whl/cu126"
 explicit = true
 
 [project.optional-dependencies]
-# CUDA-matched acceleration only (cupy + pinned torch/torchvision/torchaudio).
+# CUDA-matched acceleration only (cupy + pinned torch/torchvision).
 # The AI-surrogate stack (nvidia-physicsnemo, torch-geometric, torch-scatter)
 # is a base dependency, not part of these extras -- see [project.dependencies]
 # above. Recommended: `uv pip install --torch-backend=auto monai-physio`,
@@ -210,10 +203,9 @@ explicit = true
 # source here -- requiring nvcc and a C++ toolchain. torch is left unpinned
 # because pinning it would not buy a wheel.
 cuda13 = [
-    "cupy-cuda13x>=13.6.0",
-    "torch>=2.0.0",
-    "torchvision",
-    "torchaudio",
+  "cupy-cuda13x[ctk]>=14.0.0",
+  "torch>=2.0.0",
+  "torchvision",
 ]
 # CUDA 12.6: the newest combination with published prebuilt torch-scatter
 # wheels on every platform this project supports, including Windows
@@ -224,56 +216,55 @@ cuda13 = [
 # physicsnemo no longer hard-imports torch_scatter (see the AI-surrogate
 # comment in [project.dependencies]).
 cuda12 = [
-    "cupy-cuda12x>=13.6.0",
-    "torch>=2.10,<2.13",
-    "torchvision",
-    "torchaudio",
+  "cupy-cuda12x[ctk]>=14.0.0",
+  "torch>=2.10,<2.13",
+  "torchvision",
 ]
 # Development, testing, and documentation tooling -- no CUDA/cupy component,
 # for pairing with `uv pip install --torch-backend=auto -e ".[dev]"`.
 dev = [
-    "bumpver>=2023.0.0",
-    "jupytext>=1.16.0",
-    "pre-commit>=3.0.0",
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "pytest-xdist>=3.0.0",
-    # conftest.py's pytest_runtest_makereport uses pytest.hookimpl(wrapper=True),
-    # a new-style hook wrapper that pluggy only grew in 1.2.0. pytest>=7.0 alone
-    # permits an older pluggy, where that keyword raises at collection time.
-    "pluggy>=1.2.0",
-    "pytest-timeout>=2.0.0",
-    "coverage[toml]>=7.0.0",
-    "mypy>=2.1.0",
-    "ruff>=0.1.0",
-    "scipy-stubs>=1.14.0.0,<1.16.0.0",
-    "types-requests>=2.32.0.0",
-    # Sphinx core, theme, and extensions
-    "sphinx>=8.0.0",
-    "sphinx-rtd-theme>=3.0.0",
-    "sphinx-autodoc-typehints>=3.0.0",
-    "sphinx-copybutton>=0.5.2",
-    "sphinx-tabs>=3.4.7",
-    "myst-parser>=4.0.0",
-    # Docutils 0.22 removed some node attributes (e.g. "backrefs") that
-    # sphinx-tabs expects, causing a KeyError during builds.
-    "docutils<0.22",
-    "linkify-it-py>=2.0.0",
-    "uc-micro-py>=1.0.1",
-    "markdown-it-py>=3.0.0",
-    # Bundled ffmpeg binary used by utils/mp4_to_gif.py
-    "imageio-ffmpeg>=0.5.0",
+  "bumpver>=2023.0.0",
+  "jupytext>=1.16.0",
+  "pre-commit>=3.0.0",
+  "pytest>=7.0.0",
+  "pytest-cov>=4.0.0",
+  "pytest-xdist>=3.0.0",
+  # conftest.py's pytest_runtest_makereport uses pytest.hookimpl(wrapper=True),
+  # a new-style hook wrapper that pluggy only grew in 1.2.0. pytest>=7.0 alone
+  # permits an older pluggy, where that keyword raises at collection time.
+  "pluggy>=1.2.0",
+  "pytest-timeout>=2.0.0",
+  "coverage[toml]>=7.0.0",
+  "mypy>=2.1.0",
+  "ruff>=0.1.0",
+  "scipy-stubs>=1.14.0.0,<1.16.0.0",
+  "types-requests>=2.32.0.0",
+  # Sphinx core, theme, and extensions
+  "sphinx>=8.0.0",
+  "sphinx-rtd-theme>=3.0.0",
+  "sphinx-autodoc-typehints>=3.0.0",
+  "sphinx-copybutton>=0.5.2",
+  "sphinx-tabs>=3.4.7",
+  "myst-parser>=4.0.0",
+  # Docutils 0.22 removed some node attributes (e.g. "backrefs") that
+  # sphinx-tabs expects, causing a KeyError during builds.
+  "docutils<0.22",
+  "linkify-it-py>=2.0.0",
+  "uc-micro-py>=1.0.1",
+  "markdown-it-py>=3.0.0",
+  # Bundled ffmpeg binary used by utils/mp4_to_gif.py
+  "imageio-ffmpeg>=0.5.0",
 ]
 # Full source/dev installs: CUDA-matched acceleration plus dev/test/docs
 # tooling. Recommended for anyone building from source, per the assumption
 # that a source install implies wanting to run tests and build docs too.
 dev_cuda13 = [
-    "monai-physio[cuda13]",
-    "monai-physio[dev]",
+  "monai-physio[cuda13]",
+  "monai-physio[dev]",
 ]
 dev_cuda12 = [
-    "monai-physio[cuda12]",
-    "monai-physio[dev]",
+  "monai-physio[cuda12]",
+  "monai-physio[dev]",
 ]
 
 [project.urls]
@@ -312,13 +303,8 @@ tag = false
 push = false
 
 [tool.bumpver.file_patterns]
-"pyproject.toml" = [
-    'current_version = "{version}"',
-    'version = "{version}"',
-]
-"src/monai_physio/__init__.py" = [
-    '__version__ = "{version}"',
-]
+"pyproject.toml" = ['current_version = "{version}"', 'version = "{version}"']
+"src/monai_physio/__init__.py" = ['__version__ = "{version}"']
 
 [tool.mypy]
 python_version = "3.11"
@@ -345,115 +331,106 @@ show_error_codes = true
 # instead of applying it to first-party modules.
 [[tool.mypy.overrides]]
 module = [
-    "ants",
-    "ants.*",
-    "cupy",
-    "cupy_backends",
-    "cupy_backends.*",
-    "huggingface_hub",
-    "huggingface_hub.*",
-    "imageio_ffmpeg",
-    "icon_registration",
-    "icon_registration.*",
-    "itk",
-    "itk.*",
-    "matplotlib",
-    "matplotlib.*",
-    "nibabel",
-    "nibabel.*",
-    "nrrd",
-    "numpy",
-    "numpy.*",
-    "picsl_greedy",
-    "pydicom",
-    "pydicom.*",
-    "physicsnemo",
-    "physicsnemo.*",
-    "pxr",
-    "pxr.*",
-    "pyacvd",
-    "pyacvd.*",
-    "sympy",
-    "sympy.*",
-    "pyvista",
-    "pyvista.*",
-    "simpleware",
-    "simpleware.*",
-    "SimpleITK",
-    "SimpleITK.*",
-    "sklearn.*",
-    "torch",
-    "torch.*",
-    "torch_geometric",
-    "torch_geometric.*",
-    "totalsegmentator.*",
-    "trimesh",
-    "trimesh.*",
-    "unigradicon",
-    "unigradicon.*",
-    "vista3d_config",
-    "vista3d_model",
-    "vista3d_pipeline",
-    "vtk",
-    "vtk.*",
-    "yaml",
+  "ants",
+  "ants.*",
+  "cupy",
+  "cupy_backends",
+  "cupy_backends.*",
+  "huggingface_hub",
+  "huggingface_hub.*",
+  "itk",
+  "matplotlib",
+  "matplotlib.*",
+  "nibabel",
+  "nibabel.*",
+  "nrrd",
+  "numpy",
+  "numpy.*",
+  "picsl_greedy",
+  "pydicom",
+  "pydicom.*",
+  "physicsnemo.*",
+  "pxr",
+  "pyacvd",
+  "sympy",
+  "sympy.*",
+  "pyvista",
+  "pyvista.*",
+  "simpleware",
+  "simpleware.*",
+  "SimpleITK",
+  "SimpleITK.*",
+  "sklearn.*",
+  "torch",
+  "torch.*",
+  "torch_geometric",
+  "torch_geometric.*",
+  "totalsegmentator.*",
+  "trimesh",
+  "trimesh.*",
+  "vista3d_config",
+  "vista3d_model",
+  "vista3d_pipeline",
+  "vtk",
+  "vtk.*",
+  "yaml",
 ]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = [
-    "monai_physio.cli.create_statistical_model",
-    "monai_physio.cli.fit_statistical_model_to_patient",
-    "monai_physio.cli.visualize_pca_modes",
-    "monai_physio.vtk_to_usd.mesh_utils",
-    "monai_physio.vtk_to_usd.vtk_reader",
-    # Tutorial scripts import monai_physio, which is absent from the isolated
-    # pre-commit mypy environment and ships no py.typed marker when installed.
-    # mypy per-module patterns match whole components only, so each tutorial is
-    # listed by name; add a line here when adding or renaming a tutorial.
-    "parameters_base",
-    "parameters_duke_heart_labelmaps",
-    "parameters_duke_heart_physics_informed",
-    "parameters_heart_ct_kcl",
-    "parameters_lung_ct_dirlab",
-    "parameters_tcia_4d_lung",
-    "tutorial_01_heart_gated_ct_to_usd",
-    "tutorial_01_lung_gated_ct_to_usd",
-    "tutorial_01_lung_gated_ct_to_usd_tetmesh",
-    "tutorial_02_duke_heart_distancemap_finetune_icon",
-    "tutorial_02_lung_distancemap_finetune_icon",
-    "tutorial_02_lung_finetune_icon",
-    "tutorial_03_heart_reconstruct_highres_4d_ct",
-    "tutorial_03_lung_reconstruct_highres_4d_ct",
-    "tutorial_04_duke_heart_labelmap_to_vtk",
-    "tutorial_04_heart_ct_to_vtk",
-    "tutorial_04_lung_ct_to_vtk",
-    "tutorial_05_duke_heart_vtk_to_usd",
-    "tutorial_05_heart_vtk_to_usd",
-    "tutorial_06_duke_heart_create_statistical_model",
-    "tutorial_06_heart_create_statistical_model",
-    "tutorial_06_lung_create_statistical_model",
-    "tutorial_07_duke_heart_fit_statistical_model_to_patient",
-    "tutorial_07_heart_fit_statistical_model_to_patient",
-    "tutorial_07_lung_fit_statistical_model_to_patient",
-    "tutorial_08_duke_heart_fit_model_to_4d_patients",
-    "tutorial_08_lung_fit_model_to_4d_patients",
-    "tutorial_09_duke_heart_train_physicsnemo_mgn",
-    "tutorial_09_lung_train_physicsnemo_mgn",
-    "tutorial_10_duke_heart_infer_physicsnemo_mgn",
-    "tutorial_10_lung_infer_physicsnemo_mgn",
-    "tutorial_11_duke_heart_evaluate_physicsnemo",
-    "tutorial_11_lung_evaluate_physicsnemo",
-    "tutorial_12_duke_heart_end_to_end_inference",
-    "tutorial_12_lung_end_to_end_inference",
-    "tutorial_13_heart_and_lung_motion",
-    "tutorial_14_duke_heart_shape_parameter_sweep",
-    "tutorial_14_lung_shape_parameter_sweep",
-    "tutorial_15_duke_heart_leave_one_out",
-    "tutorial_15_lung_leave_one_out",
-    "tutorial_16_duke_heart_physics_informed_motion_prep",
-    "tutorial_17_duke_heart_physics_informed_motion_train",
-    "tutorial_18_duke_heart_physics_informed_motion_infer",
+  "monai_physio.cli.create_statistical_model",
+  "monai_physio.cli.fit_statistical_model_to_patient",
+  "monai_physio.cli.visualize_pca_modes",
+  "monai_physio.vtk_to_usd.mesh_utils",
+  "monai_physio.vtk_to_usd.vtk_reader",
+  # Tutorial scripts import monai_physio, which ships no py.typed marker when
+  # installed.
+  # mypy per-module patterns match whole components only, so each tutorial is
+  # listed by name; add a line here when adding or renaming a tutorial.
+  "parameters_base",
+  "parameters_duke_heart_labelmaps",
+  "parameters_duke_heart_physics_informed",
+  "parameters_heart_ct_kcl",
+  "parameters_lung_ct_dirlab",
+  "parameters_tcia_4d_lung",
+  "tutorial_01_heart_gated_ct_to_usd",
+  "tutorial_01_lung_gated_ct_to_usd",
+  "tutorial_01_lung_gated_ct_to_usd_tetmesh",
+  "tutorial_02_duke_heart_distancemap_finetune_icon",
+  "tutorial_02_lung_distancemap_finetune_icon",
+  "tutorial_02_lung_finetune_icon",
+  "tutorial_03_heart_reconstruct_highres_4d_ct",
+  "tutorial_03_lung_reconstruct_highres_4d_ct",
+  "tutorial_04_duke_heart_labelmap_to_vtk",
+  "tutorial_04_heart_ct_to_vtk",
+  "tutorial_04_lung_ct_to_vtk",
+  "tutorial_05_duke_heart_vtk_to_usd",
+  "tutorial_05_heart_vtk_to_usd",
+  "tutorial_06_duke_heart_create_statistical_model",
+  "tutorial_06_heart_create_statistical_model",
+  "tutorial_06_lung_create_statistical_model",
+  "tutorial_07_duke_heart_fit_statistical_model_to_patient",
+  "tutorial_07_heart_fit_statistical_model_to_patient",
+  "tutorial_07_lung_fit_statistical_model_to_patient",
+  "tutorial_08_duke_heart_fit_model_to_4d_patients",
+  "tutorial_08_lung_fit_model_to_4d_patients",
+  "tutorial_09_duke_heart_train_physicsnemo_mgn",
+  "tutorial_09_lung_train_physicsnemo_mgn",
+  "tutorial_10_duke_heart_infer_physicsnemo_mgn",
+  "tutorial_10_lung_infer_physicsnemo_mgn",
+  "tutorial_11_duke_heart_evaluate_physicsnemo",
+  "tutorial_11_lung_evaluate_physicsnemo",
+  "tutorial_12_duke_heart_end_to_end_inference",
+  "tutorial_12_lung_end_to_end_inference",
+  "tutorial_13_heart_and_lung_motion",
+  "tutorial_14_duke_heart_shape_parameter_sweep",
+  "tutorial_14_lung_shape_parameter_sweep",
+  "tutorial_15_duke_heart_leave_one_out",
+  "tutorial_15_lung_leave_one_out",
+  "tutorial_16_duke_heart_physics_informed_motion_prep",
+  "tutorial_17_duke_heart_physics_informed_motion_train",
+  "tutorial_18_duke_heart_physics_informed_motion_infer",
 ]
 disable_error_code = ["import-not-found", "import-untyped"]
 
@@ -471,12 +448,12 @@ reportMissingImports = false
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = [
-    "--strict-markers",
-    "--strict-config",
-    "--cov=monai_physio",
-    "--cov-report=term-missing",
-    "--cov-report=html",
-    "--cov-report=xml"
+  "--strict-markers",
+  "--strict-config",
+  "--cov=monai_physio",
+  "--cov-report=term-missing",
+  "--cov-report=html",
+  "--cov-report=xml",
 ]
 testpaths = ["tests"]
 pythonpath = [".", "tutorials"]
@@ -487,134 +464,86 @@ pythonpath = [".", "tutorials"]
 # warnings summary. Order matters: the trailing "ignore" entries are applied
 # last and so take precedence over "always" for these specific messages.
 filterwarnings = [
-    "always",
-    "ignore:builtin type Swig",
-    "ignore:builtin type swigvarlink",
-    # torch.jit.interface is deprecated in modern torch, but physicsnemo's
-    # MeshGraphNet import pulls in monai.networks.nets.dints, which still
-    # uses it at module scope. Third-party, not ours to fix.
-    "ignore:`torch.jit.interface` is deprecated:FutureWarning",
+  "always",
+  "ignore:builtin type Swig",
+  "ignore:builtin type swigvarlink",
+  # torch.jit.interface is deprecated in modern torch, but physicsnemo's
+  # MeshGraphNet import pulls in monai.networks.nets.dints, which still
+  # uses it at module scope. Third-party, not ours to fix.
+  "ignore:`torch.jit.interface` is deprecated:FutureWarning",
 ]
 markers = [
-    "unit: marks tests as unit tests (fast, isolated)",
-    "integration: marks tests as integration tests (slower, multiple components)",
-    "slow: marks tests as slow (skipped by default; opt-in via --run-slow)",
-    "requires_gpu: marks tests that require GPU/CUDA support (opt-in via --run-gpu)",
-    "requires_simpleware: marks tests that require a local Synopsys Simpleware Medical installation (opt-in via --run-simpleware)",
-    "requires_physicsnemo: marks tests that require PhysicsNeMo (opt-in via --run-physicsnemo)",
-    "tutorial: marks tests that run tutorial scripts (data/GPU gated, manual only)",
-    "xdist_group: marks tests to run in the same pytest-xdist worker (prevents parallel conflicts)"
+  "unit: marks tests as unit tests (fast, isolated)",
+  "integration: marks tests as integration tests (slower, multiple components)",
+  "slow: marks tests as slow (skipped by default; opt-in via --run-slow)",
+  "requires_gpu: marks tests that require GPU/CUDA support (opt-in via --run-gpu)",
+  "requires_simpleware: marks tests that require a local Synopsys Simpleware Medical installation (opt-in via --run-simpleware)",
+  "requires_physicsnemo: marks tests that require PhysicsNeMo (opt-in via --run-physicsnemo)",
+  "tutorial: marks tests that run tutorial scripts (data/GPU gated, manual only)",
+  "xdist_group: marks tests to run in the same pytest-xdist worker (prevents parallel conflicts)",
 ]
 timeout = 1200
 
 [tool.coverage.run]
 source = ["src/monai_physio"]
 omit = [
-    "*/tests/*",
-    "*/test_*",
-    "*/experiments/*",
-    "*/__pycache__/*",
-    "*/venv/*",
-    "*/build/*",
-    "*/dist/*"
+  "*/tests/*",
+  "*/test_*",
+  "*/experiments/*",
+  "*/__pycache__/*",
+  "*/venv/*",
+  "*/build/*",
+  "*/dist/*",
 ]
 
 [tool.coverage.report]
 exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "if self.debug:",
-    "if settings.DEBUG",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if 0:",
-    "if __name__ == .__main__.:",
-    "class .*\\bProtocol\\):",
-    "@(abc\\.)?abstractmethod"
+  "pragma: no cover",
+  "def __repr__",
+  "if self.debug:",
+  "if settings.DEBUG",
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "if 0:",
+  "if __name__ == .__main__.:",
+  "class .*\\bProtocol\\):",
+  "@(abc\\.)?abstractmethod",
 ]
 
 [tool.ruff]
 target-version = "py311"
 line-length = 88
 extend-exclude = [
-    ".git",
-    "__pycache__",
-    "build",
-    "dist",
-    ".eggs",
-    "*.egg-info",
-    ".venv",
-    "venv",
-    ".mypy_cache",
-    ".pytest_cache"
+  ".git",
+  "__pycache__",
+  "build",
+  "dist",
+  ".eggs",
+  "*.egg-info",
+  ".venv",
+  "venv",
+  ".mypy_cache",
+  ".pytest_cache",
 ]
 
 [tool.ruff.lint]
-select = [
-    "E",     # pycodestyle errors
-    "W",     # pycodestyle warnings
-    "F",     # pyflakes
-    "I",     # isort
-    "B",     # flake8-bugbear
-    "C4",    # flake8-comprehensions
-    "UP",    # pyupgrade
-    "N",     # pep8-naming
-    "YTT",   # flake8-2020
-    "ASYNC", # flake8-async
-    "S",     # flake8-bandit (security)
-    "A",     # flake8-builtins
-    "COM",   # flake8-commas
-    "C90",   # mccabe complexity
-    "T10",   # flake8-debugger
-    "ISC",   # flake8-implicit-str-concat
-    "ICN",   # flake8-import-conventions
-    "PIE",   # flake8-pie
-    "PT",    # flake8-pytest-style
-    "Q",     # flake8-quotes
-    "RET",   # flake8-return
-    "SIM",   # flake8-simplify
-    "TCH",   # flake8-type-checking
-    "ARG",   # flake8-unused-arguments
-    "PTH",   # flake8-use-pathlib
-    "PL",    # pylint rules
-]
+# No select: ruff's default rule set applies, pinned by the ruff-pre-commit
+# rev in .pre-commit-config.yaml. Review new findings when bumping that rev.
 ignore = [
-    "B008",    # do not perform function calls in argument defaults
-    "C901",    # too complex
-    "PLR0913", # too many arguments
-    "PLR0912", # too many branches
-    "PLR0915", # too many statements
-    "S101",    # use of assert (needed for pytest)
-    "COM812",  # trailing comma (conflicts with formatter)
-    "ISC001",  # implicit string concatenation (conflicts with formatter)
-    "UP007",   # use Optional[] instead of | for union with None (itk.Image compatibility)
+  "UP007", # use Optional[] instead of | for union with None (itk.Image compatibility)
+  "UP045", # same, for Optional[X] specifically
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F401", "F403"]
-"test_*.py" = ["S101", "PLR2004", "ARG001", "ARG002"]
-"tests/*.py" = ["S101", "PLR2004", "ARG001", "ARG002"]
-"experiments/**/*.py" = ["T201", "S101"]
-# torch/icon_registration are lazy-loaded at runtime; forward-reference strings are intentional
-"src/monai_physio/register_images_icon.py" = ["F821"]
+# Run by Simpleware Medical as a script, by this file name
+"src/monai_physio/simpleware_medical/SimplewareScript_heart_segmentation.py" = ["N999"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["monai_physio"]
 force-single-line = false
-lines-after-imports = 2
-
-[tool.ruff.lint.mccabe]
-max-complexity = 10
-
-[tool.ruff.lint.flake8-quotes]
-inline-quotes = "double"
-multiline-quotes = "double"
-docstring-quotes = "double"
 
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
-docstring-code-format = true
-docstring-code-line-length = 88

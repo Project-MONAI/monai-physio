@@ -105,6 +105,7 @@ from parameters_duke_heart_labelmaps import DUKE_HEART
 
 from monai_physio import (
     EvaluateMovementDukeHeart,
+    MONAIPhysioBase,
     ProcessTests,
     WorkflowEvaluateMovement,
     WorkflowInferMovement,
@@ -176,8 +177,7 @@ if __name__ == "__main__":
     )
     log_level = logging.INFO
 
-    logging.basicConfig(level=log_level)
-    logger = logging.getLogger(class_name)
+    logger = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
     labelmap_dir = DUKE_HEART.hold_out_directory(test_mode) / case_id
 
@@ -195,6 +195,7 @@ if __name__ == "__main__":
         # runs and reports, not that the grid is finely sampled.
         number_of_modes_to_vary = 1
         perturbation_range = 1.0
+        perturbation_step = 1.0
 
     # Directory setup and data reading
 
@@ -236,7 +237,7 @@ if __name__ == "__main__":
     combinations = _offset_grid(
         number_of_modes_to_vary, perturbation_range, perturbation_step
     )
-    logger.info(
+    logger.log_info(
         "Sweeping the first %d mode(s) from %+.2f to %+.2f in steps of %.2f "
         "standard deviations: %d combinations",
         number_of_modes_to_vary,
@@ -332,7 +333,7 @@ if __name__ == "__main__":
         }
         summary_rows.append(summary)
 
-        logger.info(
+        logger.log_info(
             "combination %d/%d  offsets %s  dice=%.4f  dV=%+.2f%%  rmse=%.3f mm  "
             "displacement rms=%.3f mm  95th=%.3f mm  max=%.3f mm  "
             "(per structure: 95th=%.3f mm)",
@@ -361,8 +362,8 @@ if __name__ == "__main__":
         summary_writer.writeheader()
         summary_writer.writerows(summary_rows)
 
-    logger.info("Metrics: %s", metrics_csv_file)
-    logger.info("Summary: %s", summary_csv_file)
+    logger.log_info("Metrics: %s", metrics_csv_file)
+    logger.log_info("Summary: %s", summary_csv_file)
 
     tutorial_results: dict[str, Any] = {
         "rows": metric_rows,

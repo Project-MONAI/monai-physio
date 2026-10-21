@@ -283,7 +283,9 @@ def test_empty_pca_model_reduces_a_positive_request_to_zero() -> None:
     assert workflow.number_of_pca_components == 0
 
 
-def test_clamped_component_count_reaches_the_pca_registrar() -> None:
+def test_clamped_component_count_reaches_the_pca_registrar(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """The reduced count must be what register_model_to_model_pca passes on.
 
     Reducing the stored count would be pointless if the registrar were built
@@ -304,12 +306,10 @@ def test_clamped_component_count_reaches_the_pca_registrar() -> None:
 
     from monai_physio import workflow_fit_statistical_model_to_patient as module
 
-    original = module.RegisterModelsPCA.from_pca_model
-    module.RegisterModelsPCA.from_pca_model = staticmethod(_capture)
-    try:
-        with pytest.raises(RuntimeError):
-            workflow.register_model_to_model_pca()
-    finally:
-        module.RegisterModelsPCA.from_pca_model = original
+    monkeypatch.setattr(
+        module.RegisterModelsPCA, "from_pca_model", staticmethod(_capture)
+    )
+    with pytest.raises(RuntimeError):
+        workflow.register_model_to_model_pca()
 
     assert captured["pca_number_of_modes"] == 2

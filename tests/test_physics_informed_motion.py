@@ -72,7 +72,7 @@ def _oriented(points: np.ndarray, tets: np.ndarray) -> np.ndarray:
     """Return *tets* with every element positively oriented.
 
     A real template arrives pre-oriented from
-    ``ProcessContours.trim_tetrahedra_to_surface``; a mesh built ad hoc for a test
+    ``ProcessVolumetricMesh.trim_tetrahedra_to_surface``; a mesh built ad hoc for a test
     does not, so this stands in for that guarantee.
     """
     corners = points[tets]

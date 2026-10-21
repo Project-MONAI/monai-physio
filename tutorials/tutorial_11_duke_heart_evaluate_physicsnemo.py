@@ -69,6 +69,7 @@ from parameters_duke_heart_labelmaps import DUKE_HEART
 
 from monai_physio import (
     EvaluateMovementDukeHeart,
+    MONAIPhysioBase,
     ProcessTests,
     WorkflowEvaluateMovement,
     WorkflowInferMovement,
@@ -126,8 +127,7 @@ if __name__ == "__main__":
     )
     log_level = logging.INFO
 
-    logging.basicConfig(level=log_level)
-    logger = logging.getLogger(class_name)
+    logger = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
     labelmap_dir = DUKE_HEART.hold_out_directory(test_mode) / case_id
 
@@ -179,11 +179,11 @@ if __name__ == "__main__":
     )
 
     # Step 3: the report and the CSV are written by the workflow.
-    logger.info("Report: %s", result["report_file"])
-    logger.info("Metrics: %s", result["csv_file"])
+    logger.log_info("Report: %s", result["report_file"])
+    logger.log_info("Metrics: %s", result["csv_file"])
     if result["displacement_data_file"] is not None:
-        logger.info("Displacements: %s", result["displacement_data_file"])
-    logger.info(
+        logger.log_info("Displacements: %s", result["displacement_data_file"])
+    logger.log_info(
         "Displacement error: rms=%.3f mm  95th=%.3f mm  max=%.3f mm",
         result["displacement_rms_mm"],
         result["displacement_95th_mm"],

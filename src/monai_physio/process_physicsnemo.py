@@ -6,10 +6,11 @@ orchestration. :class:`ProcessPhysicsNemo` provides:
 
 - :meth:`ProcessPhysicsNemo.import_meshgraphnet` - import PhysicsNeMo's
   ``MeshGraphNet``, reporting install faults clearly.
-- :class:`SubjectManifest` / :meth:`ProcessPhysicsNemo.parse_manifest` - the
-  per-subject JSON manifest that lists a fitted reference mesh, a PCA
-  shape-parameter file, the name of the point-data array holding the training
-  targets, and the phase meshes that carry that array with their stages.
+- :class:`SubjectManifest` / :meth:`ProcessPhysicsNemo.parse_manifest` /
+  :meth:`ProcessPhysicsNemo.write_manifest` - the per-subject JSON manifest
+  that lists a fitted reference mesh, a PCA shape-parameter file, the name of
+  the point-data array holding the training targets, and the phase meshes that
+  carry that array with their stages.
 - :meth:`ProcessPhysicsNemo.load_target_array` - read one phase's
   ``(n_points, n_target)`` target values out of a mesh's point data.
 - :meth:`ProcessPhysicsNemo.build_node_features` - the shared per-vertex
@@ -43,6 +44,7 @@ from __future__ import annotations
 import json
 import os
 from collections import OrderedDict
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
@@ -262,6 +264,68 @@ class ProcessPhysicsNemo:
             target_array=str(data["target_array"]),
             phases=phases,
         )
+
+    @staticmethod
+    def write_manifest(
+        subject_id: str,
+        fitted_reference_mesh: Path,
+        pca_coefficients: Path,
+        phase_meshes: Sequence[Path],
+        stages: Sequence[float],
+        output_directory: Path,
+        target_array: str = "displacement",
+    ) -> Path:
+        """Write a subject manifest whose targets are per-point displacements.
+
+        The inverse of :meth:`parse_manifest`, for the displacement model: each
+        phase mesh is copied into *output_directory* carrying *target_array* =
+        its points minus *fitted_reference_mesh*'s, which requires the two to
+        share one point ordering.  Any other target is written the same way by
+        storing a different array on those copies.
+
+        Args:
+            subject_id: Subject the manifest describes.
+            fitted_reference_mesh: Fitted reference mesh of the subject.
+            pca_coefficients: JSON file of its PCA shape parameters.
+            phase_meshes: One mesh per phase, in the reference mesh's topology.
+            stages: Each phase's normalized stage in ``[0, 1]``.
+            output_directory: Where the manifest and target meshes are written.
+            target_array: Point-data array holding the displacements.
+
+        Returns:
+            Path of the written ``{subject_id}_manifest.json``.
+        """
+        output_directory.mkdir(parents=True, exist_ok=True)
+        reference_points = np.asarray(
+            pv.read(str(fitted_reference_mesh)).points, dtype=np.float32
+        )
+        phases = []
+        for phase_mesh_file, stage in zip(phase_meshes, stages, strict=True):
+            phase_mesh = pv.read(str(phase_mesh_file))
+            phase_mesh.point_data[target_array] = (
+                np.asarray(phase_mesh.points, dtype=np.float32) - reference_points
+            )
+            target_file = (
+                output_directory
+                / f"{phase_mesh_file.stem}_target{phase_mesh_file.suffix}"
+            )
+            phase_mesh.save(str(target_file))
+            phases.append({"mesh": str(target_file), "stage": float(stage)})
+        manifest_file = output_directory / f"{subject_id}_manifest.json"
+        manifest_file.write_text(
+            json.dumps(
+                {
+                    "subject_id": subject_id,
+                    "fitted_reference_mesh": str(fitted_reference_mesh),
+                    "pca_coefficients": str(pca_coefficients),
+                    "target_array": target_array,
+                    "phases": phases,
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        return manifest_file
 
     @staticmethod
     def load_pca_coefficients(path: Path) -> np.ndarray:

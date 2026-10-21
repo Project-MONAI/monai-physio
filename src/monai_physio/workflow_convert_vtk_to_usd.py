@@ -97,8 +97,8 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
                 :class:`WorkflowConvertImageToVTK`), and falls back to
                 ``{usd_project_name}_{index}`` otherwise.
             label_names: Mapping of label id → structure name. Each input mesh
-                is then split on its per-cell ``SegmentationLabelIds`` (or
-                ``boundary_labels``) array, so every structure becomes its own
+                is then split on its per-cell ``SegmentationLabelIds`` array,
+                so every structure becomes its own
                 prim at ``/World/{usd_project_name}/{group}/{structure}``:
                 time-varying across frames, or static from a single mesh. This
                 is the only way structure identity survives a time series;
@@ -106,7 +106,7 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
                 which is positional per frame. None (default) reads the ids off
                 the meshes themselves when they carry the per-cell array, and
                 names them from *segmenter*'s taxonomy - so passing a mesh
-                merged by :meth:`ProcessContours.save_combined_surfaces` splits by
+                merged by :meth:`ProcessSurfaceMesh.combine_surfaces` splits by
                 structure without further arguments. ``static_merge`` accepts
                 only one labeled mesh: several would collide on one prim path
                 per label.
@@ -166,9 +166,8 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
 
         An explicit ``label_names`` is used as given. Otherwise the meshes are
         searched for the per-cell label array that
-        :meth:`ProcessContours.save_combined_surfaces` writes on a merge, and that
-        contouring a multi-label labelmap leaves behind. That array is
-        preferred wherever it exists because it survives merging, which the
+        :meth:`ProcessSurfaceMesh.combine_surfaces` writes on a merge. That
+        array is preferred wherever it exists because it survives merging, which the
         per-object ``field_data`` naming does not - so a combined surface file
         splits back into its structures instead of collapsing onto one prim.
 
@@ -191,18 +190,17 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
             pv_mesh = self._as_pyvista(mesh)
             if pv_mesh is None:
                 continue
-            for array_name in ("SegmentationLabelIds", "boundary_labels"):
-                if array_name in pv_mesh.cell_data:
-                    label_ids.update(
-                        int(value) for value in np.unique(pv_mesh.cell_data[array_name])
-                    )
-                    break
+            if "SegmentationLabelIds" in pv_mesh.cell_data:
+                label_ids.update(
+                    int(value)
+                    for value in np.unique(pv_mesh.cell_data["SegmentationLabelIds"])
+                )
             ids = pv_mesh.field_data.get("SegmentationLabelIds")
             names = pv_mesh.field_data.get("SegmentationLabelNames")
             if ids is not None and names is not None and len(ids) == len(names) == 1:
                 field_names[int(ids[0])] = str(names[0])
 
-        # 0 tags the cells save_combined_surfaces could not attribute to one
+        # 0 tags the cells combine_surfaces could not attribute to one
         # structure, so it names nothing.
         label_ids.discard(0)
         if not label_ids:
@@ -373,7 +371,7 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
         root_prim_name = converter.data_basename
         usd_tools = ProcessUSD(log_level=self.log_level)
         mesh_paths = usd_tools.list_mesh_paths_under(
-            str(output_usd), parent_path=f"/World/{root_prim_name}"
+            stage, parent_path=f"/World/{root_prim_name}"
         )
         if not mesh_paths:
             self.log_warning("No mesh prims found under /World/%s", root_prim_name)
@@ -389,7 +387,7 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
         if self.appearance == "solid":
             for mesh_path in mesh_paths:
                 usd_tools.set_solid_display_color(
-                    str(output_usd),
+                    stage,
                     mesh_path,
                     self.solid_color,
                     time_codes=appearance_time_codes,
@@ -407,34 +405,22 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
             ProcessUSDAnatomy(stage, log_level=self.log_level).enhance_meshes(
                 self.segmenter
             )
-            stage.Save()
 
         elif self.appearance == "anatomy":
             anatomy_tools = ProcessUSDAnatomy(stage, log_level=self.log_level)
             for mesh_path in mesh_paths:
-                candidates = self._anatomy_candidates(mesh_path, object_groups)
-                selected = next(
-                    (
-                        candidate
-                        for candidate in candidates
-                        if anatomy_tools.resolve_anatomy_type(candidate) is not None
+                anatomy_tools.apply_anatomy_material_to_mesh(
+                    mesh_path,
+                    anatomy_tools.select_anatomy_type(
+                        self._anatomy_candidates(mesh_path, object_groups)
                     ),
-                    None,
                 )
-                if selected is None:
-                    self.log_warning(
-                        "No anatomy material matches %s; using 'other'",
-                        " or ".join(candidates),
-                    )
-                    selected = "other"
-                anatomy_tools.apply_anatomy_material_to_mesh(mesh_path, selected)
-            stage.Save()
 
         elif self.appearance == "colormap":
             primvar = self.colormap_primvar
             for mesh_path in mesh_paths:
                 if primvar is None:
-                    primvars = usd_tools.list_mesh_primvars(str(output_usd), mesh_path)
+                    primvars = usd_tools.list_mesh_primvars(stage, mesh_path)
                     primvar = usd_tools.pick_color_primvar(primvars)
                 if primvar is None:
                     self.log_warning(
@@ -446,7 +432,7 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
                     "Applying colormap to %s from primvar %s", mesh_path, primvar
                 )
                 usd_tools.apply_colormap_from_primvar(
-                    str(output_usd),
+                    stage,
                     mesh_path,
                     primvar,
                     cmap=self.colormap_name,
@@ -457,5 +443,6 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
                 if self.colormap_primvar is None:
                     primvar = None  # next mesh: auto-pick again
 
+        usd_tools.save_stage(stage)
         self.log_info("Workflow complete: %s", output_usd)
         return {"usd_file": str(output_usd)}

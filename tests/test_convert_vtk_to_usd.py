@@ -15,19 +15,20 @@ import pyvista as pv
 from pxr import UsdGeom
 
 from monai_physio import ConvertVTKToUSD
-from monai_physio.process_contours import ProcessContours
+from monai_physio.process_surface_mesh import ProcessSurfaceMesh
 
 
 def _make_poly(label_ids: list[int] | None = None) -> pv.PolyData:
     """Return a small synthetic PolyData (9 quad cells, 16 points).
 
     Args:
-        label_ids: If given, attached as ``cell_data['boundary_labels']`` (int32).
+        label_ids: If given, attached as ``cell_data['SegmentationLabelIds']``
+            (int32).
             Must have exactly 9 elements to match the plane's cell count.
     """
     mesh = pv.Plane(i_resolution=3, j_resolution=3)
     if label_ids is not None:
-        mesh.cell_data["boundary_labels"] = np.array(label_ids, dtype=np.int32)
+        mesh.cell_data["SegmentationLabelIds"] = np.array(label_ids, dtype=np.int32)
     return mesh
 
 
@@ -38,7 +39,7 @@ class TestConvertVTKToUSD:
     @pytest.fixture(scope="class")
     def contour_meshes(
         self,
-        contour_tools: ProcessContours,
+        contour_tools: ProcessSurfaceMesh,
         test_labelmaps: list[dict[str, Any]],
         test_directories: dict[str, Path],
     ) -> list[Any]:
@@ -58,7 +59,9 @@ class TestConvertVTKToUSD:
             meshes = []
             for i, result in enumerate(test_labelmaps):
                 heart_mask = result["heart"]
-                contours = contour_tools.extract_contours(heart_mask)
+                contours = contour_tools.combine_surfaces(
+                    contour_tools.extract_label_surfaces(heart_mask)
+                )
                 meshes.append(contours)
 
                 # Save contours
@@ -168,7 +171,7 @@ class TestConvertVTKToUSD:
 
     def test_convert_with_deformation(
         self,
-        contour_tools: ProcessContours,
+        contour_tools: ProcessSurfaceMesh,
         test_labelmaps: list[dict[str, Any]],
         test_directories: dict[str, Path],
     ) -> None:
@@ -179,7 +182,9 @@ class TestConvertVTKToUSD:
 
         # Extract contours
         heart_mask = test_labelmaps[0]["heart"]
-        contours = contour_tools.extract_contours(heart_mask)
+        contours = contour_tools.combine_surfaces(
+            contour_tools.extract_label_surfaces(heart_mask)
+        )
 
         # Add deformation magnitude (simulate with random values)
         import numpy as np
@@ -374,7 +379,7 @@ class TestConvertVTKToUSD:
 
     def test_batch_conversion(
         self,
-        contour_tools: ProcessContours,
+        contour_tools: ProcessSurfaceMesh,
         test_labelmaps: list[dict[str, Any]],
         test_directories: dict[str, Path],
     ) -> None:
@@ -394,7 +399,9 @@ class TestConvertVTKToUSD:
             import numpy as np
 
             if np.sum(mask_arr > 0) > 100:
-                contours = contour_tools.extract_contours(mask)
+                contours = contour_tools.combine_surfaces(
+                    contour_tools.extract_label_surfaces(mask)
+                )
                 meshes_dict[group] = contours
 
         if len(meshes_dict) >= 2:
@@ -525,7 +532,7 @@ class TestSyntheticConversion:
         assert mesh.GetPointsAttr().GetTimeSamples() == [0.0, 1.0]
 
     def test_mask_ids_split_on_segmentation_label_ids(self, tmp_path: Path) -> None:
-        """A merged surface file splits on the array save_combined_surfaces writes."""
+        """A merged surface file splits on the array combine_surfaces writes."""
         mesh = _make_poly()
         mesh.cell_data["SegmentationLabelIds"] = np.array(
             [141] * 4 + [142] * 5, dtype=np.int32
@@ -648,9 +655,9 @@ class TestSyntheticConversion:
             f"atrium should only appear at t=0 and t=2, got {a_samples}"
         )
 
-    def test_mask_ids_missing_boundary_labels_falls_back(self, tmp_path: Path) -> None:
-        """Mesh without boundary_labels array falls back to a 'default' prim."""
-        mesh = _make_poly()  # no boundary_labels
+    def test_mask_ids_missing_label_array_falls_back(self, tmp_path: Path) -> None:
+        """Mesh without a SegmentationLabelIds array falls back to a 'default' prim."""
+        mesh = _make_poly()  # no SegmentationLabelIds
         converter = ConvertVTKToUSD(
             data_basename="FB",
             input_polydata=[mesh],

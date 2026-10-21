@@ -986,19 +986,14 @@ class ConvertVTKToUSD(MONAIPhysioBase):
         if isinstance(vtk_mesh, pv.UnstructuredGrid) and self.convert_to_surface:
             vtk_mesh = vtk_mesh.extract_surface(algorithm="dataset_surface")
 
-        # Get per-cell label IDs. 'SegmentationLabelIds' is written by
-        # ProcessContours.save_combined_surfaces when merging per-label surfaces;
-        # 'boundary_labels' comes from contouring a multi-label labelmap.
-        if "SegmentationLabelIds" in vtk_mesh.cell_data:
-            label_array = vtk_mesh.cell_data["SegmentationLabelIds"]
-        elif "boundary_labels" in vtk_mesh.cell_data:
-            label_array = vtk_mesh.cell_data["boundary_labels"]
-        else:
+        # Per-cell label IDs, as ProcessSurfaceMesh.combine_surfaces writes them
+        # when merging per-label surfaces.
+        if "SegmentationLabelIds" not in vtk_mesh.cell_data:
             self.log_warning(
-                "No 'SegmentationLabelIds' or 'boundary_labels' array found "
-                "- using unified mesh"
+                "No 'SegmentationLabelIds' array found - using unified mesh"
             )
             return {"default": self._vtk_to_mesh_data(vtk_mesh, time_idx)}
+        label_array = vtk_mesh.cell_data["SegmentationLabelIds"]
 
         # Create submeshes for each label
         labeled_meshes = {}

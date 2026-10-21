@@ -49,10 +49,11 @@ for users and contributors. Key sections:
 ### Install
 
 ```
-uv pip install "monai-physio[cuda12]"
+uv pip install "monai-physio[cuda12]" -f https://data.pyg.org/whl/torch-2.12.0+cu126.html
 ```
 
-Installs entirely from prebuilt wheels. On CUDA 13 use `monai-physio[cuda13]`,
+Installs entirely from prebuilt wheels; the `-f` option points uv at the PyG
+wheel index that hosts `torch-scatter`. On CUDA 13 use `monai-physio[cuda13]`,
 which additionally needs a CUDA toolkit and C++ toolchain to build
 `torch-scatter`. See the
 [installation guide](https://project-monai.github.io/monai-physio/installation.html)

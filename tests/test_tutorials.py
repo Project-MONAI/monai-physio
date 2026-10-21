@@ -40,15 +40,19 @@ from __future__ import annotations
 import importlib.util
 import runpy
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pytest
 import pyvista as pv
+import torch
 from parameters_base import ParametersBase
 
+from monai_physio import register_images_greedy
 from monai_physio.process_tests import ProcessTests
+from monai_physio.register_images_icon import RegisterImagesICON
 
 from .conftest import skip_or_fail_missing_data, tutorial_data_is_required
 
@@ -56,6 +60,10 @@ from .conftest import skip_or_fail_missing_data, tutorial_data_is_required
 # differences across OS / GPU / driver versions.
 _PX_TOL = 10.0  # per-pixel absolute error (0-255 range)
 _MAX_PX = 2000  # maximum number of pixels allowed above _PX_TOL
+# Renderings of meshes from a GPU segmentation: nnU-Net's GPU inference is not
+# bit-reproducible, so boundary voxels flip between runs and about 1% of an
+# 800x600 screenshot moves along mesh edges. 2% still catches a real change.
+_MAX_PX_GPU_SEGMENTATION = 9600
 _TOT_TOL = float("inf")  # use the pixel-count criterion only
 # Tolerances for the numeric metrics each tutorial reports.  Loose enough to
 # survive the nondeterminism of GPU reductions and a driver change, tight
@@ -63,6 +71,14 @@ _TOT_TOL = float("inf")  # use the pixel-count criterion only
 # covers the metrics that sit near zero, where a relative one never triggers.
 _METRIC_REL_TOL = 0.05
 _METRIC_ABS_TOL = 1.0e-3
+# Provenance WorkflowEvaluateMovement writes beside the metrics: absolute paths
+# and file dates that differ on every run and every machine.
+_METRIC_IGNORE_KEYS = [
+    "shape_parameters_file",
+    "network_weights_file",
+    "network_weights_created",
+    "network_weights_modified",
+]
 _REPO_ROOT = Path(__file__).parent.parent
 # Where every tutorial writes under ``MONAI_PHYSIO_RUNNING_AS_TEST``, and where
 # Tutorial 9 trains its networks to.  Kept apart from the ``output`` and
@@ -74,14 +90,58 @@ _TUTORIAL_WEIGHTS = _TUTORIAL_PATHS.weights_directory(test_mode=True)
 
 
 @pytest.fixture(autouse=True)
-def _enable_tutorial_test_mode(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Run tutorials against repo data/test through ProcessTests mode switching."""
+def _enable_tutorial_test_mode(
+    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[None]:
+    """Run tutorials against repo data/test through ProcessTests mode switching.
+
+    ICON is made reproducible too. Its per-pair finetuning and Tutorial 2's
+    training both back-propagate through 3-D ``grid_sample``, which has no
+    deterministic CUDA kernel, so their results change from run to run and no
+    screenshot baseline could hold. Every ICON registration therefore runs the
+    network forward only, and every tutorial after Tutorial 2 keeps the stock
+    uniGradICON weights rather than the ones Tutorial 2 retrains each run.
+    PyTorch's deterministic algorithms make that forward pass bit-identical;
+    ops without a deterministic kernel only warn. Greedy runs single-threaded:
+    its multithreaded metric sums change with thread timing, and its optimizer
+    turns that into registrations millimeters apart.
+    """
     monkeypatch.setenv("MONAI_PHYSIO_RUNNING_AS_TEST", "1")
+    monkeypatch.setattr(
+        register_images_greedy,
+        "_GREEDY_COMMAND_PREFIX",
+        register_images_greedy._GREEDY_COMMAND_PREFIX + " -threads 1",
+    )
+    monkeypatch.setattr(torch.backends.cudnn, "benchmark", False)
+    monkeypatch.setattr(torch.backends.cudnn, "deterministic", True)
+    deterministic = torch.are_deterministic_algorithms_enabled()
+    warn_only = torch.is_deterministic_algorithms_warn_only_enabled()
+    torch.use_deterministic_algorithms(True, warn_only=True)
+
+    registration_method = RegisterImagesICON.registration_method
+
+    def forward_only(self: RegisterImagesICON, *args: Any, **kwargs: Any) -> Any:
+        self.number_of_iterations = None
+        return registration_method(self, *args, **kwargs)
+
+    monkeypatch.setattr(RegisterImagesICON, "registration_method", forward_only)
+
+    test_class = request.node.cls
+    if test_class is not None and not test_class.__name__.startswith("TestTutorial02"):
+
+        def keep_stock_weights(self: RegisterImagesICON, weights_path: str) -> None:
+            return None
+
+        monkeypatch.setattr(RegisterImagesICON, "set_weights_path", keep_stock_weights)
+
+    yield
+    torch.use_deterministic_algorithms(deterministic, warn_only=warn_only)
 
 
 def _compare_screenshots(
     screenshots: list[Path],
     tt: ProcessTests,
+    max_pixels: int = _MAX_PX,
 ) -> None:
     """Read each PNG as itk.Image and compare against baseline."""
     if not screenshots:
@@ -93,7 +153,7 @@ def _compare_screenshots(
         assert tt.compare_result_to_baseline_image(
             png_path.name,
             per_pixel_absolute_error_tol=_PX_TOL,
-            max_number_of_pixels_above_tol=_MAX_PX,
+            max_number_of_pixels_above_tol=max_pixels,
             total_absolute_error_tol=_TOT_TOL,
         ), f"Screenshot baseline mismatch: {png_path.name}"
 
@@ -109,6 +169,7 @@ def _compare_metrics(tt: ProcessTests, filenames: list[str]) -> None:
             filename,
             relative_tol=_METRIC_REL_TOL,
             absolute_tol=_METRIC_ABS_TOL,
+            ignore_keys=_METRIC_IGNORE_KEYS,
         ), f"Metrics baseline mismatch: {filename}"
 
 
@@ -172,7 +233,9 @@ class TestTutorial01HeartGatedCTToUSD:
             results_dir=out_dir,
             baselines_dir=test_directories["baselines"] / self._class_name,
         )
-        _compare_screenshots(results["screenshots"], tt)
+        _compare_screenshots(
+            results["screenshots"], tt, max_pixels=_MAX_PX_GPU_SEGMENTATION
+        )
 
 
 @pytest.mark.tutorial
@@ -493,7 +556,9 @@ class TestTutorial05HeartVTKToUSD:
             results_dir=out_dir,
             baselines_dir=test_directories["baselines"] / self._class_name,
         )
-        _compare_screenshots(results["screenshots"], tt)
+        _compare_screenshots(
+            results["screenshots"], tt, max_pixels=_MAX_PX_GPU_SEGMENTATION
+        )
 
 
 @pytest.mark.tutorial
@@ -861,7 +926,7 @@ def _require_physicsnemo() -> None:
             "monai-physio; the environment may be broken."
         )
         if tutorial_data_is_required():
-            pytest.fail(f"{reason} (--require-tutorial-data is set)")
+            pytest.fail(f"{reason} (--require-tutorial-data or --run-all is set)")
         pytest.skip(reason)
     if importlib.util.find_spec("torch_geometric") is None:
         reason = (
@@ -869,7 +934,7 @@ def _require_physicsnemo() -> None:
             "of monai-physio; the environment may be broken."
         )
         if tutorial_data_is_required():
-            pytest.fail(f"{reason} (--require-tutorial-data is set)")
+            pytest.fail(f"{reason} (--require-tutorial-data or --run-all is set)")
         pytest.skip(reason)
 
 
