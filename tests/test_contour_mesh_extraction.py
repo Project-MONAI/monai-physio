@@ -97,6 +97,7 @@ def _roughness(surface: pv.PolyData) -> float:
     return float(np.linalg.norm(offset, axis=1).mean() / edge_length.mean())
 
 
+@pytest.mark.requires_gpu
 class TestLabelSurfaceSmoothing:
     """The label surfaces must lose the voxel blocks they are drawn on."""
 
@@ -132,6 +133,7 @@ class TestLabelSurfaceSmoothing:
         assert np.any(np.abs(offsets - np.round(offsets)) > 0.1)
 
 
+@pytest.mark.requires_gpu
 class TestExtractLabelSurfaces:
     """Labels extracted together must stay closed and stay in contact."""
 
@@ -256,6 +258,7 @@ class TestExtractLabelSurfaces:
 class TestSingleMaskSurface:
     """A binary mask's surface must be closed and outward-oriented."""
 
+    @pytest.mark.requires_gpu
     def test_border_label_surface_is_watertight(
         self, contour_tools: ProcessSurfaceMesh, heart_labelmap: itk.Image
     ) -> None:
@@ -273,6 +276,7 @@ class TestSingleMaskSurface:
             "every edge must be shared by exactly two faces"
         )
 
+    @pytest.mark.requires_gpu
     def test_normals_point_outward(self, contour_tools: ProcessSurfaceMesh) -> None:
         """A left-handed direction still yields a positive enclosed volume.
 
@@ -290,6 +294,7 @@ class TestSingleMaskSurface:
         """A surface with no face fails the test rather than passing it vacuously."""
         assert not contour_tools.is_watertight(pv.PolyData())
 
+    @pytest.mark.requires_gpu
     def test_reduction_keeps_the_surface_closed(
         self, contour_tools: ProcessSurfaceMesh, heart_labelmap: itk.Image
     ) -> None:
@@ -305,6 +310,7 @@ class TestSingleMaskSurface:
 class TestExtractTetrahedra:
     """The per-label volume mesh must be tetrahedral and positively oriented."""
 
+    @pytest.mark.requires_gpu
     def test_cells_are_tetrahedra(
         self, volume_tools: ProcessVolumetricMesh, heart_labelmap: itk.Image
     ) -> None:
@@ -331,6 +337,7 @@ class TestExtractTetrahedra:
         # 4 x 4 x 4 voxels of 1 x 2 x 3 mm.
         assert float(np.sum(volumes)) == pytest.approx(4 * 4 * 4 * 6.0)
 
+    @pytest.mark.requires_gpu
     def test_volume_survives_coarsening(
         self, volume_tools: ProcessVolumetricMesh, heart_labelmap: itk.Image
     ) -> None:
@@ -353,6 +360,7 @@ class TestExtractTetrahedra:
 
         assert volume_tools.extract_tetrahedra(empty).n_cells == 0
 
+    @pytest.mark.requires_gpu
     def test_elements_are_isotropic(self, volume_tools: ProcessVolumetricMesh) -> None:
         """The requested element size is what the mesh is built on.
 
@@ -367,6 +375,7 @@ class TestExtractTetrahedra:
         assert float(np.median(volumes)) == pytest.approx(1.0 / 6.0, rel=1e-6)
 
 
+@pytest.mark.requires_gpu
 class TestTrimTetrahedraToSurface:
     """Relaxing must land the boundary on the surface without wrecking cells."""
 
@@ -580,6 +589,7 @@ def _min_scaled_jacobian(mesh: pv.UnstructuredGrid) -> float:
     return float(np.min(quality))
 
 
+@pytest.mark.requires_gpu
 class TestS1TrimMatchesFrozenBase:
     """The GPU relaxation must land where the pre-S1 CPU relaxation did."""
 
@@ -829,6 +839,7 @@ _S2_GEOMETRIES = [
 class TestS2GpuMatchesItk:
     """The GPU distance maps must do what the ITK calls did."""
 
+    @pytest.mark.requires_gpu
     @pytest.mark.parametrize("label_id", [1, 2, 5, 0])
     @pytest.mark.parametrize("sigma_mm", [0.0, 0.8])
     def test_s2_2_signed_distance_matches_itk(
@@ -855,6 +866,7 @@ class TestS2GpuMatchesItk:
 
         assert np.max(np.abs(actual - expected)) < 1e-4
 
+    @pytest.mark.requires_gpu
     def test_s2_2_squared_distance_matches_scipy(self) -> None:
         """The line kernel is the exact anisotropic Euclidean transform."""
 
@@ -902,6 +914,7 @@ class TestS2GpuMatchesItk:
         first = image.TransformIndexToPhysicalPoint([start[2], start[1], start[0]])
         assert np.allclose(cropped.TransformIndexToPhysicalPoint([2, 2, 2]), first)
 
+    @pytest.mark.requires_gpu
     @pytest.mark.parametrize(("spacing", "direction_sign"), _S2_GEOMETRIES)
     def test_s2_2_label_surfaces_match_itk_pipeline(
         self,
@@ -921,6 +934,7 @@ class TestS2GpuMatchesItk:
             assert surface.is_all_triangles
             assert surface.volume > 0.0
 
+    @pytest.mark.requires_gpu
     def test_s2_2_label_surfaces_with_options_match_itk_pipeline(
         self, contour_tools: ProcessSurfaceMesh
     ) -> None:
@@ -944,6 +958,7 @@ class TestS2GpuMatchesItk:
         for label_id, surface in actual.items():
             assert _surface_rmse(surface, expected[label_id]) < 0.1
 
+    @pytest.mark.requires_gpu
     def test_s2_2_empty_labelmap_has_no_surface(
         self, contour_tools: ProcessSurfaceMesh
     ) -> None:
@@ -952,6 +967,7 @@ class TestS2GpuMatchesItk:
 
         assert contour_tools.extract_label_surfaces(labelmap) == {}
 
+    @pytest.mark.requires_gpu
     @pytest.mark.parametrize(("spacing", "direction_sign"), _S2_GEOMETRIES)
     def test_s2_2_tetrahedra_match_itk_pipeline(
         self,
@@ -975,6 +991,7 @@ class TestS2GpuMatchesItk:
             < 0.1
         )
 
+    @pytest.mark.requires_gpu
     def test_s2_2_tetrahedra_too_coarse_are_empty(
         self, volume_tools: ProcessVolumetricMesh
     ) -> None:
@@ -991,6 +1008,7 @@ class TestS2GpuMatchesItk:
 
         assert actual.n_cells == expected.n_cells == 0
 
+    @pytest.mark.requires_gpu
     def test_s2_2_closest_point_distance_matches_implicit_distance(
         self, contour_tools: ProcessSurfaceMesh, volume_tools: ProcessVolumetricMesh
     ) -> None:
@@ -1016,6 +1034,7 @@ class TestS2GpuMatchesItk:
         assert actual == pytest.approx(expected, abs=1e-4)
 
 
+@pytest.mark.requires_gpu
 class TestS2UnsmoothedMatchesItk:
     """Without a blur, an edge voxel's side of zero decides the contour."""
 
@@ -1080,6 +1099,7 @@ class TestS2UnsmoothedMatchesItk:
         assert mesh.n_cells == 6 * int(np.count_nonzero(itk.GetArrayFromImage(voted)))
 
 
+@pytest.mark.requires_gpu
 @pytest.mark.parametrize(("spacing", "direction_sign"), _S2_GEOMETRIES)
 @pytest.mark.parametrize("isotropic_spacing_mm", [0.6, 1.5])
 def test_s3_1_vote_resample_matches_itk_but_for_exact_ties(
@@ -1106,6 +1126,7 @@ def test_s3_1_vote_resample_matches_itk_but_for_exact_ties(
     assert np.mean(actual_arr != expected_arr) < 1e-3
 
 
+@pytest.mark.requires_gpu
 def test_s3_1_vote_resample_with_a_wide_kernel_matches_itk() -> None:
     """A per-axis kernel wider than the voxels, as the tetrahedra use."""
     mask = _irregular_mask((0.8, 1.0, 2.0), -1.0)
