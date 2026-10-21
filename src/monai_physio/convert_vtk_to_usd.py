@@ -89,6 +89,7 @@ class ConvertVTKToUSD(MONAIPhysioBase):
         object_names: Optional[Sequence[str]] = None,
         segmenter: Optional[SegmentAnatomyBase] = None,
         log_level: int | str = logging.INFO,
+        output_tet_mesh: bool = False,
     ) -> None:
         """
         Initialize converter.
@@ -130,6 +131,10 @@ class ConvertVTKToUSD(MONAIPhysioBase):
                        and materials under ``/World/Looks/{type}/{label}_material``.
                        When None, labels are grouped under a single ``Anatomy`` Xform.
             log_level: Logging level
+            output_tet_mesh: If True, write each tetrahedral unstructured grid
+                      as a UsdGeomTetMesh holding every tetrahedron instead of
+                      its extracted surface. Overrides ``convert_to_surface``
+                      and does not combine with ``mask_ids``.
 
         Raises:
             ValueError: If time_codes or object_names is not None and its length
@@ -162,6 +167,7 @@ class ConvertVTKToUSD(MONAIPhysioBase):
         self.mask_ids = mask_ids
         self.compute_normals = compute_normals
         self.convert_to_surface = convert_to_surface
+        self.output_tet_mesh = output_tet_mesh
         self.separate_by = separate_by
         self.solid_color = solid_color
         self.segmenter = segmenter
@@ -250,6 +256,7 @@ class ConvertVTKToUSD(MONAIPhysioBase):
         mask_ids: Optional[dict[int, str]] = None,
         segmenter: Optional[SegmentAnatomyBase] = None,
         log_level: int | str = logging.INFO,
+        output_tet_mesh: bool = False,
     ) -> ConvertVTKToUSD:
         """Create a converter by loading VTK files from disk.
 
@@ -273,6 +280,9 @@ class ConvertVTKToUSD(MONAIPhysioBase):
             segmenter: Optional SegmentAnatomyBase used to group labeled prims
                        by anatomy type. See the ConvertVTKToUSD constructor.
             log_level: Logging level.
+            output_tet_mesh: If True, keep tetrahedral unstructured grids whole
+                and write them as UsdGeomTetMesh; the surface is then not
+                extracted. See the ConvertVTKToUSD constructor.
 
         Returns:
             ConvertVTKToUSD instance ready to call .convert().
@@ -284,7 +294,11 @@ class ConvertVTKToUSD(MONAIPhysioBase):
         meshes: list[pv.DataSet | vtk.vtkDataSet] = []
         for path in file_list:
             mesh = pv.read(str(path))
-            if extract_surface and isinstance(mesh, pv.UnstructuredGrid):
+            if (
+                extract_surface
+                and not output_tet_mesh
+                and isinstance(mesh, pv.UnstructuredGrid)
+            ):
                 mesh = mesh.extract_surface(algorithm="dataset_surface")
             meshes.append(mesh)
 
@@ -306,6 +320,7 @@ class ConvertVTKToUSD(MONAIPhysioBase):
             time_codes=resolved_time_codes,
             segmenter=segmenter,
             log_level=log_level,
+            output_tet_mesh=output_tet_mesh,
         )
 
         # Validate topology consistency for multi-frame time series and cache the
@@ -888,8 +903,24 @@ class ConvertVTKToUSD(MONAIPhysioBase):
         if isinstance(vtk_mesh, vtk.vtkDataSet):
             vtk_mesh = pv.wrap(vtk_mesh)
 
+        tet_indices: Optional[np.ndarray] = None
+        if self.output_tet_mesh:
+            if not isinstance(vtk_mesh, pv.UnstructuredGrid) or set(
+                np.unique(vtk_mesh.celltypes)
+            ) != {pv.CellType.TETRA}:
+                raise ValueError(
+                    "output_tet_mesh needs an unstructured grid of tetrahedra only"
+                )
+            tet_indices = np.asarray(
+                vtk_mesh.cells_dict[np.uint8(pv.CellType.TETRA)], dtype=np.int32
+            )
+
         # Extract surface if needed
-        if self.convert_to_surface and not isinstance(vtk_mesh, pv.PolyData):
+        if (
+            self.convert_to_surface
+            and tet_indices is None
+            and not isinstance(vtk_mesh, pv.PolyData)
+        ):
             if isinstance(vtk_mesh, pv.UnstructuredGrid) or hasattr(
                 vtk_mesh, "extract_surface"
             ):
@@ -901,7 +932,10 @@ class ConvertVTKToUSD(MONAIPhysioBase):
         points = np.array(vtk_mesh.points, dtype=np.float64)
 
         # Get faces
-        if hasattr(vtk_mesh, "faces"):
+        if tet_indices is not None:
+            face_counts = np.array([], dtype=np.int32)
+            face_indices = np.array([], dtype=np.int32)
+        elif hasattr(vtk_mesh, "faces"):
             faces = vtk_mesh.faces
             if len(faces) == 0 and not self.convert_to_surface:
                 raise ValueError("Mesh has no faces - surface extraction may be needed")
@@ -970,6 +1004,7 @@ class ConvertVTKToUSD(MONAIPhysioBase):
             normals=normals,
             colors=colors,
             generic_arrays=generic_arrays,
+            tet_vertex_indices=tet_indices,
         )
 
     def _split_by_labels(

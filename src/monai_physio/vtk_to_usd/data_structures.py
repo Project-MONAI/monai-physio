@@ -108,6 +108,9 @@ class MeshData:
     colors: Optional[NDArray] = None  # Shape: (N, 3) or (N, 4)
     generic_arrays: list[GenericArray] = field(default_factory=list)
     material_id: str = "default_material"
+    # When set, the mesh is written as a UsdGeomTetMesh from these (T, 4) point
+    # indices and the face arrays are ignored.
+    tet_vertex_indices: Optional[NDArray] = None
 
     def __post_init__(self) -> None:
         """Validate mesh data."""
