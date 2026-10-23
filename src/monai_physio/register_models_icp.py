@@ -326,6 +326,7 @@ class RegisterModelsICP(MONAIPhysioBase):
             )
 
         self.log_section("%s ICP Alignment", transform_type.upper())
+        self._start_progress(f"{transform_type} ICP: aligning centroids")
 
         self.moving_model = moving_model
         self.transform_type = transform_type
@@ -353,6 +354,7 @@ class RegisterModelsICP(MONAIPhysioBase):
         )
 
         self.log_debug("Center after centroid alignment: %s", registered_model.center)
+        self._report_progress(0.1, "centroids aligned")
 
         # Bounding-box scaling, for the modes whose transform admits a scale. ICP
         # only searches for correspondences among nearest points, so a template
@@ -375,11 +377,17 @@ class RegisterModelsICP(MONAIPhysioBase):
                 with_deformation_magnitude=False,
             )
             self.log_debug("Bounds after scaling: %s", registered_model.bounds)
+            self._report_progress(0.2, "bounding boxes matched")
 
         # ICP stages. Affine runs similarity first so the shear and anisotropic
         # scale degrees of freedom refine an already-oriented, already-sized model
         # rather than absorbing rotation and overall scale themselves.
-        for stage in self._ICP_STAGES[transform_type]:
+        # VTK's ICP reports no iterations, so each ICP run is one step.
+        icp_stages = self._ICP_STAGES[transform_type]
+        for index, stage in enumerate(icp_stages):
+            self._report_progress(
+                0.2 + 0.8 * index / len(icp_stages), f"{stage.lower()} ICP"
+            )
             self.log_info(
                 "Performing %s ICP (max iterations: %d)...",
                 stage.lower(),
@@ -399,6 +407,7 @@ class RegisterModelsICP(MONAIPhysioBase):
         self.fixed_to_moving_transform = moving_to_fixed_transform.GetInverseTransform()
 
         self.log_info("%s ICP registration complete!", transform_type.upper())
+        self._report_progress(1.0, f"{transform_type} ICP complete")
 
         # Return results as dictionary
         return {

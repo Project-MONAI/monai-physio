@@ -10,13 +10,16 @@ The module uses the unigradicon package which provides GPU-accelerated
 deformable registration with mass preservation constraints.
 """
 
+import contextlib
 import logging
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any, ClassVar, Optional, Union
 
 import itk
 import numpy as np
 
+from .monai_physio_base import MONAIPhysioBase
 from .register_images_base import RegisterImagesBase
 
 
@@ -39,6 +42,29 @@ def _load_icon():
         get_unigradicon,
         unigradicon_preprocess,
     )
+
+
+class _LineLogger:
+    """File-like sink that hands each complete line written to it to a logger."""
+
+    def __init__(self, log: Callable[..., None]) -> None:
+        self._log = log
+        self._pending = ""
+
+    def write(self, text: str) -> int:
+        """Log every complete line in ``text``; keep any trailing partial line."""
+        lines = (self._pending + text).split("\n")
+        self._pending = lines.pop()
+        for line in lines:
+            if line.strip():
+                self._log("%s", line)
+        return len(text)
+
+    def flush(self) -> None:
+        """Log any partial line still held."""
+        if self._pending.strip():
+            self._log("%s", self._pending)
+        self._pending = ""
 
 
 class RegisterImagesICON(RegisterImagesBase):
@@ -281,28 +307,29 @@ class RegisterImagesICON(RegisterImagesBase):
         fixed_to_moving_transform = None
         loss_artifacts = None
         _, icon_itk_wrapper, _, _, _, _, _ = _load_icon()
-        if fixed_effective_mask is not None and moving_effective_mask is not None:
-            moving_to_fixed_transform, fixed_to_moving_transform, loss_artifacts = (
-                icon_itk_wrapper.register_pair_with_mask(
-                    self.net,
-                    self.fixed_image_pre,
-                    new_moving_image_pre,
-                    fixed_effective_mask,
-                    moving_effective_mask,
-                    finetune_steps=self.number_of_iterations,
-                    return_artifacts=True,
+        with self._report_finetune_steps():
+            if fixed_effective_mask is not None and moving_effective_mask is not None:
+                moving_to_fixed_transform, fixed_to_moving_transform, loss_artifacts = (
+                    icon_itk_wrapper.register_pair_with_mask(
+                        self.net,
+                        self.fixed_image_pre,
+                        new_moving_image_pre,
+                        fixed_effective_mask,
+                        moving_effective_mask,
+                        finetune_steps=self.number_of_iterations,
+                        return_artifacts=True,
+                    )
                 )
-            )
-        else:
-            moving_to_fixed_transform, fixed_to_moving_transform, loss_artifacts = (
-                icon_itk_wrapper.register_pair(
-                    self.net,
-                    self.fixed_image_pre,
-                    new_moving_image_pre,
-                    finetune_steps=self.number_of_iterations,
-                    return_artifacts=True,
+            else:
+                moving_to_fixed_transform, fixed_to_moving_transform, loss_artifacts = (
+                    icon_itk_wrapper.register_pair(
+                        self.net,
+                        self.fixed_image_pre,
+                        new_moving_image_pre,
+                        finetune_steps=self.number_of_iterations,
+                        return_artifacts=True,
+                    )
                 )
-            )
 
         loss = loss_artifacts[0]
 
@@ -311,6 +338,40 @@ class RegisterImagesICON(RegisterImagesBase):
             "moving_to_fixed_transform": moving_to_fixed_transform,
             "loss": loss,
         }
+
+    @contextlib.contextmanager
+    def _report_finetune_steps(self) -> Iterator[None]:
+        """Report each finetuning step while the registration inside runs.
+
+        icon_registration owns the finetuning loop and offers no callback, but
+        every step is one forward pass of ``self.net``, so a forward hook
+        counts them.  The loop also prints each step's loss to stdout; while
+        progress is reported, those lines go to the debug log instead.  With
+        no progress callback, or no finetuning, nothing is hooked or
+        redirected.
+        """
+        steps = self.number_of_iterations
+        if MONAIPhysioBase._progress_callback is None or not steps:
+            yield
+            return
+
+        # The finetuning steps, then one final evaluation pass that the
+        # count is capped through.
+        count = 0
+
+        def on_forward(*_: Any) -> None:
+            nonlocal count
+            count += 1
+            self.log_progress(min(count, steps), steps, "ICON step", log=False)
+
+        # The network is shared through _net_cache, so the hook must not
+        # outlive this registration.
+        handle = self.net.register_forward_hook(on_forward)
+        try:
+            with contextlib.redirect_stdout(_LineLogger(self.log_debug)):
+                yield
+        finally:
+            handle.remove()
 
     def _ensure_net(self) -> None:
         """Lazily instantiate the ICON network using current configuration.

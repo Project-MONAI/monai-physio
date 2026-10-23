@@ -136,3 +136,27 @@ def test_save_surfaces_and_combined(
     ]
     combined = pv.read(combined_file)
     assert sorted(np.unique(combined.cell_data["SegmentationLabelIds"])) == [1, 5, 7]
+
+
+@pytest.mark.requires_gpu
+def test_progress_covers_requested_surfaces(
+    heart_workflow: WorkflowConvertImageToVTK,
+) -> None:
+    """A labelmap input skips segmentation; its share is jumped over."""
+    calls: list[tuple[float, str]] = []
+    heart_workflow.set_progress_callback(
+        lambda fraction, message: calls.append((fraction, message))
+    )
+    heart_workflow.process(
+        labelmap_image=_heart_labelmap(), extract_label_surfaces=True
+    )
+
+    fractions = [fraction for fraction, _ in calls]
+    assert fractions == sorted(fractions)
+    assert fractions[0] == 0.0
+    assert fractions[-1] == 1.0
+    messages = [message for _, message in calls]
+    assert not any(m.startswith("Segmentation") for m in messages)
+    assert fractions[1] == pytest.approx(0.6)
+    assert "Group surfaces: heart" in messages
+    assert "Label surfaces: myocardium" in messages

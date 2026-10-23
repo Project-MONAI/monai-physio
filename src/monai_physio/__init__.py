@@ -65,7 +65,7 @@ from .infer_physicsnemo_mgn import InferPhysicsNeMoMGN
 from .infer_physicsnemo_mlp import InferPhysicsNeMoMLP
 
 # Base classes
-from .monai_physio_base import MONAIPhysioBase
+from .monai_physio_base import MONAIPhysioBase, ProgressCallback
 
 # Utility classes
 from .process_images import ProcessImages
@@ -160,6 +160,7 @@ __all__ = [
     "ProcessUSD",
     "ProcessUSDAnatomy",
     "ProcessVolumetricMesh",
+    "ProgressCallback",
     "RegisterImagesANTS",
     "RegisterImagesBase",
     "RegisterImagesChain",

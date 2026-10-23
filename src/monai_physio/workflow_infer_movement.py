@@ -287,6 +287,12 @@ class WorkflowInferMovement(MONAIPhysioBase):
         suffix = ".vtp" if isinstance(fitted_mesh, pv.PolyData) else ".vtu"
         self.log_section("INFER MOVEMENT TIME SERIES [%s]", stem)
 
+        # Progress: the stages share 0-0.97 equally, the USD export the rest.
+        # Within a stage, building and smoothing the deformation field takes
+        # most of the time; without reference_image a stage only predicts.
+        self._start_progress("Time series starting")
+        stage_share = 0.97 / len(stages)
+
         transform_tools = ProcessTransforms(log_level=self.log_level)
         stage_meshes: list[pv.DataSet] = []
         surfaces: list[Path] = []
@@ -295,6 +301,9 @@ class WorkflowInferMovement(MONAIPhysioBase):
 
         for index, stage in enumerate(stages):
             tag = f"s{int(stage * 100):03d}"
+            stage_start = index * stage_share
+            label = f"Stage {stage:.3f} ({index + 1}/{len(stages)})"
+            self._report_progress(stage_start, f"{label}: predicting")
             pred_points = fitted_reference_points + workflow.predict(coeffs, stage)
             pred_mesh = fitted_mesh.copy(deep=True)
             pred_mesh.points = pred_points
@@ -309,6 +318,10 @@ class WorkflowInferMovement(MONAIPhysioBase):
             surfaces.append(surface_file)
 
             if reference_image is not None:
+                self._report_progress(
+                    stage_start + 0.05 * stage_share,
+                    f"{label}: creating deformation field",
+                )
                 field = self.create_deformation_field(
                     shape_parameters=shape_parameters,
                     stage=stage,
@@ -344,6 +357,9 @@ class WorkflowInferMovement(MONAIPhysioBase):
                         exterior_falloff_distance_mm,
                     )
                 transforms.append(transform)
+                self._report_progress(
+                    stage_start + 0.9 * stage_share, f"{label}: warping image"
+                )
                 warped = transform_tools.transform_image(
                     reference_image,
                     transform,
@@ -356,6 +372,7 @@ class WorkflowInferMovement(MONAIPhysioBase):
                 warped_images.append(warped_file)
 
             self.log_info("stage %.3f -> %s", stage, surface_file.name)
+            self._report_progress(stage_start + stage_share, f"{label}: done")
 
         usd_file: Optional[Path] = None
         if usd_project_name is not None:
@@ -369,7 +386,9 @@ class WorkflowInferMovement(MONAIPhysioBase):
                 frames_per_second=float(len(stage_meshes)),
                 log_level=self.log_level,
             )
-            usd_file = Path(usd_workflow.process()["usd_file"])
+            with self._progress_range(0.97, 1.0, "USD"):
+                usd_file = Path(usd_workflow.process()["usd_file"])
+        self._report_progress(1.0, "Time series complete")
 
         return {
             "stages": list(stages),

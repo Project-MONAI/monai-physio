@@ -555,11 +555,12 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         self.icp_registrar = RegisterModelsICP(fixed_model=self.patient_model_surface)
 
         # Run rigid ICP registration
-        icp_result = self.icp_registrar.register(
-            moving_model=self.template_model_surface,
-            transform_type=self.icp_transform_type,
-            max_iterations=2000,
-        )
+        with self._progress_range(0.0, 0.9):
+            icp_result = self.icp_registrar.register(
+                moving_model=self.template_model_surface,
+                transform_type=self.icp_transform_type,
+                max_iterations=2000,
+            )
 
         # Store results
         self.icp_moving_to_fixed_transform = icp_result["moving_to_fixed_transform"]
@@ -582,6 +583,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             self.icp_template_labelmap = None
 
         self.log_info("Stage 1 complete: ICP alignment finished.")
+        self._report_progress(1.0, "ICP alignment finished")
 
         self.fitted_reference_mesh = self.icp_template_model_surface
         self.fitted_reference_model = self.icp_template_model
@@ -628,6 +630,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             identity_transform.SetIdentity()
             self.pca_moving_to_fixed_transform = identity_transform
             self.pca_fixed_to_moving_transform = identity_transform
+            self._report_progress(1.0, "PCA registration not enabled")
             return {
                 "pca_coefficients": None,
                 "fitted_reference_model": self.pca_template_model,
@@ -651,6 +654,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             pca_template_model = self.template_model
             fixed_model = self.combined_patient_model
             if self.patient_labelmap is not None:
+                self._report_progress(0.0, "creating patient distance map")
                 fixed_distance_map = self.labelmap_tools.create_distance_map(
                     self.patient_labelmap,
                     max_distance_mm=10.0,
@@ -675,7 +679,8 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
 
         # Run complete PCA registration
         assert self.pca_registrar is not None, "PCA registrar must be initialized"
-        result = self.pca_registrar.register()
+        with self._progress_range(0.02, 0.15):
+            result = self.pca_registrar.register()
         self.pca_coefficients = result["pca_coefficients"]
         registered_model = cast(pv.DataSet, result["registered_model"])
         if self.use_surface:
@@ -689,6 +694,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         # generally fall outside the patient image, so grid it in the template's
         # own frame; create_deformation_field drops samples that land off-grid.
         # The ICP alignment is applied separately, after this field.
+        self._report_progress(0.15, "computing PCA transforms")
         pca_field_reference_image = self.contour_tools.create_reference_image(
             pca_template_model,
             spatial_resolution=float(min(self.patient_image.GetSpacing())),
@@ -760,6 +766,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         self.fitted_reference_labelmap = self.pca_template_labelmap
 
         self.log_info("Stage 2 complete: PCA registration finished.")
+        self._report_progress(1.0, "PCA registration finished")
 
         return {
             "pca_coefficients": self.pca_coefficients,
@@ -819,10 +826,11 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             labelmap_registrar.set_icon_weights_path(self.l2l_icon_weights_path)
 
         # Run deformable registration
-        l2l_result = labelmap_registrar.register(
-            transform_type="Deformable",
-            deformable_engine=self.l2l_deformable_engine,
-        )
+        with self._progress_range(0.0, 0.95):
+            l2l_result = labelmap_registrar.register(
+                transform_type="Deformable",
+                deformable_engine=self.l2l_deformable_engine,
+            )
 
         # Store results
         self.l2l_fixed_to_moving_transform = l2l_result["fixed_to_moving_transform"]
@@ -844,6 +852,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         self.fitted_reference_labelmap = self.l2l_template_labelmap
 
         self.log_info("Stage 3 complete: Labelmap-to-labelmap registration finished.")
+        self._report_progress(1.0, "labelmap-to-labelmap registration finished")
 
         return {
             "fixed_to_moving_transform": self.l2l_fixed_to_moving_transform,
@@ -895,6 +904,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
                 "or ensure an earlier stage (L2L, PCA, ICP) has produced one."
             )
 
+        self._report_progress(0.0, "creating registration masks")
         template_labelmap_arr = itk.GetArrayFromImage(propagated_labelmap).astype(
             np.uint16
         )
@@ -931,9 +941,10 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         self.registrar_Greedy.set_fixed_image(self.patient_image)
         self.registrar_Greedy.set_fixed_mask(patient_mask)
 
-        result = self.registrar_Greedy.register(
-            moving_image=template_labelmap, moving_mask=template_mask
-        )
+        with self._progress_range(0.1, 0.4, "Greedy"):
+            result = self.registrar_Greedy.register(
+                moving_image=template_labelmap, moving_mask=template_mask
+            )
         self.l2i_moving_to_fixed_transform = result["moving_to_fixed_transform"]
         self.l2i_fixed_to_moving_transform = result["fixed_to_moving_transform"]
 
@@ -943,15 +954,17 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             self.registrar_ICON.set_fixed_mask(patient_mask)
 
             # Perform Icon registration, refining the alignment found so far
-            result = self.registrar_ICON.register_from(
-                self.l2i_fixed_to_moving_transform,
-                template_labelmap,
-                moving_mask=template_mask,
-            )
+            with self._progress_range(0.4, 0.9, "ICON refinement"):
+                result = self.registrar_ICON.register_from(
+                    self.l2i_fixed_to_moving_transform,
+                    template_labelmap,
+                    moving_mask=template_mask,
+                )
             self.l2i_moving_to_fixed_transform = result["moving_to_fixed_transform"]
             self.l2i_fixed_to_moving_transform = result["fixed_to_moving_transform"]
 
         # Transform model with result - use the best available pre-L2I surface.
+        self._report_progress(0.9, "transforming surface and labelmap")
         source_surface = (
             self.l2l_template_model_surface
             or self.pca_template_model_surface
@@ -979,6 +992,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         )
 
         self.log_info("Stage 4 complete: Labelmap-to-image registration finished.")
+        self._report_progress(1.0, "labelmap-to-image registration finished")
 
         self.fitted_reference_mesh = self.l2i_template_model_surface
 
@@ -1049,6 +1063,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
                 transformed_model,
                 tfm,
             )
+        self._report_progress(1.0, "transforms applied")
 
         new_points = np.asarray(transformed_model.points, dtype=float)
 
@@ -1084,28 +1099,45 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
 
         Returns:
             dict with fitted_reference_model and fitted_reference_mesh
+
+        Progress, when :meth:`set_progress_callback` set a callback, is
+        reported with messages prefixed by the stage name ("ICP", "PCA",
+        "Labelmap-to-labelmap", "Labelmap-to-image" or "Apply transforms").
+        Each stage owns a fixed share of the range, sized to its typical cost
+        with every stage enabled; a disabled stage is skipped over.
         """
         self.log_section("STARTING COMPLETE MODEL REGISTRATION WORKFLOW", width=70)
 
         self.use_ICON_registration_refinement = use_ICON_registration_refinement
 
+        # Progress shares follow each stage's run time in Tutorial 0's lung fit
+        # on a GPU; labelmap-to-image is not part of that fit, so its share is
+        # an estimate.
+        self._start_progress("Fit starting")
+
         # Stage 1: ICP alignment
-        self.register_model_to_model_icp()
+        with self._progress_range(0.0, 0.14, "ICP"):
+            self.register_model_to_model_icp()
 
         # Stage 2: Optional PCA registration (if PCA data was set)
-        self.register_model_to_model_pca()
+        with self._progress_range(0.14, 0.22, "PCA"):
+            self.register_model_to_model_pca()
 
         # Stage 3: Optional Labelmap-to-labelmap deformable registration
         if self.use_l2l_registration:
-            self.register_labelmap_to_labelmap()
+            with self._progress_range(0.22, 0.75, "Labelmap-to-labelmap"):
+                self.register_labelmap_to_labelmap()
 
         # Stage 4: Optional labelmap-to-image refinement
         if self.use_l2i_registration:
-            self.register_labelmap_to_image(
-                use_ICON_refinement=use_ICON_registration_refinement
-            )
+            with self._progress_range(0.75, 0.98, "Labelmap-to-image"):
+                self.register_labelmap_to_image(
+                    use_ICON_refinement=use_ICON_registration_refinement
+                )
 
-        _ = self.transform_model()
+        with self._progress_range(0.98, 1.0, "Apply transforms"):
+            _ = self.transform_model()
+        self._report_progress(1.0, "Fit complete")
 
         self.log_section("REGISTRATION WORKFLOW COMPLETE", width=70)
         assert self.fitted_reference_mesh is not None, (
