@@ -1,14 +1,16 @@
-"""Progress reporting of WorkflowFitStatisticalModelToPatient on real meshes.
+"""Progress reporting of WorkflowFitStatisticalModelToPatient on real surfaces.
 
-The KCL heart average mesh is fitted to one KCL patient mesh, both decimated so
-the fit is quick.  The KCL data ships no statistical model, so a one-mode PCA
-model is built here whose mode inflates the template radially; the fit only
-needs the PCA stage to run its optimizer, not to explain a population.
+The heart surface of one slicer_heart_small time point is fitted to that of
+another.  The data ships no statistical model, so a one-mode PCA model is built
+here whose mode inflates the template radially; the fit only needs the PCA
+stage to run its optimizer, not to explain a population.
+
+The heart labelmaps come from ``test_labelmaps``, which segments with
+TotalSegmentator when its cache is empty, so every test here needs a GPU.
 """
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any, cast
 
 import itk
@@ -21,33 +23,31 @@ from monai_physio.workflow_fit_statistical_model_to_patient import (
     WorkflowFitStatisticalModelToPatient,
 )
 
+pytestmark = pytest.mark.requires_gpu
 
-def _surface(path: Path, reduction: float) -> pv.PolyData:
-    mesh = pv.read(str(path))
-    surface = mesh.extract_surface(algorithm="dataset_surface").triangulate()
-    return cast(pv.PolyData, surface.decimate(reduction).clean())
+FitInputs = tuple[pv.PolyData, pv.PolyData, dict[str, Any], itk.Image]
+
+
+def _heart_surface(heart_labelmap: itk.Image) -> pv.PolyData:
+    surface_tools = ProcessSurfaceMesh()
+    surface = surface_tools.combine_surfaces(
+        surface_tools.extract_label_surfaces(heart_labelmap)
+    )
+    return cast(pv.PolyData, surface.triangulate().decimate(0.5).clean())
 
 
 @pytest.fixture(scope="module")
 def fit_inputs(
-    download_kcl_heart_model: Path,
+    test_images: list[Any], test_labelmaps: list[dict[str, Any]]
 ) -> FitInputs:
-    template = _surface(download_kcl_heart_model / "average_mesh.vtk", 0.95)
-    patient = _surface(download_kcl_heart_model / "input_meshes" / "01.vtk", 0.95)
+    template = _heart_surface(test_labelmaps[-1]["heart"])
+    patient = _heart_surface(test_labelmaps[0]["heart"])
 
     radial = np.asarray(template.points, dtype=np.float64) - np.asarray(template.center)
     radial /= np.linalg.norm(radial, axis=1, keepdims=True)
     component = radial.reshape(-1) / np.linalg.norm(radial)
     pca_model = {"eigenvalues": [25.0], "components": [component.tolist()]}
-    # A 2 mm grid rather than the 1 mm one the workflow derives by default
-    # keeps the distance-map stages quick.
-    patient_image = ProcessSurfaceMesh().create_reference_image(
-        mesh=patient, spatial_resolution=2.0, buffer_factor=0.25, ptype=itk.F
-    )
-    return template, patient, pca_model, patient_image
-
-
-FitInputs = tuple[pv.PolyData, pv.PolyData, dict[str, Any], itk.Image]
+    return template, patient, pca_model, test_images[0]
 
 
 def _workflow(fit_inputs: FitInputs) -> WorkflowFitStatisticalModelToPatient:
@@ -88,7 +88,6 @@ def test_fit_progress_with_greedy_deformable(
     assert any(m.startswith("PCA: PCA iteration: 1/") for m in messages)
 
 
-@pytest.mark.requires_gpu
 def test_fit_progress_reports_icon_steps_without_printing(
     fit_inputs: FitInputs,
     capsys: pytest.CaptureFixture[str],
