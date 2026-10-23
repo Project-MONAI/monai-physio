@@ -114,7 +114,12 @@ def test_caller_handler_survives_logger_initialization(
     """A handler attached before the first MONAI Physio object is kept."""
     logger = logging.getLogger("MONAIPhysio")
     monkeypatch.setattr(MONAIPhysioBase, "_logger_initialized", False)
+    monkeypatch.setattr(MONAIPhysioBase, "_class_filter", MONAIPhysioBase._class_filter)
     monkeypatch.setattr(logger, "handlers", list(logger.handlers))
+    # Logger caches isEnabledFor() results per level; restore that cache with
+    # the level so later tests do not see the level set here.
+    monkeypatch.setattr(logger, "level", logger.level)
+    monkeypatch.setattr(logger, "_cache", {})
 
     records: list[logging.LogRecord] = []
 
