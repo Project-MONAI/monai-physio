@@ -401,6 +401,7 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
         self.log_section("%s Distance-Map-based Registration", transform_type.upper())
 
         # Step 1: Generate distance maps and registration masks from models
+        self._start_progress("creating distance maps")
         self._create_masks_from_models()
 
         # Step 2: Greedy rigid/affine/deformable stage. Deformable normally
@@ -422,10 +423,11 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
             self.registrar_Greedy.set_transform_type(greedy_type)
             self.registrar_Greedy.set_metric("CC")
 
-            result_Greedy = self.registrar_Greedy.register(
-                moving_image=self.moving_distance_map_image,
-                moving_mask=self.moving_mask_image,
-            )
+            with self._progress_range(0.27, 0.79, f"Greedy {greedy_type}"):
+                result_Greedy = self.registrar_Greedy.register(
+                    moving_image=self.moving_distance_map_image,
+                    moving_mask=self.moving_mask_image,
+                )
             fixed_to_moving_transform_Greedy = result_Greedy[
                 "fixed_to_moving_transform"
             ]
@@ -477,10 +479,11 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
             self.registrar_ICON.set_fixed_image(self.fixed_distance_map_image)
             # self.registrar_ICON.set_fixed_mask(self.fixed_mask_image)
 
-            result_ICON = self.registrar_ICON.register(
-                moving_image=moving_distance_map_affine_transformed,
-                # moving_mask=moving_mask_affine_transformed,
-            )
+            with self._progress_range(0.79, 0.97, "ICON deformable"):
+                result_ICON = self.registrar_ICON.register(
+                    moving_image=moving_distance_map_affine_transformed,
+                    # moving_mask=moving_mask_affine_transformed,
+                )
             fixed_to_moving_transform_ICON = result_ICON["fixed_to_moving_transform"]
             moving_to_fixed_transform_ICON = result_ICON["moving_to_fixed_transform"]
 
@@ -511,6 +514,7 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
             )
 
         # Apply final transform to moving model
+        self._report_progress(0.97, "transforming moving model")
         self.log_info("Transforming moving model...")
         self.registered_model = self.transform_tools.transform_pvcontour(
             self.moving_model,
@@ -523,6 +527,7 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
         )
 
         self._release_intermediates()
+        self._report_progress(1.0, "distance-map registration complete")
 
         # Return results as dictionary
         return {

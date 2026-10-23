@@ -2,7 +2,7 @@
 
 import hashlib
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import itk
 import numpy as np
@@ -473,8 +473,8 @@ def test_deformable_composition_matches_known_point_mapping_across_geometries() 
     axis = np.linspace(margin * 126.0, (1.0 - margin) * 126.0, 6)
     points = np.stack(np.meshgrid(axis, axis, axis, indexing="ij"), -1).reshape(-1, 3)
     expected = np.array([known.TransformPoint(p.tolist()) for p in points])
-    forward = result["fixed_to_moving_transform"]
-    backward = result["moving_to_fixed_transform"]
+    forward = cast(itk.Transform, result["fixed_to_moving_transform"])
+    backward = cast(itk.Transform, result["moving_to_fixed_transform"])
     mapped = np.array([forward.TransformPoint(p.tolist()) for p in points])
     returned = np.array([backward.TransformPoint(q.tolist()) for q in expected])
 

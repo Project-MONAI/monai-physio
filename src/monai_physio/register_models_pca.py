@@ -852,6 +852,13 @@ class RegisterModelsPCA(MONAIPhysioBase):
         if not self._analytic_gradient:
             options["eps"] = 1e-2
 
+        iteration = 0
+
+        def on_iteration(_: np.ndarray) -> None:
+            nonlocal iteration
+            iteration += 1
+            self.log_progress(iteration, max_iterations, "PCA iteration", log=False)
+
         self.log_info("Running optimization...")
         result_pca = minimize(  # type: ignore[call-overload]
             self._objective_and_gradient
@@ -862,6 +869,9 @@ class RegisterModelsPCA(MONAIPhysioBase):
             jac=self._analytic_gradient,
             bounds=bounds,
             options=options,
+            callback=(
+                on_iteration if MONAIPhysioBase._progress_callback is not None else None
+            ),
         )
 
         optimized_pca_coefficients = result_pca.x
@@ -1097,19 +1107,25 @@ class RegisterModelsPCA(MONAIPhysioBase):
         self.log_info(f"Number of points: {self.pca_template_model.n_points}")
         self.log_info(f"Modes to use: {pca_number_of_modes}")
 
+        self._start_progress("optimizing PCA coefficients")
         self._metric_call_count = 0
-        self.registered_model_pca_coefficients, self.registered_model_mean_distance = (
-            self._optimize_pca_coefficients(
+        # An optimizer that converges early jumps to the end of its share.
+        with self._progress_range(0.0, 0.95):
+            (
+                self.registered_model_pca_coefficients,
+                self.registered_model_mean_distance,
+            ) = self._optimize_pca_coefficients(
                 pca_number_of_modes=pca_number_of_modes,
                 pca_coefficient_bounds=pca_coefficient_bounds,
                 method=method,
                 max_iterations=max_iterations,
             )
-        )
 
         # Create final registered model
+        self._report_progress(0.95, "deforming template")
         self.registered_model_pca_deformation = None
         self.registered_model = self.transform_template_model()
+        self._report_progress(1.0, "PCA registration complete")
 
         # Return results as dictionary
         return {

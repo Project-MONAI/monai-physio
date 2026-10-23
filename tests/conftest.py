@@ -8,6 +8,7 @@ in the tests directory via pytest's automatic fixture discovery.
 import logging
 import os
 import shutil
+from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
@@ -22,6 +23,7 @@ import pytest
 from parameters_base import ParametersBase
 
 from monai_physio.download_data import DownloadData
+from monai_physio.monai_physio_base import MONAIPhysioBase
 from monai_physio.process_surface_mesh import ProcessSurfaceMesh
 from monai_physio.process_transforms import ProcessTransforms
 from monai_physio.process_volumetric_mesh import ProcessVolumetricMesh
@@ -411,6 +413,13 @@ def _format_duration(seconds: float) -> str:
         minutes = int((seconds % 3600) // 60)
         secs = seconds % 60
         return f"{hours}h {minutes}m {secs:.0f}s"
+
+
+@pytest.fixture(autouse=True)
+def _clear_progress_callback() -> Iterator[None]:
+    """Keep a test's progress callback, which is process-wide, from leaking."""
+    yield
+    MONAIPhysioBase.set_progress_callback(None)
 
 
 # Directory and Data Download Fixtures

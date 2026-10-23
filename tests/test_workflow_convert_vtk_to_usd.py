@@ -359,3 +359,32 @@ class TestSolidAppearance:
         mesh = UsdGeom.Mesh(stage.GetPrimAtPath("/World/solid/blob_object1"))
         colors = np.asarray(mesh.GetDisplayColorPrimvar().Get())
         assert np.allclose(colors, [0.0, 1.0, 0.0])
+
+
+class TestProgress:
+    """Progress runs from 0 to 1, conversion first and one step per mesh."""
+
+    def test_progress_sees_conversion_and_each_mesh(self, tmp_path: Path) -> None:
+        calls: list[tuple[float, str]] = []
+        workflow = WorkflowConvertVTKToUSD(
+            input_meshes=[
+                _labeled_sphere((0.0, 0.0, 0.0), "a"),
+                _labeled_sphere((5.0, 0.0, 0.0), "b"),
+            ],
+            usd_project_name="progress",
+            output_directory=tmp_path,
+            appearance="solid",
+            static_merge=True,
+        )
+        workflow.set_progress_callback(
+            lambda fraction, message: calls.append((fraction, message))
+        )
+        workflow.process()
+
+        fractions = [fraction for fraction, _ in calls]
+        assert fractions == sorted(fractions)
+        assert fractions[0] == 0.0
+        assert fractions[-1] == 1.0
+        messages = [message for _, message in calls]
+        assert messages[0].startswith("converting 2 mesh(es)")
+        assert sum(m.startswith("solid appearance: /World/") for m in messages) == 2

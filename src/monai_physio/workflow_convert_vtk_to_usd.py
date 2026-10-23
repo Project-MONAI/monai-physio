@@ -306,6 +306,8 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
                 "static_merge=True; outputting static scene (no time samples)"
             )
         self.log_info("Output: %s", output_usd)
+        # Progress: conversion 0-0.9, appearance 0.9-0.98, saving the rest.
+        self._start_progress(f"converting {n_frames} mesh(es) to USD")
 
         separate_by: Literal["none", "connectivity", "cell_type"] = (
             "connectivity"
@@ -375,6 +377,7 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
         )
         if not mesh_paths:
             self.log_warning("No mesh prims found under /World/%s", root_prim_name)
+            self._report_progress(1.0, "USD conversion complete")
             return {"usd_file": str(output_usd)}
 
         # Static merge has no time samples; pass None so only default time is used
@@ -384,8 +387,15 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
             "Applying appearance '%s' to %d mesh(es)", self.appearance, len(mesh_paths)
         )
 
+        def report_appearance(index: int, mesh_path: str) -> None:
+            self._report_progress(
+                0.9 + 0.08 * index / len(mesh_paths),
+                f"{self.appearance} appearance: {mesh_path}",
+            )
+
         if self.appearance == "solid":
-            for mesh_path in mesh_paths:
+            for index, mesh_path in enumerate(mesh_paths):
+                report_appearance(index, mesh_path)
                 usd_tools.set_solid_display_color(
                     stage,
                     mesh_path,
@@ -408,7 +418,8 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
 
         elif self.appearance == "anatomy":
             anatomy_tools = ProcessUSDAnatomy(stage, log_level=self.log_level)
-            for mesh_path in mesh_paths:
+            for index, mesh_path in enumerate(mesh_paths):
+                report_appearance(index, mesh_path)
                 anatomy_tools.apply_anatomy_material_to_mesh(
                     mesh_path,
                     anatomy_tools.select_anatomy_type(
@@ -418,7 +429,8 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
 
         elif self.appearance == "colormap":
             primvar = self.colormap_primvar
-            for mesh_path in mesh_paths:
+            for index, mesh_path in enumerate(mesh_paths):
+                report_appearance(index, mesh_path)
                 if primvar is None:
                     primvars = usd_tools.list_mesh_primvars(stage, mesh_path)
                     primvar = usd_tools.pick_color_primvar(primvars)
@@ -443,6 +455,8 @@ class WorkflowConvertVTKToUSD(MONAIPhysioBase):
                 if self.colormap_primvar is None:
                     primvar = None  # next mesh: auto-pick again
 
+        self._report_progress(0.98, "saving USD stage")
         usd_tools.save_stage(stage)
         self.log_info("Workflow complete: %s", output_usd)
+        self._report_progress(1.0, "USD conversion complete")
         return {"usd_file": str(output_usd)}

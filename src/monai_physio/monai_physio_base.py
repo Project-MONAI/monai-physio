@@ -30,9 +30,14 @@ Example:
     >>> MONAIPhysioBase.set_log_all_classes()
 """
 
+import contextlib
 import logging
 import warnings
-from typing import Any, Optional, cast
+from collections.abc import Callable, Iterator
+from typing import Any, ClassVar, Optional, cast
+
+ProgressCallback = Callable[[float, str], None]
+"""Receives a fraction in ``[0, 1]`` and a short message describing the step."""
 
 
 class ClassNameFilter(logging.Filter):
@@ -102,6 +107,18 @@ class MONAIPhysioBase:
     _shared_logger: Optional[logging.Logger] = None
     _class_filter: Optional[ClassNameFilter] = None
     _logger_initialized: bool = False
+    # Names the handlers MONAI Physio adds, so it can tell them apart from
+    # handlers a caller attached to the same logger.
+    _HANDLER_NAME: str = "MONAIPhysio"
+
+    # Progress reporting state, shared by every instance like the logger;
+    # see set_progress_callback().
+    _progress_callback: ClassVar[Optional[ProgressCallback]] = None
+    # (start, end, message prefix) of each active _progress_range, innermost
+    # last, as fractions of the callback's range.
+    _progress_ranges: ClassVar[list[tuple[float, float, str]]] = []
+    # Largest fraction forwarded since the outermost run started.
+    _progress_floor: ClassVar[float] = 0.0
 
     def __init__(
         self,
@@ -159,8 +176,12 @@ class MONAIPhysioBase:
         else:
             cls._shared_logger.setLevel(log_level)
 
-        # Remove existing handlers to avoid duplicates
-        cls._shared_logger.handlers.clear()
+        # Remove only handlers an earlier initialization added (e.g. before a
+        # module reload); handlers a caller attached, such as one counting
+        # records to drive a progress bar, must survive.
+        for handler in list(cls._shared_logger.handlers):
+            if handler.get_name() == cls._HANDLER_NAME:
+                cls._shared_logger.removeHandler(handler)
 
         # Create class filter
         cls._class_filter = ClassNameFilter()
@@ -176,6 +197,7 @@ class MONAIPhysioBase:
             datefmt="%Y-%m-%d %H:%M:%S",
         )
         console_handler.setFormatter(formatter)
+        console_handler.set_name(cls._HANDLER_NAME)
 
         # Add console handler to logger
         cls._shared_logger.addHandler(console_handler)
@@ -186,6 +208,7 @@ class MONAIPhysioBase:
             file_handler.setLevel(log_level)
             file_handler.addFilter(cls._class_filter)
             file_handler.setFormatter(formatter)
+            file_handler.set_name(cls._HANDLER_NAME)
             cls._shared_logger.addHandler(file_handler)
 
         # Prevent propagation to root logger to avoid duplicate messages
@@ -215,9 +238,11 @@ class MONAIPhysioBase:
         if cls._shared_logger is not None:
             cls._shared_logger.setLevel(log_level)
 
-            # Update all handlers
+            # Update the handlers MONAI Physio added; a caller's own handlers
+            # keep the level the caller gave them.
             for handler in cls._shared_logger.handlers:
-                handler.setLevel(log_level)
+                if handler.get_name() == cls._HANDLER_NAME:
+                    handler.setLevel(log_level)
 
     @classmethod
     def set_log_classes(cls, class_names: list[str]) -> None:
@@ -268,6 +293,91 @@ class MONAIPhysioBase:
         if cls._class_filter is not None and cls._class_filter.enabled:
             return sorted(cls._class_filter.allowed_classes)
         return []
+
+    @classmethod
+    def set_progress_callback(
+        cls, progress_callback: Optional[ProgressCallback]
+    ) -> None:
+        """Set the callback that receives progress from all MONAI Physio classes.
+
+        Like the log level, this is shared: set it once and every workflow and
+        registrar reports to it, including those a workflow runs internally.
+
+        Each long-running method reports a fraction in ``[0, 1]`` and a short
+        message.  A workflow divides that range among its steps once, as if
+        every optional step ran; a step that is disabled is skipped, so the
+        fraction jumps over its share.  The fraction never decreases during a
+        run and reaches 1.0 when the run completes.  Progress from runs in
+        concurrent threads is not kept apart.
+
+        Args:
+            progress_callback: Receives each fraction and message, or ``None``
+                to stop reporting.
+
+        Example:
+            >>> def show(fraction: float, message: str) -> None:
+            ...     print(f"{fraction:6.1%} {message}")
+            >>> MONAIPhysioBase.set_progress_callback(show)
+            >>> result = workflow.process()
+        """
+        MONAIPhysioBase._progress_callback = progress_callback
+        MONAIPhysioBase._progress_ranges = []
+        MONAIPhysioBase._progress_floor = 0.0
+
+    def _start_progress(self, message: str) -> None:
+        """Report the start of a run; an outermost run may begin again at 0."""
+        if not MONAIPhysioBase._progress_ranges:
+            MONAIPhysioBase._progress_floor = 0.0
+        self._report_progress(0.0, message)
+
+    def _report_progress(self, fraction: float, message: str) -> None:
+        """Report progress through the current range.
+
+        Args:
+            fraction: Progress through the current range, in ``[0, 1]``.  It
+                is clamped so the fraction forwarded never decreases.
+            message: Short description of the step in progress.
+        """
+        callback = MONAIPhysioBase._progress_callback
+        if callback is None:
+            return
+        ranges = MONAIPhysioBase._progress_ranges
+        start, end, prefix = ranges[-1] if ranges else (0.0, 1.0, "")
+        fraction = min(1.0, max(0.0, float(fraction)))
+        value = max(MONAIPhysioBase._progress_floor, start + fraction * (end - start))
+        MONAIPhysioBase._progress_floor = value
+        callback(value, f"{prefix}: {message}" if prefix else message)
+
+    @contextlib.contextmanager
+    def _progress_range(
+        self, start: float, end: float, prefix: str = ""
+    ) -> Iterator[None]:
+        """Map reports made inside the block onto ``[start, end]`` of the range.
+
+        Reports from any MONAI Physio object called inside the block, such as
+        a registrar a workflow runs, land in this share too.
+
+        Args:
+            start: Fraction of the current range where the step begins.
+            end: Fraction of the current range where the step ends.
+            prefix: Prepended to the step's messages as ``"prefix: message"``.
+        """
+        ranges = MONAIPhysioBase._progress_ranges
+        outer_start, outer_end, outer_prefix = ranges[-1] if ranges else (0.0, 1.0, "")
+        width = outer_end - outer_start
+        if outer_prefix and prefix:
+            prefix = f"{outer_prefix}: {prefix}"
+        ranges.append(
+            (
+                outer_start + start * width,
+                outer_start + end * width,
+                prefix or outer_prefix,
+            )
+        )
+        try:
+            yield
+        finally:
+            ranges.pop()
 
     def log_debug(self, message: str, *args: Any) -> None:
         """Log a debug message with optional %-style formatting.
@@ -387,13 +497,20 @@ class MONAIPhysioBase:
         self.log_info(title, *args)
         self.log_info(separator)
 
-    def log_progress(self, current: int, total: int, prefix: str = "Progress") -> None:
-        """Log progress information.
+    def log_progress(
+        self, current: int, total: int, prefix: str = "Progress", *, log: bool = True
+    ) -> None:
+        """Log progress information and report it to the progress callback.
+
+        ``current / total`` is also reported, within the current range, to the
+        callback set by :meth:`set_progress_callback`.
 
         Args:
             current: Current step/iteration number
             total: Total number of steps/iterations
             prefix: Prefix text for the progress message. Default: 'Progress'
+            log: Whether to also write the progress to the log.  Pass False
+                for per-iteration progress that would flood it.  Default: True
 
         Example:
             >>> for i in range(100):
@@ -405,4 +522,6 @@ class MONAIPhysioBase:
             >>> self.log_info('Loading %s: %d/%d', filename, current, total)
         """
         percentage = (current / total) * 100 if total > 0 else 0
-        self.log_info("%s: %d/%d (%.1f%%)", prefix, current, total, percentage)
+        if log:
+            self.log_info("%s: %d/%d (%.1f%%)", prefix, current, total, percentage)
+        self._report_progress(percentage / 100, f"{prefix}: {current}/{total}")

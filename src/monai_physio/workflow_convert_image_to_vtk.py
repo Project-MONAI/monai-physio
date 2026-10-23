@@ -262,8 +262,14 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
                 )
         groups_to_process = list(anatomy_groups or self.anatomy_groups)
 
+        # Progress: segmentation 0-0.6, group surfaces 0.6-0.8, label surfaces
+        # 0.8-1; a step that does not run is skipped over.
+        self._start_progress("Image to VTK starting")
         if labelmap_image is None:
             self.log_info("Running segmenter: %s", type(self._segmenter).__name__)
+            self._report_progress(
+                0.0, f"Segmentation: running {type(self._segmenter).__name__}"
+            )
             labelmap_image = self._segmenter.segment(input_image)["labelmap"]
         labels = itk.GetArrayViewFromImage(labelmap_image)
 
@@ -296,6 +302,7 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
 
         if extract_group_surfaces:
             self.log_section("Extracting group surfaces")
+            self._report_progress(0.6, "Group surfaces: extracting")
             # One id per group, so the groups are extracted together and the
             # wall between two groups is shared like the wall between labels.
             group_map = np.zeros(labels.shape, dtype=np.uint16)
@@ -309,6 +316,9 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
             for index, (group, ids) in enumerate(groups.items(), start=1):
                 if index not in extracted:
                     continue
+                self._report_progress(
+                    0.78 + 0.02 * (index - 1) / len(groups), f"Group surfaces: {group}"
+                )
                 names = [label_names.get(i, f"label_{i}") for i in ids]
                 self._annotate(extracted[index], group, names, list(ids))
                 surfaces[group] = extracted[index]
@@ -324,11 +334,16 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
 
         if extract_label_surfaces:
             self.log_section("Extracting label surfaces")
+            self._report_progress(0.8, "Label surfaces: extracting")
             extracted = self._surface_tools.extract_label_surfaces(
                 labelmap_image, label_ids=processed_ids, **extract_options
             )
-            for label_id, surface in extracted.items():
+            for label_index, (label_id, surface) in enumerate(extracted.items()):
                 name = label_names.get(label_id, f"label_{label_id}")
+                self._report_progress(
+                    0.98 + 0.02 * label_index / len(extracted),
+                    f"Label surfaces: {name}",
+                )
                 group = taxonomy.group_for_id(label_id)
                 self._annotate(surface, group, [name], [label_id])
                 label_surfaces[name] = surface
@@ -343,6 +358,7 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
                         label_tetrahedra[name] = mesh
 
         self.log_section("IMAGE TO VTK WORKFLOW COMPLETE")
+        self._report_progress(1.0, "Image to VTK complete")
         self.log_info("Surfaces extracted:       %d", len(surfaces))
         self.log_info("Label surfaces extracted: %d", len(label_surfaces))
 

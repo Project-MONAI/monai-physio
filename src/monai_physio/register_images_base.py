@@ -355,6 +355,8 @@ class RegisterImagesBase(MONAIPhysioBase):
         self.moving_to_fixed_transform = None
         self.loss = None
 
+        self._start_progress(f"{self.class_name} preprocessing")
+
         if self.fixed_image_pre is None:
             self.fixed_image_pre = self.preprocess(
                 self.fixed_image,
@@ -379,16 +381,19 @@ class RegisterImagesBase(MONAIPhysioBase):
         self.moving_mask = new_moving_mask
         self.moving_labelmap = moving_labelmap
 
-        result = self.registration_method(
-            moving_image,
-            moving_mask=new_moving_mask,
-            moving_labelmap=moving_labelmap,
-            moving_image_pre=moving_image_pre,
-        )
+        # Backends that know their iteration count report within this range.
+        with self._progress_range(0.05, 0.95):
+            result = self.registration_method(
+                moving_image,
+                moving_mask=new_moving_mask,
+                moving_labelmap=moving_labelmap,
+                moving_image_pre=moving_image_pre,
+            )
 
         self.fixed_to_moving_transform = result["fixed_to_moving_transform"]
         self.moving_to_fixed_transform = result["moving_to_fixed_transform"]
         self.loss = result["loss"]
+        self._report_progress(1.0, f"{self.class_name} complete")
 
         return {
             "fixed_to_moving_transform": self.fixed_to_moving_transform,
