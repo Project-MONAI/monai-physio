@@ -44,13 +44,15 @@ dependencies and status.
 
 - **Benefit:** Downstream workflows can reuse inferred motion without repeating
   inference.
-- **Acceptance:** Agree on a small format matrix (proposed: NIfTI/NRRD vector fields
-  and VTK point vectors), then document and test exports from cardiac and respiratory
-  inference. Preserve units, geometry, vector basis, transform direction and time
+- **Acceptance:** Support CSV export of inferred deformation vectors and fields.
+  Document the CSV schema for sample positions, vector components and time indexing,
+  including how geometry and units are recorded. Agree on additional formats
+  (proposed: NIfTI/NRRD vector fields and VTK point vectors), then document and test
+  exports from cardiac and respiratory inference. Preserve units, geometry, vector basis, transform direction and time
   indexing under existing conventions. Round-trip each selected format and reproduce a
   landmark or image warp in a downstream consumer.
 - **Dependencies:** Existing inference and transform utilities; maintainer selection
-  of formats and downstream consumers.
+  of additional formats and downstream consumers.
 - **Status / owner:** Proposed — awaiting maintainer review / Unassigned.
 - **Evidence:** [deformation utilities][transforms], [motion evaluation][evaluation],
   [data conventions][agents].
