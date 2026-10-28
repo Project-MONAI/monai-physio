@@ -11,6 +11,8 @@ dependencies and status.
 
 ### MP-001: Publish a Slicer extension
 
+- **Tracking issue:** [#155](https://github.com/Project-MONAI/monai-physio/issues/155)
+
 - **Benefit:** Slicer users can export anatomy to Omniverse and apply pretrained
   motion models.
 - **Acceptance:** Publish an installable extension with two demonstrated paths:
@@ -27,6 +29,8 @@ dependencies and status.
 
 ### MP-002: Complete progress reporting and optional callbacks
 
+- **Tracking issue:** [#156](https://github.com/Project-MONAI/monai-physio/issues/156)
+
 - **Benefit:** GUI applications can keep users informed and remain interactive during
   long processes.
 - **Acceptance:** Audit long-running entry points and extend the existing optional
@@ -41,6 +45,8 @@ dependencies and status.
   GUI responsiveness still need verification.
 
 ### MP-003: Export inferred deformation vectors and fields
+
+- **Tracking issue:** [#157](https://github.com/Project-MONAI/monai-physio/issues/157)
 
 - **Benefit:** Downstream workflows can reuse inferred motion without repeating
   inference.
@@ -59,6 +65,8 @@ dependencies and status.
 
 ### MP-004: Cross-platform first use and contributor onboarding
 
+- **Tracking issue:** [#158](https://github.com/Project-MONAI/monai-physio/issues/158)
+
 - **Benefit:** New users and contributors get a reliable first result and a clear path
   to a small contribution.
 - **Acceptance:** Select a first tutorial (proposed: Tutorial 00) and supported OS/GPU
@@ -76,6 +84,8 @@ dependencies and status.
 
 ### MP-005: Expand tutorial baselines and regression conditions
 
+- **Tracking issue:** [#159](https://github.com/Project-MONAI/monai-physio/issues/159)
+
 - **Benefit:** Researchers can separate regressions from data, environment and
   protocol changes.
 - **Acceptance:** Expand reviewed cardiac and respiratory tutorial baselines and a
@@ -92,6 +102,8 @@ dependencies and status.
 
 ### MP-006: AI-assisted sustainable support and maintenance
 
+- **Tracking issue:** [#160](https://github.com/Project-MONAI/monai-physio/issues/160)
+
 - **Benefit:** Maintainers spend less time on repetitive support and more on
   reproducible scientific issues.
 - **Acceptance:** Pilot AI assistance for issue triage, reproducer guidance,
@@ -106,6 +118,8 @@ dependencies and status.
   [workflows][workflows], [resolved issue #147][issue147].
 
 ### MP-007: Update ICON for upstream finetuning without patching
+
+- **Tracking issue:** [#161](https://github.com/Project-MONAI/monai-physio/issues/161)
 
 - **Benefit:** Users can install and finetune registration reproducibly without local
   dependency workarounds.
@@ -126,6 +140,8 @@ dependencies and status.
 
 ### MP-008: Skills-based access to key MONAI Physio functions
 
+- **Tracking issue:** [#162](https://github.com/Project-MONAI/monai-physio/issues/162)
+
 - **Benefit:** Researchers can invoke repeatable workflows through an AI-assistant
   skills interface.
 - **Acceptance:** Select a small function set and provide versioned skills with
@@ -139,6 +155,8 @@ dependencies and status.
   Existing assistant guidance is not a delivered runtime skills interface.
 
 ### MP-009: Simpleware meshes for Warp integration
+
+- **Tracking issue:** [#163](https://github.com/Project-MONAI/monai-physio/issues/163)
 
 - **Benefit:** Simulation researchers can transfer high-quality anatomical meshes into
   Warp.
@@ -154,6 +172,8 @@ dependencies and status.
   pipeline.
 
 ### MP-010: Warp-generated physics data and an AI surrogate
+
+- **Tracking issue:** [#164](https://github.com/Project-MONAI/monai-physio/issues/164)
 
 - **Benefit:** Researchers can reproduce simulation-to-training experiments and
   quantify surrogate error.
@@ -172,6 +192,8 @@ dependencies and status.
 
 ### MP-011: Characterize existing physiological motion models
 
+- **Tracking issue:** [#165](https://github.com/Project-MONAI/monai-physio/issues/165)
+
 - **Benefit:** Researchers understand current cardiac and respiratory model failure
   modes.
 - **Acceptance:** Report held-out motion error, volume behavior, mesh quality, minimum
@@ -186,6 +208,8 @@ dependencies and status.
 ## Later
 
 ### MP-012: Vascular modeling using iterative AI methods
+
+- **Tracking issue:** [#166](https://github.com/Project-MONAI/monai-physio/issues/166)
 
 - **Benefit:** Researchers can explore iterative vascular reconstruction or refinement
   with measurable stopping criteria.
@@ -202,6 +226,8 @@ dependencies and status.
 
 ### MP-013: Explore brain CT perfusion for stroke research
 
+- **Tracking issue:** [#167](https://github.com/Project-MONAI/monai-physio/issues/167)
+
 - **Benefit:** Researchers can assess whether perfusion modeling can support useful
   stroke research questions.
 - **Acceptance:** Review one defined research question, data access and acquisition
@@ -214,6 +240,8 @@ dependencies and status.
   stroke modeling are exploratory directions.
 
 ### MP-014: Evaluate alternative shape representations
+
+- **Tracking issue:** [#168](https://github.com/Project-MONAI/monai-physio/issues/168)
 
 - **Benefit:** Researchers can compare current shape models with representations
   suited to more complex anatomy.
