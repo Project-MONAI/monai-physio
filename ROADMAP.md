@@ -38,133 +38,244 @@ scientific validation of these workflows.
   blood flow, organ perfusion, and Omniverse as a hub connecting other solvers,
   interactive simulation, and physical systems. Those statements do not establish
   completed integrations or validated physiological solvers.
-- **Proposals below:** the ordering, acceptance criteria, and prioritization
-  process are recommendations awaiting maintainer review. Supporting PRs show
-  context, not approval of these priorities. Containerization [PR #129][pr129]
-  is open and is not part of the inspected `main` functionality.
+- **Requested priorities below:** the Now / Next / Later direction reflects the
+  roadmap author's requested revision on 2026-10-28. Acceptance criteria and
+  implementation details are proposals awaiting maintainer review, not delivery
+  commitments. Supporting links provide context, not proof of completion.
+  Existing optional [progress callbacks][progress], [deformation utilities][transforms],
+  [ICON finetuning][icon] and [Simpleware segmentation][simpleware] are foundations
+  to extend. Slicer publication and Simpleware-to-Warp integration are not claimed
+  complete. Containerization [PR #129][pr129] remains separate open work.
 
 ## Reading the priorities
 
-**Now** proposes foundational work; **Next** depends on that foundation;
-**Later** requires a separate scope decision. These are sequencing groups, not
-delivery dates or commitments to start everything at once. Every item has status
-**Proposed — awaiting maintainer review** and ownership **Unassigned**. An
-existing PR author is not automatically the owner of a roadmap item. Keep the
-`MP-` identifiers stable when moving or completing work.
+**Now** is the immediate focus; **Next** and **Later** are non-exhaustive research
+and integration directions. No delivery dates are implied. All items have status
+**Proposed — awaiting maintainer review** and ownership **Unassigned**; existing
+implementation is noted separately. Keep identifiers stable across moves.
+MP-003 (documentation and contributor onboarding) is consolidated into MP-001;
+its identifier is reserved. MP-006 now focuses the integration demonstration on
+Slicer; MP-007 narrows the additional-physiology scope to vascular modeling.
 
 ## Now
 
-### MP-001: A reliable installation-to-first-result path
+### MP-006: Publish a Slicer extension
 
-- **Benefit:** a new researcher can obtain a recognizable result without guessing
-  package, repository, data, or GPU requirements.
-- **Acceptance:** maintainers select one first tutorial (proposed: Tutorial 00
-  lung demo); record a successful clean-environment run with package/commit,
-  Python, OS, GPU/CUDA and dependency versions, data/weight provenance and access
-  requirements, commands, expected outputs, runtime and memory observations.
-  Align README, installation and quickstart instructions, including the clone
-  directory name. Explain GPU requirements per workflow and known unsupported
-  configurations rather than promising universal CPU support.
-- **Dependencies:** accessible sample data/weights and a supported GPU environment;
-  maintainer choice of reference tutorial and platform.
+- **Benefit:** Slicer users can export anatomy to Omniverse and apply pretrained
+  motion models.
+- **Acceptance:** Publish an installable extension with two demonstrated paths:
+  convert Slicer models to OpenUSD for Omniverse, optionally applying tissue
+  visualization properties; and use pretrained models to induce respiratory or cardiac
+  motion in 3D medical images and models. Document installation, compatible versions,
+  checkpoints, licenses and expected outputs. Verify geometry and animation timing
+  against repository conventions and reproduce both paths from clean installations.
+- **Dependencies:** MP-001, MP-008 and MP-009; distributable checkpoints, Slicer
+  packaging and compatible Omniverse viewer.
 - **Status / owner:** Proposed — awaiting maintainer review / Unassigned.
-- **Evidence:** [installation][install], [Tutorial 00][demo],
-  [release 2026.09.1][release], and the contrasting README Tutorial 01 entry path.
+- **Evidence:** [USD viewing guide][viewing], [Tutorial 00][demo], [USD export PR
+  #152][pr152].
 
-### MP-002: Reproducible evaluation and regression evidence
+### MP-008: Complete progress reporting and optional callbacks
 
-- **Benefit:** researchers can distinguish numerical regressions from changes in
-  data, environment, or evaluation protocol.
-- **Acceptance:** publish one reproducible cardiac or lung evaluation recipe
-  using existing metrics and held-out cases; record data provenance, subject
-  splits, preprocessing, seeds, model/configuration identifiers, environment,
-  units, limitations and result tables. Document how shape-model fitting avoids
-  train/test leakage. Define justified numerical tolerances and baseline-update
-  review criteria for a bounded regression case; report skipped tests separately
-  from passes and map expensive evaluation to existing opt-in test buckets.
-- **Dependencies:** MP-001; accessible evaluation data, GPU time and maintainer
-  agreement on the reference case, metrics and tolerances.
+- **Benefit:** GUI applications can keep users informed and remain interactive during
+  long processes.
+- **Acceptance:** Audit long-running entry points and extend the existing optional
+  callback mechanism where needed. Test bounded, monotonic progress, completion and
+  no-callback behavior. Document callback threading, error behavior and concurrent-run
+  limitations; demonstrate worker execution with GUI-thread updates so callbacks do
+  not themselves block the event loop.
+- **Dependencies:** Existing shared callback API; a representative Slicer/GUI
+  integration and agreement on concurrency behavior.
 - **Status / owner:** Proposed — awaiting maintainer review / Unassigned.
-- **Evidence:** [evaluation implementation][evaluation],
-  [leave-one-out tutorial][loo], [testing guide][testing], [PR #123][pr123].
+- **Evidence:** [MONAIPhysioBase][progress] already implements callbacks; coverage and
+  GUI responsiveness still need verification.
 
-### MP-003: Consistent documentation and contributor onboarding
+### MP-009: Export inferred deformation vectors and fields
 
-- **Benefit:** contributors can find an extension point and submit a small,
-  testable change without reconciling conflicting instructions.
-- **Acceptance:** walk through setup, a first result, and one existing cookbook
-  extension recipe; reconcile Python/dependency and CPU/GPU statements with the
-  supported path. Repair stale test-document links and distinguish tutorials from
-  exploratory experiments. Verify navigation and the Sphinx build; document
-  required checks and environment-dependent checks in contributor guidance.
-- **Dependencies:** MP-001's supported path and existing contributor conventions.
+- **Benefit:** Downstream workflows can reuse inferred motion without repeating
+  inference.
+- **Acceptance:** Agree on a small format matrix (proposed: NIfTI/NRRD vector fields
+  and VTK point vectors), then document and test exports from cardiac and respiratory
+  inference. Preserve units, geometry, vector basis, transform direction and time
+  indexing under existing conventions. Round-trip each selected format and reproduce a
+  landmark or image warp in a downstream consumer.
+- **Dependencies:** Existing inference and transform utilities; maintainer selection
+  of formats and downstream consumers.
 - **Status / owner:** Proposed — awaiting maintainer review / Unassigned.
-- **Evidence:** [contributor guide][contributing], [docs build guide][docs-guide],
-  [test README][test-readme], [cookbook][cookbook], [AGENTS.md][agents].
+- **Evidence:** [deformation utilities][transforms], [motion evaluation][evaluation],
+  [data conventions][agents].
 
-### MP-004: Sustainable support and maintenance
+### MP-001: Cross-platform first use and contributor onboarding
 
-- **Benefit:** users get actionable support and maintainers can spend limited
-  capacity on reproducible, high-impact problems.
-- **Acceptance:** document a triage checklist covering reproduction, supported
-  environment, severity, duplicates and next action; distinguish questions,
-  defects and research proposals. Document review of existing CI/nightly failures,
-  dependency changes and migration notes before releases, with a cadence agreed
-  by maintainers and no promised response time. Link a resolved support example.
-- **Dependencies:** maintainer capacity; MP-001's environment record and MP-002's
-  distinction between test passes, skips and scientific evidence.
+- **Benefit:** New users and contributors get a reliable first result and a clear path
+  to a small contribution.
+- **Acceptance:** Select a first tutorial (proposed: Tutorial 00) and supported OS/GPU
+  matrix. Record clean runs across supported platforms with commands,
+  Python/dependency/CUDA versions, data and checkpoint provenance, expected outputs
+  and resource needs. Align README, installation, quickstart and contributor
+  instructions; repair stale links, verify Sphinx navigation and walk through one
+  cookbook extension. Clearly identify unsupported configurations; CPU-only support is
+  not required.
+- **Dependencies:** Accessible sample data/weights, platform testers and maintainer
+  agreement on the support matrix.
 - **Status / owner:** Proposed — awaiting maintainer review / Unassigned.
-- **Evidence:** [issue templates][templates], [existing workflows][workflows],
-  [contributor/release guide][contributing], and resolved [issue #147][issue147].
+- **Evidence:** [installation][install], [Tutorial 00][demo], [contributor
+  guide][contributing], [docs guide][docs-guide], [cookbook][cookbook].
+
+### MP-002: Expand tutorial baselines and regression conditions
+
+- **Benefit:** Researchers can separate regressions from data, environment and
+  protocol changes.
+- **Acceptance:** Expand reviewed cardiac and respiratory tutorial baselines and a
+  bounded matrix of supported environments, inputs and optional settings. Record
+  held-out splits, leakage prevention, seeds, versions, units and result tables;
+  justify tolerances and baseline-update criteria. Exercise failure cases, report
+  skips separately and map expensive cases to existing opt-in buckets rather than
+  treating regenerated baselines as passes.
+- **Dependencies:** MP-001; accessible evaluation data, GPU budget and agreed
+  reference cases.
+- **Status / owner:** Proposed — awaiting maintainer review / Unassigned.
+- **Evidence:** [evaluation][evaluation], [leave-one-out tutorial][loo], [testing
+  guide][testing], [PR #123][pr123].
+
+### MP-004: AI-assisted sustainable support and maintenance
+
+- **Benefit:** Maintainers spend less time on repetitive support and more on
+  reproducible scientific issues.
+- **Acceptance:** Pilot AI assistance for issue triage, reproducer guidance,
+  documentation answers and dependency/CI review using existing tooling. Define human
+  review, source citations, access boundaries and escalation; assess a bounded sample
+  for correctness and maintainer time saved. Document a triage checklist and
+  release-review cadence without promising response times or autonomous merges.
+- **Dependencies:** Maintainer capacity, approved AI tooling and MP-001/MP-002
+  evidence.
+- **Status / owner:** Proposed — awaiting maintainer review / Unassigned.
+- **Evidence:** [AI assistant guide][ai-guide], [issue templates][templates],
+  [workflows][workflows], [resolved issue #147][issue147].
+
+### MP-010: Update ICON for upstream finetuning without patching
+
+- **Benefit:** Users can install and finetune registration reproducibly without local
+  dependency workarounds.
+- **Acceptance:** Identify and test the latest compatible upstream ICON/uniGradICON
+  version with finetuning support; record the exact version or revision. Inventory and
+  remove obsolete patches or branch overrides only after clean-install, finetuning,
+  checkpoint-loading and registration regression checks pass. Update dependency and
+  migration guidance. If upstream support is not yet available, record the blocker
+  rather than claim completion.
+- **Dependencies:** Upstream finetuning API availability and compatibility; MP-002
+  regression cases.
+- **Status / owner:** Proposed — awaiting maintainer review / Unassigned.
+- **Evidence:** [dependency configuration][dependencies], [finetuning workflow][icon].
+  The inspected configuration selects a finetuning branch; this is not evidence that a
+  newer release resolves it.
 
 ## Next
 
+### MP-011: Skills-based access to key MONAI Physio functions
+
+- **Benefit:** Researchers can invoke repeatable workflows through an AI-assistant
+  skills interface.
+- **Acceptance:** Select a small function set and provide versioned skills with
+  explicit inputs, prerequisites, outputs, failure handling and reproducible example
+  invocations. Compare results with direct CLI/Python calls; document approval and
+  data-access boundaries and avoid duplicating runtime logic.
+- **Dependencies:** MP-001 and MP-008; agreed skill host/interface and supported
+  function set.
+- **Status / owner:** Proposed — awaiting maintainer review / Unassigned.
+- **Evidence:** [AI assistant guide][ai-guide], [contributor guide][contributing].
+  Existing assistant guidance is not a delivered runtime skills interface.
+
+### MP-012: Simpleware meshes for Warp integration
+
+- **Benefit:** Simulation researchers can transfer high-quality anatomical meshes into
+  Warp.
+- **Acceptance:** Demonstrate one licensed Simpleware meshing-to-Warp import path with
+  documented element types, boundaries, units and material labels. Report mesh-quality
+  criteria, invalid-element handling and a reproducible import check; provide
+  shareable sample artifacts where licensing permits.
+- **Dependencies:** Simpleware access, compatible Warp representation and a selected
+  anatomy/mesh-quality specification.
+- **Status / owner:** Proposed — awaiting maintainer review / Unassigned.
+- **Evidence:** [Simpleware integration][simpleware], [physics-informed
+  motion][physics]. Existing segmentation does not establish a meshing-to-Warp
+  pipeline.
+
+### MP-013: Warp-generated physics data and an AI surrogate
+
+- **Benefit:** Researchers can reproduce simulation-to-training experiments and
+  quantify surrogate error.
+- **Acceptance:** Choose one bounded application, with blood flow and tissue-solid
+  interaction as candidates. Generate training data in Warp with recorded physics,
+  boundary conditions, parameters and seeds; train an AI approximation and evaluate
+  held-out parameters/cases against solver outputs and a reference check. Publish
+  runtime, error, conservation/stability checks and failure limits with reproducible
+  commands.
+- **Dependencies:** MP-002; selected physical formulation and reference solution,
+  compute budget, and MP-012 when anatomical meshes are required.
+- **Status / owner:** Proposed — awaiting maintainer review / Unassigned.
+- **Evidence:** [README solver aspirations][readme], [existing physics-informed
+  training][physics]. A constitutive loss is not a Warp-generated training-data
+  demonstration.
+
 ### MP-005: Characterize existing physiological motion models
 
-- **Benefit:** researchers understand where current cardiac and respiratory
-  predictions are useful and where they fail.
-- **Acceptance:** document a held-out comparison using the existing motion and
-  physics-informed tutorials. Report motion error, volume behavior, mesh quality,
-  minimum Jacobian/inversion counts and the physics-loss ablation; expose collapse
-  or failure cases, material assumptions and parameter sensitivity. Separate
-  stress derived from an assumed constitutive law from measured tissue stress.
-  Record limitations without claiming validation of new physiological processes.
-- **Dependencies:** MP-002's evaluation protocol; valid volumetric meshes and
-  trained checkpoints for the physics-informed comparison.
+- **Benefit:** Researchers understand current cardiac and respiratory model failure
+  modes.
+- **Acceptance:** Report held-out motion error, volume behavior, mesh quality, minimum
+  Jacobian/inversions and physics-loss ablations. Include material assumptions,
+  sensitivity and failure cases; distinguish constitutive-law-derived stress from
+  measured stress.
+- **Dependencies:** MP-002, suitable volumetric meshes and trained checkpoints.
 - **Status / owner:** Proposed — awaiting maintainer review / Unassigned.
-- **Evidence:** [physics-informed implementation][physics],
-  [Tutorial 18][mechanics-demo], [PR #126][pr126], [PR #140][pr140].
-
-### MP-006: One reproducible integration demonstration
-
-- **Benefit:** an integrator can reproduce a complete image-to-motion-to-USD
-  example and inspect the resulting animation in a documented viewer.
-- **Acceptance:** package instructions for one existing workflow, its input and
-  checkpoint provenance, dependency versions, commands, expected artifacts and
-  viewer settings. Verify geometry, units and animation timing at the export
-  boundary against the existing conventions. Document licensing/access limits
-  and a repeat run by a second contributor. Evaluate PR #129 with its author
-  before duplicating container work; container delivery is not a prerequisite.
-- **Dependencies:** MP-001 and MP-002; compatible viewer and shareable artifacts.
-- **Status / owner:** Proposed — awaiting maintainer review / Unassigned.
-- **Evidence:** [USD viewing guide][viewing], [Tutorial 00][demo],
-  [open PR #129][pr129], [tetrahedral USD export PR #152][pr152].
+- **Evidence:** [physics-informed implementation][physics], [Tutorial
+  18][mechanics-demo], [PR #140][pr140].
 
 ## Later
 
-### MP-007: Scope one additional physiology or solver connection
+### MP-007: Vascular modeling using iterative AI methods
 
-- **Benefit:** future expansion answers a concrete research need with an
-  evaluation plan and a sustainable maintenance cost.
-- **Acceptance:** maintainers review a short proposal for one process or solver
-  connection, stating users, scientific assumptions, input/output contract,
-  reference data or solver, licensing, evaluation criteria, compute cost and
-  maintenance needs. Record a proceed/defer decision and a bounded prototype
-  scope before treating it as committed implementation work.
-- **Dependencies:** MP-002 and MP-005 evidence; an interested contributor and
-  maintainer capacity. No ownership is inferred from partner names in the README.
+- **Benefit:** Researchers can explore iterative vascular reconstruction or refinement
+  with measurable stopping criteria.
+- **Acceptance:** Scope one vascular task, define what each AI iteration updates and
+  compare with a non-iterative baseline on held-out data. Report geometric/topological
+  errors, convergence, failure cases and compute cost; review a bounded prototype
+  proposal before implementation.
+- **Dependencies:** MP-002; licensed vascular data, reference geometry and an agreed
+  iterative method.
 - **Status / owner:** Proposed — awaiting maintainer review / Unassigned.
-- **Evidence:** [README research directions and simulation-hub aspiration][readme].
+- **Evidence:** [README research directions][readme], [existing shape-model
+  fitting][shape]. Iterative vascular AI is a research proposal, not an established
+  capability.
+
+### MP-014: Explore brain CT perfusion for stroke research
+
+- **Benefit:** Researchers can assess whether perfusion modeling can support useful
+  stroke research questions.
+- **Acceptance:** Review one defined research question, data access and acquisition
+  assumptions; propose a reproducible reference comparison with perfusion metrics,
+  uncertainty and failure analysis. Record a proceed/defer decision and separate any
+  future clinical validation study from technical feasibility.
+- **Dependencies:** Appropriately governed CT perfusion data, domain expertise and
+  MP-002 evaluation practices.
+- **Status / owner:** Proposed — awaiting maintainer review / Unassigned.
+- **Evidence:** [README organ-perfusion aspiration][readme]. Brain CT perfusion and
+  stroke assessment are exploratory, not validated clinical functionality.
+
+### MP-015: Evaluate alternative shape representations
+
+- **Benefit:** Researchers can compare current shape models with representations
+  suited to more complex anatomy.
+- **Acceptance:** Review applicable scikit-learn methods and recent MICCAI
+  deep-learning methods, including implicit neural representations; cite selected
+  papers and versions in the study proposal. Benchmark a bounded shortlist against
+  current PCA-based fitting using the same held-out cases, reconstruction accuracy,
+  topology, correspondence needs, compute and downstream motion compatibility.
+- **Dependencies:** MP-002, representative anatomy and a literature/method shortlist
+  with usable implementations and licenses.
+- **Status / owner:** Proposed — awaiting maintainer review / Unassigned.
+- **Evidence:** [current PCA-based fitting][shape], [evaluation][evaluation]. No
+  specific recent paper or alternative method is claimed verified by this roadmap.
 
 ## Proposing work and deciding priorities
 
@@ -190,7 +301,7 @@ this file; edit this source rather than maintaining parallel priority lists.
 
 - **MP-001:** try the selected first tutorial on one GPU environment and submit
   exact commands, versions, expected/actual output and one actionable setup fix.
-- **MP-003:** check the four documentation links at the top of `tests/README.md`
+- **MP-001 (formerly MP-003):** check the four documentation links at the top of `tests/README.md`
   and propose replacements that point to maintained guidance.
 - **MP-002:** audit one evaluation output table for units, split provenance and
   missing run metadata; propose a bounded documentation improvement.
@@ -222,3 +333,11 @@ this file; edit this source rather than maintaining parallel priority lists.
 [issue147]: https://github.com/Project-MONAI/monai-physio/issues/147
 [new-issue]: https://github.com/Project-MONAI/monai-physio/issues/new/choose
 [discussions]: https://github.com/Project-MONAI/monai-physio/discussions
+
+[progress]: https://github.com/Project-MONAI/monai-physio/blob/main/src/monai_physio/monai_physio_base.py
+[transforms]: https://github.com/Project-MONAI/monai-physio/blob/main/src/monai_physio/process_transforms.py
+[icon]: https://github.com/Project-MONAI/monai-physio/blob/main/src/monai_physio/workflow_finetune_icon_registration.py
+[dependencies]: https://github.com/Project-MONAI/monai-physio/blob/main/pyproject.toml
+[simpleware]: https://github.com/Project-MONAI/monai-physio/blob/main/src/monai_physio/simpleware_medical/README.md
+[ai-guide]: https://github.com/Project-MONAI/monai-physio/blob/main/docs/developer/ai_assistants.rst
+[shape]: https://github.com/Project-MONAI/monai-physio/blob/main/src/monai_physio/register_models_pca.py
