@@ -237,6 +237,7 @@ close every section.
    :hidden:
 
    contributing
+   roadmap
    testing
 
 .. toctree::

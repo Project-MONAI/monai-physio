@@ -31,6 +31,7 @@ for users and contributors. Key sections:
 - [API Reference](https://project-monai.github.io/monai-physio/api/index.html) - workflow, registration, segmentation, and USD classes
 - [Developer Guides](https://project-monai.github.io/monai-physio/developer/architecture.html) - architecture, extension points, and implementation conventions
 - [Contributing](CONTRIBUTING.md) and [Testing](https://project-monai.github.io/monai-physio/testing.html)
+- [Roadmap](ROADMAP.md) - proposed priorities and bounded ways to contribute
 - [FAQ](https://project-monai.github.io/monai-physio/faq.html) and [Troubleshooting](https://project-monai.github.io/monai-physio/troubleshooting.html)
 - [Issues](https://github.com/Project-MONAI/monai-physio/issues) and [Discussions](https://github.com/Project-MONAI/monai-physio/discussions)
 
