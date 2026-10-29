@@ -96,36 +96,18 @@ acceptance criteria, dependencies, status, ownership and supporting references.
   suited to more complex anatomy.
   See [#168](https://github.com/Project-MONAI/monai-physio/issues/168).
 
-## Proposing work and deciding priorities
+## Proposing work
 
 Use the existing [issue forms][new-issue] and [contributor guide][contributing].
 Search existing issues/PRs first; cite an `MP-` identifier when applicable.
-Describe the user problem, repository evidence, smallest useful outcome,
-acceptance criteria, dependencies, data/license constraints and expected upkeep.
+Describe the problem/feature and expected benefit and provide specific examples
+or details regarding expected inputs, primary and secondary parameters, and
+expected outputs.
 Questions and early ideas can use [Discussions][discussions] where available.
 Do not include private patient data in public reports.
 
-**Proposed maintainer process:** prioritize scientific correctness, reproducible
-user blockers, dependency risk, breadth of benefit and available review/compute
-capacity. Prefer finishing a small item over expanding the list. Record acceptance,
-deferral or scope changes in a linked issue/PR; contributors opt into ownership.
-Update this file when decisions change, and mark work complete only with linked
-acceptance evidence. Review priorities alongside release planning; no fixed
-cadence or governance policy is implied until maintainers agree.
-
 `ROADMAP.md` is the authoritative source. The README links here and Sphinx includes
 this file; edit this source rather than maintaining parallel priority lists.
-
-## Help wanted
-
-- **MP-004:** try the selected first tutorial on one GPU environment and submit
-  exact commands, versions, expected/actual output and one actionable setup fix.
-- **MP-004:** check the four documentation links at the top of `tests/README.md`
-  and propose replacements that point to maintained guidance.
-- **MP-005:** audit one evaluation output table for units, split provenance and
-  missing run metadata; propose a bounded documentation improvement.
-- **MP-001:** reproduce one exported USD animation and report viewer version,
-  timing and geometry checks. Coordinate with existing PRs before starting code.
 
 [contributing]: https://github.com/Project-MONAI/monai-physio/blob/main/CONTRIBUTING.md
 [new-issue]: https://github.com/Project-MONAI/monai-physio/issues/new/choose
