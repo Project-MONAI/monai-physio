@@ -388,10 +388,10 @@ if __name__ == "__main__":
         mean_surface_iterations = 1
         epochs = 2
 
-    # Distance-map weights finetuned by
-    # tutorial_02_finetune_icon_distancemap_duke_heart_4d_labelmaps.py, used both by the
-    # labelmap-to-labelmap stage of the SSM fit and by the frame registrations.
-    icon_weights_path = DUKE_HEART_4D_LABELMAPS.distancemap_icon_weights_file(test_mode)
+    # Every SSM step uses the stock uniGradICON weights, not Tutorial 2's
+    # finetuned ones: those were finetuned on every case except the
+    # parameters' hold-out, so most folds' held-out cases would have shaped
+    # the registration that fits them.
 
     # Directory setup and data reading
 
@@ -443,17 +443,6 @@ if __name__ == "__main__":
         len(held_out_cases),
         ", ".join(held_out_cases),
     )
-
-    use_finetuned_weights = icon_weights_path.exists()
-    if not use_finetuned_weights:
-        logger.log_warning(
-            "Finetuned distance-map ICON weights not found at %s; registering "
-            "with the stock uniGradICON weights. Run "
-            "tutorials/tutorial_02_finetune_icon_distancemap_duke_heart_4d_"
-            "labelmaps.py to "
-            "create them.",
-            icon_weights_path,
-        )
 
     contour_tools = ProcessSurfaceMesh(log_level=log_level)
 
@@ -543,8 +532,6 @@ if __name__ == "__main__":
                 mean_workflow.set_distance_squared_max(
                     DUKE_HEART_4D_LABELMAPS.distancemap_squared_max
                 )
-                if use_finetuned_weights:
-                    mean_workflow.set_icon_weights_path(str(icon_weights_path))
                 mean_workflow.process()["mean_surface"].save(
                     str(reference_surface_file)
                 )
@@ -557,8 +544,6 @@ if __name__ == "__main__":
                 distance_squared_max=DUKE_HEART_4D_LABELMAPS.distancemap_squared_max,
                 log_level=log_level,
             )
-            if use_finetuned_weights:
-                model_workflow.set_icon_weights_path(str(icon_weights_path))
             model_result = model_workflow.process()
             pca_model_file.write_text(
                 json.dumps(model_result["pca_model"], indent=2), encoding="utf-8"
@@ -614,10 +599,6 @@ if __name__ == "__main__":
                 fit_workflow.set_distancemap_squared_max(
                     DUKE_HEART_4D_LABELMAPS.distancemap_squared_max
                 )
-                if use_finetuned_weights:
-                    fit_workflow.set_labelmap_to_labelmap_icon_weights_path(
-                        str(icon_weights_path)
-                    )
                 fit_result = fit_workflow.process()
 
                 coefficients = fit_workflow.pca_coefficients

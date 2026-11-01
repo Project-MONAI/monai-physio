@@ -361,6 +361,7 @@ if __name__ == "__main__":
             epoch=epoch,
             log_level=log_level,
         )
+        infer_workflow.check_held_out(case_id)
         evaluate_workflow = WorkflowEvaluateMovement(
             movement_workflow=WorkflowInferMovement(
                 infer_workflow, log_level=log_level

@@ -33,8 +33,8 @@ Examples:
   # Specify reference image and registration iterations
   %(prog)s input.nrrd --reference-image ref.mha --registration-iterations 50
 
-  # Use ANTs registration instead of ICON
-  %(prog)s input.nrrd --contrast --registration-method ANTS
+  # Use Greedy registration instead of ICON
+  %(prog)s input.nrrd --contrast --registration-method Greedy
 
   # Use the cardiac-only Simpleware segmentation backend
   %(prog)s input.nrrd --segmentation-method HeartSimpleware

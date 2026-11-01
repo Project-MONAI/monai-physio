@@ -5,12 +5,12 @@ These are the recommended starting point for new users.
 
 ## Before You Begin
 
-These scripts live only in the source repository - `pip install monai-physio`
+These scripts live only in the source repository - installing the package
 does not install them. Clone the repository first:
 
 ```bash
 git clone https://github.com/Project-MONAI/monai-physio.git
-cd monai_physio
+cd monai-physio
 ```
 
 Each tutorial requires one or more public datasets.
@@ -30,14 +30,14 @@ current working directory.
 | 00 | [tutorial_00_infer_physics_informed_motion_duke_heart_4d_labelmaps.ipynb](tutorial_00_infer_physics_informed_motion_duke_heart_4d_labelmaps.ipynb) | `WorkflowFitStatisticalModelToPatient`, `WorkflowInferMovement`, `InferPhysicsNeMoMGN`, `ConvertVTKToUSD` (`UsdGeomTetMesh`) | Duke-Heart-4DLabelmaps plus pretrained PhysicsNeMo-PhysicsInformed-Motion-Duke-Heart and its ablation (all auto-download); CUDA GPU |
 | 1 | [tutorial_01_convert_to_usd_slicer_heart_4d_ct.py](tutorial_01_convert_to_usd_slicer_heart_4d_ct.py) | `WorkflowConvertImageToUSD` | Slicer-Heart-CT (prepare first) |
 | 1 | [tutorial_01_convert_to_usd_tetmesh_slicer_heart_4d_ct.py](tutorial_01_convert_to_usd_tetmesh_slicer_heart_4d_ct.py) | `WorkflowConvertImageToVTK` (tetrahedral meshes), `WorkflowReconstructHighres4DCT`, `ConvertVTKToUSD` (`UsdGeomTetMesh`) | Slicer-Heart-CT (prepare first) |
-| 1 | [tutorial_01_convert_to_usd_tcia_lung_4d_ct.py](tutorial_01_convert_to_usd_tcia_lung_4d_ct.py) | `WorkflowConvertImageToUSD` | TCIA-4DLung (manual) |
-| 2 | [tutorial_02_finetune_icon_tcia_lung_4d_ct.py](tutorial_02_finetune_icon_tcia_lung_4d_ct.py) | `WorkflowFinetuneICONRegistration` | TCIA-4DLung (manual) |
-| 2 | [tutorial_02_finetune_icon_distancemap_tcia_lung_4d_ct.py](tutorial_02_finetune_icon_distancemap_tcia_lung_4d_ct.py) | `WorkflowFinetuneICONRegistration` on distance maps | TCIA-4DLung (manual) |
+| 1 | [tutorial_01_convert_to_usd_tcia_lung_4d_ct.py](tutorial_01_convert_to_usd_tcia_lung_4d_ct.py) | `WorkflowConvertImageToUSD` | TCIA-4DLung (auto-download) |
+| 2 | [tutorial_02_finetune_icon_tcia_lung_4d_ct.py](tutorial_02_finetune_icon_tcia_lung_4d_ct.py) | `WorkflowFinetuneICONRegistration` | TCIA-4DLung (auto-download) |
+| 2 | [tutorial_02_finetune_icon_distancemap_tcia_lung_4d_ct.py](tutorial_02_finetune_icon_distancemap_tcia_lung_4d_ct.py) | `WorkflowFinetuneICONRegistration` on distance maps | TCIA-4DLung (auto-download) |
 | 2 | [tutorial_02_finetune_icon_distancemap_duke_heart_4d_labelmaps.py](tutorial_02_finetune_icon_distancemap_duke_heart_4d_labelmaps.py) | `WorkflowFinetuneICONRegistration` on distance maps | Duke-Heart-4DLabelmaps |
 | 3 | [tutorial_03_reconstruct_highres_slicer_heart_4d_ct.py](tutorial_03_reconstruct_highres_slicer_heart_4d_ct.py) | `WorkflowReconstructHighres4DCT` | Slicer-Heart-CT (prepare first) |
-| 3 | [tutorial_03_reconstruct_highres_tcia_lung_4d_ct.py](tutorial_03_reconstruct_highres_tcia_lung_4d_ct.py) | `WorkflowReconstructHighres4DCT` | TCIA-4DLung (manual) |
+| 3 | [tutorial_03_reconstruct_highres_tcia_lung_4d_ct.py](tutorial_03_reconstruct_highres_tcia_lung_4d_ct.py) | `WorkflowReconstructHighres4DCT` | TCIA-4DLung (auto-download) |
 | 4 | [tutorial_04_convert_to_vtk_slicer_heart_4d_ct.py](tutorial_04_convert_to_vtk_slicer_heart_4d_ct.py) | `WorkflowConvertImageToVTK` | Slicer-Heart-CT (prepare first) |
-| 4 | [tutorial_04_convert_to_vtk_tcia_lung_4d_ct.py](tutorial_04_convert_to_vtk_tcia_lung_4d_ct.py) | `WorkflowConvertImageToVTK` | TCIA-4DLung (manual) |
+| 4 | [tutorial_04_convert_to_vtk_tcia_lung_4d_ct.py](tutorial_04_convert_to_vtk_tcia_lung_4d_ct.py) | `WorkflowConvertImageToVTK` | TCIA-4DLung (auto-download) |
 | 4 | [tutorial_04_convert_to_vtk_duke_heart_4d_labelmaps.py](tutorial_04_convert_to_vtk_duke_heart_4d_labelmaps.py) | `WorkflowConvertImageToVTK` (labelmap input, tetrahedral meshes) | Duke-Heart-4DLabelmaps |
 | 5 | [tutorial_05_convert_vtk_to_usd_slicer_heart_4d_ct.py](tutorial_05_convert_vtk_to_usd_slicer_heart_4d_ct.py) | `WorkflowConvertVTKToUSD` | Output of Tutorial 4 (Slicer heart) |
 | 5 | [tutorial_05_convert_vtk_to_usd_duke_heart_4d_labelmaps.py](tutorial_05_convert_vtk_to_usd_duke_heart_4d_labelmaps.py) | `ConvertVTKToUSD`, `ProcessUSDAnatomy` | Output of Tutorial 4 (duke heart) |
@@ -83,6 +83,7 @@ repository `data/` directory and outputs are written under
 python tutorials/tutorial_01_convert_to_usd_slicer_heart_4d_ct.py
 
 # Tutorial 00 is a notebook - run it from Jupyter instead
+pip install notebook  # not installed by monai-physio
 jupyter notebook tutorials/tutorial_00_infer_respiratory_motion_tcia_lung_3d_ct.ipynb
 ```
 

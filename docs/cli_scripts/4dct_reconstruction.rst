@@ -52,7 +52,6 @@ Registration Options
        --fixed-image highres_reference.mha \
        --registration-method Greedy_ICON \
        --Greedy-iterations 30 15 7 3 \
-       --prior-weight 0.5 \
        --output-dir ./results
 
 Composite Mode

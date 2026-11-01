@@ -366,8 +366,6 @@ if __name__ == "__main__":
     evaluation_spacing_mm = 2.0
 
     test_mode = ProcessTests.running_as_test()
-    # Keep a test run out of the directories a full run reads and writes.
-    weights_dir = TCIA_LUNG_4D_CT.weights_directory(test_mode)
 
     output_dir = (
         TCIA_LUNG_4D_CT.output_directory(test_mode)
@@ -406,16 +404,10 @@ if __name__ == "__main__":
         / "tutorial_08_fit_model_to_4d_patients_tcia_lung_4d_ct"
     )
 
-    # Distance-map weights finetuned on TCIA-4DLung by
-    # tutorial_02_finetune_icon_distancemap_tcia_lung_4d_ct.py, used by the
-    # labelmap-to-labelmap stage of the SSM fit.
-    icon_distancemap_weights_path = (
-        weights_dir
-        / "icon_tcia_4dlung_distancemap"
-        / "icon_tcia_4dlung_distancemap_model"
-        / "checkpoints"
-        / "network_weights_final.trch"
-    )
+    # Every SSM step uses the stock uniGradICON weights, not Tutorial 2's
+    # finetuned ones: those were finetuned on every case except the
+    # parameters' hold-out, so most folds' held-out cases would have shaped
+    # the registration that fits them.
 
     # Directory setup and data reading
 
@@ -453,17 +445,6 @@ if __name__ == "__main__":
         len(held_out_cases),
         ", ".join(held_out_cases),
     )
-
-    use_finetuned_distancemap_weights = icon_distancemap_weights_path.exists()
-    if not use_finetuned_distancemap_weights:
-        logger.log_warning(
-            "Finetuned distance-map ICON weights not found at %s; fitting the "
-            "SSM with the stock uniGradICON weights. Run "
-            "tutorials/tutorial_02_finetune_icon_distancemap_tcia_lung_4d_ct.py to "
-            "create "
-            "them.",
-            icon_distancemap_weights_path,
-        )
 
     segmentation_method = TCIA_LUNG_4D_CT.segmenter(test_mode, log_level=log_level)
     segmentation_workflow = WorkflowConvertImageToVTK(
@@ -650,10 +631,6 @@ if __name__ == "__main__":
                 mean_workflow.set_distance_squared_max(
                     TCIA_LUNG_4D_CT.distancemap_squared_max
                 )
-                if use_finetuned_distancemap_weights:
-                    mean_workflow.set_icon_weights_path(
-                        str(icon_distancemap_weights_path)
-                    )
                 mean_workflow.process()["mean_surface"].save(
                     str(reference_surface_file)
                 )
@@ -666,8 +643,6 @@ if __name__ == "__main__":
                 distance_squared_max=TCIA_LUNG_4D_CT.distancemap_squared_max,
                 log_level=log_level,
             )
-            if use_finetuned_distancemap_weights:
-                model_workflow.set_icon_weights_path(str(icon_distancemap_weights_path))
             model_result = model_workflow.process()
             pca_model_file.write_text(
                 json.dumps(model_result["pca_model"], indent=2), encoding="utf-8"
@@ -713,10 +688,6 @@ if __name__ == "__main__":
                 fit_workflow.set_distancemap_squared_max(
                     TCIA_LUNG_4D_CT.distancemap_squared_max
                 )
-                if use_finetuned_distancemap_weights:
-                    fit_workflow.set_labelmap_to_labelmap_icon_weights_path(
-                        str(icon_distancemap_weights_path)
-                    )
                 fit_result = fit_workflow.process()
 
                 coefficients = fit_workflow.pca_coefficients

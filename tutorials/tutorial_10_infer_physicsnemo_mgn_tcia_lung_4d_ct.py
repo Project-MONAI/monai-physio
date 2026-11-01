@@ -157,9 +157,13 @@ if __name__ == "__main__":
     # stage's deformation, and write the animated USD. The network predicts
     # displacements, so the decoder adds them to the case's reference SSM
     # surface. -1000 HU is air, the value a CT grid samples outside itself.
+    TCIA_LUNG_4D_CT.require_matching_shape_model(
+        model_dir, TCIA_LUNG_4D_CT.pca_model_file(test_mode)
+    )
     infer_workflow = WorkflowInferPhysicsNeMo(
         model_directory=model_dir, epoch=epoch, log_level=log_level
     )
+    infer_workflow.check_held_out(case_id)
     infer_result = WorkflowInferMovement(
         infer_workflow, log_level=log_level
     ).process_time_series(

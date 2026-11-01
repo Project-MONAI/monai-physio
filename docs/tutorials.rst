@@ -25,13 +25,13 @@ Before You Start
 ================
 
 **1. Get the scripts.** They ship with the source repository, not with the pip
-package - ``pip install monai-physio`` gives you the library and the
+package - installing it gives you the library and the
 ``monai-physio-*`` commands but no ``tutorials/`` directory:
 
 .. code-block:: bash
 
    git clone https://github.com/Project-MONAI/monai-physio.git
-   cd monai_physio
+   cd monai-physio
 
 See :doc:`quickstart` for version-matched clones and the release tarball link.
 
@@ -78,7 +78,12 @@ Duke heart checkpoints do the same for the cardiac chain:
 ``PhysicsNeMo-MGN-Duke-Heart-Motion`` stands in for Duke Tutorial 9, and the
 two ``PhysicsNeMo-PhysicsInformed-Motion-Duke-Heart*`` checkpoints for
 Tutorial 17. Each ships the shape model it was trained against, which is what
-lets the two cardiac Tutorial 00 notebooks run with nothing else first.
+lets the two cardiac Tutorial 00 notebooks run with nothing else first. A
+network's input is a set of coefficients of that shape model, so Tutorials 10,
+11 and 14 stop with an error when Tutorial 8's fits were made with a different
+one. To use a downloaded checkpoint with them, copy its ``pca_model.json`` and
+``pca_mean_surface.vtp`` into Tutorial 6's output directory before running
+Tutorials 7 and 8.
 
 Tutorials 5 and 9 need no dataset of their own; they consume the outputs of
 Tutorials 4 and 8. ``Duke-Heart-4DLabelmaps`` drives the fifteen ``duke_heart``
@@ -328,6 +333,7 @@ Inner API usage
 Run
    .. code-block:: bash
 
+      pip install notebook  # not installed by monai-physio
       jupyter notebook tutorials/tutorial_00_infer_respiratory_motion_tcia_lung_3d_ct.ipynb
 
 Outputs
@@ -402,6 +408,7 @@ Inner API usage
 Run
    .. code-block:: bash
 
+      pip install notebook  # not installed by monai-physio
       jupyter notebook tutorials/tutorial_00_infer_cardiac_motion_duke_heart_4d_labelmaps.ipynb
 
 Outputs
@@ -477,6 +484,7 @@ Inner API usage
 Run
    .. code-block:: bash
 
+      pip install notebook  # not installed by monai-physio
       jupyter notebook tutorials/tutorial_00_infer_physics_informed_motion_duke_heart_4d_labelmaps.ipynb
 
 Outputs
@@ -513,8 +521,8 @@ Workflow
 
 Dataset
    Slicer-Heart-CT (auto-download) for the heart, TCIA-4DLung (auto-download)
-   for the lung. The phase roughly 70% through the series is the
-   segmentation and registration reference.
+   for the lung. The segmentation and registration reference is frame 7 for
+   the heart and the phase roughly 70% through the series for the lung.
 
 Requirements
    Greedy registers every phase against the reference on the CPU; a GPU is
@@ -556,7 +564,7 @@ Run
 
 Outputs
    The animated USD named after ``usd_project_name``, the per-phase registered
-   volumes and labelmaps, and screenshots - all under
+   volumes, the reference phase's labelmap, and screenshots - all under
    ``tutorials/output/tutorial_01_convert_to_usd_{slicer_heart,tcia_lung}_4d_ct/``.
    The tetmesh variant instead writes one ``heart_tetmesh_<phase>.vtu`` per
    cardiac phase, the phases as one animated ``UsdGeomTetMesh`` in
@@ -1335,19 +1343,24 @@ Preview
 Inner API usage
    .. code-block:: python
 
+      cohort = EvaluateMovementLung(reference_phase="g070")
+      ground_truth = cohort.assemble_ground_truth(
+          case_id=case_id,
+          frame_directory=data_dir,
+          fit_directory=case_dir,
+          cache_directory=ground_truth_dir,
+      )
       evaluate = WorkflowEvaluateMovement(
           movement_workflow=WorkflowInferMovement(infer_workflow),
-          label_names=lobe_names,
+          cohort=cohort,
       )
       result = evaluate.process(
           case_id=case_id,
           shape_parameters=pca_file,
           fitted_reference_mesh=fitted_reference_mesh_file,
-          reference_labelmap=itk.imread(str(reference_labelmap_file)),
-          ground_truth_labelmaps=ground_truth_labelmaps,
+          ground_truth=ground_truth,
           output_directory=output_dir,
           evaluation_spacing_mm=2.0,
-          report_dice=False,
       )
 
 Run

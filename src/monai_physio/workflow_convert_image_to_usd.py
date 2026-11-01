@@ -86,7 +86,7 @@ class WorkflowConvertImageToUSD(MONAIPhysioBase):
             mask_dilation_radius (int): Dilation radius, in voxels, applied to
                 the dynamic/static registration masks. Defaults to 10.
             frames_per_second: Frames per second for animated USD time series.
-                Defaults to 24.0, matching the underlying VTK-to-USD converter.
+                Defaults to 1.0, one frame per second.
             surface_reduction_rate: Fraction in ``[0, 1)`` of triangles to
                 remove from every extracted surface.  ``0.0`` (default) skips
                 decimation.

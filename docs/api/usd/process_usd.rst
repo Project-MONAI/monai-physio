@@ -15,4 +15,4 @@ Module Reference
 
 .. rubric:: Navigation
 
-:doc:`index` | :doc:`anatomy_tools` | :doc:`vtk_conversion`
+:doc:`index` | :doc:`process_usd_anatomy` | :doc:`vtk_conversion`

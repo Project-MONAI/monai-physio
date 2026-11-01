@@ -175,9 +175,8 @@ class TestExtractLabelSurfaces:
     ) -> None:
         """Neither label is thinned or fattened by the smoothing.
 
-        Not to the voxel exactly: the distance map is zero at the outermost
-        labeled voxel's center rather than half a voxel beyond it, so the
-        surface sits just inside the block of voxels it came from.
+        Not to the voxel exactly: the distance-map blur rounds the boxes'
+        edges and corners, which on 4 mm slices costs a few percent.
         """
         labelmap = _touching_boxes()
         labels = itk.GetArrayViewFromImage(labelmap)
@@ -187,7 +186,64 @@ class TestExtractLabelSurfaces:
 
         for label_id, surface in surfaces.items():
             voxels = int(np.count_nonzero(labels == label_id))
-            assert surface.volume == pytest.approx(voxels * voxel_volume, rel=0.15)
+            assert surface.volume == pytest.approx(voxels * voxel_volume, rel=0.08)
+
+    @pytest.mark.parametrize("spacing_mm", [0.5, 1.0])
+    def test_sphere_keeps_its_volume(
+        self, contour_tools: ProcessSurfaceMesh, spacing_mm: float
+    ) -> None:
+        """A 12 mm sphere encloses its analytic volume.
+
+        The background-facing wall must sit midway between the label's and the
+        background's edge voxels; on the label's own edge voxels it loses half
+        a voxel all round, a fifth of this sphere on a 1 mm grid.
+        """
+        radius_mm = 12.0
+        n = int(2 * radius_mm / spacing_mm) + 8
+        center = (n - 1) / 2.0
+        zz, yy, xx = np.indices((n, n, n))
+        arr = (
+            np.sqrt((zz - center) ** 2 + (yy - center) ** 2 + (xx - center) ** 2)
+            * spacing_mm
+            <= radius_mm
+        ).astype(np.uint8)
+        labelmap = itk.GetImageFromArray(arr)
+        labelmap.SetSpacing([spacing_mm] * 3)
+
+        surface = contour_tools.extract_label_surfaces(labelmap)[1]
+
+        assert surface.volume == pytest.approx(
+            4.0 / 3.0 * np.pi * radius_mm**3, rel=0.05
+        )
+
+    def test_thin_shell_stays_in_one_piece(
+        self, contour_tools: ProcessSurfaceMesh
+    ) -> None:
+        """A wall three voxels thick contours to a single closed surface."""
+        n = 40
+        center = (n - 1) / 2.0
+        zz, yy, xx = np.indices((n, n, n))
+        radius = np.sqrt((zz - center) ** 2 + (yy - center) ** 2 + (xx - center) ** 2)
+        arr = ((radius >= 12.0) & (radius < 15.0)).astype(np.uint8)
+        labelmap = itk.GetImageFromArray(arr)
+
+        surface = contour_tools.extract_label_surfaces(labelmap)[1]
+
+        assert surface.connectivity().point_data["RegionId"].max() == 1, (
+            "an outer and an inner surface, nothing else"
+        )
+
+    def test_label_thinner_than_the_grid_returns_no_surface(
+        self, contour_tools: ProcessSurfaceMesh
+    ) -> None:
+        """A wall too thin to survive the resample is reported, not a KeyError."""
+        n = 40
+        center = (n - 1) / 2.0
+        zz, yy, xx = np.indices((n, n, n))
+        radius = np.sqrt((zz - center) ** 2 + (yy - center) ** 2 + (xx - center) ** 2)
+        arr = ((radius >= 12.0) & (radius < 12.6)).astype(np.uint8)
+
+        assert contour_tools.extract_label_surfaces(itk.GetImageFromArray(arr)) == {}
 
     def test_walls_match_where_three_labels_meet(
         self, contour_tools: ProcessSurfaceMesh
@@ -778,8 +834,8 @@ class TestS1TrimMatchesFrozenBase:
 def _itk_signed_distance(
     labels: np.ndarray, spacing: Sequence[float], label_id: int, sigma_mm: float
 ) -> np.ndarray:
-    """Run the pre-S2 ITK signed Maurer map and recursive Gaussian blur."""
-    inside = labels != 0 if label_id == 0 else labels == label_id
+    """Run ITK's signed Maurer map and recursive Gaussian blur on one label."""
+    inside = labels == label_id
     mask = itk.GetImageFromArray(np.ascontiguousarray(inside.astype(np.uint8)))
     mask.SetSpacing([float(value) for value in spacing[::-1]])
     distance = itk.signed_maurer_distance_map_image_filter(
@@ -792,8 +848,7 @@ def _itk_signed_distance(
         distance = itk.smoothing_recursive_gaussian_image_filter(
             distance, sigma=sigma_mm
         )
-    distance_arr = np.asarray(itk.GetArrayFromImage(distance), dtype=np.float32)
-    return -distance_arr if label_id == 0 else distance_arr
+    return np.asarray(itk.GetArrayFromImage(distance), dtype=np.float32)
 
 
 def _itk_resample_labelmap_isotropic(

@@ -15,11 +15,6 @@ Runs on every push and pull request to main branches. Includes:
   - Excludes slow tests and tests requiring external data
   - Generates coverage reports
 
-- **integration-tests**: Integration tests with external data
-  - Runs on Ubuntu only, for pull requests
-  - Downloads and caches test data
-  - Tests data processing pipelines
-
 - **gpu-tests**: Tests on self-hosted GPU runners
   - **DISABLED BY DEFAULT** - Only runs when:
     - Manually triggered via workflow_dispatch, OR
@@ -32,17 +27,6 @@ Runs on every push and pull request to main branches. Includes:
   - Ruff formatting and linting checks
   - mypy type checking
   - Ruff and mypy checks fail the build if issues are found
-
-### `test-slow.yml` - Long-Running Tests
-
-Manual trigger only (`workflow_dispatch`); the nightly schedule lives in
-`nightly-health.yml`. Includes:
-
-- **test-slow-gpu**: Slow tests requiring GPU
-  - Tests marked with `slow` marker
-  - Extended timeout: 60 minutes
-  - Uses self-hosted GPU runners
-  - Will wait indefinitely if no runner is available
 
 ### `docs.yml` - Documentation Build and Deploy
 
@@ -94,7 +78,7 @@ The workflows use multiple caching layers to speed up builds:
 
 2. **Additional pip cache** via `actions/cache`
    - Caches `~/.cache/pip` directory
-   - Separate keys for CPU, GPU, and integration tests
+   - Separate keys for CPU and GPU tests
    - Hierarchical restore keys for fallback
 
 ## GPU Support

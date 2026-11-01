@@ -31,18 +31,17 @@ Examples:
     --fixed-image highres_reference.mha \\
     --output-dir ./results
 
-  # Reconstruction with upsampling and custom reference frame
+  # Reconstruction with a custom reference frame
   %(prog)s \\
     --time-series-images frame_000.mha frame_001.mha frame_002.mha \\
     --fixed-image highres.mha \\
     --reference-frame 1 \\
     --output-dir ./results
 
-  # Reconstruction with temporal smoothing
+  # Reconstruction that also registers the reference frame to the fixed image
   %(prog)s \\
     --time-series-images frame_*.mha \\
     --fixed-image highres.mha \\
-    --prior-weight 0.5 \\
     --register-reference \\
     --output-dir ./results
 

@@ -93,9 +93,9 @@ class WorkflowFinetuneICONRegistration(MONAIPhysioBase):
         gpus: Optional[list[int]] = None,
         eval_period: int = 10,
         save_period: int = 50,
-        seed: Optional[int] = 0,
         unigradicon_src_path: Optional[Path] = None,
         log_level: Union[int, str] = logging.INFO,
+        seed: Optional[int] = 0,
     ) -> None:
         """Initialize the ICON finetuning workflow.
 
@@ -137,15 +137,15 @@ class WorkflowFinetuneICONRegistration(MONAIPhysioBase):
             gpus: GPU device indices for training.  Defaults to ``[0]``.
             eval_period: uniGradICON ``training.eval_period``.
             save_period: uniGradICON ``training.save_period``.
-            seed: uniGradICON ``training.seed``, seeding Python, NumPy and
-                PyTorch at startup; ``None`` leaves training unseeded.  GPU
-                training is still not bit-reproducible, as uniGradICON's 3-D
-                ``grid_sample`` backward has no deterministic CUDA kernel.
             unigradicon_src_path: Optional path to a local uniGradICON source
                 tree to prepend to ``PYTHONPATH`` when running finetuning.
                 Useful for using a checked-out copy instead of the installed
                 package.
             log_level: Logging level (``logging.DEBUG``, ``logging.INFO``, ...).
+            seed: uniGradICON ``training.seed``, seeding Python, NumPy and
+                PyTorch at startup; ``None`` leaves training unseeded.  GPU
+                training is still not bit-reproducible, as uniGradICON's 3-D
+                ``grid_sample`` backward has no deterministic CUDA kernel.
 
         Raises:
             ValueError: If ``subject_image_files`` is empty.

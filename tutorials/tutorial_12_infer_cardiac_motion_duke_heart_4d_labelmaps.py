@@ -274,6 +274,7 @@ if __name__ == "__main__":
     infer_workflow = WorkflowInferPhysicsNeMo(
         model_directory=model_dir, epoch=epoch, log_level=log_level
     )
+    infer_workflow.check_held_out(case_id)
     infer_result = WorkflowInferMovement(
         infer_workflow, log_level=log_level
     ).process_time_series(

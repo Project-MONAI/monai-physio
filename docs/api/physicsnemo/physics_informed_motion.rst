@@ -2,7 +2,6 @@
 Physics-Informed Motion (Neo-Hookean)
 =====================================
 
-.. module:: monai_physio.train_physicsnemo_physics_informed_motion
 .. currentmodule:: monai_physio
 
 A MeshGraphNet trained on displacement alone has no opinion about whether the

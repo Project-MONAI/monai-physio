@@ -26,9 +26,11 @@ Under ``tutorials/output/tutorial_01_convert_to_usd_slicer_heart_4d_ct/``:
 - The animated USD named after ``usd_project_name`` (``cardiac_model``); the
   workflow returns the dynamic variant when one was produced, otherwise the
   combined one.
+- ``slice_<n>_all_registered.mha`` - each phase registered to the reference,
+  and ``reference_labelmap.mha`` - the reference phase's segmentation
 - Screenshots (PNG) for documentation and regression testing:
-  - ``slice_<n>_registered_test.png`` - each registered phase
-  - ``slice_<n>_labelmap_test.png`` - each phase's labelmap
+  - ``slice_<n>_registered_test.png`` - the phase 70% through the series,
+    registered
   - ``cardiac_model_test.png`` - the assembled contours
 
 Strengths
@@ -167,7 +169,7 @@ if __name__ == "__main__":
     screenshots: list[Path] = []
 
     test_image_num = int(0.7 * len(input_filenames))
-    test_image_path = output_dir / f"slice_{test_image_num:03d}_registered.mha"
+    test_image_path = output_dir / f"slice_{test_image_num:03d}_all_registered.mha"
     if test_image_path.exists():
         test_image = itk.imread(str(test_image_path))
         screenshots.append(
@@ -181,22 +183,6 @@ if __name__ == "__main__":
                 vmax=600,
             )
         )
-
-        test_labelmap_path = output_dir / f"slice_{test_image_num:03d}_labelmap.mha"
-        if test_labelmap_path.exists():
-            test_labelmap = itk.imread(str(test_labelmap_path))
-            screenshots.append(
-                tt.save_screenshot_image_slice(
-                    test_image,
-                    f"slice_{test_image_num:03d}_labelmap_test.png",
-                    axis=0,
-                    slice_fraction=0.5,
-                    colormap="gray",
-                    vmin=-200,
-                    vmax=600,
-                    overlay_mask=test_labelmap,
-                )
-            )
 
     if usd_file.exists():
         screenshots.append(

@@ -161,9 +161,13 @@ if __name__ == "__main__":
     # each stage's deformation, and write the animated USD.  The SSM is one
     # structure, the whole heart minus its chamber cavities, so the USD surface
     # is kept whole rather than split by connectivity.
+    DUKE_HEART_4D_LABELMAPS.require_matching_shape_model(
+        model_dir, DUKE_HEART_4D_LABELMAPS.pca_model_file(test_mode)
+    )
     infer_workflow = WorkflowInferPhysicsNeMo(
         model_directory=model_dir, epoch=epoch, log_level=log_level
     )
+    infer_workflow.check_held_out(case_id)
     infer_result = WorkflowInferMovement(
         infer_workflow, log_level=log_level
     ).process_time_series(

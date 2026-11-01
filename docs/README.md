@@ -8,13 +8,14 @@ note for contributors editing the docs.
 ## Building locally
 
 ```bash
-pip install -e ".[dev]"
+uv pip install -e ".[dev_cuda12]" --torch-backend=cu128 -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
 python -m sphinx -b html docs docs/_build/html
 ```
 
 Open `docs/_build/html/index.html`. A clean build ends with
-`build succeeded` and one pre-existing docutils warning from the
-`RegisterImagesICON` docstring.
+`build succeeded` and two pre-existing `sphinx_autodoc_typehints` warnings: a
+failed guarded type import and an unresolved `MeshGraphNet` forward reference
+in `ProcessPhysicsNemo.import_meshgraphnet`.
 
 ## Layout
 

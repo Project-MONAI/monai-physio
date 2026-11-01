@@ -33,7 +33,7 @@ The script is installed with MONAI Physio:
 
 .. code-block:: bash
 
-   pip install monai-physio
+   uv pip install "monai-physio[cuda12]" --torch-backend=cu128 \n       -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
 
 Quick Start
 ===========

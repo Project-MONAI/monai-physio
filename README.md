@@ -50,15 +50,16 @@ for users and contributors. Key sections:
 ### Install
 
 ```
-uv pip install "monai-physio[cuda12]" -f https://data.pyg.org/whl/torch-2.12.0+cu126.html
+uv pip install "monai-physio[cuda12]" --torch-backend=cu128 -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
 ```
 
-Installs entirely from prebuilt wheels; the `-f` option points uv at the PyG
-wheel index that hosts `torch-scatter`. On CUDA 13 use `monai-physio[cuda13]`,
-which additionally needs a CUDA toolkit and C++ toolchain to build
-`torch-scatter`. See the
+Run it inside a virtual environment that has `uv` (`pip install uv`). It
+installs entirely from prebuilt wheels and needs an NVIDIA GPU with a CUDA
+12.8 or newer driver. `--torch-backend=cu128` selects the CUDA 12.8 PyTorch
+build, and `-f` points uv at the PyG wheel index that hosts `torch-scatter`;
+both are required. See the
 [installation guide](https://project-monai.github.io/monai-physio/installation.html)
-for source installs, pip, and CPU-only.
+for CUDA 13, pip, and source installs.
 
 ### Download Tutorials
 
@@ -82,7 +83,7 @@ resolve their inputs against the repository root, so downloading
 elsewhere puts the data where they will not find it.
 
 ```
-cd monai_physio
+cd monai-physio
 monai-physio-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
 ```
 

@@ -201,6 +201,12 @@ class ProcessSurfaceMesh(MONAIPhysioBase):
             parts.append(part)
 
         merged = cast(pv.PolyData, pv.merge(parts, merge_points=True))
+        if merged.n_cells == 0:
+            self.log_warning(
+                "No label is large enough for a %.3g mm grid; there are no surfaces",
+                iso,
+            )
+            return {}
         if smoothing_iterations > 0:
             # Every wall between two labels is meshed twice, so its edges are
             # non-manifold; without non_manifold_smoothing VTK pins them and

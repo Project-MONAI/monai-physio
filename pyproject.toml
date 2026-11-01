@@ -98,7 +98,7 @@ dependencies = [
   # and the no-build-isolation ceremony around it can both go away.
   #
   # Prebuilt wheel availability (https://data.pyg.org/whl/) is the reason
-  # the cuda12 extra pins torch below 2.13; see that extra's comment.
+  # the cuda12 extra pins torch below 2.12; see that extra's comment.
   "nvidia-physicsnemo>=2.0.0",
   "torch-geometric>=2.5.0",
   "torch-scatter>=2.1.0",
@@ -164,11 +164,11 @@ torch-scatter = ["torch"]
 # extras or this source config.
 [tool.uv.sources]
 torch = [
-  { index = "pytorch-cu126", extra = "cuda12" },
+  { index = "pytorch-cu128", extra = "cuda12" },
   { index = "pytorch-cu130", extra = "cuda13" },
 ]
 torchvision = [
-  { index = "pytorch-cu126", extra = "cuda12" },
+  { index = "pytorch-cu128", extra = "cuda12" },
   { index = "pytorch-cu130", extra = "cuda13" },
 ]
 # The PyPI unigradicon release ships no ``unigradicon.finetuning`` module, so
@@ -185,8 +185,8 @@ url = "https://download.pytorch.org/whl/cu130"
 explicit = true
 
 [[tool.uv.index]]
-name = "pytorch-cu126"
-url = "https://download.pytorch.org/whl/cu126"
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
 explicit = true
 
 [project.optional-dependencies]
@@ -207,17 +207,18 @@ cuda13 = [
   "torch>=2.0.0",
   "torchvision",
 ]
-# CUDA 12.6: the newest combination with published prebuilt torch-scatter
-# wheels on every platform this project supports, including Windows
-# (torch_scatter-2.1.2+pt212cu126-cp311..cp314-win_amd64.whl). torch is capped
-# below 2.13 to stay inside that window -- above it, data.pyg.org ships no
-# torch_scatter wheels at all and installs fall back to a source build. Raise
-# the cap when pyg publishes newer wheels, or drop it entirely once
-# physicsnemo no longer hard-imports torch_scatter (see the AI-surrogate
-# comment in [project.dependencies]).
+# CUDA 12.8: the newest CUDA 12 build with Blackwell (sm_120) kernels that
+# also has published prebuilt torch-scatter wheels on every platform this
+# project supports, including Windows
+# (torch_scatter-2.1.2+pt211cu128-cp311..cp314-win_amd64.whl). The cu128 index
+# stops at torch 2.11, so torch is capped below 2.12; cu126 goes further but has
+# no Blackwell kernels. Raise the cap when pyg publishes newer wheels for a
+# CUDA 12 index that has newer torch, or drop it entirely once physicsnemo no
+# longer hard-imports torch_scatter (see the AI-surrogate comment in
+# [project.dependencies]).
 cuda12 = [
   "cupy-cuda12x[ctk]>=14.0.0",
-  "torch>=2.10,<2.13",
+  "torch>=2.10,<2.12",
   "torchvision",
 ]
 # Development, testing, and documentation tooling -- no CUDA/cupy component,

@@ -9,9 +9,9 @@ Prerequisites
 
 Before starting, ensure you have:
 
-* NVIDIA GPU with CUDA 12.6 or CUDA 13 - recommended for production
-  performance. A CPU-only install works for evaluation but is significantly
-  slower.
+* An NVIDIA GPU with a driver for CUDA 12.8 or newer. MONAI Physio has no
+  CPU-only mode.
+* A virtual environment with ``uv`` installed (``pip install uv``)
 * Disk space for the sample datasets (~10-20 GB for the full set; each dataset
   README lists its own size)
 
@@ -20,13 +20,12 @@ Install
 
 .. code-block:: bash
 
-   uv pip install "monai-physio[cuda12]" -f https://data.pyg.org/whl/torch-2.12.0+cu126.html
+   uv pip install "monai-physio[cuda12]" --torch-backend=cu128 \n       -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
 
-This installs entirely from prebuilt wheels. The ``-f`` option points uv at
-the PyG wheel index that hosts ``torch-scatter``; without it, uv falls back to
-a ``torch-scatter`` source build, which needs a matching CUDA toolkit and a
-C++ toolchain. See :doc:`installation` for CUDA 13, ``--torch-backend=auto``,
-pip, source installs, and CPU-only.
+This installs entirely from prebuilt wheels. ``--torch-backend=cu128``
+selects the CUDA 12.8 PyTorch build and ``-f`` points uv at the PyG wheel
+index that hosts ``torch-scatter``; both are required. See :doc:`installation`
+for CUDA 13, pip, and source installs.
 
 .. _tutorial_scripts:
 
@@ -34,14 +33,14 @@ Get the Tutorial Scripts
 ========================
 
 The tutorials ship with the source repository, not with the pip package.
-``pip install monai-physio`` installs the library and the ``monai-physio-*``
+Installing the package gives you the library and the ``monai-physio-*``
 commands, but it does not create a ``tutorials/`` directory. Clone the
 repository to get the scripts:
 
 .. code-block:: bash
 
    git clone https://github.com/Project-MONAI/monai-physio.git
-   cd monai_physio
+   cd monai-physio
 
 To match the scripts to an already-installed release, check out its tag. Tags
 are bare version strings, so use the installed version directly:
@@ -52,7 +51,7 @@ are bare version strings, so use the installed version directly:
 
    git clone --depth 1 --branch {{ mphysio_project_version }} \
        https://github.com/Project-MONAI/monai-physio.git
-   cd monai_physio
+   cd monai-physio
 
 A release tarball works just as well if you would rather not use git:
 ``https://github.com/Project-MONAI/monai-physio/archive/refs/tags/{{ mphysio_project_version }}.tar.gz``.
@@ -75,6 +74,9 @@ Then fetch the sample datasets, again from the top level of the clone:
 
    # Heart Tutorial 6
    monai-physio-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
+
+   # Lung Tutorials 1 through 4, 6, 8 through 12, 14 and 15
+   monai-physio-download-data TCIA-4DLung --directory data/TCIA-4DLung
 
    # Lung Tutorial 7
    monai-physio-download-data Chest-CT --directory data/Chest-CT
@@ -142,7 +144,7 @@ as a plain script:
 
    python tutorials/tutorial_01_convert_to_usd_slicer_heart_4d_ct.py
 
-:doc:`tutorials` is the full guide - thirteen numbered stages with previews of
+:doc:`tutorials` is the full guide - eighteen numbered stages with previews of
 what each one produces, the run order, and per-tutorial notes on pointing them
 at your own data. The rest of this page is the same functionality as a CLI call and as
 a Python API call, for when you would rather not start from a script.
@@ -219,7 +221,7 @@ segmentation and registration reference.
    )
    results = workflow.process()
 
-   print(f"USD model saved to: {results['dynamic']}")
+   print(f"USD model saved to: {results['all']}")
 
 That is the whole pipeline: 4D input to 3D frames, registration between
 phases, AI segmentation of the reference, contour transformation across time,

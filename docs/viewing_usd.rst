@@ -15,7 +15,7 @@ workflows intend them.
 
 .. important::
 
-   ``pip install monai-physio`` pulls in `usd-core
+   Installing ``monai-physio`` pulls in `usd-core
    <https://pypi.org/project/usd-core/>`_, which is the OpenUSD *libraries*
    only - enough to write and read stages, but it contains no viewer.
 

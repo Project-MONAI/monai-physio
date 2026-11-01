@@ -264,9 +264,13 @@ if __name__ == "__main__":
 
     # Step 4: score every combination.  The network is loaded once and reused,
     # so the per-combination cost is inference and scoring alone.
+    TCIA_LUNG_4D_CT.require_matching_shape_model(
+        model_dir, TCIA_LUNG_4D_CT.pca_model_file(test_mode)
+    )
     infer_workflow = WorkflowInferPhysicsNeMo(
         model_directory=model_dir, epoch=epoch, log_level=log_level
     )
+    infer_workflow.check_held_out(case_id)
     evaluate_workflow = WorkflowEvaluateMovement(
         movement_workflow=WorkflowInferMovement(infer_workflow, log_level=log_level),
         cohort=cohort,

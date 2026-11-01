@@ -603,7 +603,7 @@ _DIRLAB_TEST_CASES = ["Case1Pack", "Case2Pack", "Case3Pack"]
 _TCIA_4D_LUNG_TEST_CASES = [
     "103_HM10395",
     "104_HM10395",
-    "105_HM10395",
+    "107_HM10395",
     "110_HM10395",
 ]
 _DUKE_HEART_TEST_CASES = ["pm0027", "pm0002", "pm0003", "pm0004"]

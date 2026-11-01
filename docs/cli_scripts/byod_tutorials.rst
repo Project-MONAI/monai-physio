@@ -12,22 +12,12 @@ series. VTK inputs may be one mesh file or a mesh sequence.
 Installation
 ------------
 
-Install the package with CUDA support (recommended for GPU acceleration)
-or the CPU-only variant:
+Install the package as :doc:`../installation` describes; the recommended
+command installs everything from prebuilt wheels:
 
 .. code-block:: bash
 
-   # Recommended - CUDA 12.6, everything installs from prebuilt wheels
-   uv pip install "monai-physio[cuda12]" -f https://data.pyg.org/whl/torch-2.12.0+cu126.html
-
-   # CUDA 13 - same, but torch-scatter compiles from source
-   uv pip install "monai-physio[cuda13]"
-
-   # Auto-detected GPU torch, no CUDA version to specify, no CuPy
-   uv pip install --torch-backend=auto monai-physio
-
-   # CPU-only
-   pip install monai-physio
+   uv pip install "monai-physio[cuda12]" --torch-backend=cu128 \n       -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
 
 Verify that all three relevant CLI entry-points are available after installation:
 
@@ -47,7 +37,7 @@ Use the installed download CLI to fetch the public Slicer-Heart 4D CT sample:
 
 .. code-block:: bash
 
-   monai-physio-download-data
+   monai-physio-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
 
 This stores ``TruncalValve_4DCT.seq.nrrd`` under
 ``data/Slicer-Heart-CT``. To choose a different location:

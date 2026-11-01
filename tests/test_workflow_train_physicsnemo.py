@@ -195,6 +195,18 @@ def test_an_intermittent_checkpoint_can_be_inferred_from(tmp_path: Path) -> None
     assert np.all(np.isfinite(targets))
 
 
+@pytest.mark.requires_gpu
+def test_check_held_out_flags_only_training_subjects(tmp_path: Path) -> None:
+    """A subject the checkpoint trained on is flagged; any other passes."""
+    model_directory, _ = _train(tmp_path)
+
+    infer = WorkflowInferPhysicsNeMo(model_directory=model_directory)
+
+    assert infer.train_subject_ids == ("subject_00", "subject_01")
+    assert not infer.check_held_out("subject_00")
+    assert infer.check_held_out("subject_99")
+
+
 def test_ranks_split_the_samples_without_overlapping() -> None:
     """Every sample lands on exactly one rank, and the ranks take equal steps.
 

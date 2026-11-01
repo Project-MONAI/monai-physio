@@ -41,9 +41,9 @@ Runtime
 Measured on the full 10-case DIR-Lab set with the Tutorial 6 lung template
 (179k points, 1.07M mesh-graph edges): one training step of ``batch_size`` 4
 takes ~430 ms and peaks near 43 GiB of GPU memory, giving ~9 s per epoch and
-roughly 4 hours for the 1500 epochs below. TCIA-4DLung's population is roughly
-8x larger (~83 cases including lettered re-scan variants, vs. DIR-Lab's
-curated 10), so a full run scales accordingly. Processor gradient
+roughly 4 hours for the 1500 epochs below. The TCIA-4DLung cohort
+(``ParametersTCIALung4DCT.case_ids``, less the held-out case) is about the same
+size, so a full run takes about as long. Processor gradient
 checkpointing is on by default below (``num_processor_checkpoint_segments``):
 even the ~43 GiB unchecked peak leaves little headroom on a 96 GiB card once
 driver/framework overhead is added, and on Windows a CUDA process that

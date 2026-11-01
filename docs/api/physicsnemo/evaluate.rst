@@ -24,12 +24,39 @@ Per-structure scoring
    :undoc-members:
    :show-inheritance:
 
+Ground truth and cohorts
+========================
+
+.. autoclass:: MovementGroundTruth
+   :exclude-members: labelmaps, reference_labelmap, reference_stage, meshes
+   :show-inheritance:
+
+.. autoclass:: EvaluateMovementBase
+   :members:
+   :exclude-members: segmenter_class, label_ids, report_dice,
+                     evaluation_spacing_mm, smoothing_sigma_mm
+   :show-inheritance:
+
+.. autoclass:: EvaluateMovementLung
+   :members:
+   :show-inheritance:
+
+.. autoclass:: EvaluateMovementDukeHeart
+   :members:
+   :show-inheritance:
+
+.. autoclass:: ReportEvaluateMovement
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Example
 =======
 
 .. code-block:: python
 
    from monai_physio import (
+       MovementGroundTruth,
        WorkflowEvaluateMovement,
        WorkflowInferMovement,
        WorkflowInferPhysicsNeMo,
@@ -41,12 +68,17 @@ Example
        ),
        label_names={28: "lung_upper_lobe_left", 29: "lung_lower_lobe_left"},
    )
+   ground_truth = MovementGroundTruth(
+       labelmaps={0.0: frame_00, 0.1: frame_10},
+       reference_labelmap=frame_00,
+       reference_stage=0.0,
+       meshes={0.0: fitted_mesh_00_file, 0.1: fitted_mesh_10_file},
+   )
    result = evaluate.process(
-       case_id="Case1Pack",
+       case_id="103_HM10395",
        shape_parameters=pca_coefficients_file,
        fitted_reference_mesh=fitted_reference_mesh_file,
-       reference_labelmap=reference_labelmap,
-       ground_truth_labelmaps={0.0: frame_00, 0.1: frame_10},
+       ground_truth=ground_truth,
        output_directory=out_dir,
    )
    print(result["report_file"], result["csv_file"])
