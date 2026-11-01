@@ -342,9 +342,9 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
 
         The radius fixes those images' intensity distribution, so it has to
         match the value the ICON weights in use were finetuned at -- see
-        ``tutorials/parameters_tcia_4d_lung.py`` and
-        ``tutorials/parameters_heart_ct_kcl.py``, which carry one value per
-        organ.  Left unset, it is derived from ``mask_dilation_mm``.
+        ``tutorials/parameters_tcia_lung_4d_ct.py`` (lung) and
+        ``tutorials/parameters_duke_heart_4d_labelmaps.py`` (heart), which carry
+        one value per organ.  Left unset, it is derived from ``mask_dilation_mm``.
 
         Args:
             distancemap_squared_max: Maximum squared distance, in squared
@@ -364,7 +364,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         That stage (:meth:`register_labelmap_to_labelmap`) registers distance
         maps rather than image intensities, so it benefits from weights
         finetuned on distance maps -- e.g. by
-        ``tutorials/tutorial_02_lung_distancemap_finetune_icon.py``.  The
+        ``tutorials/tutorial_02_finetune_icon_distancemap_tcia_lung_4d_ct.py``.  The
         labelmap-to-image stage keeps the stock weights: it registers the
         patient image itself.
 

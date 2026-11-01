@@ -16,6 +16,19 @@ CHEST_CT = "Chest-CT"
 TCIA_4D_LUNG = "TCIA-4DLung"
 DUKE_HEART_4D_LABELMAPS = "Duke-Heart-4DLabelmaps"
 PHYSICSNEMO_MGN_LUNG_MOTION = "PhysicsNeMo-MGN-Lung-Motion"
+PHYSICSNEMO_MGN_DUKE_HEART_MOTION = "PhysicsNeMo-MGN-Duke-Heart-Motion"
+PHYSICSNEMO_PHYSICS_INFORMED_MOTION_DUKE_HEART = (
+    "PhysicsNeMo-PhysicsInformed-Motion-Duke-Heart"
+)
+PHYSICSNEMO_PHYSICS_INFORMED_MOTION_DUKE_HEART_ABLATION = (
+    "PhysicsNeMo-PhysicsInformed-Motion-Duke-Heart-Ablation"
+)
+NETWORK_WEIGHTS = (
+    PHYSICSNEMO_MGN_LUNG_MOTION,
+    PHYSICSNEMO_MGN_DUKE_HEART_MOTION,
+    PHYSICSNEMO_PHYSICS_INFORMED_MOTION_DUKE_HEART,
+    PHYSICSNEMO_PHYSICS_INFORMED_MOTION_DUKE_HEART_ABLATION,
+)
 
 
 def main(argv: Optional[list[str]] = None) -> int:
@@ -32,6 +45,9 @@ Examples:
   %(prog)s {TCIA_4D_LUNG} --directory data/TCIA-4DLung
   %(prog)s {DUKE_HEART_4D_LABELMAPS} --directory data/Duke-Heart-4DLabelmaps
   %(prog)s {PHYSICSNEMO_MGN_LUNG_MOTION} --directory tutorials/network_weights
+  %(prog)s {PHYSICSNEMO_MGN_DUKE_HEART_MOTION} --directory tutorials/network_weights
+  %(prog)s {PHYSICSNEMO_PHYSICS_INFORMED_MOTION_DUKE_HEART}
+  %(prog)s {PHYSICSNEMO_PHYSICS_INFORMED_MOTION_DUKE_HEART_ABLATION}
         """,
     )
     parser.add_argument(
@@ -44,7 +60,7 @@ Examples:
             CHEST_CT,
             TCIA_4D_LUNG,
             DUKE_HEART_4D_LABELMAPS,
-            PHYSICSNEMO_MGN_LUNG_MOTION,
+            *NETWORK_WEIGHTS,
         ],
         default=None,
         help="Dataset to download",
@@ -62,7 +78,7 @@ Examples:
 
     default_directory = (
         "tutorials/network_weights"
-        if args.data_name == PHYSICSNEMO_MGN_LUNG_MOTION
+        if args.data_name in NETWORK_WEIGHTS
         else f"data/{args.data_name}"
     )
     directory = args.directory or default_directory
@@ -101,6 +117,33 @@ Examples:
     if args.data_name == PHYSICSNEMO_MGN_LUNG_MOTION:
         data_dir = DownloadData.DownloadPhysicsNeMoMGNLungMotionData(output_dir)
         print(f"Downloaded {PHYSICSNEMO_MGN_LUNG_MOTION} to: {data_dir}")
+        return 0
+
+    if args.data_name == PHYSICSNEMO_MGN_DUKE_HEART_MOTION:
+        data_dir = DownloadData.DownloadPhysicsNeMoMGNDukeHeartMotionData(output_dir)
+        print(f"Downloaded {PHYSICSNEMO_MGN_DUKE_HEART_MOTION} to: {data_dir}")
+        return 0
+
+    if args.data_name == PHYSICSNEMO_PHYSICS_INFORMED_MOTION_DUKE_HEART:
+        data_dir = DownloadData.DownloadPhysicsNeMoPhysicsInformedMotionDukeHeartData(
+            output_dir
+        )
+        print(
+            f"Downloaded {PHYSICSNEMO_PHYSICS_INFORMED_MOTION_DUKE_HEART} to: "
+            f"{data_dir}"
+        )
+        return 0
+
+    if args.data_name == PHYSICSNEMO_PHYSICS_INFORMED_MOTION_DUKE_HEART_ABLATION:
+        data_dir = (
+            DownloadData.DownloadPhysicsNeMoPhysicsInformedMotionDukeHeartAblationData(
+                output_dir
+            )
+        )
+        print(
+            f"Downloaded {PHYSICSNEMO_PHYSICS_INFORMED_MOTION_DUKE_HEART_ABLATION} "
+            f"to: {data_dir}"
+        )
         return 0
 
     parser.error(f"Unsupported dataset: {args.data_name}")

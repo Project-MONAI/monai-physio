@@ -125,7 +125,7 @@ pytest tests/ -v --run-simpleware --run-gpu --run-slow
 pytest tests/test_tutorials.py -v --run-tutorials
 
 # A single tutorial by name
-pytest tests/test_tutorials.py::TestTutorial01HeartGatedCTToUSD -v -s --run-tutorials
+pytest tests/test_tutorials.py::TestTutorial01ConvertToUSDSlicerHeart4DCT -v -s --run-tutorials
 ```
 
 ### Common Test Commands

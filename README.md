@@ -89,7 +89,7 @@ monai-physio-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
 ### Run Tutorial 01: Gated CT to USD
 
 ```
-python tutorials/tutorial_01_heart_gated_ct_to_usd.py
+python tutorials/tutorial_01_convert_to_usd_slicer_heart_4d_ct.py
 ```
 
 ### Explore the Code

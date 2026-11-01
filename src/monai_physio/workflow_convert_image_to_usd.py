@@ -58,6 +58,10 @@ class WorkflowConvertImageToUSD(MONAIPhysioBase):
         surface_reduction_rate: float = 0.0,
         log_level: int | str = logging.INFO,
         save_assets: bool = True,
+        *,
+        isotropic_spacing_mm: Optional[float] = None,
+        distance_sigma_mm: Optional[float] = None,
+        save_transforms: bool = True,
     ) -> None:
         """
         Initialize the image-to-USD workflow.
@@ -89,6 +93,18 @@ class WorkflowConvertImageToUSD(MONAIPhysioBase):
             log_level: Logging level (default: logging.INFO)
             save_assets: Write registered images, transforms, and labelmaps
                 output_directory when True
+            isotropic_spacing_mm: Edge length of the isotropic grid the
+                surfaces are contoured on, passed to
+                :meth:`ProcessSurfaceMesh.extract_label_surfaces`.  ``None``
+                (default) uses the labelmap's finest spacing.
+            distance_sigma_mm: Blur applied to the label distance maps before
+                contouring, passed to
+                :meth:`ProcessSurfaceMesh.extract_label_surfaces`.  Raising it
+                smooths out voxel steps a coarse segmentation leaves, and thins
+                the smallest structures.  ``None`` (default) uses the grid
+                spacing.
+            save_transforms: When ``save_assets`` is True, also write each
+                frame's forward and inverse ``.hdf`` transforms.  Default: True
 
         Raises:
             TypeError: If segmentation_method is neither None nor a
@@ -104,7 +120,10 @@ class WorkflowConvertImageToUSD(MONAIPhysioBase):
         self.output_directory = output_directory
         self.frames_per_second = frames_per_second
         self.surface_reduction_rate = surface_reduction_rate
+        self.isotropic_spacing_mm = isotropic_spacing_mm
+        self.distance_sigma_mm = distance_sigma_mm
         self.save_assets = save_assets
+        self.save_transforms = save_transforms
 
         self.registration_results: list[
             dict[str, dict[str, Union[itk.Transform, float]]]
@@ -206,6 +225,7 @@ class WorkflowConvertImageToUSD(MONAIPhysioBase):
                 ),
                 compression=True,
             )
+        if self.save_assets and self.save_transforms and len(filename_prefix) > 0:
             itk.transformwrite(
                 reg_results["moving_to_fixed_transform"],
                 os.path.join(self.output_directory, f"{filename_prefix}_inverse.hdf"),
@@ -360,6 +380,8 @@ class WorkflowConvertImageToUSD(MONAIPhysioBase):
         surfaces = self.contour_tools.extract_label_surfaces(
             self.reference_segmentation_results["labelmap"],
             surface_reduction_rate=self.surface_reduction_rate,
+            isotropic_spacing_mm=self.isotropic_spacing_mm,
+            distance_sigma_mm=self.distance_sigma_mm,
         )
 
         # One extraction, split by label, so the dynamic and static structures

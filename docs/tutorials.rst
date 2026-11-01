@@ -11,14 +11,13 @@ Tutorials
      <p class="mphysio-kicker">MONAI Physio tutorials</p>
      <h1>From a CT scan to an animated digital twin</h1>
      <p>
-       Eighteen numbered stages across 36 Python scripts, 21 of them runnable
-       today: the fifteen <code>duke_heart</code> variants wait on a dataset
-       that is being released soon.
+       Eighteen numbered stages across 37 Python scripts.
        Each one drives the real workflow classes end-to-end on downloadable
        data, shows what it produced, and ends with the handful of constants
        to change so it runs on your own scans. New to the toolkit? Tutorial 00
-       is a self-contained demo notebook that runs the whole lung pipeline
-       from a single clone, with no earlier tutorial required.
+       is three self-contained demo notebooks -- lung motion, cardiac motion,
+       and physics-informed cardiac motion and stress -- that each run from a
+       single clone, with no earlier tutorial required.
      </p>
    </section>
 
@@ -36,11 +35,15 @@ package - ``pip install monai-physio`` gives you the library and the
 
 See :doc:`quickstart` for version-matched clones and the release tarball link.
 
-Each numbered tutorial below may ship one to three organ/dataset variant
-scripts - ``heart``, ``lung``, and ``duke_heart`` - that share the same
-workflow class and the same numbered section; where a variant's data, output
-path or behaviour differs from the others, that section's ``Script`` and
-``Adapt to your data`` blocks call it out inline.
+Each numbered tutorial below may ship one to three variant scripts, named
+``tutorial_NN_<function>_<data source>`` after the dataset they run on -
+``slicer_heart_4d_ct``, ``kcl_heart_4d_meshes``, ``duke_heart_4d_labelmaps`` or
+``tcia_lung_4d_ct`` (plus ``tcia_lung_3d_ct`` for Tutorial 00 and
+``chest_3d_ct`` for Tutorial 13). The settings of each of the four 4D data
+sources live in a matching ``tutorials/parameters_<data source>.py`` module.
+The variants of one number share the same workflow class and the same numbered section; where a
+variant's data, output path or behaviour differs from the others, that
+section's ``Script`` and ``Adapt to your data`` blocks call it out inline.
 
 **2. Get the data**, running every download from the top level of the clone.
 The tutorials resolve their inputs against the repository root
@@ -53,11 +56,15 @@ relative to the current working directory:
    monai-physio-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
    monai-physio-download-data Chest-CT --directory data/Chest-CT
    monai-physio-download-data TCIA-4DLung --directory data/TCIA-4DLung
+   monai-physio-download-data Duke-Heart-4DLabelmaps --directory data/Duke-Heart-4DLabelmaps
    monai-physio-download-data PhysicsNeMo-MGN-Lung-Motion --directory tutorials/network_weights
+   monai-physio-download-data PhysicsNeMo-MGN-Duke-Heart-Motion --directory tutorials/network_weights
+   monai-physio-download-data PhysicsNeMo-PhysicsInformed-Motion-Duke-Heart --directory tutorials/network_weights
+   monai-physio-download-data PhysicsNeMo-PhysicsInformed-Motion-Duke-Heart-Ablation --directory tutorials/network_weights
 
 That covers Heart Tutorials 1, 3, 4 and 6 (``Slicer-Heart-CT`` and
 ``KCL-Heart-Model``), Lung Tutorial 7 (``Chest-CT``, which Tutorial 13 also
-animates), and Lung Tutorials 1, 2, 3, 4, 6, 8, 10, 11 and 12
+animates), and Lung Tutorials 1, 2, 3, 4, 6, 8, 10, 11, 12, 14 and 15
 (``TCIA-4DLung``, a converted tutorial subset of the full TCIA 4D-Lung
 collection). The full collection is obtained separately, by downloading its
 DICOM series from TCIA and running ``data/TCIA-4DLung/convert.py``, if more
@@ -66,14 +73,17 @@ than the tutorial subset is needed. ``DirLab-4DCT``, used by Heart Tutorial
 and may require registration. ``PhysicsNeMo-MGN-Lung-Motion`` fetches the
 pretrained lung-motion checkpoint Tutorial 9 otherwise trains, letting a
 reader skip Tutorial 9 and start directly at Tutorial 10 (and the chain of
-Tutorials 11 through 14, which build on Tutorial 10's output).
+Tutorials 11 through 14, which build on Tutorial 10's output). The three
+Duke heart checkpoints do the same for the cardiac chain:
+``PhysicsNeMo-MGN-Duke-Heart-Motion`` stands in for Duke Tutorial 9, and the
+two ``PhysicsNeMo-PhysicsInformed-Motion-Duke-Heart*`` checkpoints for
+Tutorial 17. Each ships the shape model it was trained against, which is what
+lets the two cardiac Tutorial 00 notebooks run with nothing else first.
 
 Tutorials 5 and 9 need no dataset of their own; they consume the outputs of
 Tutorials 4 and 8. ``Duke-Heart-4DLabelmaps`` drives the fifteen ``duke_heart``
 variants: a fourteen-tutorial chain from Tutorial 4 through Tutorial 18, plus
-the separate, optional Tutorial 2 ICON finetuning variant; the dataset is
-being released soon, and until then access can be requested from Stephen Aylward
-(saylward@nvidia.com). See ``data/TCIA-4DLung/README.md``,
+the separate, optional Tutorial 2 ICON finetuning variant. See ``data/TCIA-4DLung/README.md``,
 ``data/DirLab-4DCT/README.md``, ``data/Duke-Heart-4DLabelmaps/README.md``, and
 :doc:`cli_scripts/download_data` for every dataset's size and source.
 
@@ -89,6 +99,18 @@ second run is cheap and later tutorials pick up earlier results automatically.
        <h2>Predict Lung Motion From a Single Chest CT</h2>
        <p>A self-contained demo: fit the shape model and predict motion with a pretrained network, nothing else to run first.</p>
        <span class="mphysio-card__meta">Chest-CT &middot; PhysicsNeMo-MGN-Lung-Motion</span>
+     </a>
+     <a class="mphysio-card" href="#tutorial-00-duke-heart-demo-predict-cardiac-motion-from-one-labelmap-frame">
+       <span class="mphysio-card__number">00</span>
+       <h2>Predict Cardiac Motion From One Labelmap Frame</h2>
+       <p>A self-contained demo: fit the heart shape model, predict a cardiac cycle with a pretrained network and score it against the acquired frames.</p>
+       <span class="mphysio-card__meta">Duke-Heart-4DLabelmaps &middot; PhysicsNeMo-MGN-Duke-Heart-Motion</span>
+     </a>
+     <a class="mphysio-card" href="#tutorial-00-duke-heart-pinn-demo-physics-informed-cardiac-motion-and-stress">
+       <span class="mphysio-card__number">00</span>
+       <h2>Physics-Informed Cardiac Motion and Stress</h2>
+       <p>A self-contained demo: predict with pretrained physics-informed and ablation networks, compare them, and export the motion colored by von Mises stress.</p>
+       <span class="mphysio-card__meta">Duke-Heart-4DLabelmaps &middot; PhysicsNeMo-PhysicsInformed-Motion-Duke-Heart</span>
      </a>
      <a class="mphysio-card" href="#tutorial-1-gated-4d-ct-to-animated-usd">
        <span class="mphysio-card__number">01</span>
@@ -204,12 +226,13 @@ Recommended Run Order
 =====================
 
 Tutorials are straightforward Python scripts: run one with
-``python tutorials/tutorial_01_heart_gated_ct_to_usd.py``, or open it in your
+``python tutorials/tutorial_01_convert_to_usd_slicer_heart_4d_ct.py``, or open it in your
 editor and read it top to bottom. Numbers 1, 4 and 5 are the fastest way to see
 the toolkit
 work end-to-end; 6 through 18 build the statistical-model and AI-surrogate
-pipeline on top. Tutorial 00 sits outside this chain - a notebook demo that
-downloads everything it needs and predicts lung motion end-to-end on its own.
+pipeline on top. Tutorial 00 sits outside this chain - three notebook demos
+that download everything they need and predict lung motion, cardiac motion,
+or physics-informed cardiac motion and stress end-to-end on their own.
 
 1. **Tutorial 1** - after downloading Slicer-Heart-CT.
 2. **Tutorial 2** - after obtaining TCIA-4DLung. It writes the finetuned ICON
@@ -226,9 +249,11 @@ downloads everything it needs and predicts lung motion end-to-end on its own.
 10. **Tutorial 10** - after Tutorial 9, whose checkpoint it loads.
 11. **Tutorial 11** - after Tutorial 9. The lung variant segments every gated
     frame of the held-out case, so it needs a GPU and the segmentation weights.
-12. **Tutorial 12** - after Tutorial 6 and Tutorial 9 for its anatomy; it fits
-    the model to the patient itself, so nothing is read from Tutorial 8.
-13. **Tutorial 13** - after Tutorial 7 (lung) and Tutorial 9 for both anatomies.
+12. **Tutorial 12** - after Tutorial 9 for its anatomy, or its downloaded
+    checkpoint; the shape model ships with the checkpoint, and it fits the
+    model to the patient itself, so nothing is read from Tutorials 6 or 8.
+13. **Tutorial 13** - after Tutorial 7 (lung) and Tutorial 9 for both anatomies
+    (or their downloaded checkpoints).
     It also needs Simpleware Medical, which segments the heart it fits.
 14. **Tutorial 14** - after Tutorial 8 and Tutorial 9, whose fit and
     checkpoint every point of the grid reuses. It scores each point the way
@@ -241,12 +266,15 @@ downloads everything it needs and predicts lung motion end-to-end on its own.
     volume elements, so Tutorial 16 rebuilds the shape model tetrahedrally
     instead of reusing the surface one from Tutorials 6 to 8. Tutorial 17 then
     trains against that energy and Tutorial 18 scores it and reads out stress.
+    Tutorial 18 accepts the downloaded checkpoints in place of Tutorial 17's,
+    provided they were trained on the shape model Tutorial 16 built; it checks,
+    as Duke Tutorial 14 does for a downloaded Tutorial 9 checkpoint.
 
 Tutorial 00 (Lung Demo): Predict Lung Motion From a Single Chest CT
 ====================================================================
 
 Script
-   ``tutorials/tutorial_00_lung_demo.ipynb``
+   ``tutorials/tutorial_00_infer_respiratory_motion_tcia_lung_3d_ct.ipynb``
 
 Workflow
    :class:`~monai_physio.WorkflowFitStatisticalModelToPatient` and
@@ -300,11 +328,11 @@ Inner API usage
 Run
    .. code-block:: bash
 
-      jupyter notebook tutorials/tutorial_00_lung_demo.ipynb
+      jupyter notebook tutorials/tutorial_00_infer_respiratory_motion_tcia_lung_3d_ct.ipynb
 
 Outputs
    The per-stage warped CTs, predicted VTP surfaces, and one animated USD,
-   under ``tutorials/output/tutorial_00_lung_demo/``.
+   under ``tutorials/output/tutorial_00_infer_respiratory_motion_tcia_lung_3d_ct/``.
 
 Adapt to your data
    Swap the downloaded ``Chest-CT`` volume for your own ungated chest CT,
@@ -318,16 +346,161 @@ Adapt to your data
    is a standalone shortcut, not step one of the numbered series: start at
    Tutorial 1 for the full pipeline.
 
+Tutorial 00 (Duke Heart Demo): Predict Cardiac Motion From One Labelmap Frame
+==============================================================================
+
+Script
+   ``tutorials/tutorial_00_infer_cardiac_motion_duke_heart_4d_labelmaps.ipynb``
+
+Workflow
+   :class:`~monai_physio.WorkflowFitStatisticalModelToPatient` and
+   :class:`~monai_physio.WorkflowInferMovement` (``process_time_series``)
+   driving a pretrained :class:`~monai_physio.WorkflowInferPhysicsNeMo`
+   MeshGraphNet.
+
+Dataset
+   Duke-Heart-4DLabelmaps (auto-download), held-out case ``pm0027``. The
+   pretrained PhysicsNeMo-MGN-Duke-Heart-Motion checkpoint (auto-download)
+   ships its own heart PCA shape model, so no Tutorial 6 or Tutorial 9 run is
+   needed first. The case is gated, so the stages come from the acquisition
+   and every prediction is scored against the frame acquired at its stage.
+   See ``data/Duke-Heart-4DLabelmaps/README.md`` for the data source, its
+   CC BY license, and required citation.
+
+Requirements
+   GPU, for the shape-model fit and the MeshGraphNet forward pass.
+
+Inner API usage
+   .. code-block:: python
+
+      fit_workflow = WorkflowFitStatisticalModelToPatient(
+          template_model=pca_mean_surface,
+          patient_models=[heart_surface],
+          patient_image=None,
+          patient_labelmap=reference_labelmap,
+          labelmap_interior_object_ids=DUKE_HEART_4D_LABELMAPS.interior_object_ids,
+      )
+      fit_workflow.set_use_pca_registration(
+          use_pca_registration=True,
+          pca_model=pca_model,
+          number_of_pca_components=number_of_pca_components,
+          use_surface=False,
+      )
+      fit_result = fit_workflow.process()
+
+      infer_workflow = WorkflowInferPhysicsNeMo(model_directory=model_dir)
+      infer_result = WorkflowInferMovement(infer_workflow).process_time_series(
+          shape_parameters=pca_coefficients_file,
+          stages=stages,
+          output_directory=output_dir,
+          fitted_reference_mesh=fitted_reference_mesh_file,
+          reference_image=reference_labelmap,
+          warp_interpolation="nearest",
+          anatomy_type="heart",
+      )
+
+Run
+   .. code-block:: bash
+
+      jupyter notebook tutorials/tutorial_00_infer_cardiac_motion_duke_heart_4d_labelmaps.ipynb
+
+Outputs
+   The per-stage predicted VTP surfaces and carried labelmaps, one animated
+   USD, and a per-stage Dice table (predicted beside no-motion), under
+   ``tutorials/output/tutorial_00_infer_cardiac_motion_duke_heart_4d_labelmaps/``.
+
+Adapt to your data
+   Point ``data_dir`` and ``case_id`` at your own gated labelmaps. The network
+   was trained on labelmaps from the ASCardio module of Simpleware
+   (``SegmentHeartSimplewareTrimmedBranches``), so apply it only to labelmaps
+   segmented the same way. This is a standalone shortcut: Duke Tutorials 4
+   through 12 build and train everything it downloads.
+
+Tutorial 00 (Duke Heart PINN Demo): Physics-Informed Cardiac Motion and Stress
+==============================================================================
+
+Script
+   ``tutorials/tutorial_00_infer_physics_informed_motion_duke_heart_4d_labelmaps.ipynb``
+
+Workflow
+   :class:`~monai_physio.WorkflowFitStatisticalModelToPatient` with a
+   volumetric template, :class:`~monai_physio.WorkflowInferMovement`
+   (``process_time_series``) driving two pretrained
+   :class:`~monai_physio.WorkflowInferPhysicsNeMo` networks through
+   :class:`~monai_physio.InferPhysicsNeMoMGN`
+   (``model_tag="physics_informed_motion"``), and
+   :class:`~monai_physio.ConvertVTKToUSD` (``output_tet_mesh=True``) for the
+   stress-colored USD.
+
+Dataset
+   Duke-Heart-4DLabelmaps (auto-download), held-out case ``pm0027``, and the
+   PhysicsNeMo-PhysicsInformed-Motion-Duke-Heart and
+   PhysicsNeMo-PhysicsInformed-Motion-Duke-Heart-Ablation checkpoints
+   (auto-download), which ship the volumetric shape model and tetrahedral
+   template they were trained against. No Tutorial 16 or 17 run is needed
+   first. See ``data/Duke-Heart-4DLabelmaps/README.md`` for the data
+   source, its CC BY license, and required citation.
+
+Requirements
+   CUDA GPU.
+
+Inner API usage
+   .. code-block:: python
+
+      fit_workflow = WorkflowFitStatisticalModelToPatient(
+          template_model=pca_mean_volume,
+          patient_models=[heart_surface],
+          patient_image=None,
+          patient_labelmap=reference_labelmap,
+          labelmap_interior_object_ids=parameters.interior_object_ids,
+      )
+      fit_result = fit_workflow.process()
+
+      for name, model_dir in model_dirs.items():
+          infer_workflow = WorkflowInferPhysicsNeMo(
+              model_directory=model_dir,
+              inference_method=InferPhysicsNeMoMGN(
+                  model_tag="physics_informed_motion"
+              ),
+          )
+          predictions[name] = WorkflowInferMovement(
+              infer_workflow
+          ).process_time_series(
+              shape_parameters=pca_coefficients_file,
+              stages=stages,
+              output_directory=output_dir / name,
+              fitted_reference_mesh=fitted_reference_model_file,
+              reference_image=reference_labelmap,
+              warp_interpolation="nearest",
+          )
+
+Run
+   .. code-block:: bash
+
+      jupyter notebook tutorials/tutorial_00_infer_physics_informed_motion_duke_heart_4d_labelmaps.ipynb
+
+Outputs
+   Each network's per-stage predicted tetrahedral meshes and carried
+   labelmaps, a per-stage table of Dice and inverted-element count for both
+   networks, and one animated USD colored by von Mises stress, under
+   ``tutorials/output/tutorial_00_infer_physics_informed_motion_duke_heart_4d_labelmaps/``.
+
+Adapt to your data
+   As for the MeshGraphNet demo above. ``mu_kpa`` and ``lambda_lame_kpa`` come
+   from ``DUKE_HEART_4D_LABELMAPS_PHYSICS`` and must stay the values the
+   network was trained under for the stress to mean anything. Tutorials 16
+   to 18 build, train and score everything this notebook downloads.
+
 Tutorial 1: Gated 4D CT to Animated USD
 =======================================
 
 Script
-   ``tutorials/tutorial_01_heart_gated_ct_to_usd.py`` (Slicer-Heart-CT)
+   ``tutorials/tutorial_01_convert_to_usd_slicer_heart_4d_ct.py`` (Slicer-Heart-CT)
 
-   ``tutorials/tutorial_01_lung_gated_ct_to_usd.py`` (TCIA-4DLung)
+   ``tutorials/tutorial_01_convert_to_usd_tcia_lung_4d_ct.py`` (TCIA-4DLung)
 
-   ``tutorials/tutorial_01_lung_gated_ct_to_usd_tetmesh.py`` (TCIA-4DLung) -
-   fills the reference-phase lung surface with tetrahedra and warps that one
+   ``tutorials/tutorial_01_convert_to_usd_tetmesh_slicer_heart_4d_ct.py`` (Slicer-Heart-CT) -
+   fills the reference-phase heart surface with tetrahedra and warps that one
    volume mesh through every phase's registration instead of exporting a
    surface-only USD, so every frame shares the reference mesh's connectivity -
    needed for downstream finite-element work (e.g. strain energy) that a
@@ -377,17 +550,18 @@ Inner API usage
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_01_heart_gated_ct_to_usd.py
-      python tutorials/tutorial_01_lung_gated_ct_to_usd.py
-      python tutorials/tutorial_01_lung_gated_ct_to_usd_tetmesh.py
+      python tutorials/tutorial_01_convert_to_usd_slicer_heart_4d_ct.py
+      python tutorials/tutorial_01_convert_to_usd_tcia_lung_4d_ct.py
+      python tutorials/tutorial_01_convert_to_usd_tetmesh_slicer_heart_4d_ct.py
 
 Outputs
    The animated USD named after ``usd_project_name``, the per-phase registered
    volumes and labelmaps, and screenshots - all under
-   ``tutorials/output/tutorial_01_{heart,lung}/``. The tetmesh variant instead
-   writes one ``lung_tetmesh_<phase>.vtu`` per respiratory phase, plus a
-   reference-surface screenshot, under
-   ``tutorials/output/tutorial_01_lung_tetmesh/``.
+   ``tutorials/output/tutorial_01_convert_to_usd_{slicer_heart,tcia_lung}_4d_ct/``.
+   The tetmesh variant instead writes one ``heart_tetmesh_<phase>.vtu`` per
+   cardiac phase, the phases as one animated ``UsdGeomTetMesh`` in
+   ``heart_tetmesh.usd``, and a reference-surface screenshot, under
+   ``tutorials/output/tutorial_01_convert_to_usd_tetmesh_slicer_heart_4d_ct/``.
 
 Adapt to your data
    Point ``data_dir`` and the file glob near the top of the script at your own
@@ -405,24 +579,22 @@ Tutorial 2: Finetune ICON Registration
 ======================================
 
 Script
-   ``tutorials/tutorial_02_lung_finetune_icon.py``
+   ``tutorials/tutorial_02_finetune_icon_tcia_lung_4d_ct.py``
 
-   ``tutorials/tutorial_02_lung_distancemap_finetune_icon.py`` - the lung
+   ``tutorials/tutorial_02_finetune_icon_distancemap_tcia_lung_4d_ct.py`` - the lung
    distance-map variant, which finetunes on distance maps rather than image
    intensities so the labelmap-to-labelmap stage of Tutorials 7 and 8 has
    in-distribution weights.
 
-   ``tutorials/tutorial_02_duke_heart_distancemap_finetune_icon.py`` - the same
+   ``tutorials/tutorial_02_finetune_icon_distancemap_duke_heart_4d_labelmaps.py`` - the same
    for the heart, on Duke-Heart-4DLabelmaps. The heart needs its own run because
    it registers with a much tighter mask than the lungs, so its distance maps
    saturate over a shorter radius and do not share an intensity distribution
    with lung ones. The per-organ values live in
-   ``tutorials/parameters_tcia_4d_lung.py`` for the lung variant and
-   ``tutorials/parameters_duke_heart_labelmaps.py`` for this one. This is a
-   ``duke_heart`` tutorial: Duke-Heart-4DLabelmaps is being released soon (see
-   `Before You Start`_), and until then access can be requested from Stephen
-   Aylward (saylward@nvidia.com) - see
-   ``data/Duke-Heart-4DLabelmaps/README.md``.
+   ``tutorials/parameters_tcia_lung_4d_ct.py`` for the lung variant and
+   ``tutorials/parameters_duke_heart_4d_labelmaps.py`` for this one. See
+   ``data/Duke-Heart-4DLabelmaps/README.md`` for the dataset, its CC BY
+   license, and required citation.
 
 Workflow
    :class:`~monai_physio.WorkflowFinetuneICONRegistration`, then
@@ -431,8 +603,8 @@ Workflow
    :class:`~monai_physio.SegmentNVSegmentCTMRI` supplying the labelmaps.
 
 Dataset
-   TCIA-4DLung (auto-download). Every case except ``100_HM10395`` trains;
-   ``100_HM10395`` is held out and registered three ways - Greedy alone with
+   TCIA-4DLung (auto-download). Every case except ``103_HM10395`` trains;
+   ``103_HM10395`` is held out and registered three ways - Greedy alone with
    its defaults, then Greedy+ICON with the stock uniGradICON weights and with
    the finetuned ones - so the improvement is measured, not asserted.
 
@@ -473,8 +645,8 @@ Inner API usage
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_02_lung_finetune_icon.py
-      python tutorials/tutorial_02_lung_distancemap_finetune_icon.py
+      python tutorials/tutorial_02_finetune_icon_tcia_lung_4d_ct.py
+      python tutorials/tutorial_02_finetune_icon_distancemap_tcia_lung_4d_ct.py
 
 Outputs
    The finetuned checkpoint under
@@ -482,7 +654,7 @@ Outputs
    ``registration_summary.csv``, the fixed-minus-registered difference images
    (residual structure is what separates the methods), the fixed and warped
    labelmaps, and before/after screenshots in
-   ``tutorials/output/tutorial_02_lung/``.
+   ``tutorials/output/tutorial_02_finetune_icon_tcia_lung_4d_ct/``.
 
 Adapt to your data
    Replace the training cohort glob with your own volumes and set ``epochs``
@@ -495,9 +667,9 @@ Tutorial 3: Reconstruct High-Resolution 4D CT
 =============================================
 
 Script
-   ``tutorials/tutorial_03_heart_reconstruct_highres_4d_ct.py``
+   ``tutorials/tutorial_03_reconstruct_highres_slicer_heart_4d_ct.py``
 
-   ``tutorials/tutorial_03_lung_reconstruct_highres_4d_ct.py``
+   ``tutorials/tutorial_03_reconstruct_highres_tcia_lung_4d_ct.py``
 
 Workflow
    :class:`~monai_physio.WorkflowReconstructHighres4DCT` with
@@ -509,7 +681,7 @@ Dataset
 
 Requirements
    CPU is enough. One coarse-to-fine registration per phase, greedy schedule
-   ``[30, 15, 7, 3]``.
+   ``[100, 100, 10, 5]``.
 
 Preview
    .. figure:: assets/tutorial_03_heart_original.gif
@@ -533,7 +705,7 @@ Preview
 Inner API usage
    .. code-block:: python
 
-      registration_method = HEART_CT_KCL.registrar(test_mode, log_level=log_level)
+      registration_method = SLICER_HEART_4D_CT.registrar(test_mode, log_level=log_level)
 
       workflow = WorkflowReconstructHighres4DCT(
           time_series_images=time_series,
@@ -547,20 +719,19 @@ Inner API usage
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_03_heart_reconstruct_highres_4d_ct.py
-      python tutorials/tutorial_03_lung_reconstruct_highres_4d_ct.py
+      python tutorials/tutorial_03_reconstruct_highres_slicer_heart_4d_ct.py
+      python tutorials/tutorial_03_reconstruct_highres_tcia_lung_4d_ct.py
 
 Outputs
-   ``reconstructed_frame_<i>.mha`` plus fixed_to_moving and moving_to_fixed
-   transforms for every phase, and two screenshots, under
-   ``tutorials/output/tutorial_03_{heart,lung}/``.
+   ``reconstructed_frame_<i>.mha`` for every phase and two screenshots, under
+   ``tutorials/output/tutorial_03_reconstruct_highres_{slicer_heart,tcia_lung}_4d_ct/``.
 
 Adapt to your data
    Set ``case_glob`` and ``data_dir`` to your series and pick the reference
    with ``reference_time_frame``. If you have a separate breath-hold or
    contrast-enhanced volume, pass it as ``reference_image`` instead of one of
    the phases - that is what the workflow is really designed for. The
-   iteration schedule comes from ``HEART_CT_KCL.registrar(test_mode, ...)``,
+   iteration schedule comes from ``SLICER_HEART_4D_CT.registrar(test_mode, ...)``,
    which already shortens it for a fast smoke test when ``test_mode`` is set.
    The saved ``.hdf`` transforms are reusable:
    :class:`~monai_physio.ProcessTransforms` applies them to meshes and labelmaps.
@@ -569,11 +740,11 @@ Tutorial 4: CT Segmentation to VTK Surfaces
 ===========================================
 
 Script
-   ``tutorials/tutorial_04_heart_ct_to_vtk.py``
+   ``tutorials/tutorial_04_convert_to_vtk_slicer_heart_4d_ct.py``
 
-   ``tutorials/tutorial_04_lung_ct_to_vtk.py``
+   ``tutorials/tutorial_04_convert_to_vtk_tcia_lung_4d_ct.py``
 
-   ``tutorials/tutorial_04_duke_heart_labelmap_to_vtk.py`` - starts from gated
+   ``tutorials/tutorial_04_convert_to_vtk_duke_heart_4d_labelmaps.py`` - starts from gated
    labelmaps rather than CT, and also extracts tetrahedral meshes. Needs
    Duke-Heart-4DLabelmaps (see `Before You Start`_).
 
@@ -613,11 +784,11 @@ Inner API usage
    .. code-block:: python
 
       workflow = WorkflowConvertImageToVTK(
-          segmentation_method=HEART_CT_KCL.segmenter(test_mode),
+          segmentation_method=SLICER_HEART_4D_CT.segmenter(test_mode),
       )
       result = workflow.process(
           input_image=ct_image,
-          surface_reduction_rate=HEART_CT_KCL.surface_reduction_rate,
+          surface_reduction_rate=SLICER_HEART_4D_CT.surface_reduction_rate,
           extract_label_surfaces=True,
       )
       WorkflowConvertImageToVTK.save_combined_surfaces(
@@ -627,14 +798,15 @@ Inner API usage
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_04_heart_ct_to_vtk.py
-      python tutorials/tutorial_04_lung_ct_to_vtk.py
+      python tutorials/tutorial_04_convert_to_vtk_slicer_heart_4d_ct.py
+      python tutorials/tutorial_04_convert_to_vtk_tcia_lung_4d_ct.py
 
 Outputs
    ``patient_surfaces.vtp`` (all anatomy in one mesh, with a per-cell
    ``SegmentationLabelIds`` array so each cell still names the structure it came
    from), per-group and per-label ``.vtp`` files, ``patient_labelmap.mha`` and
-   two screenshots, under ``tutorials/output/tutorial_04_{heart,lung}/``.
+   two screenshots, under
+   ``tutorials/output/tutorial_04_convert_to_vtk_{slicer_heart,tcia_lung}_4d_ct/``.
 
 Adapt to your data
    Change the input volume path, then choose the segmenter matching your scan:
@@ -650,9 +822,9 @@ Tutorial 5: VTK Surfaces to Animated USD
 ========================================
 
 Script
-   ``tutorials/tutorial_05_heart_vtk_to_usd.py``
+   ``tutorials/tutorial_05_convert_vtk_to_usd_slicer_heart_4d_ct.py``
 
-   ``tutorials/tutorial_05_duke_heart_vtk_to_usd.py`` - the 4D counterpart,
+   ``tutorials/tutorial_05_convert_vtk_to_usd_duke_heart_4d_labelmaps.py`` - the 4D counterpart,
    animating Tutorial 4 (duke heart)'s per-phase surfaces. Needs
    Duke-Heart-4DLabelmaps (see `Before You Start`_).
 
@@ -697,11 +869,11 @@ Inner API usage
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_05_heart_vtk_to_usd.py
+      python tutorials/tutorial_05_convert_vtk_to_usd_slicer_heart_4d_ct.py
 
 Outputs
    The USD scene and a rendered screenshot under
-   ``tutorials/output/tutorial_05_heart/``.
+   ``tutorials/output/tutorial_05_convert_vtk_to_usd_slicer_heart_4d_ct/``.
 
 Adapt to your data
    ``input_meshes`` takes any list of PyVista meshes - pass one per time point,
@@ -717,11 +889,11 @@ Tutorial 6: Create a PCA Shape Model
 ====================================
 
 Script
-   ``tutorials/tutorial_06_heart_create_statistical_model.py``
+   ``tutorials/tutorial_06_create_statistical_model_kcl_heart_4d_meshes.py``
 
-   ``tutorials/tutorial_06_lung_create_statistical_model.py``
+   ``tutorials/tutorial_06_create_statistical_model_tcia_lung_4d_ct.py``
 
-   ``tutorials/tutorial_06_duke_heart_create_statistical_model.py`` - builds the
+   ``tutorials/tutorial_06_create_statistical_model_duke_heart_4d_labelmaps.py`` - builds the
    cardiac model the ``duke_heart`` surrogate chain trains against. Needs
    Duke-Heart-4DLabelmaps (see `Before You Start`_).
 
@@ -732,7 +904,8 @@ Workflow
 
 Dataset
    KCL-Heart-Model (auto-download) for the heart. The lung variant starts from
-   raw TCIA-4DLung volumes, segmenting each case's g070 phase itself.
+   raw TCIA-4DLung volumes, segmenting each case's g070 phase itself. The held-out
+   case ``103_HM10395`` is left out of the model.
 
 Requirements
    The heart variant is CPU-only and quick. **The lung variant is the slowest
@@ -770,13 +943,14 @@ Inner API usage
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_06_heart_create_statistical_model.py
-      python tutorials/tutorial_06_lung_create_statistical_model.py
+      python tutorials/tutorial_06_create_statistical_model_kcl_heart_4d_meshes.py
+      python tutorials/tutorial_06_create_statistical_model_tcia_lung_4d_ct.py
 
 Outputs
    ``pca_model.json``, ``pca_mean_surface.vtp``, the ±2σ mode surfaces and
-   their renders, under ``tutorials/output/tutorial_06_{heart,lung}/``. The
-   lung variant also leaves its per-case segmentations there, which Tutorial 8
+   their renders, under
+   ``tutorials/output/tutorial_06_create_statistical_model_{kcl_heart_4d_meshes,tcia_lung_4d_ct}/``.
+   The lung variant also leaves its per-case segmentations there, which Tutorial 8
    reuses.
 
 Adapt to your data
@@ -792,11 +966,11 @@ Tutorial 7: Fit the Shape Model to a Patient
 ============================================
 
 Script
-   ``tutorials/tutorial_07_heart_fit_statistical_model_to_patient.py``
+   ``tutorials/tutorial_07_fit_statistical_model_to_patient_kcl_heart_4d_meshes.py``
 
-   ``tutorials/tutorial_07_lung_fit_statistical_model_to_patient.py``
+   ``tutorials/tutorial_07_fit_statistical_model_to_patient_tcia_lung_4d_ct.py``
 
-   ``tutorials/tutorial_07_duke_heart_fit_statistical_model_to_patient.py`` -
+   ``tutorials/tutorial_07_fit_statistical_model_to_patient_duke_heart_4d_labelmaps.py`` -
    fits the Tutorial 6 (duke heart) model. Needs Duke-Heart-4DLabelmaps (see
    `Before You Start`_).
 
@@ -844,14 +1018,14 @@ Inner API usage
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_07_heart_fit_statistical_model_to_patient.py
-      python tutorials/tutorial_07_lung_fit_statistical_model_to_patient.py
+      python tutorials/tutorial_07_fit_statistical_model_to_patient_kcl_heart_4d_meshes.py
+      python tutorials/tutorial_07_fit_statistical_model_to_patient_tcia_lung_4d_ct.py
 
 Outputs
    The registered template surface, the fitted mesh, and - the piece the rest
    of the pipeline needs - ``*_registered_coefficients.json``, the patient's
    position in shape space. Under
-   ``tutorials/output/tutorial_07_{heart,lung}/``.
+   ``tutorials/output/tutorial_07_fit_statistical_model_to_patient_{kcl_heart_4d_meshes,tcia_lung_4d_ct}/``.
 
 Adapt to your data
    Set the patient image path and keep the segmenter consistent with the one
@@ -866,9 +1040,9 @@ Tutorial 8: Propagate the Shape Model Through 4D
 ================================================
 
 Script
-   ``tutorials/tutorial_08_lung_fit_model_to_4d_patients.py``
+   ``tutorials/tutorial_08_fit_model_to_4d_patients_tcia_lung_4d_ct.py``
 
-   ``tutorials/tutorial_08_duke_heart_fit_model_to_4d_patients.py`` - the same
+   ``tutorials/tutorial_08_fit_model_to_4d_patients_duke_heart_4d_labelmaps.py`` - the same
    fit-then-propagate pass over cardiac phases, using
    :class:`~monai_physio.RegisterModelsDistanceMaps` in place of the image
    registration. Needs Duke-Heart-4DLabelmaps (see `Before You Start`_).
@@ -924,11 +1098,12 @@ Inner API usage
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_08_lung_fit_model_to_4d_patients.py
+      python tutorials/tutorial_08_fit_model_to_4d_patients_tcia_lung_4d_ct.py
 
 Outputs
-   Per case, under ``tutorials/output/tutorial_08_lung/<case>/``: the fitted
-   reference surface, its PCA coefficients, and one warped surface plus
+   Per case, under
+   ``tutorials/output/tutorial_08_fit_model_to_4d_patients_tcia_lung_4d_ct/<case>/``:
+   the fitted reference surface, its PCA coefficients, and one warped surface plus
    fixed_to_moving/moving_to_fixed transform per phase. Those per-phase
    surfaces are exactly the training set Tutorial 9 consumes.
 
@@ -942,9 +1117,9 @@ Tutorial 9: Train a PhysicsNeMo Surrogate
 =========================================
 
 Script
-   ``tutorials/tutorial_09_lung_train_physicsnemo_mgn.py``
+   ``tutorials/tutorial_09_train_physicsnemo_mgn_tcia_lung_4d_ct.py``
 
-   ``tutorials/tutorial_09_duke_heart_train_physicsnemo_mgn.py`` - trains the
+   ``tutorials/tutorial_09_train_physicsnemo_mgn_duke_heart_4d_labelmaps.py`` - trains the
    cardiac network Tutorial 13 uses for its heartbeat. Needs
    Duke-Heart-4DLabelmaps (see `Before You Start`_).
 
@@ -1013,14 +1188,15 @@ Inner API usage
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_09_lung_train_physicsnemo_mgn.py
+      python tutorials/tutorial_09_train_physicsnemo_mgn_tcia_lung_4d_ct.py
 
 Outputs
    ``mgn_stage_model.pt``, its metadata and loss/RMSE logs, in the shared
    weights directory Tutorial 10 reads
    (``tutorials/network_weights/physicsnemo_mgn_lung_motion/``, a fresh sibling
    of it when resuming). The per-case manifests and the held-out evaluation
-   under ``eval_mgn/`` stay in ``tutorials/output/tutorial_09_lung_mgn/``.
+   under ``eval_mgn/`` stay in
+   ``tutorials/output/tutorial_09_train_physicsnemo_mgn_tcia_lung_4d_ct/``.
    A pretrained checkpoint is also available via
    ``monai-physio-download-data PhysicsNeMo-MGN-Lung-Motion``, which extracts
    to that same weights directory - a shortcut to skip this tutorial and
@@ -1039,9 +1215,9 @@ Tutorial 10: Predict Motion With the Surrogate
 ==============================================
 
 Script
-   ``tutorials/tutorial_10_lung_infer_physicsnemo_mgn.py``
+   ``tutorials/tutorial_10_infer_physicsnemo_mgn_tcia_lung_4d_ct.py``
 
-   ``tutorials/tutorial_10_duke_heart_infer_physicsnemo_mgn.py`` - the same
+   ``tutorials/tutorial_10_infer_physicsnemo_mgn_duke_heart_4d_labelmaps.py`` - the same
    prediction over a cardiac cycle. Needs Duke-Heart-4DLabelmaps (see
    `Before You Start`_).
 
@@ -1096,11 +1272,12 @@ Inner API usage
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_10_lung_infer_physicsnemo_mgn.py
+      python tutorials/tutorial_10_infer_physicsnemo_mgn_tcia_lung_4d_ct.py
 
 Outputs
    One predicted surface and one warped CT per stage, and one animated USD
-   across all of them, under ``tutorials/output/tutorial_10_lung_mgn/<case>/``.
+   across all of them, under
+   ``tutorials/output/tutorial_10_infer_physicsnemo_mgn_tcia_lung_4d_ct/<case>/``.
    The acquired phase surface is rendered beside the prediction for visual
    comparison; scoring it is Tutorial 11's job.
 
@@ -1115,9 +1292,9 @@ Tutorial 11: Score the Surrogate Against the Images
 ===================================================
 
 Script
-   ``tutorials/tutorial_11_lung_evaluate_physicsnemo.py``
+   ``tutorials/tutorial_11_evaluate_physicsnemo_tcia_lung_4d_ct.py``
 
-   ``tutorials/tutorial_11_duke_heart_evaluate_physicsnemo.py``
+   ``tutorials/tutorial_11_evaluate_physicsnemo_duke_heart_4d_labelmaps.py``
 
 Workflow
    :class:`~monai_physio.WorkflowEvaluateMovement`, driving
@@ -1176,11 +1353,12 @@ Inner API usage
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_11_lung_evaluate_physicsnemo.py
+      python tutorials/tutorial_11_evaluate_physicsnemo_tcia_lung_4d_ct.py
 
 Outputs
    ``evaluation_report.md``, ``evaluation_metrics.csv`` and
-   ``volume_vs_stage.png`` under ``tutorials/output/tutorial_11_lung/<case>/``,
+   ``volume_vs_stage.png`` under
+   ``tutorials/output/tutorial_11_evaluate_physicsnemo_tcia_lung_4d_ct/<case>/``,
    carrying volume difference and surface RMSE per lobe at every gated stage;
    the duke variant adds Dice per chamber. The plot traces each structure's
    acquired and predicted volume across the stages. Report and CSV both record
@@ -1203,9 +1381,9 @@ Tutorial 12: The Whole Inference Pipeline in One Script
 =======================================================
 
 Script
-   ``tutorials/tutorial_12_lung_end_to_end_inference.py``
+   ``tutorials/tutorial_12_infer_respiratory_motion_tcia_lung_4d_ct.py``
 
-   ``tutorials/tutorial_12_duke_heart_end_to_end_inference.py``
+   ``tutorials/tutorial_12_infer_cardiac_motion_duke_heart_4d_labelmaps.py``
 
 Workflow
    :class:`~monai_physio.WorkflowConvertImageToVTK` (lung) or
@@ -1215,7 +1393,9 @@ Workflow
 
 Dataset
    The gated sequence alone - TCIA-4DLung for the lung, Duke-Heart-4DLabelmaps
-   for the heart - plus the Tutorial 6 shape model and the Tutorial 9 checkpoint.
+   for the heart - plus the Tutorial 9 checkpoint (trained, or downloaded with
+   ``monai-physio-download-data``), which carries the shape model it was
+   trained against.
    Unlike Tutorial 10, nothing is read from Tutorial 8: this script fits the
    model to the patient itself, so the chain from image to animation runs in one
    place.
@@ -1272,12 +1452,13 @@ Inner API usage
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_12_lung_end_to_end_inference.py
+      python tutorials/tutorial_12_infer_respiratory_motion_tcia_lung_4d_ct.py
 
 Outputs
-   Under ``tutorials/output/tutorial_12_lung/<case>/`` (or
-   ``tutorial_12_duke_heart``): the patient's fitted
-   ``<case>_ssm_surface.vtp`` and ``<case>_ssm_pca_coefficients.json``, one
+   Under
+   ``tutorials/output/tutorial_12_infer_respiratory_motion_tcia_lung_4d_ct/<case>/``
+   (or ``tutorial_12_infer_cardiac_motion_duke_heart_4d_labelmaps``): the
+   patient's fitted ``<case>_ssm_surface.vtp`` and ``<case>_ssm_pca_coefficients.json``, one
    predicted ``*_pred.vtp`` surface and one ``*_warped.mha`` volume per stage,
    ``<case>_mgn_motion.usd`` animating the whole cycle, and
    ``<case>_runtimes.csv`` timing each step of the run.
@@ -1293,7 +1474,7 @@ Tutorial 13: Breathe and Beat a Static Clinical CT
 ==================================================
 
 Script
-   ``tutorials/tutorial_13_heart_and_lung_motion.py``
+   ``tutorials/tutorial_13_combine_heart_and_lung_motion_chest_3d_ct.py``
 
 Workflow
    :class:`~monai_physio.WorkflowInferMovement` over both Tutorial 9 networks,
@@ -1303,8 +1484,9 @@ Workflow
 
 Dataset
    ``data/Chest-CT/Chest-CT.mha``, one ungated breath-hold scan, plus Tutorial 7
-   (lung)'s fit of it and both Tutorial 9 checkpoints. No 4D acquisition is
-   involved: every deformation comes from a network, none from a registration.
+   (lung)'s fit of it and both Tutorial 9 checkpoints (trained or downloaded).
+   No 4D acquisition is involved: every deformation comes from a network, none
+   from a registration.
    See ``data/Chest-CT/README.md`` for the data source and required citation.
 
 Requirements
@@ -1351,11 +1533,11 @@ Inner API usage
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_13_heart_and_lung_motion.py
+      python tutorials/tutorial_13_combine_heart_and_lung_motion_chest_3d_ct.py
 
 Outputs
-   Under ``tutorials/output/tutorial_13_heart_and_lung/``: one 4D USD per rhythm
-   (``breathing_lungs.usd``, ``beating_heart.usd``), 100 combined frames as VTP
+   Under ``tutorials/output/tutorial_13_combine_heart_and_lung_motion_chest_3d_ct/``:
+   one 4D USD per rhythm (``breathing_lungs.usd``, ``beating_heart.usd``), 100 combined frames as VTP
    plus ``heart_and_lung_motion.usd`` split by anatomy and painted with organ
    materials, and the CT and labelmap warped by the same per-frame deformation.
 
@@ -1370,9 +1552,9 @@ Tutorial 14: Sweep the Shape Parameters
 =======================================
 
 Script
-   ``tutorials/tutorial_14_lung_shape_parameter_sweep.py`` (TCIA-4DLung)
+   ``tutorials/tutorial_14_shape_parameter_sweep_tcia_lung_4d_ct.py`` (TCIA-4DLung)
 
-   ``tutorials/tutorial_14_duke_heart_shape_parameter_sweep.py``
+   ``tutorials/tutorial_14_shape_parameter_sweep_duke_heart_4d_labelmaps.py``
    (Duke-Heart-4DLabelmaps)
 
 Workflow
@@ -1382,7 +1564,8 @@ Workflow
 
 Dataset
    The held-out case of Tutorial 9, plus its Tutorial 8 fit and the Tutorial 9
-   checkpoint.
+   checkpoint. A downloaded checkpoint is accepted only if it was trained on
+   the same Tutorial 6 shape model Tutorial 8 fitted with; the script checks.
 
 Requirements
    A GPU, and the
@@ -1427,12 +1610,12 @@ What it does
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_14_lung_shape_parameter_sweep.py
+      python tutorials/tutorial_14_shape_parameter_sweep_tcia_lung_4d_ct.py
 
-      python tutorials/tutorial_14_duke_heart_shape_parameter_sweep.py
+      python tutorials/tutorial_14_shape_parameter_sweep_duke_heart_4d_labelmaps.py
 
 Outputs
-   Under ``tutorials/output/tutorial_14_<anatomy>/<case>/``:
+   Under ``tutorials/output/tutorial_14_shape_parameter_sweep_<data source>/<case>/``:
    ``shape_sweep_metrics.csv`` with one row per combination, stage and
    structure, ``shape_sweep_summary.csv`` with one row per combination carrying
    that combination's pooled displacement error, and one ``combo_<NNN>/``
@@ -1449,9 +1632,9 @@ Tutorial 15: Leave-One-Out Cross-Validation
 ===========================================
 
 Script
-   ``tutorials/tutorial_15_lung_leave_one_out.py`` (TCIA-4DLung)
+   ``tutorials/tutorial_15_leave_one_out_tcia_lung_4d_ct.py`` (TCIA-4DLung)
 
-   ``tutorials/tutorial_15_duke_heart_leave_one_out.py``
+   ``tutorials/tutorial_15_leave_one_out_duke_heart_4d_labelmaps.py``
    (Duke-Heart-4DLabelmaps)
 
 Workflow
@@ -1505,21 +1688,22 @@ Run
    .. code-block:: bash
 
       # One process
-      python tutorials/tutorial_15_lung_leave_one_out.py
-      python tutorials/tutorial_15_duke_heart_leave_one_out.py
+      python tutorials/tutorial_15_leave_one_out_tcia_lung_4d_ct.py
+      python tutorials/tutorial_15_leave_one_out_duke_heart_4d_labelmaps.py
 
       # Data-parallel training and rank-split per-case loops
       torchrun --standalone --nproc_per_node=8 \
-          tutorials/tutorial_15_lung_leave_one_out.py
+          tutorials/tutorial_15_leave_one_out_tcia_lung_4d_ct.py
       torchrun --standalone --nproc_per_node=8 \
-          tutorials/tutorial_15_duke_heart_leave_one_out.py
+          tutorials/tutorial_15_leave_one_out_duke_heart_4d_labelmaps.py
 
 Outputs
-   Under ``tutorials/output/tutorial_15_<anatomy>/``: ``loo_metrics.csv`` with
-   every metric row of every fold, ``loo_report.md`` with the per-structure mean
-   and standard deviation across folds, ``loo_metrics_by_label.png`` as the
-   matching box plot, and one ``fold_<case>/`` directory per fold holding that
-   fold's shape model, fits, manifests, weights and evaluation.
+   Under ``tutorials/output/tutorial_15_leave_one_out_<data source>/``:
+   ``loo_metrics.csv`` with every metric row of every fold, ``loo_report.md``
+   with the per-structure mean and standard deviation across folds,
+   ``loo_metrics_by_label.png`` as the matching box plot, and one
+   ``fold_<case>/`` directory per fold holding that fold's shape model, fits,
+   manifests, weights and evaluation.
 
 Adapt to your data
    Raise ``number_of_leave_one_out_runs`` to the cohort size for a full
@@ -1532,7 +1716,7 @@ Tutorial 16: Build a Volumetric Shape Model of the Myocardium
 ==============================================================
 
 Script
-   ``tutorials/tutorial_16_duke_heart_physics_informed_motion_prep.py``
+   ``tutorials/tutorial_16_physics_informed_motion_prep_duke_heart_4d_labelmaps.py``
 
 Workflow
    :class:`~monai_physio.WorkflowCreateStatisticalModel` with
@@ -1546,7 +1730,9 @@ Dataset
    Duke-Heart-4DLabelmaps, plus Tutorial 4 (duke heart)'s surfaces and,
    optionally, Tutorial 2's finetuned distance-map ICON weights --- the stock
    uniGradICON weights are used when absent, which understates the
-   population's variance. Nothing in Tutorials 1 to 15 is modified.
+   population's variance. Nothing in Tutorials 1 to 15 is modified. See
+   ``data/Duke-Heart-4DLabelmaps/README.md`` for the data source, its CC BY
+   license, and required citation.
 
 Requirements
    A CUDA GPU is required --- every registration runs on one. This is the most
@@ -1586,17 +1772,17 @@ What it does
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_16_duke_heart_physics_informed_motion_prep.py
+      python tutorials/tutorial_16_physics_informed_motion_prep_duke_heart_4d_labelmaps.py
 
 Outputs
-   Under ``tutorials/output/tutorial_16_duke_heart_physics_informed_motion/``:
+   Under ``tutorials/output/tutorial_16_physics_informed_motion_prep_duke_heart_4d_labelmaps/``:
    ``ssm_template.vtu`` (the tetrahedral template), ``pca_model.json`` and
    ``pca_mean.vtu`` (the volumetric shape model), ``pca_mean_surface.vtp``
    (its boundary, for display), one ``<case>/`` directory of fitted and
    phase-propagated models per case, and ``manifests/`` for Tutorial 17.
 
 Adapt to your data
-   ``ssm_element_size_mm`` in ``parameters_duke_heart_physics_informed.py`` is
+   ``ssm_element_size_mm`` in ``parameters_duke_heart_4d_labelmaps_physics.py`` is
    the one number that decides how much of the myocardium the physics term
    ever sees, because ``extract_tetrahedra`` resamples with a vote and drops
    any wall thinner than the element size. Measured against the 208,259 mm^3
@@ -1608,7 +1794,7 @@ Tutorial 17: Train a Mechanics-Aware Cardiac Motion Surrogate
 ==============================================================
 
 Script
-   ``tutorials/tutorial_17_duke_heart_physics_informed_motion_train.py``
+   ``tutorials/tutorial_17_physics_informed_motion_train_duke_heart_4d_labelmaps.py``
 
 Workflow
    :class:`~monai_physio.WorkflowTrainPhysicsNeMo` driving
@@ -1662,7 +1848,7 @@ What it does
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_17_duke_heart_physics_informed_motion_train.py
+      python tutorials/tutorial_17_physics_informed_motion_train_duke_heart_4d_labelmaps.py
 
 Outputs
    Under ``tutorials/network_weights/physicsnemo_physics_informed_motion_duke_heart/``
@@ -1670,12 +1856,12 @@ Outputs
    (``physics_informed_motion_stage_model.pt``), per-epoch loss
    (``training_losses.json``), and intermittent validation RMSE
    (``training_validation_rmse.csv``). Under
-   ``tutorials/output/tutorial_16_duke_heart_physics_informed_motion/``:
+   ``tutorials/output/tutorial_16_physics_informed_motion_prep_duke_heart_4d_labelmaps/``:
    ``training_losses.png``, both runs' loss curves.
 
 Adapt to your data
    ``mu_kpa`` and ``lambda_lame_kpa`` in
-   ``parameters_duke_heart_physics_informed.py`` are the tissue's constitutive
+   ``parameters_duke_heart_4d_labelmaps_physics.py`` are the tissue's constitutive
    parameters, and ``lambda_physics`` weighs the residual against a
    displacement loss scored in different units --- sweep it rather than
    trusting it. Set ``train_ablation_baseline`` to ``False`` to skip the
@@ -1685,7 +1871,7 @@ Tutorial 18: Predict Myocardial Motion and the Stress It Implies
 =================================================================
 
 Script
-   ``tutorials/tutorial_18_duke_heart_physics_informed_motion_infer.py``
+   ``tutorials/tutorial_18_physics_informed_motion_infer_duke_heart_4d_labelmaps.py``
 
 Workflow
    :class:`~monai_physio.WorkflowInferMovement` driving
@@ -1697,7 +1883,10 @@ Workflow
 
 Dataset
    Tutorial 16 output (fitted models, manifests, template), Tutorial 17
-   output (the trained networks), and the held-out case's
+   output (the trained networks, or the downloaded
+   ``PhysicsNeMo-PhysicsInformed-Motion-Duke-Heart*`` checkpoints when they
+   were trained on the same Tutorial 16 shape model; the script checks), and
+   the held-out case's
    ``data/Duke-Heart-4DLabelmaps/<case>/*_labelmap.nii.gz``.
 
 Requirements
@@ -1740,10 +1929,10 @@ What it does
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_18_duke_heart_physics_informed_motion_infer.py
+      python tutorials/tutorial_18_physics_informed_motion_infer_duke_heart_4d_labelmaps.py
 
 Outputs
-   Under ``tutorials/output/tutorial_18_duke_heart_physics_informed_motion/<case>/``:
+   Under ``tutorials/output/tutorial_18_physics_informed_motion_infer_duke_heart_4d_labelmaps/<case>/``:
    ``mechanics_comparison.csv`` (per-phase scores, both models),
    ``physics_informed/`` and ``ablation/`` (each model's predictions and
    report), ``stress/<frame>_stress.vtu`` (predicted motion carrying stress),

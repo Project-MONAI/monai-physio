@@ -68,6 +68,10 @@ class RegisterImagesGreedy(RegisterImagesBase):
         transform_type: 'Deformable', 'Affine', or 'Rigid'
         metric: 'CC' (→NCC), 'Mattes' (→NMI), or 'MeanSquares' (→SSD)
         deformable_smoothing: Smoothing sigmas for deformable (e.g. "2.0vox 0.5vox")
+            (set via set_deformable_smoothing)
+        use_stationary_velocity: Whether the deformable stage optimizes a
+            stationary velocity field (Greedy's -sv) (set via
+            set_stationary_velocity)
     """
 
     # picsl_greedy 0.0.12 segfaults when any metric allocates a working buffer
@@ -90,6 +94,42 @@ class RegisterImagesGreedy(RegisterImagesBase):
         self.transform_type = "Deformable"
         self.metric = "CC"
         self.deformable_smoothing = "2.0vox 0.5vox"
+        self.use_stationary_velocity = False
+
+    def set_stationary_velocity(self, use_stationary_velocity: bool) -> None:
+        """Set whether deformable registration optimizes a velocity field (-sv).
+
+        Greedy then exponentiates a stationary velocity field into its warp
+        rather than optimizing the warp directly.  That alone does not keep
+        the warp from folding: with the default warp smoothing of 0.5 voxel
+        the exponentiated warp still folds.  Pair it with more warp
+        smoothing, via :meth:`set_deformable_smoothing`, when the warp must
+        stay invertible.
+
+        Args:
+            use_stationary_velocity: Whether to pass -sv to the deformable
+                stage. Default: False
+        """
+        self.use_stationary_velocity = use_stationary_velocity
+
+    def set_deformable_smoothing(
+        self, gradient_sigma: str = "2.0vox", warp_sigma: str = "0.5vox"
+    ) -> None:
+        """Set the deformable stage's two smoothing sigmas (Greedy's -s).
+
+        The warp sigma is the regularization that keeps the warp from
+        folding.  Points carried through a folded warp, such as a tetrahedral
+        mesh's nodes, invert the elements the fold covers; ``"1.0vox"`` or
+        more avoids that where the default ``"0.5vox"`` does not.
+
+        Args:
+            gradient_sigma: Smoothing of the metric gradient at each
+                iteration, in Greedy's units (``"vox"`` or ``"mm"``).
+                Default: "2.0vox"
+            warp_sigma: Smoothing of the accumulated warp at each iteration.
+                Default: "0.5vox"
+        """
+        self.deformable_smoothing = f"{gradient_sigma} {warp_sigma}"
 
     def set_number_of_iterations(self, number_of_iterations: list[int]) -> None:
         """Set the number of iterations per resolution level.
@@ -405,6 +445,8 @@ class RegisterImagesGreedy(RegisterImagesBase):
             f" -it {initial_affine_file} -n {iterations_str}"
             f" -m {metric_str} -s {self.deformable_smoothing} -o warp_out"
         )
+        if self.use_stationary_velocity:
+            cmd_def += " -sv"
         kwargs_def["warp_out"] = None
         if fixed_mask_sitk is not None and moving_mask_sitk is not None:
             cmd_def += " -gm fixed_mask -mm moving_mask"

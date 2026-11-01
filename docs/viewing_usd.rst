@@ -92,7 +92,7 @@ opens them:
 
    import pyvista as pv
 
-   pv.read("tutorials/output/tutorial_04_heart/patient_surfaces.vtp").plot()
+   pv.read("tutorials/output/tutorial_04_convert_to_vtk_slicer_heart_4d_ct/patient_surfaces.vtp").plot()
 
 This is usually the faster way to check a segmentation or a fitted shape model
 before spending time on the USD export.

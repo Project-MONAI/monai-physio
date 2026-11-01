@@ -48,8 +48,8 @@ from scipy import ndimage
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "tutorials"))
 
-from parameters_heart_ct_kcl import HEART_CT_KCL
-from parameters_tcia_4d_lung import TCIA_4D_LUNG
+from parameters_kcl_heart_4d_meshes import KCL_HEART_4D_MESHES
+from parameters_tcia_lung_4d_ct import TCIA_LUNG_4D_CT
 
 from monai_physio import (
     ProcessTransforms,
@@ -79,14 +79,14 @@ DEFORMABLE_KEYS = RegisterImagesFireants._DEFORMABLE_OPTIONS
 def load_dataset(dataset: str, smoke: bool) -> tuple[list[Path], int]:
     """Return the phase files and the tutorial's reference frame index."""
     if dataset == "heart":
-        data_dir = HEART_CT_KCL.data_directory(smoke) / (
+        data_dir = KCL_HEART_4D_MESHES.data_directory(smoke) / (
             "slicer_heart_small" if smoke else "Slicer-Heart-CT"
         )
         files = sorted(data_dir.glob("slice_???.mha"))
         reference = int(0.7 * len(files))
     else:
-        data_dir = TCIA_4D_LUNG.input_directory(False)
-        files = sorted(data_dir.glob("100_HM10395_g0??.nii.gz"))
+        data_dir = TCIA_LUNG_4D_CT.input_directory(False) / "103_HM10395"
+        files = sorted(data_dir.glob("103_HM10395_g0??.nii.gz"))
         reference = next((i for i, p in enumerate(files) if "g070" in p.name), -1)
     if not files:
         raise FileNotFoundError(f"No {dataset} phase images found under {data_dir}")
@@ -103,7 +103,7 @@ def build_registrar(
 ) -> RegisterImagesBase:
     """Greedy: the tutorial registrar; FireANTs: the class defaults."""
     if method == "greedy":
-        parameters = HEART_CT_KCL if dataset == "heart" else TCIA_4D_LUNG
+        parameters = KCL_HEART_4D_MESHES if dataset == "heart" else TCIA_LUNG_4D_CT
         registrar = parameters.registrar(smoke, log_level=logging.WARNING)
     else:
         registrar = RegisterImagesFireants(log_level=logging.WARNING)

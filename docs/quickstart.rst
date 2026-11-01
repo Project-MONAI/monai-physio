@@ -79,7 +79,7 @@ Then fetch the sample datasets, again from the top level of the clone:
    # Lung Tutorial 7
    monai-physio-download-data Chest-CT --directory data/Chest-CT
 
-   # Duke heart tutorials 2 and 4 through 12
+   # Duke heart tutorials 2, 4 through 12, and 14 through 18
    monai-physio-download-data Duke-Heart-4DLabelmaps --directory data/Duke-Heart-4DLabelmaps
 
    # No tutorial - transcatheter pulmonary valve experiments only, >2 GB
@@ -99,7 +99,7 @@ Which dataset each tutorial needs:
      - Heart Tutorials 1, 3, 4
    * - ``TCIA-4DLung``
      - CLI
-     - Lung Tutorials 1, 2, 3, 4, 6, 8, 10, 11, 12
+     - Lung Tutorials 1, 2, 3, 4, 6, 8, 10, 11, 12, 14, 15
    * - ``DirLab-4DCT``
      - Manual
      - Heart Tutorial 7
@@ -111,7 +111,8 @@ Which dataset each tutorial needs:
      - Lung Tutorial 7, and Tutorial 13
    * - ``Duke-Heart-4DLabelmaps``
      - CLI
-     - The ten ``duke_heart`` variants, Tutorials 2 and 4 through 12
+     - The fifteen ``duke_heart`` variants, Tutorials 2, 4 through 12, and
+       14 through 18
    * - ``CHOP-Valve4D``
      - CLI
      - No tutorial - used by the valve experiments under ``experiments/``
@@ -139,7 +140,7 @@ as a plain script:
 
 .. code-block:: bash
 
-   python tutorials/tutorial_01_heart_gated_ct_to_usd.py
+   python tutorials/tutorial_01_convert_to_usd_slicer_heart_4d_ct.py
 
 :doc:`tutorials` is the full guide - thirteen numbered stages with previews of
 what each one produces, the run order, and per-tutorial notes on pointing them

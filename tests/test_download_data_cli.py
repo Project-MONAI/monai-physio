@@ -138,3 +138,89 @@ def test_download_data_cli_routes_duke_heart_4d_labelmaps(
     assert result == 0
     assert calls == [Path("data/Duke-Heart-4DLabelmaps")]
     assert "Downloaded Duke-Heart-4DLabelmaps" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    ("data_name", "method_name"),
+    [
+        ("PhysicsNeMo-MGN-Lung-Motion", "DownloadPhysicsNeMoMGNLungMotionData"),
+        (
+            "PhysicsNeMo-MGN-Duke-Heart-Motion",
+            "DownloadPhysicsNeMoMGNDukeHeartMotionData",
+        ),
+        (
+            "PhysicsNeMo-PhysicsInformed-Motion-Duke-Heart",
+            "DownloadPhysicsNeMoPhysicsInformedMotionDukeHeartData",
+        ),
+        (
+            "PhysicsNeMo-PhysicsInformed-Motion-Duke-Heart-Ablation",
+            "DownloadPhysicsNeMoPhysicsInformedMotionDukeHeartAblationData",
+        ),
+    ],
+)
+def test_download_data_cli_routes_network_weights(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    data_name: str,
+    method_name: str,
+) -> None:
+    """Each pretrained network routes to its downloader and the weights root."""
+    calls: list[Path] = []
+
+    def fake_download(dirname: Union[str, Path]) -> Path:
+        calls.append(Path(dirname))
+        return Path(dirname)
+
+    monkeypatch.setattr(DownloadData, method_name, fake_download)
+
+    result = download_data.main([data_name])
+
+    assert result == 0
+    assert calls == [Path("tutorials/network_weights")]
+    assert f"Downloaded {data_name}" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    ("download_name", "verify_name", "weights_dirname", "checkpoint"),
+    [
+        (
+            "DownloadPhysicsNeMoMGNDukeHeartMotionData",
+            "VerifyPhysicsNeMoMGNDukeHeartMotionData",
+            "physicsnemo_mgn_duke_heart_motion",
+            "mgn_stage_model.pt",
+        ),
+        (
+            "DownloadPhysicsNeMoPhysicsInformedMotionDukeHeartData",
+            "VerifyPhysicsNeMoPhysicsInformedMotionDukeHeartData",
+            "physicsnemo_physics_informed_motion_duke_heart",
+            "physics_informed_motion_stage_model.pt",
+        ),
+        (
+            "DownloadPhysicsNeMoPhysicsInformedMotionDukeHeartAblationData",
+            "VerifyPhysicsNeMoPhysicsInformedMotionDukeHeartAblationData",
+            "physicsnemo_physics_informed_motion_duke_heart_ablation",
+            "physics_informed_motion_stage_model.pt",
+        ),
+    ],
+)
+def test_download_network_weights_skips_existing_checkpoint(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    download_name: str,
+    verify_name: str,
+    weights_dirname: str,
+    checkpoint: str,
+) -> None:
+    """A present checkpoint verifies and is never re-downloaded over."""
+    verify = getattr(DownloadData, verify_name)
+    assert not verify(tmp_path)
+
+    (tmp_path / weights_dirname).mkdir()
+    (tmp_path / weights_dirname / checkpoint).touch()
+    assert verify(tmp_path)
+
+    def fail_download(*args: object, **kwargs: object) -> None:
+        raise AssertionError("existing checkpoint was re-downloaded")
+
+    monkeypatch.setattr(DownloadData, "_DownloadAndExtractZip", fail_download)
+    assert getattr(DownloadData, download_name)(tmp_path) == tmp_path / weights_dirname

@@ -448,6 +448,71 @@ class TestTrimTetrahedraToSurface:
         )
 
 
+@pytest.mark.requires_gpu
+class TestRemoveBoundarySlivers:
+    """Flat caps on the boundary go; well-shaped cells, even on it, stay."""
+
+    def test_removes_a_flat_cap_and_keeps_a_good_cell(
+        self, volume_tools: ProcessVolumetricMesh
+    ) -> None:
+        """Every node of a two-cell mesh is on its boundary; only quality decides."""
+        points = np.array(
+            [
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 1.0],
+                # Barely below the shared face: a flat cap glued to it.
+                [0.4, 0.4, -0.02],
+            ]
+        )
+        cells = np.array([4, 0, 1, 2, 3, 4, 0, 2, 1, 4])
+        mesh = pv.UnstructuredGrid(cells, [pv.CellType.TETRA] * 2, points)
+        mesh.cell_data["cell_ids"] = np.array([0, 1])
+
+        cleaned = volume_tools.remove_boundary_slivers(mesh)
+
+        assert cleaned.n_cells == 1
+        assert cleaned.cell_data["cell_ids"].tolist() == [0]
+
+    def test_leaves_a_mesh_without_slivers_unchanged(
+        self, volume_tools: ProcessVolumetricMesh
+    ) -> None:
+        mesh = volume_tools.extract_tetrahedra(_left_handed_box(), element_size_mm=1.0)
+
+        assert volume_tools.remove_boundary_slivers(mesh) is mesh
+
+    def test_trimmed_heart_mesh_loses_its_caps_but_not_its_shape(
+        self,
+        contour_tools: ProcessSurfaceMesh,
+        volume_tools: ProcessVolumetricMesh,
+        heart_labelmap: itk.Image,
+    ) -> None:
+        """The caps trimming leaves are removed at a small cost in volume."""
+        mask = _label_mask(heart_labelmap, BORDER_LABEL)
+        surface = contour_tools.extract_label_surfaces(mask)[1]
+        relaxed = volume_tools.trim_tetrahedra_to_surface(
+            volume_tools.extract_tetrahedra(mask), surface
+        )
+
+        cleaned = volume_tools.remove_boundary_slivers(relaxed)
+
+        connectivity = cast(np.ndarray, cleaned.cells_dict[np.uint8(pv.CellType.TETRA)])
+        boundary = np.zeros(cleaned.n_points, dtype=bool)
+        boundary[
+            cleaned.extract_surface(
+                pass_pointid=True, algorithm="dataset_surface"
+            ).point_data["vtkOriginalPointIds"]
+        ] = True
+        quality = np.asarray(
+            cleaned.cell_quality(["scaled_jacobian"]).cell_data["scaled_jacobian"]
+        )
+        assert not np.any(boundary[connectivity].all(axis=1) & (quality < 0.15))
+        before = float(np.sum(relaxed.compute_cell_sizes(volume=True)["Volume"]))
+        after = float(np.sum(cleaned.compute_cell_sizes(volume=True)["Volume"]))
+        assert after > 0.95 * before
+
+
 class TestRepairInvertedTetrahedra:
     """Node relaxation must fix a flippable mesh and give up on one that can't."""
 
@@ -1250,7 +1315,9 @@ def test_tutorial_4_frame_writes_every_output(tmp_path: Path) -> None:
     tutorials = Path(__file__).resolve().parents[1] / "tutorials"
     if str(tutorials) not in sys.path:
         sys.path.insert(0, str(tutorials))
-    tutorial = importlib.import_module("tutorial_04_duke_heart_labelmap_to_vtk")
+    tutorial = importlib.import_module(
+        "tutorial_04_convert_to_vtk_duke_heart_4d_labelmaps"
+    )
     labelmap_file = tmp_path / "pm0001_g000_labelmap.nii.gz"
     itk.imwrite(_blob_labelmap((1.0, 1.0, 1.0), 1.0), str(labelmap_file))
 

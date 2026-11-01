@@ -42,9 +42,10 @@ This report summarizes development effort, code quality, and project maturity.
 | **TOTAL**                                | **315 files**  | **~74,800**    | **100%**   |
 
 The 32 files under `tutorials/` are 29 numbered tutorial scripts plus 3
-per-organ parameter modules (`parameters_heart_ct_kcl.py`,
-`parameters_lung_ct_dirlab.py`, `parameters_duke_heart_labelmaps.py`) that
-carry the constants the tutorials share.
+per-organ parameter modules (`parameters_kcl_heart_4d_meshes.py`,
+`parameters_dirlab_lung_4d_ct.py`, `parameters_duke_heart_4d_labelmaps.py`, under
+their current names) that carry the constants the tutorials share. Modules added
+after this count, such as `parameters_slicer_heart_4d_ct.py`, are not included.
 
 All experiment and tutorial sources are plain `.py` files run with
 `python <script>.py`. Experiment scripts additionally carry `# %%` percent-cell

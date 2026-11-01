@@ -14,10 +14,12 @@ from pathlib import Path
 
 import pytest
 from parameters_base import ParametersBase
-from parameters_duke_heart_labelmaps import DUKE_HEART
-from parameters_heart_ct_kcl import HEART_CT_KCL
-from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
-from parameters_tcia_4d_lung import TCIA_4D_LUNG
+from parameters_dirlab_lung_4d_ct import DIRLAB_LUNG_4D_CT
+from parameters_duke_heart_4d_labelmaps import DUKE_HEART_4D_LABELMAPS
+from parameters_duke_heart_4d_labelmaps_physics import DUKE_HEART_4D_LABELMAPS_PHYSICS
+from parameters_kcl_heart_4d_meshes import KCL_HEART_4D_MESHES
+from parameters_slicer_heart_4d_ct import SLICER_HEART_4D_CT
+from parameters_tcia_lung_4d_ct import TCIA_LUNG_4D_CT
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -33,15 +35,17 @@ _ROOTS = [
 ]
 
 # Every parameters module a tutorial imports, plus the bare base the tutorials
-# with no dataset-specific module use.  LUNG_CT_DIRLAB is kept alongside
-# TCIA_4D_LUNG even though no tutorial imports it anymore: the module, and the
+# with no dataset-specific module use.  DIRLAB_LUNG_4D_CT is kept alongside
+# TCIA_LUNG_4D_CT even though no tutorial imports it anymore: the module, and the
 # DirLab-4DCT data it describes, are still kept for experiments/.
 _PARAMETERS = [
     ParametersBase(),
-    DUKE_HEART,
-    LUNG_CT_DIRLAB,
-    TCIA_4D_LUNG,
-    HEART_CT_KCL,
+    DUKE_HEART_4D_LABELMAPS,
+    DUKE_HEART_4D_LABELMAPS_PHYSICS,
+    DIRLAB_LUNG_4D_CT,
+    TCIA_LUNG_4D_CT,
+    KCL_HEART_4D_MESHES,
+    SLICER_HEART_4D_CT,
 ]
 
 
@@ -150,7 +154,7 @@ def test_dataset_paths_hang_off_the_roots(
         "mgn_weights_directory",
     ):
         accessor = getattr(parameters, name, None)
-        if accessor is None:  # ParametersHeartCTKCL trains no network.
+        if accessor is None:  # Not every dataset module defines every path.
             continue
         for test_mode in (False, True):
             assert tmp_path in accessor(test_mode).parents, (

@@ -137,7 +137,7 @@ class WorkflowCreateMeanSurface(MONAIPhysioBase):
             )
         self.convergence_tolerance = convergence_tolerance
 
-    def set_alignment_transform_type(self, transform_type: str) -> None:
+    def set_icp_transform_type(self, transform_type: str) -> None:
         """Set the ICP alignment type: ``'Rigid'`` (default) or ``'Affine'``."""
         if transform_type not in ("Rigid", "Affine"):
             raise ValueError(
@@ -188,7 +188,7 @@ class WorkflowCreateMeanSurface(MONAIPhysioBase):
             return self.distance_squared_max
         return (1.25 * self.mask_dilation_mm) ** 2
 
-    def set_registration_transform_type(self, transform_type: str) -> None:
+    def set_distance_map_transform_type(self, transform_type: str) -> None:
         """Set the distance-map registration type used for correspondence.
 
         ``'Deformable'`` (default) runs Greedy affine + ICON; ``'Affine'`` and

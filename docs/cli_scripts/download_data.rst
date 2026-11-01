@@ -39,11 +39,26 @@ Supported Datasets
        the ASCardio module of Simpleware, from the MONAI Physio GitHub
        release. Models trained on them should only be applied to labelmaps
        also generated with ASCardio (``SegmentHeartSimplewareTrimmedBranches``).
-       See ``data/Duke-Heart-4DLabelmaps/README.md``.
+       See ``data/Duke-Heart-4DLabelmaps/README.md`` for the data source,
+       its CC BY license, and required citation.
    * - ``PhysicsNeMo-MGN-Lung-Motion``
      - Pretrained PhysicsNeMo MeshGraphNet checkpoint for lung motion, from
        the MONAI Physio GitHub release. Used by Lung Tutorial 10 and later
        when skipping Tutorial 9's training.
+   * - ``PhysicsNeMo-MGN-Duke-Heart-Motion``
+     - Pretrained PhysicsNeMo MeshGraphNet checkpoint for Duke heart motion,
+       with the heart PCA shape model it was trained against. Used by the
+       cardiac Tutorial 00 notebook and by Duke Tutorials 12-14 when skipping
+       Tutorial 9's training.
+   * - ``PhysicsNeMo-PhysicsInformed-Motion-Duke-Heart``
+     - Pretrained physics-informed (neo-Hookean residual) MeshGraphNet
+       checkpoint for Duke heart motion, with the volumetric PCA shape model it
+       was trained against. Used by the physics-informed Tutorial 00 notebook
+       and by Tutorial 18 when skipping Tutorial 17's training.
+   * - ``PhysicsNeMo-PhysicsInformed-Motion-Duke-Heart-Ablation``
+     - The same network trained with the physics term switched off
+       (``lambda_physics = 0``), the baseline the physics-informed checkpoint
+       is compared against.
 
 Basic Usage
 ===========
@@ -62,16 +77,19 @@ Options
 
 .. code-block:: bash
 
-   monai-physio-download-data [Slicer-Heart-CT|KCL-Heart-Model|CHOP-Valve4D|Chest-CT|TCIA-4DLung|Duke-Heart-4DLabelmaps|PhysicsNeMo-MGN-Lung-Motion] [--directory DIRECTORY]
+   monai-physio-download-data [Slicer-Heart-CT|KCL-Heart-Model|CHOP-Valve4D|Chest-CT|TCIA-4DLung|Duke-Heart-4DLabelmaps|PhysicsNeMo-MGN-Lung-Motion|PhysicsNeMo-MGN-Duke-Heart-Motion|PhysicsNeMo-PhysicsInformed-Motion-Duke-Heart|PhysicsNeMo-PhysicsInformed-Motion-Duke-Heart-Ablation] [--directory DIRECTORY]
 
 ``data_name``
    Dataset to download. One of ``Slicer-Heart-CT``, ``KCL-Heart-Model``,
    ``CHOP-Valve4D``, ``Chest-CT``, ``TCIA-4DLung``, ``Duke-Heart-4DLabelmaps``,
-   or ``PhysicsNeMo-MGN-Lung-Motion``. Required - omitting it prints help and
-   exits.
+   ``PhysicsNeMo-MGN-Lung-Motion``, ``PhysicsNeMo-MGN-Duke-Heart-Motion``,
+   ``PhysicsNeMo-PhysicsInformed-Motion-Duke-Heart``, or
+   ``PhysicsNeMo-PhysicsInformed-Motion-Duke-Heart-Ablation``. Required -
+   omitting it prints help and exits.
 
 ``--directory``
-   Directory where the dataset is stored. Defaults to ``data/<data_name>``.
+   Directory where the dataset is stored. Defaults to ``data/<data_name>``,
+   or ``tutorials/network_weights`` for the ``PhysicsNeMo-*`` checkpoints.
 
 Output
 ======
@@ -168,8 +186,25 @@ The command uses
 :meth:`monai_physio.download_data.DownloadData.DownloadPhysicsNeMoMGNLungMotionData`,
 which fetches ``physicsnemo_mgn_lung_motion.zip`` from the MONAI Physio
 GitHub release and skips the download once ``mgn_stage_model.pt`` is
-already present. Unlike every other dataset, its default ``--directory`` is
+already present. Unlike every dataset, its default ``--directory`` is
 ``tutorials/network_weights``, not ``data/<data_name>``.
+
+The three Duke heart checkpoints are fetched the same way, each into its own
+directory under ``tutorials/network_weights``:
+
+.. code-block:: text
+
+   tutorials/network_weights/physicsnemo_mgn_duke_heart_motion/mgn_stage_model.pt
+   tutorials/network_weights/physicsnemo_physics_informed_motion_duke_heart/physics_informed_motion_stage_model.pt
+   tutorials/network_weights/physicsnemo_physics_informed_motion_duke_heart_ablation/physics_informed_motion_stage_model.pt
+
+They use
+:meth:`monai_physio.download_data.DownloadData.DownloadPhysicsNeMoMGNDukeHeartMotionData`,
+:meth:`monai_physio.download_data.DownloadData.DownloadPhysicsNeMoPhysicsInformedMotionDukeHeartData`
+and
+:meth:`monai_physio.download_data.DownloadData.DownloadPhysicsNeMoPhysicsInformedMotionDukeHeartAblationData`,
+each of which skips the download once its checkpoint is present, so a
+network trained locally by Tutorial 9 or 17 is never overwritten.
 
 See Also
 ========
@@ -177,15 +212,17 @@ See Also
 * :doc:`../tutorials` - ``Slicer-Heart-CT`` drives Heart Tutorials 1, 3 and 4;
   ``KCL-Heart-Model`` drives Heart Tutorial 6; ``Chest-CT`` drives Lung
   Tutorial 7 and Tutorial 13; ``TCIA-4DLung`` drives Lung Tutorials 1, 2, 3,
-  4, 6, 8 and 10-12. ``DirLab-4DCT``, used by Heart Tutorial 7, has no
+  4, 6, 8, 10-12, 14 and 15. ``DirLab-4DCT``, used by Heart Tutorial 7, has no
   ``monai-physio-download-data`` entry - DIR-Lab distributes each case
   individually and may require registration, so it is manual-only, see
   ``data/DirLab-4DCT/README.md``. ``Duke-Heart-4DLabelmaps``, which drives the
-  ten ``duke_heart`` variants, is downloaded with the CLI; see
+  fifteen ``duke_heart`` variants, is downloaded with the CLI; see
   ``data/Duke-Heart-4DLabelmaps/README.md``. ``PhysicsNeMo-MGN-Lung-Motion``
   is the pretrained-checkpoint shortcut for Lung Tutorial 10 (and everything
   downstream of it: 11-14), letting a reader skip running Tutorial 9's
-  training themselves.
+  training themselves. ``PhysicsNeMo-MGN-Duke-Heart-Motion`` and the two
+  ``PhysicsNeMo-PhysicsInformed-Motion-Duke-Heart*`` checkpoints drive the two
+  cardiac Tutorial 00 notebooks with no other tutorial run first.
 * :doc:`byod_tutorials`
 * :doc:`heart_gated_ct`
 * :doc:`overview`

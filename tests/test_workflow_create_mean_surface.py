@@ -46,7 +46,7 @@ def _make_workflow(template: pv.PolyData, iterations: int) -> WorkflowCreateMean
     )
     # Affine keeps the test off the GPU/ICON path; scale differences are then
     # carried by the distance-map stage rather than the ICP alignment.
-    workflow.set_registration_transform_type("Affine")
+    workflow.set_distance_map_transform_type("Affine")
     workflow.set_number_of_iterations(iterations)
     return workflow
 
@@ -61,9 +61,9 @@ def test_invalid_transform_types_rejected() -> None:
     """Transform-type setters validate against the registrars' vocabularies."""
     workflow = _make_workflow(_sphere(*_SPHERES[1]), iterations=1)
     with pytest.raises(ValueError, match="Invalid alignment transform"):
-        workflow.set_alignment_transform_type("Deformable")
+        workflow.set_icp_transform_type("Deformable")
     with pytest.raises(ValueError, match="Invalid registration transform"):
-        workflow.set_registration_transform_type("Elastic")
+        workflow.set_distance_map_transform_type("Elastic")
 
 
 @pytest.mark.slow

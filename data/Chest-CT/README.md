@@ -67,9 +67,9 @@ TCIA's data usage policy also asks that the archive itself be cited:
 ## Using This Dataset
 
 - Patient image for
-  `tutorials/tutorial_07_lung_fit_statistical_model_to_patient.py`, which
+  `tutorials/tutorial_07_fit_statistical_model_to_patient_tcia_lung_4d_ct.py`, which
   segments the lungs from this scan and fits the lung PCA shape model built
-  by `tutorials/tutorial_06_lung_create_statistical_model.py` to them
+  by `tutorials/tutorial_06_create_statistical_model_tcia_lung_4d_ct.py` to them
 
 ### Files in This Directory
 

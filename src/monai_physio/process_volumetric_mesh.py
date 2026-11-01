@@ -303,6 +303,87 @@ class ProcessVolumetricMesh(MONAIPhysioBase):
             relaxed.points = points
         return relaxed
 
+    def remove_boundary_slivers(
+        self,
+        tetrahedra: pv.UnstructuredGrid,
+        min_scaled_jacobian: float = 0.15,
+    ) -> pv.UnstructuredGrid:
+        """Drop flat tetrahedra lying entirely on the mesh's boundary.
+
+        :meth:`trim_tetrahedra_to_surface` presses boundary cells against the
+        surface until they reach its quality bound, which leaves flat caps
+        whose four corners all sit on the surface.  Each holds almost no
+        volume, but warping the mesh -- through a registration, say -- carries
+        its corners along nearly together, and a modest compression across
+        the cap is enough to invert it.  :meth:`repair_inverted_tetrahedra`
+        cannot help: averaging a boundary node with its neighbors pulls the
+        cap flatter, not open.  Removing the caps before the warp avoids that.
+
+        Removing a cap exposes the cell behind it, so this repeats until no
+        cell below the bound has all four corners on the boundary.
+
+        Args:
+            tetrahedra: Volume mesh to clean; its point, cell and field data
+                survive on the cells kept.
+            min_scaled_jacobian: Cells whose four corners are all on the
+                boundary are removed when their scaled Jacobian is below this.
+                The default sits just above
+                :meth:`trim_tetrahedra_to_surface`'s own 0.1 bound.
+
+        Returns:
+            The mesh without those cells, or *tetrahedra* unchanged if it had
+            none.
+        """
+        import torch
+
+        cleaned = tetrahedra
+        removed = 0
+        while True:
+            connectivity = cast(
+                np.ndarray, cleaned.cells_dict[np.uint8(pv.CellType.TETRA)]
+            )
+            on_boundary = np.zeros(cleaned.n_points, dtype=bool)
+            on_boundary[
+                np.asarray(
+                    cleaned.extract_surface(
+                        pass_pointid=True, algorithm="dataset_surface"
+                    ).point_data["vtkOriginalPointIds"]
+                )
+            ] = True
+            quality = (
+                self._kernels.scaled_jacobian(
+                    torch.as_tensor(
+                        np.asarray(cleaned.points),
+                        dtype=torch.float64,
+                        device=self._kernels.device,
+                    ),
+                    torch.as_tensor(
+                        connectivity.astype(np.int64), device=self._kernels.device
+                    ),
+                )
+                .cpu()
+                .numpy()
+            )
+            slivers = on_boundary[connectivity].all(axis=1) & (
+                quality < min_scaled_jacobian
+            )
+            if not slivers.any():
+                break
+            removed += int(slivers.sum())
+            cleaned = cast(
+                pv.UnstructuredGrid,
+                cleaned.extract_cells(
+                    ~slivers, pass_cell_ids=False, pass_point_ids=False
+                ),
+            )
+        if removed:
+            self.log_info(
+                "Removed %d boundary sliver tetrahedra (scaled Jacobian < %g).",
+                removed,
+                min_scaled_jacobian,
+            )
+        return cleaned
+
     def repair_inverted_tetrahedra(
         self,
         tetrahedra: pv.UnstructuredGrid,

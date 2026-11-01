@@ -25,6 +25,42 @@ def _small_image() -> itk.Image:
     return itk.image_from_array(np.zeros((3, 3, 3), dtype=np.float32))
 
 
+def test_surface_grid_and_blur_reach_the_extractor(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The contouring grid and blur are forwarded to extract_label_surfaces."""
+    reference_image = _small_image()
+    workflow = WorkflowConvertImageToUSD(
+        time_series_images=[reference_image],
+        reference_image=reference_image,
+        usd_project_name="patient",
+        output_directory=str(tmp_path),
+        surface_reduction_rate=0.2,
+        log_level=logging.CRITICAL,
+        isotropic_spacing_mm=1.25,
+        distance_sigma_mm=2.0,
+    )
+    captured: dict[str, Any] = {}
+
+    def fake_extract(labelmap: itk.Image, **kwargs: Any) -> dict[int, Any]:
+        captured.update(kwargs)
+        return {}
+
+    monkeypatch.setattr(workflow.contour_tools, "extract_label_surfaces", fake_extract)
+    monkeypatch.setattr(
+        workflow.contour_tools, "combine_surfaces", lambda surfaces: surfaces
+    )
+    workflow.reference_segmentation_results = {"labelmap": reference_image}
+
+    workflow._generate_reference_contours()
+
+    assert captured == {
+        "surface_reduction_rate": 0.2,
+        "isotropic_spacing_mm": 1.25,
+        "distance_sigma_mm": 2.0,
+    }
+
+
 def test_default_segmentation_and_registration_methods(tmp_path: Path) -> None:
     """Omitting segmentation_method/registration_method defaults to
     SegmentChestTotalSegmentatorWithContrast (contrast_threshold=500) and

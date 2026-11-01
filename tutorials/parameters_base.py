@@ -1,8 +1,11 @@
 """Base class holding the three directory roots every tutorial reads and writes.
 
-The dataset-specific parameter modules (:mod:`parameters_duke_heart_labelmaps`,
-:mod:`parameters_lung_ct_dirlab`, :mod:`parameters_heart_ct_kcl`) derive from
-:class:`ParametersBase`, so a tutorial resolves every path through the same
+The dataset-specific parameter modules, each named after the data source its
+tutorials read (:mod:`parameters_slicer_heart_4d_ct`,
+:mod:`parameters_kcl_heart_4d_meshes`, :mod:`parameters_duke_heart_4d_labelmaps`,
+:mod:`parameters_duke_heart_4d_labelmaps_physics`,
+:mod:`parameters_tcia_lung_4d_ct`, :mod:`parameters_dirlab_lung_4d_ct`), derive
+from :class:`ParametersBase`, so a tutorial resolves every path through the same
 object it already imports for its label ids and iteration counts. A tutorial
 that needs only the roots -- one that reads a dataset no shape model is built
 from, say -- instantiates :class:`ParametersBase` directly.
@@ -33,8 +36,11 @@ itself are not here either; ICON resolves those on its own.
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
+
+import numpy as np
 
 # tutorials/parameters_base.py -> tutorials -> repo root
 _REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -97,3 +103,36 @@ class ParametersBase:
             _REPO_ROOT / "tutorials" / "network_weights",
             test_mode,
         )
+
+    @staticmethod
+    def require_matching_shape_model(
+        model_directory: Path, pca_model_file: Path
+    ) -> None:
+        """Raise unless the network in ``model_directory`` used ``pca_model_file``.
+
+        A network is conditioned on PCA coefficients, which mean nothing under any
+        other shape model. A tutorial that reads fits from an earlier tutorial's
+        output holds coefficients of the model built here, so a network that was
+        downloaded rather than trained here is only valid if it was trained
+        against that same model.
+
+        Args:
+            model_directory: Trained-network directory, holding the
+                ``pca_model.json`` its training copied in.
+            pca_model_file: Shape model the fits being inferred from were made
+                with.
+        """
+        with (model_directory / "pca_model.json").open(encoding="utf-8") as f:
+            network_components = np.asarray(json.load(f)["components"])
+        with pca_model_file.open(encoding="utf-8") as f:
+            local_components = np.asarray(json.load(f)["components"])
+        if network_components.shape != local_components.shape or not np.allclose(
+            network_components, local_components
+        ):
+            raise ValueError(
+                f"The network in {model_directory} was trained on a different "
+                f"shape model than {pca_model_file}, so the fitted coefficients "
+                "are meaningless to it. Retrain the network on this shape model, "
+                "or use a Tutorial 00 notebook, which fits the shape model "
+                "shipped with the pretrained network."
+            )

@@ -290,3 +290,29 @@ EvaluateMovementLung().label_ids  # (28, 29, 30, 31, 32)
 
 **Automated conversion:** None needed. Delete cached ground-truth labelmaps
 made with TotalSegmentator so they are re-segmented.
+
+## `WorkflowCreateMeanSurface` - transform setters renamed
+
+**Change:** `set_alignment_transform_type` is now `set_icp_transform_type`, and
+`set_registration_transform_type` is now `set_distance_map_transform_type`.
+
+**Why:** the names say which stage each transform type configures, and
+`set_icp_transform_type` matches the same setter on the statistical-model and
+patient-fit workflows.
+
+**Before**
+
+```python
+workflow.set_alignment_transform_type("Rigid")
+workflow.set_registration_transform_type("Affine")
+```
+
+**After**
+
+```python
+workflow.set_icp_transform_type("Rigid")
+workflow.set_distance_map_transform_type("Affine")
+```
+
+**Automated conversion:**
+`sed -i 's/set_alignment_transform_type/set_icp_transform_type/g; s/set_registration_transform_type/set_distance_map_transform_type/g' PATH`
