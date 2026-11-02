@@ -18,10 +18,10 @@ Inputs
   ``data/DirLab-4DCT/Case1Pack_T70.mha``.
 - Patient heart shape: the 15-mode ``pca-vol-kcl`` fit produced by re-running
   Tutorial 7 against Case1Pack:
-  * coefficients: ``output/tutorial_07_heart/
-    tutorial_07_heart_registered_coefficients.json``
-  * patient-space mesh (binning positions): ``output/tutorial_07_heart/
-    tutorial_07_heart_template_mesh_registered.vtu``
+  * coefficients and the patient-space mesh (binning positions), both under
+    ``output/tutorial_07_fit_statistical_model_to_patient_kcl_heart_4d_meshes/``
+    and named after that directory: ``<directory>_registered_coefficients.json``
+    and ``<directory>_template_mesh_registered.vtu``
 
 Coordinate-frame note
 ---------------------
@@ -132,12 +132,18 @@ if __name__ == "__main__":
     reference_image_file = repo_root / "data" / "DirLab-4DCT" / "Case1Pack_T70.mha"
 
     # 15-mode pca-vol-kcl fit of the Case1Pack heart (Tutorial 7, re-run).
-    tutorial_07_dir = tutorials_dir / "output" / "tutorial_07_heart"
-    coefficients_file = (
-        tutorial_07_dir / "tutorial_07_heart_registered_coefficients.json"
+    tutorial_07_dir = (
+        tutorials_dir
+        / "output"
+        / "tutorial_07_fit_statistical_model_to_patient_kcl_heart_4d_meshes"
     )
-    registered_mesh_file = (
-        tutorial_07_dir / "tutorial_07_heart_template_mesh_registered.vtu"
+    coefficients_file = tutorial_07_dir / (
+        "tutorial_07_fit_statistical_model_to_patient_kcl_heart_4d_meshes_"
+        "registered_coefficients.json"
+    )
+    registered_mesh_file = tutorial_07_dir / (
+        "tutorial_07_fit_statistical_model_to_patient_kcl_heart_4d_meshes_"
+        "template_mesh_registered.vtu"
     )
 
     output_dir = tutorials_dir / "output" / "temp_beating_heart"

@@ -76,7 +76,7 @@ If you clone after running `git lfs install`, LFS files are pulled automatically
 
 ### Install Dependencies
 ```bash
-uv pip install -e ".[dev]"
+uv pip install -e ".[dev_cuda12]" --torch-backend=cu128 -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
 ```
 
 ### Run Tests
@@ -125,7 +125,7 @@ pytest tests/ -v --run-simpleware --run-gpu --run-slow
 pytest tests/test_tutorials.py -v --run-tutorials
 
 # A single tutorial by name
-pytest tests/test_tutorials.py::TestTutorial01HeartGatedCTToUSD -v -s --run-tutorials
+pytest tests/test_tutorials.py::TestTutorial01ConvertToUSDSlicerHeart4DCT -v -s --run-tutorials
 ```
 
 ### Common Test Commands

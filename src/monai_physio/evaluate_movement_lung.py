@@ -120,7 +120,8 @@ class EvaluateMovementLung(EvaluateMovementBase):
         if not surface_files:
             raise FileNotFoundError(
                 f"No per-phase SSM surfaces found in {fit_directory}.\n"
-                "Run tutorials/tutorial_08_lung_fit_model_to_4d_patients.py first."
+                "Run tutorials/tutorial_08_fit_model_to_4d_patients_tcia_lung_4d_ct.py "
+                "first."
             )
 
         return MovementGroundTruth(

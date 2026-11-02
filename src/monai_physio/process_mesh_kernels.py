@@ -619,8 +619,9 @@ class ProcessMeshKernels(MONAIPhysioBase):
         The map measures to voxel centers, so its zero level is faceted at the
         voxel pitch; *sigma_mm* of blur takes those facets out, at the cost of
         pulling the level set in by roughly ``sigma_mm ** 2`` times the surface
-        curvature.  ``label_id`` of ``0`` measures to the background, whose
-        distance is the negated distance to the union of every label.
+        curvature.  ``label_id`` of ``0`` measures to the background like any
+        other label, so a label-to-background wall lies midway between the two
+        sides' edge voxels, as a wall between two labels does.
 
         Like ITK's signed Maurer map, distances run to the voxels of the label
         that touch a voxel outside it, so a voxel on the label's edge is at
@@ -630,7 +631,7 @@ class ProcessMeshKernels(MONAIPhysioBase):
         import torch
         from torch.nn import functional
 
-        inside = labels != 0 if label_id == 0 else labels == label_id
+        inside = labels == label_id
         neighborhood_minimum = -functional.max_pool3d(
             -inside[None, None].to(torch.float32), 3, 1, 1
         )[0, 0]
@@ -642,4 +643,4 @@ class ProcessMeshKernels(MONAIPhysioBase):
         distance = torch.where(inside, -distance, distance)
         if sigma_mm > 0.0:
             distance = self.gaussian_blur(distance, spacing, sigma_mm)
-        return -distance if label_id == 0 else distance
+        return distance

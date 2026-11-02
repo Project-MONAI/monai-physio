@@ -46,18 +46,6 @@ from .segment_chest_total_segmentator_with_contrast import (
 )
 
 
-def _save_whole(dataset: pv.DataSet, path: str) -> None:
-    """Write *dataset* beside *path*, then rename it into place.
-
-    A reader never sees a half-written file, even if the writing process dies
-    partway through, as a worker in a process pool can.
-    """
-    root, suffix = os.path.splitext(path)
-    partial = f"{root}.partial{suffix}"
-    dataset.save(partial)
-    os.replace(partial, path)
-
-
 class WorkflowConvertImageToVTK(MONAIPhysioBase):
     """Turn a CT image or a labelmap into per-group and per-label VTK surfaces.
 
@@ -182,13 +170,6 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
         if mesh.n_cells == 0:
             return None
         return self._volume_tools.trim_tetrahedra_to_surface(mesh, surface)
-
-    @staticmethod
-    def _mask(keep: np.ndarray, like: itk.Image) -> itk.Image:
-        """Return *keep* as a binary mask with *like*'s geometry."""
-        mask = itk.GetImageFromArray(keep.astype(np.uint8))
-        mask.CopyInformation(like)
-        return mask
 
     # ─────────────────────────── Main workflow ─────────────────────────────
 
@@ -323,8 +304,10 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
                 self._annotate(extracted[index], group, names, list(ids))
                 surfaces[group] = extracted[index]
                 if tetrahedra_element_size_mm is not None:
+                    mask = itk.GetImageFromArray((group_map == index).astype(np.uint8))
+                    mask.CopyInformation(labelmap_image)
                     mesh = self._tetrahedra(
-                        self._mask(group_map == index, labelmap_image),
+                        mask,
                         extracted[index],
                         tetrahedra_element_size_mm,
                     )
@@ -348,8 +331,10 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
                 self._annotate(surface, group, [name], [label_id])
                 label_surfaces[name] = surface
                 if tetrahedra_element_size_mm is not None:
+                    mask = itk.GetImageFromArray((labels == label_id).astype(np.uint8))
+                    mask.CopyInformation(labelmap_image)
                     mesh = self._tetrahedra(
-                        self._mask(labels == label_id, labelmap_image),
+                        mask,
                         surface,
                         tetrahedra_element_size_mm,
                     )
@@ -397,7 +382,10 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
             stem = f"{prefix}_{name}" if prefix else name
             suffix = ".vtp" if isinstance(surface, pv.PolyData) else ".vtu"
             path = os.path.join(output_dir, f"{stem}{suffix}")
-            _save_whole(surface, path)
+            root, suffix = os.path.splitext(path)
+            partial = f"{root}.partial{suffix}"
+            surface.save(partial)
+            os.replace(partial, path)
             saved[name] = path
         return saved
 
@@ -427,5 +415,8 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
         output_dir = os.path.dirname(output_filename)
         if output_dir:
             os.makedirs(output_dir, exist_ok=True)
-        _save_whole(combined, output_filename)
+        root, suffix = os.path.splitext(output_filename)
+        partial = f"{root}.partial{suffix}"
+        combined.save(partial)
+        os.replace(partial, output_filename)
         return output_filename

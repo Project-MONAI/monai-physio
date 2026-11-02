@@ -8,7 +8,8 @@ thorax by composing two motions on one static patient surface:
 - **Cardiac** motion from the ``temp_heart_and_lungs_beating_heart`` deformation
   fields (one per cardiac stage), which displace the heart region. These fields
   are defined on the reference (``T70``) grid.
-- **Respiratory** motion from the ``tutorial_01_lung`` forward transforms
+- **Respiratory** motion from the
+  ``tutorial_01_convert_to_usd_tcia_lung_4d_ct`` forward transforms
   (one per breath phase), which warp the reference-frame surface to each phase
   of the breathing cycle.
 
@@ -49,12 +50,13 @@ Pipeline
    fields are a thin surface shell, so smoothing spreads them into a continuous
    deformation (and, as a side effect, attenuates the peak magnitude).
 2. Load the combined patient surface
-   (``output/tutorial_04_lung/patient_surfaces.vtp``), optionally decimate and
-   smooth it once (``SURFACE_DECIMATION_REDUCTION`` /
+   (``output/tutorial_04_convert_to_vtk_tcia_lung_4d_ct/patient_surfaces.vtp``),
+   optionally decimate and smooth it once (``SURFACE_DECIMATION_REDUCTION`` /
    ``SURFACE_SMOOTHING_ITERATIONS``; both disabled by default), then
    cardiac-deform it once per stage (reused across all breath phases).
 3. Warp each cardiac-deformed surface to every breath phase with the
-   ``tutorial_01_lung`` forward transforms ``slice_{r:03d}_all_forward.hdf``.
+   ``tutorial_01_convert_to_usd_tcia_lung_4d_ct`` forward transforms
+   ``slice_{r:03d}_all_forward.hdf``.
 4. Blend consecutive breath phases per frame and assemble the 100 frames into a
    single animated 4D USD.
 
@@ -135,10 +137,15 @@ if __name__ == "__main__":
     tutorials_dir = Path(__file__).resolve().parent
 
     beating_heart_dir = tutorials_dir / "output" / "temp_beating_heart"
-    respiratory_dir = tutorials_dir / "output" / "tutorial_01_lung"
+    respiratory_dir = (
+        tutorials_dir / "output" / "tutorial_01_convert_to_usd_tcia_lung_4d_ct"
+    )
     repo_tutorials_dir = Path(__file__).resolve().parents[2] / "tutorials"
     patient_surface_file = (
-        repo_tutorials_dir / "output" / "tutorial_04_lung" / "patient_surfaces.vtp"
+        repo_tutorials_dir
+        / "output"
+        / "tutorial_04_convert_to_vtk_tcia_lung_4d_ct"
+        / "patient_surfaces.vtp"
     )
     output_dir = tutorials_dir / "output" / "temp_heart_and_lungs_combined"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -158,12 +165,12 @@ if __name__ == "__main__":
     if not fixed_to_moving_transform_files:
         raise FileNotFoundError(
             f"No respiratory forward transforms found in {respiratory_dir}. "
-            "Run tutorial_01_lung_gated_ct_to_usd.py first."
+            "Run tutorial_01_convert_to_usd_tcia_lung_4d_ct.py first."
         )
     if not patient_surface_file.exists():
         raise FileNotFoundError(
             f"Patient surface not found: {patient_surface_file}. "
-            "Run tutorial_04_lung_ct_to_vtk.py first."
+            "Run tutorial_04_convert_to_vtk_tcia_lung_4d_ct.py first."
         )
 
     n_phases = len(fixed_to_moving_transform_files)

@@ -17,8 +17,13 @@ Thank you for your interest in contributing to MONAI Physio! This guide will hel
 
    ```bash
    git clone https://github.com/YOUR_USERNAME/monai-physio.git
-   cd MONAI Physio
+   cd monai-physio
+   git lfs install
+   git lfs pull
    ```
+
+   The test baseline images are stored with [Git LFS](https://git-lfs.com/);
+   without it they are text pointers and every baseline comparison fails.
 
 3. **Create a virtual environment**:
 
@@ -30,19 +35,21 @@ Thank you for your interest in contributing to MONAI Physio! This guide will hel
 4. **Install in development mode**:
 
    ```bash
-   uv pip install -e ".[dev_cuda12]"
+   pip install uv
+   uv pip install -e ".[dev_cuda12]" --torch-backend=cu128 -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
    ```
 
-   `dev_cuda12` is the full developer environment: CUDA 12.6 acceleration
-   plus the test, lint, and documentation tooling. Use `dev_cuda13` for
-   CUDA 13, or `dev` alone for the tooling without CuPy. See the
+   `dev_cuda12` is the full developer environment: CUDA 12.8 PyTorch and
+   CuPy plus the test, lint, and documentation tooling. For CUDA 13, see the
    [installation guide](https://project-monai.github.io/monai-physio/installation.html).
 
 5. **Install pre-commit hooks**:
 
    ```bash
-   pre-commit install
+   pre-commit install --hook-type pre-commit --hook-type pre-push
    ```
+
+   The second hook type installs the fast-test hook that runs on `git push`.
 
 If you work with an AI coding assistant, use the graphify knowledge graph to
 navigate the codebase - `graphify query "<question>"` returns a scoped
@@ -116,9 +123,10 @@ feature.
 After cloning the repository:
 
 1. Install Python 3.11+ and create virtual environment
-2. Install development dependencies: `uv pip install -e ".[dev_cuda12]"`
-   (or `dev_cuda13` for CUDA 13, `dev` for tooling only)
-3. Install pre-commit hooks: `pre-commit install`
+2. Install development dependencies with the command in step 4 of
+   *Getting Started*
+3. Install pre-commit hooks:
+   `pre-commit install --hook-type pre-commit --hook-type pre-push`
 4. Install Ruff extension in VS Code/Cursor
 5. Remove old formatter extensions (black, isort, flake8, pylint)
 6. Verify settings: Open a Python file and save to test auto-formatting
@@ -169,7 +177,7 @@ The pre-commit hooks will automatically:
 
 - Run Ruff linter with auto-fixes
 - Run Ruff formatter
-- Run mypy type checking (on push)
+- Run mypy type checking (on commit)
 - Run fast unit tests (on push)
 
 ## Development Workflow
@@ -258,15 +266,20 @@ pytest tests/ --run-physicsnemo      # needs PhysicsNeMo; requires Python >= 3.1
 pytest tests/ --run-all
 ```
 
+If your machine has no GPU, run the default suite and say so in your pull
+request; a maintainer can run the GPU tests on it by adding the
+`run-gpu-tests` label.
+
 ## Documentation
 
-Documentation is built with Sphinx and hosted on ReadTheDocs.
+Documentation is built with Sphinx and published to GitHub Pages at
+<https://project-monai.github.io/monai-physio/>.
 
 ### Build Docs Locally
 
 ```bash
-# Install documentation dependencies
-pip install -e ".[dev]"
+# Install documentation dependencies (the dev environment from Getting Started)
+uv pip install -e ".[dev_cuda12]" --torch-backend=cu128 -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
 
 # Build HTML documentation
 cd docs
@@ -407,12 +420,20 @@ git mv docs/developer/migration_next.md "docs/developer/migration_$VERSION.md"
 # Retitle the archived file to "Migration Guide - $VERSION"
 # Recreate docs/developer/migration_next.md from its entry template
 
-# Build package
-python -m build
-
-# Upload to PyPI
-python -m twine upload dist/*
+# Commit, tag, and push
+git commit -am "Bump version to $VERSION"
+git tag "$VERSION"
+git push origin main "$VERSION"
 ```
+
+Then publish a GitHub release for the tag. Publishing it runs
+`.github/workflows/release.yml`, which checks that the tag equals the
+`pyproject.toml` version, builds the sdist and wheel, and uploads them to PyPI
+through trusted publishing; nothing is uploaded by hand. To try a build first,
+run that workflow manually with `testpypi` as the target.
+
+A broken release cannot be overwritten, because PyPI never reuses a version
+number. Yank it on PyPI, fix the problem, and release the next patch version.
 
 The `Developer Guides` toctree in `docs/index.rst` globs
 `developer/migration_*`, so archived guides appear in the sidebar without
@@ -431,7 +452,7 @@ further edits.
 - **[GitHub Issues](https://github.com/Project-MONAI/monai-physio/issues)**: Report bugs and request features
 - **[GitHub Discussions](https://github.com/Project-MONAI/monai-physio/discussions)**: Ask questions and share ideas
 - **Documentation**: Check the [docs](https://project-monai.github.io/monai-physio/) first
-- **Code of Conduct**: Follow community guidelines
+- **Conduct**: Follow the Community Guidelines above
 
 ## License
 

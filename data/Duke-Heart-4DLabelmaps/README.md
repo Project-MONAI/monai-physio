@@ -33,19 +33,36 @@ Re-running is a no-op once the data is present.
 
 The original PROMISE CT images are not distributed with this repository.
 
+## License
+
+The labelmaps and landmark files are distributed under the Creative Commons
+Attribution (CC BY) license. Attribution: Dr. W. Paul Segars, Center for
+Virtual Imaging Trials, Duke University.
+
+If you use this data, please cite:
+
+> Malin EJ, Ceritoglu C, Abadi E, Ratnanather JT, Samei E, Segars WP.
+> Library of realistic 4D digital beating heart models based on patient CT
+> data. *Med Phys*. 2025;52(7):e17945. doi:10.1002/mp.17945.
+> PMID: 40660846. PMCID: [PMC12409789](https://pmc.ncbi.nlm.nih.gov/articles/PMC12409789/).
+
 ## Effect on the tutorials
 
 Tutorials that depend on this dataset are named with a `duke_heart` prefix in
 their organ field, for example:
 
-- `tutorials/tutorial_02_duke_heart_distancemap_finetune_icon.py`
+- `tutorials/tutorial_02_finetune_icon_distancemap_duke_heart_4d_labelmaps.py`
 
-There are ten of them. Nine form their own chain: Tutorial 4 (duke heart) -> 5
--> 6 -> 7 -> 8 -> 9 -> 10 -> 11 -> 12. The tenth, Tutorial 2 (duke heart), is a
-separate optional ICON finetuning variant that the chain does not require.
-Download the data before running them. The other 19 tutorial scripts use
-publicly available datasets and are unaffected - see [../README.md](../README.md)
-for download instructions.
+There are fifteen of them. Fourteen form their own chain, from Tutorial 4
+(duke heart) through Tutorial 18; Tutorials 16 to 18 branch off it after
+Tutorial 4 to build a volumetric shape model. The fifteenth, Tutorial 2 (duke
+heart), is a separate optional ICON finetuning variant that the chain does not
+require. Download the data before running them. Two Tutorial 00 notebooks,
+`tutorials/tutorial_00_infer_cardiac_motion_duke_heart_4d_labelmaps.ipynb` and
+`tutorials/tutorial_00_infer_physics_informed_motion_duke_heart_4d_labelmaps.ipynb`,
+download this data and pretrained networks themselves and need no other
+tutorial run first. The other 22 tutorial scripts use other datasets and are
+unaffected - see [../README.md](../README.md) for download instructions.
 
 ## Expected layout
 

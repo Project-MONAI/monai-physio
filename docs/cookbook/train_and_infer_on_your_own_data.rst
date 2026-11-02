@@ -89,7 +89,7 @@ quantity for something else.
    }
 
 See :doc:`/api/physicsnemo/manifest` for the full schema and its rules.
-``tutorials/tutorial_09_lung_train_physicsnemo_mgn.py`` has a working writer.
+``tutorials/tutorial_09_train_physicsnemo_mgn_tcia_lung_4d_ct.py`` has a working writer.
 
 **6. Train.** Hold your test subject back; list the rest.
 

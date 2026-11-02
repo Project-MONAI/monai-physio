@@ -103,7 +103,8 @@ class EvaluateMovementDukeHeart(EvaluateMovementBase):
         if not surface_files:
             raise FileNotFoundError(
                 f"No per-frame SSM surfaces found in {fit_directory}.\n"
-                "Run tutorials/tutorial_08_duke_heart_fit_model_to_4d_patients.py "
+                "Run tutorials/tutorial_08_fit_model_to_4d_patients_duke_heart_4d_"
+                "labelmaps.py "
                 "first."
             )
 

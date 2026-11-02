@@ -235,6 +235,34 @@ class TestRegisterImagesGreedy:
             f"started ({ncc:.4f} vs {unregistered_ncc:.4f})"
         )
 
+    def test_stationary_velocity_with_warp_smoothing_does_not_fold(
+        self, known_shift_case: KnownShiftCase
+    ) -> None:
+        """With -sv and 1-voxel warp smoothing, the warp registers without folds.
+
+        The default 0.5-voxel warp smoothing folds this pair, with or without
+        -sv; tutorial_01_convert_to_usd_tetmesh_slicer_heart_4d_ct relies on this
+        pairing.
+        """
+        registrar = RegisterImagesGreedy()
+        registrar.set_modality("ct")
+        registrar.set_transform_type("Deformable")
+        registrar.set_stationary_velocity(True)
+        registrar.set_deformable_smoothing("2.0vox", "1.0vox")
+        registrar.set_number_of_iterations([60, 30, 10])
+        registrar.set_fixed_image(known_shift_case.fixed)
+
+        result = registrar.register(moving_image=known_shift_case.moving)
+        fixed_to_moving_transform = result["fixed_to_moving_transform"]
+
+        assert known_shift_case.center_error_mm(fixed_to_moving_transform) < 2.0
+        transform_tools = ProcessTransforms()
+        field = transform_tools.convert_transform_to_displacement_field_transform(
+            fixed_to_moving_transform, known_shift_case.fixed
+        ).GetDisplacementField()
+        jacobian = transform_tools.compute_jacobian_determinant_from_field(field)
+        assert float(itk.array_view_from_image(jacobian).min()) > 0.0
+
     def test_recovers_a_known_affine_at_any_distance_from_the_origin(
         self,
         known_affine_case_near_origin: KnownAffineCase,

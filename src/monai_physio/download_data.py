@@ -551,16 +551,12 @@ class DownloadData:
         Returns:
             Path to ``dirname/physicsnemo_mgn_lung_motion``.
         """
-        data_dir = Path(dirname)
-        target_dir = data_dir / DownloadData.PHYSICSNEMO_MGN_LUNG_MOTION_DIRNAME
-        if not DownloadData.VerifyPhysicsNeMoMGNLungMotionData(data_dir):
-            DownloadData._DownloadAndExtractZip(
-                DownloadData.PHYSICSNEMO_MGN_LUNG_MOTION_URL, target_dir
-            )
-            _logger.info(
-                "Downloaded %s", DownloadData.PHYSICSNEMO_MGN_LUNG_MOTION_DIRNAME
-            )
-        return target_dir
+        return DownloadData._DownloadWeightsDirectory(
+            DownloadData.PHYSICSNEMO_MGN_LUNG_MOTION_URL,
+            dirname,
+            DownloadData.PHYSICSNEMO_MGN_LUNG_MOTION_DIRNAME,
+            "mgn_stage_model.pt",
+        )
 
     @staticmethod
     def VerifyPhysicsNeMoMGNLungMotionData(dirname: Union[str, Path]) -> bool:
@@ -570,6 +566,159 @@ class DownloadData:
             / DownloadData.PHYSICSNEMO_MGN_LUNG_MOTION_DIRNAME
             / "mgn_stage_model.pt"
         ).is_file()
+
+    PHYSICSNEMO_MGN_DUKE_HEART_MOTION_URL = (
+        "https://github.com/Project-MONAI/monai-physio/releases/download/2026.07.1/"
+        "physicsnemo_mgn_duke_heart_motion.zip"
+    )
+    PHYSICSNEMO_MGN_DUKE_HEART_MOTION_DIRNAME = "physicsnemo_mgn_duke_heart_motion"
+
+    @staticmethod
+    def DownloadPhysicsNeMoMGNDukeHeartMotionData(dirname: Union[str, Path]) -> Path:
+        """Download the pretrained Duke heart-motion PhysicsNeMo MGN checkpoint.
+
+        Fetches ``physicsnemo_mgn_duke_heart_motion.zip`` from the MONAI Physio
+        2026.07.1 GitHub release and extracts it into ``dirname``, giving the
+        ``physicsnemo_mgn_duke_heart_motion/`` directory Tutorial 9 would
+        otherwise train: the ``mgn_stage_model.pt`` checkpoint plus the heart
+        PCA model (``pca_model.json``, ``pca_mean_surface.vtp``) it was
+        trained against. Already-extracted data is left alone, so re-running
+        is a no-op once it is present.
+
+        Args:
+            dirname: Directory where ``physicsnemo_mgn_duke_heart_motion/``
+                should live, typically ``tutorials/network_weights``.
+
+        Returns:
+            Path to ``dirname/physicsnemo_mgn_duke_heart_motion``.
+        """
+        return DownloadData._DownloadWeightsDirectory(
+            DownloadData.PHYSICSNEMO_MGN_DUKE_HEART_MOTION_URL,
+            dirname,
+            DownloadData.PHYSICSNEMO_MGN_DUKE_HEART_MOTION_DIRNAME,
+            "mgn_stage_model.pt",
+        )
+
+    @staticmethod
+    def VerifyPhysicsNeMoMGNDukeHeartMotionData(dirname: Union[str, Path]) -> bool:
+        """Return True when the Duke heart-motion PhysicsNeMo MGN checkpoint exists."""
+        return (
+            Path(dirname)
+            / DownloadData.PHYSICSNEMO_MGN_DUKE_HEART_MOTION_DIRNAME
+            / "mgn_stage_model.pt"
+        ).is_file()
+
+    PHYSICSNEMO_PHYSICS_INFORMED_MOTION_DUKE_HEART_URL = (
+        "https://github.com/Project-MONAI/monai-physio/releases/download/2026.07.1/"
+        "physicsnemo_physics_informed_motion_duke_heart.zip"
+    )
+    PHYSICSNEMO_PHYSICS_INFORMED_MOTION_DUKE_HEART_DIRNAME = (
+        "physicsnemo_physics_informed_motion_duke_heart"
+    )
+
+    @staticmethod
+    def DownloadPhysicsNeMoPhysicsInformedMotionDukeHeartData(
+        dirname: Union[str, Path],
+    ) -> Path:
+        """Download the pretrained physics-informed Duke heart-motion checkpoint.
+
+        Fetches ``physicsnemo_physics_informed_motion_duke_heart.zip`` from the
+        MONAI Physio 2026.07.1 GitHub release and extracts it into ``dirname``,
+        giving the directory Tutorial 17 would otherwise train: the
+        ``physics_informed_motion_stage_model.pt`` checkpoint plus the
+        volumetric PCA model (``pca_model.json``, ``pca_mean.vtu``) it was
+        trained against. Already-extracted data is left alone, so re-running
+        is a no-op once it is present.
+
+        Args:
+            dirname: Directory where
+                ``physicsnemo_physics_informed_motion_duke_heart/`` should live,
+                typically ``tutorials/network_weights``.
+
+        Returns:
+            Path to ``dirname/physicsnemo_physics_informed_motion_duke_heart``.
+        """
+        return DownloadData._DownloadWeightsDirectory(
+            DownloadData.PHYSICSNEMO_PHYSICS_INFORMED_MOTION_DUKE_HEART_URL,
+            dirname,
+            DownloadData.PHYSICSNEMO_PHYSICS_INFORMED_MOTION_DUKE_HEART_DIRNAME,
+            "physics_informed_motion_stage_model.pt",
+        )
+
+    @staticmethod
+    def VerifyPhysicsNeMoPhysicsInformedMotionDukeHeartData(
+        dirname: Union[str, Path],
+    ) -> bool:
+        """Return True when the physics-informed Duke heart checkpoint exists."""
+        return (
+            Path(dirname)
+            / DownloadData.PHYSICSNEMO_PHYSICS_INFORMED_MOTION_DUKE_HEART_DIRNAME
+            / "physics_informed_motion_stage_model.pt"
+        ).is_file()
+
+    PHYSICSNEMO_PHYSICS_INFORMED_MOTION_DUKE_HEART_ABLATION_URL = (
+        "https://github.com/Project-MONAI/monai-physio/releases/download/2026.07.1/"
+        "physicsnemo_physics_informed_motion_duke_heart_ablation.zip"
+    )
+    PHYSICSNEMO_PHYSICS_INFORMED_MOTION_DUKE_HEART_ABLATION_DIRNAME = (
+        "physicsnemo_physics_informed_motion_duke_heart_ablation"
+    )
+
+    @staticmethod
+    def DownloadPhysicsNeMoPhysicsInformedMotionDukeHeartAblationData(
+        dirname: Union[str, Path],
+    ) -> Path:
+        """Download the ``lambda_physics = 0`` ablation of that checkpoint.
+
+        Fetches ``physicsnemo_physics_informed_motion_duke_heart_ablation.zip``
+        from the MONAI Physio 2026.07.1 GitHub release and extracts it into
+        ``dirname``. It is the same network trained on the same volumetric
+        data with the physics term switched off, the baseline Tutorial 17
+        trains so the physics term can be judged in isolation.
+        Already-extracted data is left alone, so re-running is a no-op once
+        it is present.
+
+        Args:
+            dirname: Directory where
+                ``physicsnemo_physics_informed_motion_duke_heart_ablation/``
+                should live, typically ``tutorials/network_weights``.
+
+        Returns:
+            Path to
+            ``dirname/physicsnemo_physics_informed_motion_duke_heart_ablation``.
+        """
+        return DownloadData._DownloadWeightsDirectory(
+            DownloadData.PHYSICSNEMO_PHYSICS_INFORMED_MOTION_DUKE_HEART_ABLATION_URL,
+            dirname,
+            DownloadData.PHYSICSNEMO_PHYSICS_INFORMED_MOTION_DUKE_HEART_ABLATION_DIRNAME,
+            "physics_informed_motion_stage_model.pt",
+        )
+
+    @staticmethod
+    def VerifyPhysicsNeMoPhysicsInformedMotionDukeHeartAblationData(
+        dirname: Union[str, Path],
+    ) -> bool:
+        """Return True when the physics-informed ablation checkpoint exists."""
+        return (
+            Path(dirname)
+            / DownloadData.PHYSICSNEMO_PHYSICS_INFORMED_MOTION_DUKE_HEART_ABLATION_DIRNAME
+            / "physics_informed_motion_stage_model.pt"
+        ).is_file()
+
+    @staticmethod
+    def _DownloadWeightsDirectory(
+        url: str, dirname: Union[str, Path], weights_dirname: str, checkpoint: str
+    ) -> Path:
+        """Download and extract a release zip whose top-level entry is one directory.
+
+        Skips the download when ``dirname/weights_dirname/checkpoint`` already
+        exists, so a checkpoint trained locally is never overwritten.
+        """
+        target_dir = Path(dirname) / weights_dirname
+        if not (target_dir / checkpoint).is_file():
+            DownloadData._DownloadAndExtractZip(url, target_dir)
+            _logger.info("Downloaded %s", weights_dirname)
+        return target_dir
 
     @staticmethod
     def VerifyKCLHeartModelData(dirname: Union[str, Path]) -> bool:

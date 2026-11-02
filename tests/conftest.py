@@ -35,6 +35,7 @@ from monai_physio.segment_chest_total_segmentator_with_contrast import (
     SegmentChestTotalSegmentatorWithContrast,
 )
 from monai_physio.segment_heart_simpleware import SegmentHeartSimpleware
+from monai_physio.segment_nv_segment_ct import SegmentNVSegmentCT
 from monai_physio.segment_nv_segment_ct_mri import SegmentNVSegmentCTMRI
 
 logger = logging.getLogger(__name__)
@@ -599,7 +600,12 @@ def _downsample_labelmap(source: Path, destination: Path, spacing_mm: float) -> 
 # hold out, and carries enough others that a model can still be built without it
 # (Tutorials 6 and 9 both refuse to run on fewer than three).
 _DIRLAB_TEST_CASES = ["Case1Pack", "Case2Pack", "Case3Pack"]
-_TCIA_4D_LUNG_TEST_CASES = ["100_HM10395", "101_HM10395", "102_HM10395"]
+_TCIA_4D_LUNG_TEST_CASES = [
+    "103_HM10395",
+    "104_HM10395",
+    "107_HM10395",
+    "110_HM10395",
+]
 _DUKE_HEART_TEST_CASES = ["pm0027", "pm0002", "pm0003", "pm0004"]
 
 
@@ -671,16 +677,21 @@ def tcia_4d_lung_test_data(test_directories: dict[str, Path]) -> Path:
 def duke_heart_test_data(test_directories: dict[str, Path]) -> Path:
     """Build the Duke heart test subset: a few cases, downsampled to 2 mm.
 
-    Reads ``<input root>/Duke-Heart-4DLabelmaps`` and writes ``<input root>/
-    test/Duke-Heart-4DLabelmaps``, where the root is whatever
-    ``MONAI_PHYSIO_INPUT_DATA_DIR`` names and defaults to the clone's ``data/``.
+    Reads ``<input root>/Duke-Heart-4DLabelmaps``, downloading it there first
+    if absent, and writes ``<input root>/test/Duke-Heart-4DLabelmaps``, where
+    the root is whatever ``MONAI_PHYSIO_INPUT_DATA_DIR`` names and defaults to
+    the clone's ``data/``.
     """
     source_dir = (
         ParametersBase().data_directory(test_mode=False) / "Duke-Heart-4DLabelmaps"
     )
     target_dir = test_directories["data"] / "Duke-Heart-4DLabelmaps"
-    if not source_dir.is_dir():
-        skip_or_fail_missing_data(f"Duke heart labelmaps not found at {source_dir}")
+    try:
+        DownloadData.DownloadDukeHeart4DLabelmapsData(source_dir)
+    except OSError as e:
+        skip_or_fail_missing_data(
+            f"Could not download Duke-Heart-4DLabelmaps to {source_dir}: {e}"
+        )
 
     for case_id in _DUKE_HEART_TEST_CASES:
         case_dir = source_dir / case_id
@@ -848,6 +859,12 @@ def segmenter_total_segmentator_with_contrast() -> (
 ):
     """Create a SegmentChestTotalSegmentatorWithContrast instance."""
     return SegmentChestTotalSegmentatorWithContrast()
+
+
+@pytest.fixture(scope="session")
+def segmenter_nv_segment_ct() -> SegmentNVSegmentCT:
+    """Create a SegmentNVSegmentCT instance."""
+    return SegmentNVSegmentCT()
 
 
 @pytest.fixture(scope="session")

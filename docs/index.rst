@@ -110,7 +110,7 @@
      <div class="mphysio-topic-grid">
        <a class="mphysio-topic-card" href="installation.html">
          <h3>Installation</h3>
-         <p>Set up MONAI Physio with CUDA extras, CPU-only options, and required system tools.</p>
+         <p>Set up MONAI Physio with CUDA-matched PyTorch and required system tools.</p>
        </a>
        <a class="mphysio-topic-card" href="quickstart.html">
          <h3>Getting Started</h3>

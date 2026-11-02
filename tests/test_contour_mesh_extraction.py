@@ -175,9 +175,8 @@ class TestExtractLabelSurfaces:
     ) -> None:
         """Neither label is thinned or fattened by the smoothing.
 
-        Not to the voxel exactly: the distance map is zero at the outermost
-        labeled voxel's center rather than half a voxel beyond it, so the
-        surface sits just inside the block of voxels it came from.
+        Not to the voxel exactly: the distance-map blur rounds the boxes'
+        edges and corners, which on 4 mm slices costs a few percent.
         """
         labelmap = _touching_boxes()
         labels = itk.GetArrayViewFromImage(labelmap)
@@ -187,7 +186,64 @@ class TestExtractLabelSurfaces:
 
         for label_id, surface in surfaces.items():
             voxels = int(np.count_nonzero(labels == label_id))
-            assert surface.volume == pytest.approx(voxels * voxel_volume, rel=0.15)
+            assert surface.volume == pytest.approx(voxels * voxel_volume, rel=0.08)
+
+    @pytest.mark.parametrize("spacing_mm", [0.5, 1.0])
+    def test_sphere_keeps_its_volume(
+        self, contour_tools: ProcessSurfaceMesh, spacing_mm: float
+    ) -> None:
+        """A 12 mm sphere encloses its analytic volume.
+
+        The background-facing wall must sit midway between the label's and the
+        background's edge voxels; on the label's own edge voxels it loses half
+        a voxel all round, a fifth of this sphere on a 1 mm grid.
+        """
+        radius_mm = 12.0
+        n = int(2 * radius_mm / spacing_mm) + 8
+        center = (n - 1) / 2.0
+        zz, yy, xx = np.indices((n, n, n))
+        arr = (
+            np.sqrt((zz - center) ** 2 + (yy - center) ** 2 + (xx - center) ** 2)
+            * spacing_mm
+            <= radius_mm
+        ).astype(np.uint8)
+        labelmap = itk.GetImageFromArray(arr)
+        labelmap.SetSpacing([spacing_mm] * 3)
+
+        surface = contour_tools.extract_label_surfaces(labelmap)[1]
+
+        assert surface.volume == pytest.approx(
+            4.0 / 3.0 * np.pi * radius_mm**3, rel=0.05
+        )
+
+    def test_thin_shell_stays_in_one_piece(
+        self, contour_tools: ProcessSurfaceMesh
+    ) -> None:
+        """A wall three voxels thick contours to a single closed surface."""
+        n = 40
+        center = (n - 1) / 2.0
+        zz, yy, xx = np.indices((n, n, n))
+        radius = np.sqrt((zz - center) ** 2 + (yy - center) ** 2 + (xx - center) ** 2)
+        arr = ((radius >= 12.0) & (radius < 15.0)).astype(np.uint8)
+        labelmap = itk.GetImageFromArray(arr)
+
+        surface = contour_tools.extract_label_surfaces(labelmap)[1]
+
+        assert surface.connectivity().point_data["RegionId"].max() == 1, (
+            "an outer and an inner surface, nothing else"
+        )
+
+    def test_label_thinner_than_the_grid_returns_no_surface(
+        self, contour_tools: ProcessSurfaceMesh
+    ) -> None:
+        """A wall too thin to survive the resample is reported, not a KeyError."""
+        n = 40
+        center = (n - 1) / 2.0
+        zz, yy, xx = np.indices((n, n, n))
+        radius = np.sqrt((zz - center) ** 2 + (yy - center) ** 2 + (xx - center) ** 2)
+        arr = ((radius >= 12.0) & (radius < 12.6)).astype(np.uint8)
+
+        assert contour_tools.extract_label_surfaces(itk.GetImageFromArray(arr)) == {}
 
     def test_walls_match_where_three_labels_meet(
         self, contour_tools: ProcessSurfaceMesh
@@ -446,6 +502,83 @@ class TestTrimTetrahedraToSurface:
         assert np.array_equal(
             relaxed.field_data["AnatomyColor"], mesh.field_data["AnatomyColor"]
         )
+
+
+@pytest.mark.requires_gpu
+class TestRemoveBoundarySlivers:
+    """Flat caps on the boundary go; well-shaped cells, even on it, stay."""
+
+    def test_removes_a_flat_cap_and_keeps_a_good_cell(
+        self, volume_tools: ProcessVolumetricMesh
+    ) -> None:
+        """Every node of a two-cell mesh is on its boundary; only quality decides."""
+        points = np.array(
+            [
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 1.0],
+                # Barely below the shared face: a flat cap glued to it.
+                [0.4, 0.4, -0.02],
+            ]
+        )
+        cells = np.array([4, 0, 1, 2, 3, 4, 0, 2, 1, 4])
+        mesh = pv.UnstructuredGrid(cells, [pv.CellType.TETRA] * 2, points)
+        mesh.cell_data["cell_ids"] = np.array([0, 1])
+
+        cleaned = volume_tools.remove_boundary_slivers(mesh)
+
+        assert cleaned.n_cells == 1
+        assert cleaned.cell_data["cell_ids"].tolist() == [0]
+
+    def test_mesh_of_only_slivers_comes_back_empty(
+        self, volume_tools: ProcessVolumetricMesh
+    ) -> None:
+        points = np.array(
+            [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.4, 0.4, 0.02]]
+        )
+        mesh = pv.UnstructuredGrid(
+            np.array([4, 0, 1, 2, 3]), [pv.CellType.TETRA], points
+        )
+
+        assert volume_tools.remove_boundary_slivers(mesh).n_cells == 0
+
+    def test_leaves_a_mesh_without_slivers_unchanged(
+        self, volume_tools: ProcessVolumetricMesh
+    ) -> None:
+        mesh = volume_tools.extract_tetrahedra(_left_handed_box(), element_size_mm=1.0)
+
+        assert volume_tools.remove_boundary_slivers(mesh) is mesh
+
+    def test_trimmed_heart_mesh_loses_its_caps_but_not_its_shape(
+        self,
+        contour_tools: ProcessSurfaceMesh,
+        volume_tools: ProcessVolumetricMesh,
+        heart_labelmap: itk.Image,
+    ) -> None:
+        """The caps trimming leaves are removed at a small cost in volume."""
+        mask = _label_mask(heart_labelmap, BORDER_LABEL)
+        surface = contour_tools.extract_label_surfaces(mask)[1]
+        relaxed = volume_tools.trim_tetrahedra_to_surface(
+            volume_tools.extract_tetrahedra(mask), surface
+        )
+
+        cleaned = volume_tools.remove_boundary_slivers(relaxed)
+
+        connectivity = cast(np.ndarray, cleaned.cells_dict[np.uint8(pv.CellType.TETRA)])
+        boundary = np.zeros(cleaned.n_points, dtype=bool)
+        boundary[
+            cleaned.extract_surface(
+                pass_pointid=True, algorithm="dataset_surface"
+            ).point_data["vtkOriginalPointIds"]
+        ] = True
+        quality = np.asarray(
+            cleaned.cell_quality(["scaled_jacobian"]).cell_data["scaled_jacobian"]
+        )
+        assert not np.any(boundary[connectivity].all(axis=1) & (quality < 0.15))
+        before = float(np.sum(relaxed.compute_cell_sizes(volume=True)["Volume"]))
+        after = float(np.sum(cleaned.compute_cell_sizes(volume=True)["Volume"]))
+        assert after > 0.95 * before
 
 
 class TestRepairInvertedTetrahedra:
@@ -713,8 +846,8 @@ class TestS1TrimMatchesFrozenBase:
 def _itk_signed_distance(
     labels: np.ndarray, spacing: Sequence[float], label_id: int, sigma_mm: float
 ) -> np.ndarray:
-    """Run the pre-S2 ITK signed Maurer map and recursive Gaussian blur."""
-    inside = labels != 0 if label_id == 0 else labels == label_id
+    """Run ITK's signed Maurer map and recursive Gaussian blur on one label."""
+    inside = labels == label_id
     mask = itk.GetImageFromArray(np.ascontiguousarray(inside.astype(np.uint8)))
     mask.SetSpacing([float(value) for value in spacing[::-1]])
     distance = itk.signed_maurer_distance_map_image_filter(
@@ -727,8 +860,7 @@ def _itk_signed_distance(
         distance = itk.smoothing_recursive_gaussian_image_filter(
             distance, sigma=sigma_mm
         )
-    distance_arr = np.asarray(itk.GetArrayFromImage(distance), dtype=np.float32)
-    return -distance_arr if label_id == 0 else distance_arr
+    return np.asarray(itk.GetArrayFromImage(distance), dtype=np.float32)
 
 
 def _itk_resample_labelmap_isotropic(
@@ -1250,7 +1382,9 @@ def test_tutorial_4_frame_writes_every_output(tmp_path: Path) -> None:
     tutorials = Path(__file__).resolve().parents[1] / "tutorials"
     if str(tutorials) not in sys.path:
         sys.path.insert(0, str(tutorials))
-    tutorial = importlib.import_module("tutorial_04_duke_heart_labelmap_to_vtk")
+    tutorial = importlib.import_module(
+        "tutorial_04_convert_to_vtk_duke_heart_4d_labelmaps"
+    )
     labelmap_file = tmp_path / "pm0001_g000_labelmap.nii.gz"
     itk.imwrite(_blob_labelmap((1.0, 1.0, 1.0), 1.0), str(labelmap_file))
 

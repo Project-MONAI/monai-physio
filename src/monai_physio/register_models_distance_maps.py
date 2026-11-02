@@ -186,7 +186,7 @@ class RegisterModelsDistanceMaps(MONAIPhysioBase):
         The distance maps this class registers are not CT intensities, so stock
         uniGradICON weights are out of distribution for them.  Weights finetuned
         on distance maps, e.g. by
-        ``tutorials/tutorial_02_lung_distancemap_finetune_icon.py``, are
+        ``tutorials/tutorial_02_finetune_icon_distancemap_tcia_lung_4d_ct.py``, are
         supplied here.
 
         Args:

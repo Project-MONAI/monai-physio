@@ -275,14 +275,16 @@ class ProcessImages(MONAIPhysioBase):
 
         return itk_image
 
-    def make_isotropic_image(self, image: itk.Image) -> itk.Image:
-        """Resample a 3-D *image* to isotropic spacing using the finest voxel pitch.
+    def make_isotropic_image(self, image: itk.Image, spacing: float = 0) -> itk.Image:
+        """Resample a 3-D *image* to isotropic spacing.
 
         Args:
             image: 3-D ITK image to resample.
+            spacing: Isotropic spacing to resample to. If 0, the finest voxel
+                pitch of *image* is used.
 
         Returns:
-            Resampled image with uniform spacing equal to the smallest input spacing.
+            Resampled image with uniform spacing.
 
         Raises:
             ValueError: If *image* is not 3-D.
@@ -292,13 +294,15 @@ class ProcessImages(MONAIPhysioBase):
                 f"make_isotropic_image requires a 3-D image; "
                 f"got {image.GetImageDimension()}-D"
             )
-        spacing = np.asarray(image.GetSpacing(), dtype=np.float64)
+        input_spacing = np.asarray(image.GetSpacing(), dtype=np.float64)
         size = np.asarray(image.GetLargestPossibleRegion().GetSize(), dtype=np.int64)
 
-        min_spacing = float(spacing.min())
+        min_spacing = float(input_spacing.min()) if spacing == 0 else float(spacing)
         new_spacing = [min_spacing] * 3
         # Ceiling to avoid clipping the image boundary.
-        new_size = [int(np.ceil(size[i] * spacing[i] / min_spacing)) for i in range(3)]
+        new_size = [
+            int(np.ceil(size[i] * input_spacing[i] / min_spacing)) for i in range(3)
+        ]
 
         ImageType = type(image)
         interpolator = itk.LinearInterpolateImageFunction[ImageType, itk.D].New()

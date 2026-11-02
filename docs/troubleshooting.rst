@@ -83,27 +83,30 @@ version than the one present on the system.
 
 .. code-block:: bash
 
-   uv pip install "monai-physio[cuda12]" -f https://data.pyg.org/whl/torch-2.12.0+cu126.html   # CUDA 12.6, nothing compiles
-   uv pip install "monai-physio[cuda13]"   # CUDA 13, builds torch-scatter
+   uv pip install "monai-physio[cuda12]" --torch-backend=cu128 \
+       -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
 
-Each extra installs CuPy and pins PyTorch to the matching wheel index.
-``[cuda12]`` is the smoothest: it is the newest combination with prebuilt
-``torch-scatter`` wheels, while CUDA 13 has none and compiles it from source.
-If you're not sure which CUDA version to pick, ``uv pip install
---torch-backend=auto monai-physio`` auto-detects the driver and installs a
-matching PyTorch build without CuPy.
+Both options are required: ``--torch-backend=cu128`` selects PyTorch's CUDA
+12.8 build, which runs on Turing (compute capability 7.5) through Blackwell
+GPUs, and ``-f``
+finds the matching prebuilt ``torch-scatter``. For CUDA 13, see
+:doc:`installation`.
+
+To check the result:
+
+.. code-block:: bash
+
+   python -c "import torch, torch_scatter; print(torch.__version__, torch.cuda.is_available())"
+
+A version ending in ``+cpu``, ``False``, or an ``OSError`` from
+``torch_scatter`` means the install took the wrong PyTorch build; reinstall
+with the command above in a fresh virtual environment.
 
 Verify the active CUDA version before reinstalling:
 
 .. code-block:: bash
 
    nvidia-smi   # shows driver and CUDA version
-
-.. note::
-   If you have no NVIDIA GPU, a plain ``pip install monai-physio`` installs a
-   CPU-only build. CuPy is absent and a ``UserWarning`` is emitted at import time.
-   CPU execution of all operations is supported but will be significantly slower
-   than a GPU-enabled install.
 
 Import Errors
 -------------
@@ -114,7 +117,8 @@ Import Errors
 
 .. code-block:: bash
 
-   pip install --upgrade monai_physio
+   uv pip install "monai-physio[cuda12]" --torch-backend=cu128 \
+       -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
 
 Processing Issues
 =================
@@ -206,9 +210,8 @@ Slow Processing
 
 **Solutions**:
 
-1. Install ``monai-physio[cuda12]`` (or ``[cuda13]``) for GPU-accelerated
-   PyTorch and CuPy, or ``uv pip install --torch-backend=auto monai-physio``
-   for auto-detected PyTorch without CuPy.
+1. Check that PyTorch is a CUDA build (see *CUDA Version Mismatch* above);
+   a CPU build of torch makes every GPU step fail or crawl.
 2. Reduce ``--registration-iterations`` during exploratory runs.
 3. Run tutorial workflows with reduced frame counts where supported.
 

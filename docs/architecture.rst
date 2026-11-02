@@ -102,14 +102,14 @@ fitted statistical shape model into a trained AI physiological surrogate,
 replacing the explicit per-phase registration solve with a learned model at
 inference time:
 
-``tutorial_08_lung_fit_model_to_4d_patients.py``
+``tutorial_08_fit_model_to_4d_patients_tcia_lung_4d_ct.py``
    Fits the lung PCA model to a TCIA-4DLung case (via
    ``WorkflowFitStatisticalModelToPatient``) and propagates the fitted surface
    through every respiratory phase using ICON-based registration
    (``WorkflowReconstructHighres4DCT``), producing the per-phase surfaces used
    as AI surrogate training data.
 
-``tutorial_09_lung_train_physicsnemo_mgn.py``
+``tutorial_09_train_physicsnemo_mgn_tcia_lung_4d_ct.py``
    Trains a PhysicsNeMo surrogate with ``WorkflowTrainPhysicsNeMo``, driving a
    graph-based ``TrainPhysicsNeMoMGN`` (``MeshGraphNet``) method on the
    Tutorial 8 output. The tutorial writes each phase's training target - here
@@ -121,14 +121,14 @@ inference time:
    ``WorkflowReconstructHighres4DCT`` at inference time. Requires PhysicsNeMo
    and ``torch-geometric`` (base dependencies); Python >= 3.11.
 
-``tutorial_10_lung_infer_physicsnemo_mgn.py``
+``tutorial_10_infer_physicsnemo_mgn_tcia_lung_4d_ct.py``
    Loads that checkpoint and predicts the case's surface at a requested stage
    with ``WorkflowInferPhysicsNeMo`` plus ``WorkflowInferMovement``, then
    exports it as USD - one forward pass in place of the registration solve that
    produced the training data, and able to predict stages that were never
    acquired.
 
-``tutorial_11_lung_evaluate_physicsnemo.py``
+``tutorial_11_evaluate_physicsnemo_tcia_lung_4d_ct.py``
    Scores the same prediction with ``WorkflowEvaluateMovement``, against the
    *images* rather than against the registration Tutorial 10 compares to. It
    carries the reference frame's labelmap into each gated time point through the
@@ -136,13 +136,13 @@ inference time:
    was acquired, reporting volume difference and surface RMSE per structure
    (plus Dice per chamber in the ``duke_heart`` variant).
 
-``tutorial_12_lung_end_to_end_inference.py``
+``tutorial_12_infer_respiratory_motion_tcia_lung_4d_ct.py``
    Collapses the chain into one script: segment the reference frame, fit the
    shape model to that patient, and infer every stage - no registration
    anywhere, and nothing read from Tutorial 8. This is the shape the deployed
    pipeline takes, and why it runs in minutes where Tutorial 8 runs in hours.
 
-``tutorial_13_heart_and_lung_motion.py``
+``tutorial_13_combine_heart_and_lung_motion_chest_3d_ct.py``
    Drives *two* trained networks over a single static clinical CT, animating
    respiratory and cardiac motion together on a scan that has no 4D acquisition
    behind it at all.

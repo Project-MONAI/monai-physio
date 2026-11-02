@@ -16,7 +16,7 @@ containers, coordinate helpers, or USD writer primitives.
   limited by surface topology and controlled by
   `ConversionSettings.preserve_cell_arrays`
 - Materials: `UsdPreviewSurface` materials
-- Coordinates: RAS millimeter coordinates converted to USD Y-up meters
+- Coordinates: LPS millimeter coordinates converted to USD Y-up meters
 
 ## Modules
 
@@ -108,16 +108,17 @@ for array in mesh_data.generic_arrays:
 
 ## Coordinate System
 
-Input VTK coordinates are assumed to be RAS in millimeters:
+Input VTK coordinates are assumed to be LPS in millimeters, the frame of the
+`itk.Image` they were extracted from:
 
-- X: patient right
-- Y: patient anterior
+- X: patient left
+- Y: patient posterior
 - Z: patient superior
 
-USD output is Y-up in meters:
+USD output is Y-up in meters, with +X left, +Y superior, and +Z anterior:
 
 ```text
-USD(x, y, z) = RAS(x, z, -y) * 0.001
+USD(x, y, z) = LPS(x, z, -y) * 0.001
 ```
 
 The stage metadata is authored as `metersPerUnit=1.0` and `upAxis='Y'`.

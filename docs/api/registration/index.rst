@@ -12,6 +12,7 @@ MONAI Physio image registration classes align moving 3D images to a fixed
 
    base
    ants
+   fireants
    greedy
    icon
    chained

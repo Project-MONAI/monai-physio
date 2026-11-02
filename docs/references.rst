@@ -27,8 +27,13 @@ Registration Methods
 
 **ICON (Inverse Consistent Optimization Network)**
 
-* Tian, L., et al. "ICON: Learning Inverse Consistent Deformation"
+* Greer, H., et al. "ICON: Learning Regular Maps Through Inverse Consistency"
 * `ICON paper <https://arxiv.org/abs/2105.04459>`_
+
+**uniGradICON**
+
+* Tian, L., et al. "uniGradICON: A Foundation Model for Medical Image Registration"
+* `uniGradICON paper <https://arxiv.org/abs/2403.05780>`_
 
 Segmentation Methods
 --------------------
@@ -40,6 +45,17 @@ Segmentation Methods
 
 Datasets
 ========
+
+TCIA 4D-Lung
+------------
+
+Respiratory-gated 4D CT of lung cancer patients, used by the lung tutorials:
+
+* Hugo, G. D., et al. "A longitudinal four-dimensional computed tomography
+  and cone beam computed tomography dataset for image-guided radiation therapy
+  research in lung cancer." *Medical Physics* 44(2):762-771, 2017
+* `Collection <https://www.cancerimagingarchive.net/collection/4d-lung/>`_,
+  DOI ``10.7937/K9/TCIA.2016.ELN8YGLE``
 
 DirLab 4D-CT
 ------------

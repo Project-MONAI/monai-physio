@@ -19,7 +19,7 @@ Basic Usage
        --network mgn \
        --train-manifest manifests/Case2Pack_manifest.json manifests/Case3Pack_manifest.json \
        --val-manifest manifests/Case4Pack_manifest.json \
-       --pca-mean-mesh output/tutorial_06_lung/pca_mean_surface.vtp \
+       --pca-mean-mesh output/tutorial_06_create_statistical_model_tcia_lung_4d_ct/pca_mean_surface.vtp \
        --output output/mgn_run
 
 Options

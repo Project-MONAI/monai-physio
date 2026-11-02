@@ -39,6 +39,11 @@ Training methods
    :undoc-members:
    :show-inheritance:
 
+.. autoclass:: DistributedContext
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Example
 =======
 

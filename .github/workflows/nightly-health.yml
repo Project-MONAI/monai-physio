@@ -127,7 +127,13 @@ jobs:
         # PowerShell does not abort a multi-line run block when a native command
         # exits non-zero, so each install is checked explicitly. Otherwise a
         # failed prerequisite install is masked by the error it causes later.
+        #
+        # torch's headers require C++20 and CUDA 13's CCCL headers require the
+        # conforming preprocessor; torch-scatter's setup.py adds neither, and
+        # cl.exe reads the CL env var as default flags (see the gpu-tests job
+        # in ci.yml).
         run: |
+          $env:CL = "/std:c++20 /Zc:preprocessor"
           python -m pip install --upgrade pip uv
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m uv pip install setuptools wheel

@@ -16,6 +16,11 @@ Class Reference
    :undoc-members:
    :show-inheritance:
 
+.. autodata:: ProgressCallback
+
+   ``Callable[[float, str], None]``: called with the completed fraction in
+   ``[0, 1]`` and a status message; see :meth:`MONAIPhysioBase.set_progress_callback`.
+
 Logging
 =======
 

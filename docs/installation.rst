@@ -11,8 +11,10 @@ System Requirements
 -------------------
 
 * **Python**: 3.11, 3.12, or 3.13
-* **GPU**: NVIDIA GPU with CUDA 12.6 or CUDA 13 - needed for full
-  performance; CPU-only runs every workflow, significantly slower
+* **GPU**: NVIDIA GPU of compute capability 7.5 (Turing) or newer, with a
+  driver for CUDA 12.8 or newer, required.
+  Surface extraction, segmentation, and the AI surrogates run on the GPU;
+  there is no CPU-only mode.
 * **RAM**: 16GB minimum (32GB+ recommended for large datasets)
 * **Storage**: 10GB+ for package and model weights
 * **Visualization**: NVIDIA Omniverse (optional, for USD visualization)
@@ -30,77 +32,54 @@ Installed by default:
 * **Visualization**: USD-core, PyVista
 * **Segmentation**: TotalSegmentator
 
-CuPy is optional, installed with the ``[cuda12]`` or ``[cuda13]`` extra.
+CuPy is installed with the ``[cuda12]`` or ``[cuda13]`` extra.
 
 Installing
 ==========
 
-Use ``uv``. It selects the CUDA wheel and applies this project's
-``torch-scatter`` build configuration from ``pyproject.toml``.
+Create and activate a virtual environment first (``python -m venv .venv``,
+then ``source .venv/bin/activate`` on Linux or ``.venv\Scriptsctivate`` on
+Windows), and install ``uv`` into it with ``pip install uv``.
 
-**CUDA 12.6 - recommended, installs entirely from prebuilt wheels:**
-
-.. code-block:: bash
-
-   uv pip install "monai-physio[cuda12]" \
-       -f https://data.pyg.org/whl/torch-2.12.0+cu126.html     # runtime
-   uv pip install -e ".[dev_cuda12]" \
-       -f https://data.pyg.org/whl/torch-2.12.0+cu126.html     # plus dev tooling
-
-The ``-f`` (find-links) option points uv at the PyG wheel index, which is
-where the prebuilt ``torch-scatter`` lives. Without it uv falls back to a
-source build, which fails whenever the CUDA toolkit on ``PATH`` differs from
-the one torch was built for (``The detected CUDA version ... mismatches the
-version that was used to compile PyTorch``). To install just that package into
-an existing environment:
+**CUDA 12.8 - recommended, installs entirely from prebuilt wheels:**
 
 .. code-block:: bash
 
-   uv pip install torch-scatter -f https://data.pyg.org/whl/torch-2.12.0+cu126.html
+   uv pip install "monai-physio[cuda12]" --torch-backend=cu128        -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
 
-**CUDA 13 - same, plus a** ``torch-scatter`` **source build:**
+Both options are required:
 
-.. code-block:: bash
+* ``--torch-backend=cu128`` installs PyTorch's CUDA 12.8 build. Without it uv
+  takes torch from PyPI, which is a CPU-only build on Windows and a CUDA 13
+  build on Linux, neither of which matches the prebuilt ``torch-scatter``.
+* ``-f`` points uv at the PyG wheel index, where the prebuilt
+  ``torch-scatter`` lives. PyPI hosts only its source distribution, whose build
+  fails under ``uv pip`` (``No module named 'torch'``).
 
-   uv pip install "monai-physio[cuda13]"
-   uv pip install -e ".[dev_cuda13]"
+CUDA 12.8 is the newest CUDA 12 build with kernels for Blackwell GPUs, and the
+``[cuda12]`` extra pins torch below 2.12 because the CUDA 12.8 PyTorch index
+stops at 2.11.
 
-PyG publishes no CUDA 13.1 wheel index. Its CUDA 13.0 index
-(``https://data.pyg.org/whl/torch-2.12.0+cu130.html``) has Linux wheels only,
-so on Linux you can add ``-f`` with that URL to skip the source build. On
-Windows, or for any other torch version, the source build below applies.
+**CUDA 13 - builds** ``torch-scatter`` **from source:**
 
-That build needs a CUDA toolkit with ``nvcc`` on ``PATH`` matching the
-installed torch, and a C++ toolchain (MSVC Build Tools on Windows, gcc/g++ on
-Linux). See :ref:`torch-scatter-wheels`.
-
-**Auto-detected PyTorch, without CuPy:**
-
-.. code-block:: bash
-
-   uv pip install --torch-backend=auto monai-physio
-   uv pip install --torch-backend=auto -e ".[dev]"
-
-``--torch-backend=auto`` picks the PyTorch build matching your driver, so no
-CUDA version is named. CuPy is not covered - it is not a PyTorch package -
-and the selected torch may need a ``torch-scatter`` source build. Export
-``UV_TORCH_BACKEND=auto`` to apply the flag to every command in the shell
-session.
-
-``--torch-backend`` needs uv 0.6.9 or newer (``uv self update`` on an older
-install). On an older uv, use the ``cuda12``/``cuda13`` extras instead, which
-route to the matching PyTorch index without the flag.
-
-**CPU-only:**
+PyG publishes CUDA 13 ``torch-scatter`` wheels for Linux only
+(``https://data.pyg.org/whl/torch-2.12.0+cu130.html``). On Windows, and for
+any other torch version, ``torch-scatter`` is compiled during the install,
+which needs a CUDA toolkit with ``nvcc`` on ``PATH`` matching the installed
+torch and a C++ toolchain (MSVC Build Tools on Windows, gcc/g++ on Linux).
+Use pip, with build isolation disabled so the build sees the installed torch:
 
 .. code-block:: bash
 
-   uv pip install monai-physio
+   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu130
+   pip install setuptools
+   pip install "monai-physio[cuda13]" --no-build-isolation
 
-Every workflow runs, including the AI-surrogate ones, but significantly
-slower: segmentation, registration, and AI-surrogate training and inference
-all lose GPU acceleration. CuPy is absent, so importing ``monai_physio``
-emits a ``UserWarning`` naming the extras that provide it.
+On Windows, run this from a plain shell rather than an MSVC developer prompt
+(or set ``DISTUTILS_USE_SDK=1`` in one), and first set
+``CL=/std:c++20 /Zc:preprocessor`` (PowerShell:
+``$env:CL = "/std:c++20 /Zc:preprocessor"``); the ``torch-scatter`` build
+takes about ten minutes.
 
 .. _torch-scatter-wheels:
 
@@ -119,46 +98,32 @@ the compiled CUDA extension behind PhysicsNeMo's MeshGraphNet. Its wheels
    * - Install
      - Linux
      - Windows
-   * - ``[cuda12]`` (CUDA 12.6, torch < 2.13), with ``-f``
+   * - ``[cuda12]`` (CUDA 12.8, torch < 2.12), with ``--torch-backend=cu128``
+       and ``-f``
      - Prebuilt wheel
      - Prebuilt wheel
    * - ``[cuda13]`` (CUDA 13)
+     - Source build, or a prebuilt wheel for torch 2.12 with ``-f``
      - Source build
-     - Source build
-   * - ``--torch-backend=auto``
-     - Depends on the selected torch
-     - Depends on the selected torch
 
 No wheel covers torch 2.13 or newer on any platform, and the CUDA 13.0 wheels
-are Linux-only. ``[cuda12]`` pins torch below 2.13 to stay inside the
-prebuilt-wheel range, which is why it is the recommended install. PyPI hosts
-only a source distribution of ``torch-scatter``, so the wheels are found only
-when ``-f https://data.pyg.org/whl/torch-2.12.0+cu126.html`` is passed.
+are Linux-only.
 
 Installing with pip
 --------------------
 
-``pip`` does not read the PyTorch index from ``pyproject.toml``, so install
-PyTorch first, then the package:
+``pip`` cannot select a PyTorch build, so install a PyTorch that the
+``[cuda12]`` extra accepts first, then the package:
 
 .. code-block:: bash
 
-   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
-   pip install "monai-physio[cuda12]" -f https://data.pyg.org/whl/torch-2.12.0+cu126.html
+   pip install "torch>=2.10,<2.12" torchvision --index-url https://download.pytorch.org/whl/cu128
+   pip install "monai-physio[cuda12]" -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
 
-See https://pytorch.org/get-started/locally/ for the PyTorch selector.
-Importing ``monai_physio`` from a pip install emits a ``UserWarning``
-pointing at the ``uv`` command, which needs neither step.
-
-For CUDA 13, ``torch-scatter`` is built from source, which additionally needs
-``setuptools`` present and build isolation disabled. ``pip`` disables it for
-the whole install, where ``uv`` scopes it to the one package:
-
-.. code-block:: bash
-
-   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu130
-   pip install setuptools
-   pip install "monai-physio[cuda13]" --no-build-isolation
+The version bound in the first command matters: an unbounded install takes
+the newest torch on that index, which the extra rejects, and pip then replaces
+it with the CPU-only PyPI build. See https://pytorch.org/get-started/locally/
+for the PyTorch selector.
 
 Installing from Source
 -----------------------
@@ -168,7 +133,7 @@ Installing from Source
 .. code-block:: bash
 
    git clone https://github.com/Project-MONAI/monai-physio.git
-   cd monai_physio
+   cd monai-physio
 
 **Step 2: Create virtual environment**
 
@@ -201,9 +166,10 @@ extra:
 
 .. code-block:: bash
 
-   uv pip install -e ".[dev_cuda12]"                   # CUDA 12.6
-   uv pip install -e ".[dev_cuda13]"                   # CUDA 13
-   uv pip install --torch-backend=auto -e ".[dev]"     # no CuPy
+   uv pip install -e ".[dev_cuda12]" --torch-backend=cu128        -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
+
+For CUDA 13, follow the pip sequence under *CUDA 13* above with
+``-e ".[dev_cuda13]"`` in place of ``"monai-physio[cuda13]"``.
 
 Development Tools
 ==================
@@ -283,9 +249,7 @@ with pip:
 PyTorch with CUDA
 -----------------
 
-The ``[cuda12]`` and ``[cuda13]`` extras pin PyTorch and torchvision to the
-``cu126`` and ``cu130`` wheel indexes respectively. To
-verify the active build:
+To verify that the installed PyTorch is a CUDA build that runs on your GPU:
 
 .. code-block:: python
 
@@ -293,6 +257,8 @@ verify the active build:
    print(f"PyTorch version: {torch.__version__}")
    print(f"CUDA available: {torch.cuda.is_available()}")
    print(f"CUDA version: {torch.version.cuda}")
+   print(torch.ones(1, device="cuda") + 1)  # fails if the build lacks kernels for this GPU
+   import torch_scatter  # fails if torch-scatter does not match torch
 
 Troubleshooting
 ===============

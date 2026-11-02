@@ -419,7 +419,19 @@ class SegmentNVSegmentCT(SegmentAnatomyBase):
             itk.imwrite(preprocessed_image, in_file, compression=True)
 
             self.log_info("Running NV-Segment-CT")
-            pipeline([{"image": in_file}], output_dir=out_dir)
+            # The bundle's default hyper_kwargs sets everything_labels to the
+            # int 1, which it then tries to iterate; pass the real
+            # segment-everything class list, one single-label prompt each.
+            pipeline(
+                [{"image": in_file}],
+                output_dir=out_dir,
+                hyper_kwargs={
+                    "user_prompt": 1,
+                    "everything_labels": [
+                        [label] for label in pipeline.EVERYTHING_LABEL
+                    ],
+                },
+            )
 
             # The bundle saves with separate_folder=True and its own postfix,
             # so locate the result rather than reconstructing its name.

@@ -110,6 +110,9 @@ class WorkflowInferPhysicsNeMo(MONAIPhysioBase):
         self.target_scale = float(meta["target_scale"])
         self.n_target = int(meta["n_target"])
         self.target_array = str(meta.get("target_array", "target"))
+        self.train_subject_ids: tuple[str, ...] = tuple(
+            meta.get("train_subject_ids", ())
+        )
 
         # Shared template mesh (node coordinates + output topology).
         self._template_mesh = self._load_template_mesh()
@@ -127,6 +130,29 @@ class WorkflowInferPhysicsNeMo(MONAIPhysioBase):
         model.load_state_dict(ProcessPhysicsNemo.strip_compile_prefix(state))
         model.eval()
         self.inference_method.set_model(model, self._device)
+
+    def check_held_out(self, subject_id: str) -> bool:
+        """Warn if the loaded checkpoint was trained on ``subject_id``.
+
+        Predicting a subject the network trained on overstates how well it
+        generalizes, so evaluations of a held-out subject should call this
+        first. Checkpoints that do not record their training subjects pass.
+
+        Returns:
+            ``True`` if ``subject_id`` is not among the checkpoint's
+            ``train_subject_ids``, ``False`` (after logging a warning) if it is.
+        """
+        if subject_id not in self.train_subject_ids:
+            return True
+        self.log_warning(
+            "%s was trained on %s, so results for it do not measure "
+            "generalization. Train a model that excludes it, or evaluate a "
+            "subject outside %s.",
+            self.checkpoint_file,
+            subject_id,
+            list(self.train_subject_ids),
+        )
+        return False
 
     # ─────────────────────────── Shared assets ─────────────────────────────
     @property

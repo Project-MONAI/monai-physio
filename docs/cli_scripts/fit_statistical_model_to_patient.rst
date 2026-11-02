@@ -26,7 +26,8 @@ The script is included with MONAI Physio installation:
 
 .. code-block:: bash
 
-   pip install monai-physio
+   uv pip install "monai-physio[cuda12]" --torch-backend=cu128 \
+       -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
 
 Quick Start
 ===========
