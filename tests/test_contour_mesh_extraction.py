@@ -531,6 +531,18 @@ class TestRemoveBoundarySlivers:
         assert cleaned.n_cells == 1
         assert cleaned.cell_data["cell_ids"].tolist() == [0]
 
+    def test_mesh_of_only_slivers_comes_back_empty(
+        self, volume_tools: ProcessVolumetricMesh
+    ) -> None:
+        points = np.array(
+            [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.4, 0.4, 0.02]]
+        )
+        mesh = pv.UnstructuredGrid(
+            np.array([4, 0, 1, 2, 3]), [pv.CellType.TETRA], points
+        )
+
+        assert volume_tools.remove_boundary_slivers(mesh).n_cells == 0
+
     def test_leaves_a_mesh_without_slivers_unchanged(
         self, volume_tools: ProcessVolumetricMesh
     ) -> None:

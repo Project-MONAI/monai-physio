@@ -338,7 +338,7 @@ class ProcessVolumetricMesh(MONAIPhysioBase):
 
         cleaned = tetrahedra
         removed = 0
-        while True:
+        while cleaned.n_cells > 0:
             connectivity = cast(
                 np.ndarray, cleaned.cells_dict[np.uint8(pv.CellType.TETRA)]
             )

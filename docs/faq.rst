@@ -52,7 +52,8 @@ newer. The recommended install uses PyTorch's CUDA
 
 .. code-block:: bash
 
-   uv pip install "monai-physio[cuda12]" --torch-backend=cu128 \n       -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
+   uv pip install "monai-physio[cuda12]" --torch-backend=cu128 \
+       -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
 
 CUDA 13 is also supported, but ``torch-scatter`` then compiles from source on
 Windows (and on Linux for any torch other than 2.12), which needs a CUDA

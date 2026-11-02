@@ -20,7 +20,8 @@ Install
 
 .. code-block:: bash
 
-   uv pip install "monai-physio[cuda12]" --torch-backend=cu128 \n       -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
+   uv pip install "monai-physio[cuda12]" --torch-backend=cu128 \
+       -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
 
 This installs entirely from prebuilt wheels. ``--torch-backend=cu128``
 selects the CUDA 12.8 PyTorch build and ``-f`` points uv at the PyG wheel

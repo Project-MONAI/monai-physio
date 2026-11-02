@@ -168,24 +168,53 @@ if __name__ == "__main__":
     reference_surface_file = output_dir / "reference_mean_surface.vtp"
     starting_case = TCIA_LUNG_4D_CT.mean_surface_starting_case(test_mode).name
     sample_case_ids = [path.parent.name for path in sample_image_files]
-    mean_workflow = WorkflowCreateMeanSurface(
-        surfaces=sample_surfaces,
-        template_surface=sample_surfaces[sample_case_ids.index(starting_case)],
-        log_level=log_level,
+    # Keyed on the cases and settings the atlas was built from, not on the file
+    # merely being there: an atlas from another population, or corresponded at
+    # other settings than the model below, would disagree with it silently.
+    mean_surface_settings = {
+        "cases": sample_case_ids,
+        "starting_case": starting_case,
+        "model_points": model_points,
+        "iterations": mean_surface_iterations,
+        "mask_dilation_mm": TCIA_LUNG_4D_CT.mask_dilation_mm,
+        "distance_squared_max": TCIA_LUNG_4D_CT.distancemap_squared_max,
+        "icp_transform_type": TCIA_LUNG_4D_CT.icp_transform_type,
+        "spatial_resolution": TCIA_LUNG_4D_CT.mesh_element_size_mm,
+        "greedy_iterations": TCIA_LUNG_4D_CT.number_of_iterations_greedy,
+        "icon_weights": (
+            [str(icon_weights_path), icon_weights_path.stat().st_mtime_ns]
+            if icon_weights_path.exists()
+            else None
+        ),
+    }
+    settings_file = output_dir / "reference_mean_surface_settings.json"
+    cached_settings = (
+        json.loads(settings_file.read_text(encoding="utf-8"))
+        if reference_surface_file.exists() and settings_file.exists()
+        else None
     )
-    mean_workflow.set_number_of_iterations(mean_surface_iterations)
-    mean_workflow.set_mask_dilation_mm(TCIA_LUNG_4D_CT.mask_dilation_mm)
-    mean_workflow.set_distance_squared_max(TCIA_LUNG_4D_CT.distancemap_squared_max)
-    mean_workflow.set_icp_transform_type(TCIA_LUNG_4D_CT.icp_transform_type)
-    mean_workflow.set_distance_map_transform_type("Affine")
-    mean_workflow.spatial_resolution = TCIA_LUNG_4D_CT.mesh_element_size_mm
-    mean_workflow.set_greedy_iterations(TCIA_LUNG_4D_CT.number_of_iterations_greedy)
-    mean_workflow.set_icon_iterations(TCIA_LUNG_4D_CT.number_of_iterations_icon)
+    if cached_settings != mean_surface_settings:
+        mean_workflow = WorkflowCreateMeanSurface(
+            surfaces=sample_surfaces,
+            template_surface=sample_surfaces[sample_case_ids.index(starting_case)],
+            log_level=log_level,
+        )
+        mean_workflow.set_number_of_iterations(mean_surface_iterations)
+        mean_workflow.set_mask_dilation_mm(TCIA_LUNG_4D_CT.mask_dilation_mm)
+        mean_workflow.set_distance_squared_max(TCIA_LUNG_4D_CT.distancemap_squared_max)
+        mean_workflow.set_icp_transform_type(TCIA_LUNG_4D_CT.icp_transform_type)
+        mean_workflow.set_distance_map_transform_type("Affine")
+        mean_workflow.spatial_resolution = TCIA_LUNG_4D_CT.mesh_element_size_mm
+        mean_workflow.set_greedy_iterations(TCIA_LUNG_4D_CT.number_of_iterations_greedy)
+        mean_workflow.set_icon_iterations(TCIA_LUNG_4D_CT.number_of_iterations_icon)
 
-    if icon_weights_path.exists():
-        mean_workflow.set_icon_weights_path(str(icon_weights_path))
-    mean_result = mean_workflow.process()
-    mean_result["mean_surface"].save(str(reference_surface_file))
+        if icon_weights_path.exists():
+            mean_workflow.set_icon_weights_path(str(icon_weights_path))
+        mean_result = mean_workflow.process()
+        mean_result["mean_surface"].save(str(reference_surface_file))
+        settings_file.write_text(
+            json.dumps(mean_surface_settings, indent=2), encoding="utf-8"
+        )
     reference_surface = pv.read(str(reference_surface_file))
 
     # Workflow initialization

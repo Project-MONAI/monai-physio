@@ -332,6 +332,10 @@ if __name__ == "__main__":
             raise FileNotFoundError(
                 f"Required input not found: {required}\nRun tutorials/{hint} first."
             )
+    # Tutorial 7's lung coefficients are in Tutorial 6's shape model.
+    TCIA_LUNG_4D_CT.require_matching_shape_model(
+        lung_model_dir, TCIA_LUNG_4D_CT.pca_model_file(test_mode)
+    )
 
     contour_tools = ProcessSurfaceMesh(log_level=log_level)
     transform_tools = ProcessTransforms(log_level=log_level)

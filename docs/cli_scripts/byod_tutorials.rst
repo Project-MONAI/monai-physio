@@ -17,7 +17,8 @@ command installs everything from prebuilt wheels:
 
 .. code-block:: bash
 
-   uv pip install "monai-physio[cuda12]" --torch-backend=cu128 \n       -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
+   uv pip install "monai-physio[cuda12]" --torch-backend=cu128 \
+       -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
 
 Verify that all three relevant CLI entry-points are available after installation:
 

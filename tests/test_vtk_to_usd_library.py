@@ -161,8 +161,9 @@ class TestFromFilesValidation:
         # mypy runs on Windows in this repo (no python_platform override), so
         # it statically infers the `sys.platform == "win32"` branch above as
         # always-taken and flags this line as unreachable; on the Linux CI
-        # runner (or any non-Windows dev machine) it is reachable.
-        tt = ProcessTests(  # type: ignore[unreachable]
+        # runner (or any non-Windows dev machine) it is reachable, so the
+        # ignore is unused there.
+        tt = ProcessTests(  # type: ignore[unreachable, unused-ignore]
             class_name="openusd", results_dir=tmp_path
         )
         screenshot = tt.save_screenshot_openusd(usd_path, "triangle.png")

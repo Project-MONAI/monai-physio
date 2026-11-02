@@ -83,7 +83,8 @@ version than the one present on the system.
 
 .. code-block:: bash
 
-   uv pip install "monai-physio[cuda12]" --torch-backend=cu128 \n       -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
+   uv pip install "monai-physio[cuda12]" --torch-backend=cu128 \
+       -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
 
 Both options are required: ``--torch-backend=cu128`` selects PyTorch's CUDA
 12.8 build, which runs on Turing (compute capability 7.5) through Blackwell
@@ -116,7 +117,8 @@ Import Errors
 
 .. code-block:: bash
 
-   uv pip install "monai-physio[cuda12]" --torch-backend=cu128 \n       -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
+   uv pip install "monai-physio[cuda12]" --torch-backend=cu128 \
+       -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
 
 Processing Issues
 =================

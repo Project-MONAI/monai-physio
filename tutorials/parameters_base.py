@@ -123,12 +123,17 @@ class ParametersBase:
                 with.
         """
         with (model_directory / "pca_model.json").open(encoding="utf-8") as f:
-            network_components = np.asarray(json.load(f)["components"])
+            network_model = json.load(f)
         with pca_model_file.open(encoding="utf-8") as f:
-            local_components = np.asarray(json.load(f)["components"])
-        if network_components.shape != local_components.shape or not np.allclose(
-            network_components, local_components
-        ):
+            local_model = json.load(f)
+        # Coefficients are in units of each mode's standard deviation, so the
+        # eigenvalues must agree as well as the modes.
+        same_model = all(
+            np.shape(network_model[key]) == np.shape(local_model[key])
+            and np.allclose(network_model[key], local_model[key])
+            for key in ("components", "eigenvalues")
+        )
+        if not same_model:
             raise ValueError(
                 f"The network in {model_directory} was trained on a different "
                 f"shape model than {pca_model_file}, so the fitted coefficients "
