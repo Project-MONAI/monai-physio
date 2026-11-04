@@ -32,11 +32,14 @@ class RegisterModelsPCA(MONAIPhysioBase):
         ``fixed_distance_map`` is zero on the target surface and grows with
         distance away from it (in mm), so the objective is *minimized*::
 
-            E(b) = (1 - w) * mean_i D(P_i(b))          # model -> target
-                 +       w * mean_j ||Q_j - P_nn(j)||  # target -> model
-                 + lambda * Σ b_i²                     # Mahalanobis prior
+            E(b) = (1 - w) * mean_i D(P_i(b))             # model -> target
+                 +       w * mean_j f(||Q_j - P_nn(j)||) # target -> model
+                 + lambda * Σ b_i²                        # Mahalanobis prior
 
         ``w`` is ``symmetric_weight`` and ``lambda`` is ``pca_prior_weight``.
+        ``f(d) = min(d, distance_map_clip_mm) / distance_map_scale`` encodes
+        the target-to-model distances the way ``D`` encodes its own, so that
+        neither term outweighs the other merely by being in other units.
         Because the deformation is linear in ``b``, the gradient is analytic and
         is supplied to the optimizer directly.
 
@@ -107,6 +110,8 @@ class RegisterModelsPCA(MONAIPhysioBase):
         reference_image: Optional[itk.Image] = None,
         pca_prior_weight: float = 0.0,
         symmetric_weight: float = 0.5,
+        distance_map_clip_mm: Optional[float] = None,
+        distance_map_scale: float = 1.0,
         log_level: int | str = logging.INFO,
     ):
         """Initialize the PCA-based model-to-image registration.
@@ -140,6 +145,13 @@ class RegisterModelsPCA(MONAIPhysioBase):
                 satisfy the metric while covering just part of the target.
                 Requires fixed_model; ignored with a warning when only a
                 distance map is available. Default: 0.5
+            distance_map_clip_mm: Distance, in mm, at which fixed_distance_map
+                saturates. The target-to-model distances are clipped here too,
+                so that both terms saturate together. Default: None (no clip,
+                as in the map built from fixed_model).
+            distance_map_scale: Divisor fixed_distance_map applies to its mm
+                distances. The target-to-model distances are divided by it
+                too, so that both terms are in the map's units. Default: 1.0
             log_level: Logging level (logging.DEBUG, logging.INFO, logging.WARNING).
                 Default: logging.INFO
 
@@ -220,6 +232,8 @@ class RegisterModelsPCA(MONAIPhysioBase):
                 f"symmetric_weight must be in [0, 1]; got {symmetric_weight}"
             )
         self.symmetric_weight = symmetric_weight
+        self.distance_map_clip_mm = distance_map_clip_mm
+        self.distance_map_scale = distance_map_scale
 
         # outputs
         self.registered_model_pca_coefficients: Optional[np.ndarray] = None
@@ -263,6 +277,8 @@ class RegisterModelsPCA(MONAIPhysioBase):
         reference_image: Optional[itk.Image] = None,
         pca_prior_weight: float = 0.0,
         symmetric_weight: float = 0.5,
+        distance_map_clip_mm: Optional[float] = None,
+        distance_map_scale: float = 1.0,
         log_level: int | str = logging.INFO,
     ) -> Self:
         """Create RegisterModelsPCA from PCA model JSON file.
@@ -287,6 +303,10 @@ class RegisterModelsPCA(MONAIPhysioBase):
             reference_image: Reference image defining coordinate space. Default: None
             pca_prior_weight: Weight (mm) of the Mahalanobis shape prior. Default: 0.0
             symmetric_weight: Weight of the target-to-model term. Default: 0.5
+            distance_map_clip_mm: Distance, in mm, at which fixed_distance_map
+                saturates. Default: None (no clip)
+            distance_map_scale: Divisor fixed_distance_map applies to its mm
+                distances. Default: 1.0
             log_level: Logging level (logging.DEBUG, logging.INFO, logging.WARNING).
                 Default: logging.INFO
 
@@ -360,6 +380,8 @@ class RegisterModelsPCA(MONAIPhysioBase):
             reference_image=reference_image,
             pca_prior_weight=pca_prior_weight,
             symmetric_weight=symmetric_weight,
+            distance_map_clip_mm=distance_map_clip_mm,
+            distance_map_scale=distance_map_scale,
             log_level=log_level,
         )
 
@@ -376,6 +398,8 @@ class RegisterModelsPCA(MONAIPhysioBase):
         reference_image: Optional[itk.Image] = None,
         pca_prior_weight: float = 0.0,
         symmetric_weight: float = 0.5,
+        distance_map_clip_mm: Optional[float] = None,
+        distance_map_scale: float = 1.0,
         log_level: int | str = logging.INFO,
     ) -> Self:
         """Create RegisterModelsPCA from a PCA model dictionary.
@@ -396,6 +420,10 @@ class RegisterModelsPCA(MONAIPhysioBase):
             reference_image: Reference image defining coordinate space.
             pca_prior_weight: Weight (mm) of the Mahalanobis shape prior. Default: 0.0
             symmetric_weight: Weight of the target-to-model term. Default: 0.5
+            distance_map_clip_mm: Distance, in mm, at which fixed_distance_map
+                saturates. Default: None (no clip)
+            distance_map_scale: Divisor fixed_distance_map applies to its mm
+                distances. Default: 1.0
             log_level: Logging level.
 
         Returns:
@@ -422,6 +450,8 @@ class RegisterModelsPCA(MONAIPhysioBase):
             reference_image=reference_image,
             pca_prior_weight=pca_prior_weight,
             symmetric_weight=symmetric_weight,
+            distance_map_clip_mm=distance_map_clip_mm,
+            distance_map_scale=distance_map_scale,
             log_level=log_level,
         )
 
@@ -699,9 +729,21 @@ class RegisterModelsPCA(MONAIPhysioBase):
             # the target scores badly. The forward term alone cannot see this.
             nearest, nearest_index = cKDTree(points).query(self._target_points)
             nearest_distance = np.atleast_1d(np.asarray(nearest, dtype=np.float64))
-            reverse_distance = float(nearest_distance.mean())
+            clip = (
+                np.inf
+                if self.distance_map_clip_mm is None
+                else self.distance_map_clip_mm
+            )
+            reverse_distance = float(
+                np.minimum(nearest_distance, clip).mean() / self.distance_map_scale
+            )
             safe = np.where(nearest_distance > 0.0, nearest_distance, 1.0)
-            direction = (points[nearest_index] - self._target_points) / safe[:, None]
+            # A clipped distance is flat, so its target exerts no pull.
+            pull_weight = np.where(nearest_distance < clip, 1.0, 0.0) / (
+                safe * self.distance_map_scale
+            )
+            offset = points[nearest_index] - self._target_points
+            direction = offset * pull_weight[:, None]
             # Accumulate each target's pull onto the model point it selected,
             # then contract once against the modes.
             pull = np.zeros_like(points)

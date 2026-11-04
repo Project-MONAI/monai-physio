@@ -63,17 +63,13 @@ Under ``output/tutorial_11_evaluate_physicsnemo_duke_heart_4d_labelmaps/<case>/`
 from __future__ import annotations
 
 import logging
-from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Optional
 
-import itk
-import pyvista as pv
 from parameters_duke_heart_4d_labelmaps import DUKE_HEART_4D_LABELMAPS
 
 from monai_physio import (
     EvaluateMovementDukeHeart,
     MONAIPhysioBase,
-    ProcessTests,
     WorkflowEvaluateMovement,
     WorkflowInferMovement,
     WorkflowInferPhysicsNeMo,
@@ -86,25 +82,20 @@ from monai_physio import (
 # __name__ == "__main__" guard around top-level work, that re-import would
 # restart the whole evaluation in every worker.
 if __name__ == "__main__":
-    # Data directory specification
-    repo_root = Path(__file__).resolve().parent.parent
-
     class_name = "tutorial_11_evaluate_physicsnemo_duke_heart_4d_labelmaps"
 
     # Case to score: the case held out of every fit in this chain.
     case_id = DUKE_HEART_4D_LABELMAPS.hold_out_case
 
     # Fitted SSM surface and PCA coefficients written by Tutorial 8 (Duke Heart).
-    test_mode = ProcessTests.running_as_test()
-    # Keep a test run out of the directories a full run reads and writes.
     case_dir = (
-        DUKE_HEART_4D_LABELMAPS.output_directory(test_mode)
+        DUKE_HEART_4D_LABELMAPS.output_directory(test_mode=False)
         / "tutorial_08_fit_model_to_4d_patients_duke_heart_4d_labelmaps"
         / case_id
     )
     # Weights Tutorial 9 trained, and the checkpoint epoch Tutorial 10 infers
     # with; None uses the final weights.
-    model_dir = DUKE_HEART_4D_LABELMAPS.mgn_weights_directory(test_mode)
+    model_dir = DUKE_HEART_4D_LABELMAPS.mgn_weights_directory(test_mode=False)
     epoch: Optional[int] = None
 
     # Gaussian sigma, in mm, that spreads the predicted surface displacements
@@ -128,7 +119,7 @@ if __name__ == "__main__":
     include_displacement_error = True
 
     output_dir = (
-        DUKE_HEART_4D_LABELMAPS.output_directory(test_mode)
+        DUKE_HEART_4D_LABELMAPS.output_directory(test_mode=False)
         / "tutorial_11_evaluate_physicsnemo_duke_heart_4d_labelmaps"
         / case_id
     )
@@ -136,7 +127,7 @@ if __name__ == "__main__":
 
     logger = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
-    labelmap_dir = DUKE_HEART_4D_LABELMAPS.hold_out_directory(test_mode) / case_id
+    labelmap_dir = DUKE_HEART_4D_LABELMAPS.hold_out_directory(test_mode=False) / case_id
 
     # Directory setup and data reading
 
@@ -165,7 +156,7 @@ if __name__ == "__main__":
     )
 
     DUKE_HEART_4D_LABELMAPS.require_matching_shape_model(
-        model_dir, DUKE_HEART_4D_LABELMAPS.pca_model_file(test_mode)
+        model_dir, DUKE_HEART_4D_LABELMAPS.pca_model_file(test_mode=False)
     )
     infer_workflow = WorkflowInferPhysicsNeMo(
         model_directory=model_dir, epoch=epoch, log_level=log_level
@@ -201,28 +192,3 @@ if __name__ == "__main__":
         result["displacement_95th_mm"],
         result["displacement_max_mm"],
     )
-
-    tutorial_results: dict[str, Any] = dict(result)
-
-    # Testing
-    tt = ProcessTests(
-        class_name=class_name,
-        results_dir=output_dir,
-        baselines_dir=repo_root / "tests" / "baselines" / class_name,
-        log_level=log_level,
-    )
-    tutorial_results["screenshots"] = [
-        tt.save_screenshot_mesh(
-            cast(pv.DataSet, pv.read(str(result["predicted_surfaces"][0]))),
-            "predicted_surface.png",
-            camera_position="iso",
-            color="limegreen",
-        ),
-        tt.save_screenshot_image_slice(
-            itk.imread(str(result["warped_labelmaps"][0])),
-            "warped_labelmap.png",
-            axis=0,
-            slice_fraction=0.5,
-            colormap="viridis",
-        ),
-    ]

@@ -46,7 +46,7 @@ if __name__ == "__main__":
     pca_n_modes = 10
 
     # Output directory
-    output_dir = Path.cwd() / "results"
+    output_dir = Path(__file__).resolve().parent / "results"
 
     os.makedirs(output_dir, exist_ok=True)
 

@@ -15,6 +15,14 @@ repos:
   # Local hooks run from the active project venv
   - repo: local
     hooks:
+      # Keep notebook diffs to code: clear outputs and execution counts.
+      - id: strip-notebook-outputs
+        name: Strip notebook outputs
+        entry: python utils/strip_notebook_outputs.py
+        # Standard library only, so pre-commit's own interpreter runs it.
+        language: python
+        types: [jupyter]
+
       # Type checking with mypy. Runs in the project venv rather than an
       # isolated hook env: the GPU modules are typed against the installed
       # torch, warp and pyvista, which an isolated env would lack.

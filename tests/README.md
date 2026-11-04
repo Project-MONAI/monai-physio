@@ -41,6 +41,8 @@ This directory contains comprehensive test suites for the MONAI Physio package, 
   - **Opt-in only** - Requires `--run-tutorials` flag to run
   - Requires GPU, CUDA, all dependencies, and the tutorial datasets
   - Scripts in `experiments/` are exploratory and are **not** run as tests
+  - Tutorials 11, 14 and 15 are **not** run as tests: they are long-running
+    statistical studies, run manually on the full data
 
 
 

@@ -102,17 +102,14 @@ import itertools
 import json
 import logging
 import math
-from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Any, Optional
 
 import numpy as np
-import pyvista as pv
 from parameters_duke_heart_4d_labelmaps import DUKE_HEART_4D_LABELMAPS
 
 from monai_physio import (
     EvaluateMovementDukeHeart,
     MONAIPhysioBase,
-    ProcessTests,
     WorkflowEvaluateMovement,
     WorkflowInferMovement,
     WorkflowInferPhysicsNeMo,
@@ -151,25 +148,20 @@ def _mean_of_measured(values: list[float]) -> float:
 # __name__ == "__main__" guard around top-level work, that re-import would
 # restart the whole sweep in every worker.
 if __name__ == "__main__":
-    # Data directory specification
-    repo_root = Path(__file__).resolve().parent.parent
-
     class_name = "tutorial_14_shape_parameter_sweep_duke_heart_4d_labelmaps"
 
     # Case to sweep: the case held out of every fit in this chain.
     case_id = DUKE_HEART_4D_LABELMAPS.hold_out_case
 
     # Fitted SSM surface and PCA coefficients written by Tutorial 8 (Duke Heart).
-    test_mode = ProcessTests.running_as_test()
-    # Keep a test run out of the directories a full run reads and writes.
     case_dir = (
-        DUKE_HEART_4D_LABELMAPS.output_directory(test_mode)
+        DUKE_HEART_4D_LABELMAPS.output_directory(test_mode=False)
         / "tutorial_08_fit_model_to_4d_patients_duke_heart_4d_labelmaps"
         / case_id
     )
     # Weights Tutorial 9 trained, and the checkpoint epoch to infer with; None
     # uses the final weights.
-    model_dir = DUKE_HEART_4D_LABELMAPS.mgn_weights_directory(test_mode)
+    model_dir = DUKE_HEART_4D_LABELMAPS.mgn_weights_directory(test_mode=False)
     epoch: Optional[int] = None
 
     # Gaussian sigma, in mm, that spreads the predicted surface displacements
@@ -181,7 +173,7 @@ if __name__ == "__main__":
     evaluation_spacing_mm = 1.0
 
     output_dir = (
-        DUKE_HEART_4D_LABELMAPS.output_directory(test_mode)
+        DUKE_HEART_4D_LABELMAPS.output_directory(test_mode=False)
         / "tutorial_14_shape_parameter_sweep_duke_heart_4d_labelmaps"
         / case_id
     )
@@ -189,7 +181,7 @@ if __name__ == "__main__":
 
     logger = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
-    labelmap_dir = DUKE_HEART_4D_LABELMAPS.hold_out_directory(test_mode) / case_id
+    labelmap_dir = DUKE_HEART_4D_LABELMAPS.hold_out_directory(test_mode=False) / case_id
 
     # The sweep itself.  The first modes carry the most variance, so varying
     # them is what a shape-parameter study is about; the offsets are in standard
@@ -200,12 +192,6 @@ if __name__ == "__main__":
     number_of_modes_to_vary = 1
     perturbation_range = 4.0
     perturbation_step = 2.0
-    if test_mode:
-        # Three combinations rather than twenty-five: the test asserts the sweep
-        # runs and reports, not that the grid is finely sampled.
-        number_of_modes_to_vary = 1
-        perturbation_range = 1.0
-        perturbation_step = 1.0
 
     # Directory setup and data reading
 
@@ -229,7 +215,7 @@ if __name__ == "__main__":
             "monai-physio-download-data PhysicsNeMo-MGN-Duke-Heart-Motion."
         )
     DUKE_HEART_4D_LABELMAPS.require_matching_shape_model(
-        model_dir, DUKE_HEART_4D_LABELMAPS.pca_model_file(test_mode)
+        model_dir, DUKE_HEART_4D_LABELMAPS.pca_model_file(test_mode=False)
     )
 
     # The cohort assembles what every combination is scored against: every gated
@@ -282,13 +268,10 @@ if __name__ == "__main__":
 
     metric_rows: list[dict[str, Any]] = []
     summary_rows: list[dict[str, Any]] = []
-    combination_dirs: list[Path] = []
-    first_surfaces: list[Path] = []
 
     for index, offsets in enumerate(combinations):
         combination_dir = output_dir / f"combo_{index:03d}"
         combination_dir.mkdir(parents=True, exist_ok=True)
-        combination_dirs.append(combination_dir)
 
         coefficients = baseline_coefficients.copy()
         coefficients[:number_of_modes_to_vary] += np.asarray(offsets, dtype=np.float32)
@@ -309,7 +292,6 @@ if __name__ == "__main__":
             # that stayed the same size, this sees every point that moved wrong.
             include_displacement_error=True,
         )
-        first_surfaces.append(Path(result["predicted_surfaces"][0]))
 
         # The offsets say where in the grid the row is; the coefficients the
         # workflow already stamped on it as pca_c01.. say what was actually fed
@@ -386,38 +368,3 @@ if __name__ == "__main__":
 
     logger.log_info("Metrics: %s", metrics_csv_file)
     logger.log_info("Summary: %s", summary_csv_file)
-
-    tutorial_results: dict[str, Any] = {
-        "rows": metric_rows,
-        "summary_rows": summary_rows,
-        "metrics_csv_file": metrics_csv_file,
-        "summary_csv_file": summary_csv_file,
-        "combination_directories": combination_dirs,
-    }
-
-    # Testing: the unperturbed prediction beside the most perturbed one, which
-    # is the difference the sweep is measuring.
-    grid_distances = [float(np.abs(offsets).sum()) for offsets in combinations]
-    baseline_index = int(np.argmin(grid_distances))
-    extreme_index = int(np.argmax(grid_distances))
-
-    tt = ProcessTests(
-        class_name=class_name,
-        results_dir=output_dir,
-        baselines_dir=repo_root / "tests" / "baselines" / class_name,
-        log_level=log_level,
-    )
-    tutorial_results["screenshots"] = [
-        tt.save_screenshot_mesh(
-            cast(pv.DataSet, pv.read(str(first_surfaces[baseline_index]))),
-            "unperturbed_surface.png",
-            camera_position="iso",
-            color="limegreen",
-        ),
-        tt.save_screenshot_mesh(
-            cast(pv.DataSet, pv.read(str(first_surfaces[extreme_index]))),
-            "perturbed_surface.png",
-            camera_position="iso",
-            color="orange",
-        ),
-    ]

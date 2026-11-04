@@ -3,7 +3,7 @@
 This module provides the WorkflowFitStatisticalModelToPatient class for registering generic
 anatomical models to patient-specific imaging data and surface models.
 The workflow includes:
-1. Rough alignment using ICP (RegisterModelsICP)
+1. Rough alignment using ICP (RegisterModelsICPITK)
 1.5. Optional PCA-based registration (RegisterModelsPCA) if PCA data provided
 2. Labelmap-based deformable registration (RegisterModelsDistanceMaps)
 3. Optional final labelmap-to-image refinement using Icon
@@ -13,7 +13,7 @@ needs to be fitted to patient-specific imaging data.
 
 Key Features:
     - Automatic labelmap generation if not provided by user
-    - Modular design using RegisterModelsICP, RegisterModelsPCA, and
+    - Modular design using RegisterModelsICPITK, RegisterModelsPCA, and
         RegisterModelsDistanceMaps
     - Multi-stage registration pipeline:
         ICP → (optional PCA) → labelmap-to-labelmap → labelmap-to-image
@@ -38,7 +38,7 @@ from .process_transforms import ProcessTransforms
 from .register_images_greedy import RegisterImagesGreedy
 from .register_images_icon import RegisterImagesICON
 from .register_models_distance_maps import RegisterModelsDistanceMaps
-from .register_models_icp import RegisterModelsICP
+from .register_models_icp_itk import RegisterModelsICPITK
 from .register_models_pca import RegisterModelsPCA
 from .segment_anatomy_base import SegmentAnatomyBase
 from .segment_heart_simpleware_trimmed_branches import (
@@ -54,12 +54,13 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
     This class provides a flexible workflow for registering generic anatomical models
     (e.g., cardiac models) to patient-specific surface models and images. The
     registration pipeline combines:
-    - Initial model alignment using RegisterModelsICP (centroid + configurable ICP)
+    - Initial model alignment using RegisterModelsICPITK (centroid + configurable
+      ICP)
     - Labelmap-based deformable registration using RegisterModelsDistanceMaps (Greedy/ICON)
     - Optional final labelmap-to-image refinement using Icon registration
 
     **Registration Pipeline:**
-        1. **ICP Alignment**: Rough alignment using RegisterModelsICP, rigid,
+        1. **ICP Alignment**: Rough alignment using RegisterModelsICPITK, rigid,
             similarity or affine per :attr:`icp_transform_type`
         2. **PCA Registration**: Performs PCA-based shape fitting using
             RegisterModelsPCA
@@ -267,7 +268,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         self.l2l_deformable_engine: str = "icon"
 
         # Stage 1: ICP alignment results
-        self.icp_registrar: Optional[RegisterModelsICP] = None
+        self.icp_registrar: Optional[RegisterModelsICPITK] = None
         self.icp_fixed_to_moving_transform: Optional[itk.Transform] = None
         self.icp_moving_to_fixed_transform: Optional[itk.Transform] = None
         self.icp_template_model: Optional[pv.DataSet] = None
@@ -539,7 +540,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
     def register_model_to_model_icp(self) -> dict:
         """Perform ICP alignment of template model to patient model.
 
-        Uses RegisterModelsICP class for ICP alignment.
+        Uses RegisterModelsICPITK class for ICP alignment.
 
         Returns:
             dict: Dictionary containing:
@@ -549,10 +550,12 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
                   patient to model space
                 - 'fitted_reference_mesh': Transformed model model surface
         """
-        self.log_section("Stage 1: ICP Alignment (RegisterModelsICP)", width=70)
+        self.log_section("Stage 1: ICP Alignment (RegisterModelsICPITK)", width=70)
 
         # Create ICP registrar
-        self.icp_registrar = RegisterModelsICP(fixed_model=self.patient_model_surface)
+        self.icp_registrar = RegisterModelsICPITK(
+            fixed_model=self.patient_model_surface
+        )
 
         # Run rigid ICP registration
         with self._progress_range(0.0, 0.9):
@@ -646,6 +649,11 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         # instead would yield A*mean + sum(b*sigma*v) rather than
         # A*(mean + sum(b*sigma*v)), mis-rotating and mis-scaling every mode.
         pca_template_model: Optional[pv.DataSet]
+        # How fixed_distance_map encodes distance; the registrar encodes its
+        # target-to-model distances the same way, so neither term of its
+        # objective outweighs the other. None and 1.0 leave them in mm.
+        distance_map_clip_mm: Optional[float] = None
+        distance_map_scale = 1.0
         if self.use_surface:
             pca_template_model = self.template_model_surface
             fixed_model = self.patient_model_surface
@@ -655,10 +663,12 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             fixed_model = self.combined_patient_model
             if self.patient_labelmap is not None:
                 self._report_progress(0.0, "creating patient distance map")
+                distance_map_clip_mm = 10.0
+                distance_map_scale = 5.0
                 fixed_distance_map = self.labelmap_tools.create_distance_map(
                     self.patient_labelmap,
-                    max_distance_mm=10.0,
-                    distance_scale=5.0,
+                    max_distance_mm=distance_map_clip_mm,
+                    distance_scale=distance_map_scale,
                     preserve_labels=False,
                     exclude_labels=self.labelmap_interior_object_ids,
                     fill_background_only=True,
@@ -675,6 +685,8 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             fixed_model=fixed_model,
             fixed_distance_map=fixed_distance_map,
             reference_image=self.patient_image,
+            distance_map_clip_mm=distance_map_clip_mm,
+            distance_map_scale=distance_map_scale,
         )
 
         # Run complete PCA registration
@@ -1086,7 +1098,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
 
         Runs registration stages in sequence:
 
-        1. ICP alignment (RegisterModelsICP)
+        1. ICP alignment (RegisterModelsICPITK)
         2. PCA registration (PCA data was provided)
         3. Labelmap-to-labelmap deformable registration (RegisterModelsDistanceMaps)
         4. Optional labelmap-to-image refinement (Icon); requires template labelmap and IDs

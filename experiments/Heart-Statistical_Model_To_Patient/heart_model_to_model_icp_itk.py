@@ -44,7 +44,7 @@ heart_model_data_dir = Path.cwd().parent.parent / "data" / "KCL-Heart-Model"
 heart_model_path = heart_model_data_dir / "average_mesh.vtk"
 
 # Output directory
-output_dir = Path.cwd() / "results_icp_itk"
+output_dir = Path(__file__).resolve().parent / "results_icp_itk"
 os.makedirs(output_dir, exist_ok=True)
 
 print(f"Patient data: {patient_data_dir}")
@@ -147,15 +147,12 @@ print("Loading template heart model...")
 template_model = pv.read(str(heart_model_path))
 template_model_surface = template_model.extract_surface(algorithm="dataset_surface")
 
-icp_registrar = RegisterModelsICPITK(
-    fixed_model=patient_heart_surface, reference_image=patient_image
-)
+icp_registrar = RegisterModelsICPITK(fixed_model=patient_heart_surface)
 
 icp_result = icp_registrar.register(
     moving_model=template_model_surface,
     transform_type="Affine",
     max_iterations=100,
-    method="L-BFGS-B",
 )
 
 # Get the aligned mesh and transform

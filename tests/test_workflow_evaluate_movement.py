@@ -64,6 +64,7 @@ def test_volume_counts_voxels_in_cubic_millimeters() -> None:
     assert WorkflowEvaluateMovement.volume_mm3(labels, 2, 0.5) == 1.5
 
 
+@pytest.mark.requires_gpu
 def test_surface_rmse_of_two_concentric_spheres_is_their_radius_gap() -> None:
     """A surface offset by 1 mm everywhere scores 1 mm, from either direction."""
     inner = pv.Sphere(radius=10.0, theta_resolution=60, phi_resolution=60)

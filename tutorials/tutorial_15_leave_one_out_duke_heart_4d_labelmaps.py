@@ -114,7 +114,6 @@ from monai_physio import (
     MONAIPhysioBase,
     ProcessPhysicsNemo,
     ProcessSurfaceMesh,
-    ProcessTests,
     TrainPhysicsNeMoMGN,
     WorkflowCreateMeanSurface,
     WorkflowCreateStatisticalModel,
@@ -328,9 +327,6 @@ def _plot_metrics_by_label(
 # __name__ == "__main__" guard around top-level work, that re-import would
 # restart the whole study in every worker.
 if __name__ == "__main__":
-    # Data directory specification
-    repo_root = Path(__file__).resolve().parent.parent
-
     class_name = "tutorial_15_leave_one_out_duke_heart_4d_labelmaps"
 
     # Number of folds. Each holds out one patient and re-runs the entire chain
@@ -358,10 +354,8 @@ if __name__ == "__main__":
     # reported, and still below the thinnest wall of the heart.
     evaluation_spacing_mm = 1.0
 
-    test_mode = ProcessTests.running_as_test()
-    # Keep a test run out of the directories a full run reads and writes.
     output_dir = (
-        DUKE_HEART_4D_LABELMAPS.output_directory(test_mode)
+        DUKE_HEART_4D_LABELMAPS.output_directory(test_mode=False)
         / "tutorial_15_leave_one_out_duke_heart_4d_labelmaps"
     )
     shared_dir = output_dir / "shared"
@@ -374,19 +368,12 @@ if __name__ == "__main__":
     # process.
     context = ProcessPhysicsNemo.distributed_context()
 
-    data_dir = DUKE_HEART_4D_LABELMAPS.hold_out_directory(test_mode)
-    number_of_pca_components = DUKE_HEART_4D_LABELMAPS.pca_components(test_mode)
+    data_dir = DUKE_HEART_4D_LABELMAPS.hold_out_directory(test_mode=False)
+    number_of_pca_components = DUKE_HEART_4D_LABELMAPS.pca_components(test_mode=False)
 
     # Labels left out of the whole-heart structure, the same ones Tutorials 4,
     # 6 and 8 drop, so the frames and the model describe the same structure.
     interior_object_ids = DUKE_HEART_4D_LABELMAPS.interior_object_ids
-
-    # In test mode, run the smallest study that is still a cross-validation and
-    # train for a couple of epochs, to keep the run inside the pytest timeout.
-    if test_mode:
-        number_of_leave_one_out_runs = 2
-        mean_surface_iterations = 1
-        epochs = 2
 
     # Every SSM step uses the stock uniGradICON weights, not Tutorial 2's
     # finetuned ones: those were finetuned on every case except the
@@ -461,7 +448,7 @@ if __name__ == "__main__":
         sample_file = samples_dir / f"{case_id}_ref_model_surface.vtp"
         if not sample_file.exists():
             surface = DUKE_HEART_4D_LABELMAPS.whole_heart_surface(
-                reference_frame_file(case_dir_by_id[case_id]), test_mode, log_level
+                reference_frame_file(case_dir_by_id[case_id]), False, log_level
             )
             contour_tools.remesh_and_smooth_surface(
                 surface,
@@ -507,7 +494,7 @@ if __name__ == "__main__":
                 # that case's shape. Use the unbiased mean of the fold's own
                 # population instead.
                 starting_case = DUKE_HEART_4D_LABELMAPS.mean_surface_starting_case(
-                    test_mode
+                    test_mode=False
                 ).name
                 template_surface: Optional[pv.DataSet] = None
                 if starting_case in training_case_ids:
@@ -568,7 +555,7 @@ if __name__ == "__main__":
 
             reference_file = reference_frame_file(case_dir)
             reference_surface = DUKE_HEART_4D_LABELMAPS.whole_heart_surface(
-                reference_file, test_mode, log_level
+                reference_file, False, log_level
             )
             if not (
                 fitted_reference_mesh_file.exists() and pca_coefficients_file.exists()
@@ -623,7 +610,7 @@ if __name__ == "__main__":
             for frame_file in DUKE_HEART_4D_LABELMAPS.frames_to_register(
                 sorted(case_dir.glob(f"*{LABELMAP_SUFFIX}")),
                 reference_file,
-                test_mode,
+                False,
                 scored=case_id == held_out_case,
             ):
                 stem = frame_file.name[: -len(LABELMAP_SUFFIX)]
@@ -640,10 +627,10 @@ if __name__ == "__main__":
                 DUKE_HEART_4D_LABELMAPS.register_to_frame(
                     fitted_reference_mesh,
                     DUKE_HEART_4D_LABELMAPS.whole_heart_surface(
-                        frame_file, test_mode, log_level
+                        frame_file, False, log_level
                     ),
                     registration_grid,
-                    test_mode,
+                    False,
                     log_level,
                 ).save(str(frame_surface_file))
 
@@ -753,11 +740,6 @@ if __name__ == "__main__":
         context.barrier()
 
     # Step 6: pool the folds. Only rank 0 has the rows.
-    tutorial_results: dict[str, Any] = {
-        "held_out_cases": held_out_cases,
-        "folds": fold_results,
-        "screenshots": [],
-    }
     if context.is_main:
         metrics_file = output_dir / "loo_metrics.csv"
         with metrics_file.open("w", newline="", encoding="utf-8") as fh:
@@ -767,42 +749,12 @@ if __name__ == "__main__":
 
         report_file = output_dir / "loo_report.md"
         _write_loo_report(all_rows, held_out_cases, heart_names, report_file)
-        plot_file = _plot_metrics_by_label(
+        _plot_metrics_by_label(
             all_rows, heart_names, output_dir / "loo_metrics_by_label.png"
         )
         logger.log_info("Metrics: %s", metrics_file)
         logger.log_info("Report: %s", report_file)
-
-        tutorial_results["metrics_file"] = metrics_file
-        tutorial_results["report_file"] = report_file
-        tutorial_results["rows"] = all_rows
-
-        # Testing
-        tt = ProcessTests(
-            class_name=class_name,
-            results_dir=output_dir,
-            baselines_dir=repo_root / "tests" / "baselines" / class_name,
-            log_level=log_level,
+        logger.log_info(
+            "Last fold report: %s",
+            fold_results[held_out_cases[-1]]["report_file"],
         )
-        last_case = held_out_cases[-1]
-        tutorial_results["screenshots"] = [
-            plot_file,
-            tt.save_screenshot_mesh(
-                cast(
-                    pv.DataSet,
-                    pv.read(
-                        str(
-                            output_dir
-                            / f"fold_{last_case}"
-                            / "fits"
-                            / last_case
-                            / f"{last_case}_ssm_surface.vtp"
-                        )
-                    ),
-                ),
-                "held_out_fitted_surface.png",
-                camera_position="iso",
-                color="steelblue",
-            ),
-        ]
-        logger.log_info("Last fold report: %s", fold_results[last_case]["report_file"])
