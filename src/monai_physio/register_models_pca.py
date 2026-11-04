@@ -110,9 +110,10 @@ class RegisterModelsPCA(MONAIPhysioBase):
         reference_image: Optional[itk.Image] = None,
         pca_prior_weight: float = 0.0,
         symmetric_weight: float = 0.5,
+        log_level: int | str = logging.INFO,
+        *,
         distance_map_clip_mm: Optional[float] = None,
         distance_map_scale: float = 1.0,
-        log_level: int | str = logging.INFO,
     ):
         """Initialize the PCA-based model-to-image registration.
 
@@ -277,9 +278,10 @@ class RegisterModelsPCA(MONAIPhysioBase):
         reference_image: Optional[itk.Image] = None,
         pca_prior_weight: float = 0.0,
         symmetric_weight: float = 0.5,
+        log_level: int | str = logging.INFO,
+        *,
         distance_map_clip_mm: Optional[float] = None,
         distance_map_scale: float = 1.0,
-        log_level: int | str = logging.INFO,
     ) -> Self:
         """Create RegisterModelsPCA from PCA model JSON file.
 
@@ -398,9 +400,10 @@ class RegisterModelsPCA(MONAIPhysioBase):
         reference_image: Optional[itk.Image] = None,
         pca_prior_weight: float = 0.0,
         symmetric_weight: float = 0.5,
+        log_level: int | str = logging.INFO,
+        *,
         distance_map_clip_mm: Optional[float] = None,
         distance_map_scale: float = 1.0,
-        log_level: int | str = logging.INFO,
     ) -> Self:
         """Create RegisterModelsPCA from a PCA model dictionary.
 

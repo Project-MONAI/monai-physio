@@ -275,6 +275,11 @@ if __name__ == "__main__":
         phase_ids = [
             path.name.removesuffix(".nii.gz").split("_")[-1] for path in phase_files
         ]
+        # Tutorial 9 trains on every phase surface in this directory, so drop the
+        # outputs of phases an earlier run registered and this one does not.
+        for phase_output in case_output_dir.glob(f"{case_id}_g0??_*"):
+            if phase_output.name.removeprefix(f"{case_id}_")[:4] not in phase_ids:
+                phase_output.unlink()
         time_series = [itk.imread(str(path)) for path in phase_files]
 
         registration_method = TCIA_LUNG_4D_CT.registrar(test_mode, log_level=log_level)
