@@ -57,8 +57,17 @@ class ParametersTCIALung4DCT(ParametersBase):
         number_of_pca_components: PCA components retained when building the
             lung statistical model, and used when fitting it to a patient.
         number_of_pca_components_test: Same, under ``ProcessTests.running_as_test``.
+        mgn_epochs_test: Epochs Tutorial 9 trains for under
+            ``ProcessTests.running_as_test``.  Enough for the network to learn
+            the motion roughly, so the tutorials that infer with it have a
+            prediction worth comparing to a baseline.
         segmenter_class: Segmenter every lung tutorial instantiates, so the
-            surfaces they compare share a definition of "lung".
+            surfaces they compare share a definition of "lung".  Keep it
+            ``SegmentNVSegmentCTMRI``: the shape model and the pretrained
+            network were built from its five lung lobes, and other segmenters
+            disagree with it on what "lung" holds -- TotalSegmentator's lung
+            group adds the pulmonary vessels and airways, for instance -- which
+            pins the shape-model fit's coefficients at their bounds.
         registration_class: Registration method every lung tutorial
             instantiates, so the phase-to-phase transforms they produce and
             compare share one definition of "registered".
@@ -93,7 +102,9 @@ class ParametersTCIALung4DCT(ParametersBase):
     model_points_test: int = 20000
 
     number_of_pca_components: int = 6
-    number_of_pca_components_test: int = 5
+    number_of_pca_components_test: int = 3
+
+    mgn_epochs_test: int = 50
 
     segmenter_class: type[SegmentAnatomyBase] = SegmentNVSegmentCTMRI
     registration_class: type[RegisterImagesBase] = RegisterImagesGreedy
@@ -124,6 +135,28 @@ class ParametersTCIALung4DCT(ParametersBase):
         root = self.input_directory(test_mode)
         return [
             root / case_id for case_id in self.case_ids if (root / case_id).is_dir()
+        ]
+
+    def phases_to_register(
+        self,
+        phase_files: list[Path],
+        reference_file: Path,
+        test_mode: bool,
+        scored: bool,
+    ) -> list[Path]:
+        """Return the respiratory phases a case is registered to.
+
+        Every phase costs a registration, so a test run keeps every other
+        phase; the reference phase, which every fit starts from, is always
+        kept.  A *scored* case keeps every phase, as its ground truth needs a
+        fit for each one.
+        """
+        if not test_mode or scored:
+            return phase_files
+        return [
+            path
+            for index, path in enumerate(phase_files)
+            if index % 2 == 0 or path == reference_file
         ]
 
     def hold_out_directory(self, test_mode: bool) -> Path:

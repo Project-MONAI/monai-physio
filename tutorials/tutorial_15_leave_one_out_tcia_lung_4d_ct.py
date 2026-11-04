@@ -117,7 +117,6 @@ from monai_physio import (
     EvaluateMovementLung,
     MONAIPhysioBase,
     ProcessPhysicsNemo,
-    ProcessTests,
     ProcessTransforms,
     TrainPhysicsNeMoMGN,
     WorkflowConvertImageToVTK,
@@ -331,9 +330,6 @@ def _plot_metrics_by_label(
 # script in each child; without the __name__ == "__main__" guard around
 # top-level work, that re-import would restart the whole study in every worker.
 if __name__ == "__main__":
-    # Data directory specification
-    repo_root = Path(__file__).resolve().parent.parent
-
     class_name = "tutorial_15_leave_one_out_tcia_lung_4d_ct"
 
     # Number of folds. Each holds out one TCIA-4DLung case and re-runs the
@@ -365,10 +361,8 @@ if __name__ == "__main__":
     # that a lobe boundary is not quantized away.
     evaluation_spacing_mm = 2.0
 
-    test_mode = ProcessTests.running_as_test()
-
     output_dir = (
-        TCIA_LUNG_4D_CT.output_directory(test_mode)
+        TCIA_LUNG_4D_CT.output_directory(test_mode=False)
         / "tutorial_15_leave_one_out_tcia_lung_4d_ct"
     )
     shared_dir = output_dir / "shared"
@@ -381,26 +375,19 @@ if __name__ == "__main__":
     # process.
     context = ProcessPhysicsNemo.distributed_context()
 
-    cases_dir = TCIA_LUNG_4D_CT.input_directory(test_mode)
-    number_of_pca_components = TCIA_LUNG_4D_CT.pca_components(test_mode)
+    cases_dir = TCIA_LUNG_4D_CT.input_directory(test_mode=False)
+    number_of_pca_components = TCIA_LUNG_4D_CT.pca_components(test_mode=False)
 
     def case_phase_file(case_id: str, phase_id: str) -> Path:
         """Return one case's phase image, under TCIA-4DLung's nested layout."""
         return cases_dir / case_id / f"{case_id}_{phase_id}.nii.gz"
 
-    # In test mode, run the smallest study that is still a cross-validation and
-    # train for a couple of epochs, to keep the run inside the pytest timeout.
-    if test_mode:
-        number_of_leave_one_out_runs = 2
-        mean_surface_iterations = 1
-        epochs = 2
-
     # Tutorial 6 caches one segmentation per case beside its model, and
     # Tutorial 8 one set of phase transforms per case; both are reused when
     # present because neither depends on which case is held out.
-    tutorial_06_dir = TCIA_LUNG_4D_CT.pca_model_file(test_mode).parent
+    tutorial_06_dir = TCIA_LUNG_4D_CT.pca_model_file(test_mode=False).parent
     tutorial_08_dir = (
-        TCIA_LUNG_4D_CT.output_directory(test_mode)
+        TCIA_LUNG_4D_CT.output_directory(test_mode=False)
         / "tutorial_08_fit_model_to_4d_patients_tcia_lung_4d_ct"
     )
 
@@ -417,7 +404,7 @@ if __name__ == "__main__":
 
     reference_files = [
         case_dir / f"{case_dir.name}_{reference_phase}.nii.gz"
-        for case_dir in TCIA_LUNG_4D_CT.case_directories(test_mode)
+        for case_dir in TCIA_LUNG_4D_CT.case_directories(test_mode=False)
         if (case_dir / f"{case_dir.name}_{reference_phase}.nii.gz").exists()
     ]
     if not reference_files:
@@ -446,7 +433,7 @@ if __name__ == "__main__":
         ", ".join(held_out_cases),
     )
 
-    segmentation_method = TCIA_LUNG_4D_CT.segmenter(test_mode, log_level=log_level)
+    segmentation_method = TCIA_LUNG_4D_CT.segmenter(False, log_level=log_level)
     segmentation_workflow = WorkflowConvertImageToVTK(
         segmentation_method=segmentation_method, log_level=log_level
     )
@@ -540,7 +527,7 @@ if __name__ == "__main__":
                     reference_time_frame=phase_ids.index(reference_phase),
                     register_reference_time_frame_to_reference_image=False,
                     registration_method=TCIA_LUNG_4D_CT.registrar(
-                        test_mode, log_level=log_level
+                        False, log_level=log_level
                     ),
                     log_level=log_level,
                 )
@@ -608,7 +595,7 @@ if __name__ == "__main__":
                 # that case's shape. Use the unbiased mean of the fold's own
                 # population instead.
                 starting_case = TCIA_LUNG_4D_CT.mean_surface_starting_case(
-                    test_mode
+                    test_mode=False
                 ).name
                 template_surface: Optional[pv.DataSet] = None
                 if starting_case in training_case_ids:
@@ -674,7 +661,11 @@ if __name__ == "__main__":
                     patient_image=itk.imread(
                         str(case_phase_file(case_id, reference_phase))
                     ),
-                    patient_labelmap=itk.imread(str(labelmap_file)),
+                    # Only the lungs: every other structure in the segmenter's labelmap
+                    # would score as on-target in the fit's distance map.
+                    patient_labelmap=segmentation_method.create_anatomy_group_labelmaps(
+                        itk.imread(str(labelmap_file))
+                    )[TCIA_LUNG_4D_CT.anatomy_group],
                     log_level=log_level,
                 )
                 fit_workflow.set_use_pca_registration(
@@ -838,11 +829,6 @@ if __name__ == "__main__":
         context.barrier()
 
     # Step 6: pool the folds. Only rank 0 has the rows.
-    tutorial_results: dict[str, Any] = {
-        "held_out_cases": held_out_cases,
-        "folds": fold_results,
-        "screenshots": [],
-    }
     if context.is_main:
         metrics_file = output_dir / "loo_metrics.csv"
         with metrics_file.open("w", newline="", encoding="utf-8") as fh:
@@ -852,42 +838,12 @@ if __name__ == "__main__":
 
         report_file = output_dir / "loo_report.md"
         _write_loo_report(all_rows, held_out_cases, lobe_names, report_file)
-        plot_file = _plot_metrics_by_label(
+        _plot_metrics_by_label(
             all_rows, lobe_names, output_dir / "loo_metrics_by_label.png"
         )
         logger.log_info("Metrics: %s", metrics_file)
         logger.log_info("Report: %s", report_file)
-
-        tutorial_results["metrics_file"] = metrics_file
-        tutorial_results["report_file"] = report_file
-        tutorial_results["rows"] = all_rows
-
-        # Testing
-        tt = ProcessTests(
-            class_name=class_name,
-            results_dir=output_dir,
-            baselines_dir=repo_root / "tests" / "baselines" / class_name,
-            log_level=log_level,
+        logger.log_info(
+            "Last fold report: %s",
+            fold_results[held_out_cases[-1]]["report_file"],
         )
-        last_fold = fold_results[held_out_cases[-1]]
-        tutorial_results["screenshots"] = [
-            plot_file,
-            tt.save_screenshot_mesh(
-                cast(
-                    pv.DataSet,
-                    pv.read(
-                        str(
-                            output_dir
-                            / f"fold_{held_out_cases[-1]}"
-                            / "fits"
-                            / held_out_cases[-1]
-                            / f"{held_out_cases[-1]}_ssm_surface.vtp"
-                        )
-                    ),
-                ),
-                "held_out_fitted_surface.png",
-                camera_position="iso",
-                color="steelblue",
-            ),
-        ]
-        logger.log_info("Last fold report: %s", last_fold["report_file"])

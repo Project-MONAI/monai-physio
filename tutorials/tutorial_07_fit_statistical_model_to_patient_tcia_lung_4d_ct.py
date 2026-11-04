@@ -137,7 +137,11 @@ if __name__ == "__main__":
         template_model=pca_mean,
         patient_models=[lung_surface],
         patient_image=patient_image,
-        patient_labelmap=lung_labelmap,
+        # Only the lungs: every other structure in the segmenter's labelmap
+        # would score as on-target in the fit's distance map.
+        patient_labelmap=segmentation_method.create_anatomy_group_labelmaps(
+            lung_labelmap
+        )[TCIA_LUNG_4D_CT.anatomy_group],
         log_level=log_level,
     )
     if pca_model is not None:

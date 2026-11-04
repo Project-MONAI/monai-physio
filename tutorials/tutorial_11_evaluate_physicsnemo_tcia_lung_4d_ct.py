@@ -64,17 +64,13 @@ Under ``output/tutorial_11_evaluate_physicsnemo_tcia_lung_4d_ct/<case>/``:
 from __future__ import annotations
 
 import logging
-from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Optional
 
-import itk
-import pyvista as pv
 from parameters_tcia_lung_4d_ct import TCIA_LUNG_4D_CT
 
 from monai_physio import (
     EvaluateMovementLung,
     MONAIPhysioBase,
-    ProcessTests,
     WorkflowEvaluateMovement,
     WorkflowInferMovement,
     WorkflowInferPhysicsNeMo,
@@ -87,9 +83,6 @@ from monai_physio import (
 # around top-level work, that re-import would restart the whole evaluation in
 # every worker.
 if __name__ == "__main__":
-    # Data directory specification
-    repo_root = Path(__file__).resolve().parent.parent
-
     class_name = "tutorial_11_evaluate_physicsnemo_tcia_lung_4d_ct"
 
     # Case to score: the case Tutorial 9 held out of training.
@@ -99,16 +92,14 @@ if __name__ == "__main__":
     reference_phase = "g070"
 
     # Fitted SSM surface and PCA coefficients written by Tutorial 8 (lung).
-    test_mode = ProcessTests.running_as_test()
-    # Keep a test run out of the directories a full run reads and writes.
     case_dir = (
-        TCIA_LUNG_4D_CT.output_directory(test_mode)
+        TCIA_LUNG_4D_CT.output_directory(test_mode=False)
         / "tutorial_08_fit_model_to_4d_patients_tcia_lung_4d_ct"
         / case_id
     )
     # Weights Tutorial 9 trained, and the checkpoint epoch Tutorial 10 infers
     # with; None uses the final weights.
-    model_dir = TCIA_LUNG_4D_CT.mgn_weights_directory(test_mode)
+    model_dir = TCIA_LUNG_4D_CT.mgn_weights_directory(test_mode=False)
     epoch: Optional[int] = None
 
     # Gaussian sigma, in mm, that spreads the predicted surface displacements
@@ -132,7 +123,7 @@ if __name__ == "__main__":
     include_displacement_error = True
 
     output_dir = (
-        TCIA_LUNG_4D_CT.output_directory(test_mode)
+        TCIA_LUNG_4D_CT.output_directory(test_mode=False)
         / "tutorial_11_evaluate_physicsnemo_tcia_lung_4d_ct"
         / case_id
     )
@@ -141,7 +132,7 @@ if __name__ == "__main__":
 
     logger = MONAIPhysioBase(class_name=class_name, log_level=log_level)
 
-    data_dir = TCIA_LUNG_4D_CT.input_directory(test_mode) / case_id
+    data_dir = TCIA_LUNG_4D_CT.input_directory(test_mode=False) / case_id
 
     # Directory setup and data reading
 
@@ -174,7 +165,7 @@ if __name__ == "__main__":
     )
 
     TCIA_LUNG_4D_CT.require_matching_shape_model(
-        model_dir, TCIA_LUNG_4D_CT.pca_model_file(test_mode)
+        model_dir, TCIA_LUNG_4D_CT.pca_model_file(test_mode=False)
     )
     infer_workflow = WorkflowInferPhysicsNeMo(
         model_directory=model_dir, epoch=epoch, log_level=log_level
@@ -210,29 +201,3 @@ if __name__ == "__main__":
         result["displacement_95th_mm"],
         result["displacement_max_mm"],
     )
-
-    tutorial_results: dict[str, Any] = dict(result)
-    tutorial_results["ground_truth_labelmap_dir"] = ground_truth_dir
-
-    # Testing
-    tt = ProcessTests(
-        class_name=class_name,
-        results_dir=output_dir,
-        baselines_dir=repo_root / "tests" / "baselines" / class_name,
-        log_level=log_level,
-    )
-    tutorial_results["screenshots"] = [
-        tt.save_screenshot_mesh(
-            cast(pv.DataSet, pv.read(str(result["predicted_surfaces"][0]))),
-            "predicted_surface.png",
-            camera_position="iso",
-            color="limegreen",
-        ),
-        tt.save_screenshot_image_slice(
-            itk.imread(str(result["warped_labelmaps"][0])),
-            "warped_labelmap.png",
-            axis=0,
-            slice_fraction=0.5,
-            colormap="viridis",
-        ),
-    ]

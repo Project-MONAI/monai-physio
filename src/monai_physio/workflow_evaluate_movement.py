@@ -40,6 +40,7 @@ import pyvista as pv
 
 from .evaluate_movement_base import EvaluateMovementBase, MovementGroundTruth
 from .monai_physio_base import MONAIPhysioBase
+from .process_mesh_kernels import ProcessMeshKernels
 from .process_physicsnemo import ProcessPhysicsNemo
 from .process_surface_mesh import ProcessSurfaceMesh
 from .report_evaluate_movement import ReportEvaluateMovement
@@ -369,15 +370,16 @@ class WorkflowEvaluateMovement(MONAIPhysioBase):
         misses a prediction that covers the truth everywhere but also bulges
         somewhere the truth does not reach.
         """
-        forward = predicted.copy().compute_implicit_distance(truth)
-        reverse = truth.copy().compute_implicit_distance(predicted)
-        distances = np.concatenate(
-            [
-                np.asarray(forward["implicit_distance"], dtype=np.float64),
-                np.asarray(reverse["implicit_distance"], dtype=np.float64),
-            ]
-        )
-        return float(np.sqrt(np.mean(distances**2)))
+        kernels = ProcessMeshKernels()
+        offsets = [
+            kernels.closest_points_on_surface(
+                kernels.build_surface_mesh(surface), np.asarray(points.points)
+            )
+            - np.asarray(points.points, dtype=np.float64)
+            for surface, points in ((truth, predicted), (predicted, truth))
+        ]
+        squared = np.concatenate([np.sum(offset**2, axis=1) for offset in offsets])
+        return float(np.sqrt(np.mean(squared)))
 
     # ──────────────────────────── Internals ────────────────────────────────
     def _setting(self, given: Any, name: str) -> Any:

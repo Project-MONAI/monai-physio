@@ -178,6 +178,9 @@ The pre-commit hooks will automatically:
 - Run Ruff linter with auto-fixes
 - Run Ruff formatter
 - Run mypy type checking (on commit)
+- Strip outputs and execution counts from notebooks (on commit), so a
+  notebook's diff shows only code changes. Run it by hand on every tracked
+  notebook with `python utils/strip_notebook_outputs.py`.
 - Run fast unit tests (on push)
 
 ## Development Workflow

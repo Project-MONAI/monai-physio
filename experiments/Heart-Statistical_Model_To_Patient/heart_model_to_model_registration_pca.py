@@ -54,7 +54,7 @@ template_model_surface_path = template_model_data_dir / "pca_mean.vtp"
 pca_json_path = template_model_data_dir / "pca_model.json"
 
 # Output directory
-output_dir = Path.cwd() / "results_pca"
+output_dir = Path(__file__).resolve().parent / "results_pca"
 os.makedirs(output_dir, exist_ok=True)
 
 print(f"Patient data: {patient_data_dir}")

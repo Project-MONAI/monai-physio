@@ -70,6 +70,10 @@ class ParametersDukeHeart4DLabelmaps(ParametersBase):
         number_of_pca_components: PCA components retained when building the
             heart statistical model, and used when fitting it to a patient.
         number_of_pca_components_test: Same, under ``ProcessTests.running_as_test``.
+        mgn_epochs_test: Epochs Tutorial 9 trains for under
+            ``ProcessTests.running_as_test``.  Enough for the network to learn
+            the motion roughly, so the tutorials that infer with it have a
+            prediction worth comparing to a baseline.
         segmenter_class: Segmenter that produced these labelmaps, so the
             tutorials name their labels the way it does.
         registration_class: Registration method every Duke heart tutorial
@@ -107,7 +111,9 @@ class ParametersDukeHeart4DLabelmaps(ParametersBase):
 
     model_points: int = 20000
     number_of_pca_components: int = 10
-    number_of_pca_components_test: int = 5
+    number_of_pca_components_test: int = 3
+
+    mgn_epochs_test: int = 50
 
     segmenter_class: type[SegmentAnatomyBase] = SegmentHeartSimplewareTrimmedBranches
     registration_class: type[RegisterImagesBase] = RegisterImagesGreedy

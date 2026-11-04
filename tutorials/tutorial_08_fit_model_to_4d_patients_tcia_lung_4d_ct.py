@@ -218,7 +218,11 @@ if __name__ == "__main__":
             template_model=pca_mean_surface,
             patient_models=[lung_surface],
             patient_image=reference_image,
-            patient_labelmap=lung_labelmap,
+            # Only the lungs: every other structure in the segmenter's labelmap
+            # would score as on-target in the fit's distance map.
+            patient_labelmap=segmentation_method.create_anatomy_group_labelmaps(
+                lung_labelmap
+            )[TCIA_LUNG_4D_CT.anatomy_group],
             log_level=log_level,
         )
         fit_workflow.set_use_pca_registration(
@@ -260,7 +264,12 @@ if __name__ == "__main__":
         fitted_reference_mesh.save(str(fitted_reference_mesh_file))
 
         # Step 3: register every respiratory phase to the reference phase
-        phase_files = sorted(reference_file.parent.glob(f"{case_id}_g0??.nii.gz"))
+        phase_files = TCIA_LUNG_4D_CT.phases_to_register(
+            sorted(reference_file.parent.glob(f"{case_id}_g0??.nii.gz")),
+            reference_file,
+            test_mode,
+            scored=case_id == TCIA_LUNG_4D_CT.mgn_hold_out_case,
+        )
         # The last "_"-separated token, e.g. "g070" out of "107a_HM10395_g070"
         # -- unlike DIR-Lab's 2-part stem, the case id itself has an "_" in it.
         phase_ids = [

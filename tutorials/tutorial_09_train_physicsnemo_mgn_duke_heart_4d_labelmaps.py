@@ -199,9 +199,9 @@ if __name__ == "__main__":
     logger = MONAIPhysioBase(class_name=class_name, log_level=log_level)
     evaluator = EvaluateMovementDukeHeart(log_level=log_level)
 
-    # In test mode, train for a couple of epochs to keep the run tractable.
+    # In test mode, train only long enough to learn the motion roughly.
     if test_mode:
-        epochs = 2
+        epochs = DUKE_HEART_4D_LABELMAPS.mgn_epochs_test
 
     if not ssm_mean_surface_file.exists():
         raise FileNotFoundError(

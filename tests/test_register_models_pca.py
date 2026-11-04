@@ -256,6 +256,30 @@ def test_symmetric_term_penalizes_partial_coverage() -> None:
     assert symmetric > 1.0
 
 
+def test_target_to_model_term_uses_the_distance_map_encoding() -> None:
+    """Target-to-model distances are clipped and scaled like the map's own.
+
+    Regression: they were left in raw, unclipped mm while the map term was
+    capped, so far-off target points dominated and pinned the coefficients.
+    """
+    registrar, _ = _sphere_registrar(radius=8.0, modes=3, symmetric_weight=1.0)
+    registrar._prepare_sampling()
+    assert registrar._target_points is not None
+    # Move a third of the targets 20 mm out, beyond the 10 mm clip.
+    registrar._target_points[::3] *= 28.0 / 8.0
+    params = np.array([0.4, -0.25, 0.15], dtype=np.float64)
+
+    raw, _ = registrar._objective_and_gradient(params)
+    registrar.distance_map_clip_mm = 10.0
+    registrar.distance_map_scale = 5.0
+    encoded, analytic = registrar._objective_and_gradient(params)
+
+    assert raw > 6.0
+    assert encoded <= 10.0 / 5.0
+    numeric = approx_fprime(params, registrar._mean_distance_metric, 1e-5)
+    assert np.allclose(analytic, numeric, atol=2e-3)
+
+
 def test_prior_shrinks_coefficients() -> None:
     """Raising pca_prior_weight pulls the solution toward the mean shape."""
     registrar, mode = _sphere_registrar(radius=8.0, modes=1, symmetric_weight=0.0)
