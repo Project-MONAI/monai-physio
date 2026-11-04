@@ -106,6 +106,38 @@ Which registration method should I use?
 
 See :doc:`api/registration/index` for comparison.
 
+Why does inference fail with "Fitted reference mesh has N points, expected M"?
+-------------------------------------------------------------------------------
+
+An error such as:
+
+.. code-block:: text
+
+   File ".../src/monai_physio/workflow_infer_movement.py", line 79, in _fitted_reference_points
+     raise ValueError(
+   ValueError: Fitted reference mesh has 20000 points, expected 19997 (template topology).
+
+means that the fitted mesh was produced by a different PCA shape model than the
+one the AI model in ``tutorials/network_weights`` was trained with.
+
+Most often the fitted mesh was cached in a tutorial's output directory by an
+earlier run, before the shape model changed. Delete that cached fit so the
+tutorial fits the current shape model again. Tutorial 13 does this on its own
+when ``pca_model.json`` is newer than its saved heart fit.
+
+If instead the shape model in ``tutorials/network_weights`` is not the one the
+AI model there was trained with, either retrain the AI model using that shape
+model, or, if you are running a tutorial, download the pre-trained PCA shape
+model and AI model with the matching ``monai-physio-download-data`` command, for
+example:
+
+.. code-block:: bash
+
+   monai-physio-download-data PhysicsNeMo-MGN-Lung-Motion
+
+The other pre-trained models are ``PhysicsNeMo-MGN-Duke-Heart-Motion`` and
+``PhysicsNeMo-PhysicsInformed-Motion-Duke-Heart``.
+
 Troubleshooting
 ===============
 
