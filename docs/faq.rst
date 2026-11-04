@@ -128,8 +128,11 @@ when ``pca_model.json`` is newer than its saved heart fit.
 If instead the shape model in ``tutorials/network_weights`` is not the one the
 AI model there was trained with, either retrain the AI model using that shape
 model, or, if you are running a tutorial, download the pre-trained PCA shape
-model and AI model with the matching ``monai-physio-download-data`` command, for
-example:
+model and AI model with the matching ``monai-physio-download-data`` command.
+The command skips the download when a trained model is already present, so
+that a locally trained model is never overwritten: first move or delete the
+model's directory in ``tutorials/network_weights``, for example
+``physicsnemo_mgn_lung_motion``, then run:
 
 .. code-block:: bash
 
