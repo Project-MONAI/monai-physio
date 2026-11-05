@@ -449,9 +449,15 @@ if __name__ == "__main__":
     heart_fitted_reference_mesh_file = (
         heart_fit_dir / "heart_template_surface_registered.vtp"
     )
-    if not (
-        heart_coefficients_file.exists() and heart_fitted_reference_mesh_file.exists()
-    ):
+    # A fit saved before the shape model in heart_model_dir changed has another
+    # topology than the one the network predicts for, so it is refitted.
+    heart_fit_is_current = (
+        heart_coefficients_file.exists()
+        and heart_fitted_reference_mesh_file.exists()
+        and heart_fitted_reference_mesh_file.stat().st_mtime
+        >= heart_pca_json.stat().st_mtime
+    )
+    if not heart_fit_is_current:
         heart_fit_dir.mkdir(parents=True, exist_ok=True)
 
         # The whole heart minus its chamber cavities and the vessels whose
