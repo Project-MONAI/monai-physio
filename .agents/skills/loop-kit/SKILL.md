@@ -3,19 +3,16 @@ name: loop-kit
 description: Generate a bounded, verified implement/verify/review loop (task contract, prompts, subagents, skills, verifier) for a given task. Use when asked to set up a loop, agent loop, or iterative refinement for a task. Does not implement the task.
 ---
 
-# Claude Prompt: Generate a Verified Loop Kit for Any Task
+# Loop Kit: Generate a Verified Task Loop for Codex or Claude Code
 
-## How to use this prompt
+## Choose the host
 
-- **One-off:** paste everything below the line into Claude Code at the root of the target repository. Fill in the `<task>` block, or point it at a file (e.g. `@task_request.md`).
-- **Reusable:** save the part below the line as `.claude/skills/loop-kit/SKILL.md` (project) or `~/.claude/skills/loop-kit/SKILL.md` (personal). Put this frontmatter first:
-  ```yaml
-  ---
-  name: loop-kit
-  description: Generate a bounded, verified implement/verify/review loop (task contract, prompts, subagents, skills, verifier) for a given task. Use when asked to set up a loop, agent loop, or iterative refinement for a task. Does not implement the task.
-  ---
-  ```
-  Then run it with `/loop-kit <task description or file>`.
+Use the current coding host unless the user names another; record it in the kit. The task contract, evidence, repair limits, and review gate are host-independent. Generate only the selected host's wrappers.
+
+- **Codex:** keep this skill in `.agents/skills/loop-kit/SKILL.md`. Invoke `$loop-kit <task description>` in Codex CLI/IDE, select the skill in the app, or reference this exact file. Generate project agents in `.codex/agents/` and the task supervisor skill in `.agents/skills/<slug>-loop/SKILL.md`.
+- **Claude Code:** keep the mirrored skill in `.claude/skills/loop-kit/SKILL.md` and use `/loop-kit <task description>`. Generate its agents and supervisor skill under `.claude/`.
+- Run from the intended checkout/worktree so its project guidance is loaded. A skill path does not change the workspace, permissions, or granted task scope. Never overwrite an existing task's kit or another skill with a colliding slug.
+- Keep the two Loop Kit entrypoints aligned; `.agents/agents/*.md` and Claude agent YAML are not Codex custom-agent definitions.
 
 The design follows the earlier note, *MONAI Physio: verified initialization and code-review loops*, which adapts Youssef Hosni's [How to Create Loops with Claude Code](https://levelup.gitconnected.com/how-to-create-loops-with-claude-code-a-practical-guide-to-agentic-automation-6f422390a143).
 
@@ -23,7 +20,7 @@ The design follows the earlier note, *MONAI Physio: verified initialization and 
 
 ## Role
 
-You are a **loop architect**. Your job is to turn the task below into a small, file-based kit that lets Claude Code implement it in a **bounded, verified loop**.
+You are a **loop architect**. Your job is to turn the task below into a small, file-based kit that lets the selected host implement it in a **bounded, verified loop**.
 
 **You must not implement the task itself.** Generate and check the scaffolding, then stop unless execution was explicitly requested. Phase 0 and implementation require both an approved contract and recorded authorization to execute it; neither kit generation nor contract approval alone authorizes a run.
 
@@ -35,7 +32,7 @@ You are a **loop architect**. Your job is to turn the task below into a small, f
 
 The loop is **automated**. A human halt is a cost; every halt must be justified.
 
-1. **Ask everything once, up front.** Before generating the kit, anticipate every question the run could raise and put them in ONE batch (use AskUserQuestion, or a single list): decisions and tolerances; data/mode choices; dependency installs and environment quirks (version pins, Windows/platform gaps, plugin conflicts); approval for expensive jobs; whether the supervisor may run the verifier itself; and **standing authorizations** for predictable amendments (verifier/environment fixes, baseline-relative lint rules, schema/path naming mismatches, API differences discovered in Phase 0). Do not trickle questions between steps.
+1. **Ask everything once, up front.** Before generating the kit, anticipate every question the run could raise and put them in ONE batch (use the host's user-input tool when available, or a single list): decisions and tolerances; data/mode choices; dependency installs and environment quirks (version pins, Windows/platform gaps, plugin conflicts); approval for expensive jobs; whether the supervisor may run the verifier itself; and **standing authorizations** for predictable amendments (verifier/environment fixes, baseline-relative lint rules, schema/path naming mismatches, API differences discovered in Phase 0). Do not trickle questions between steps.
 2. **Standing authorization replaces routine per-step gates, not evidence.** Record the answers in `TASK.md` and the supervisor skill. Auto-advance only under an explicit approved run scope and the review gate below. An [H] acceptance criterion requires recorded human confirmation of that criterion; permission to run is not confirmation that it passed. Hold only the affected slice for missing human evidence, a pending amendment, or material unresolved risk; do not invent approval.
 3. **Self-resolve within recorded authorization, then log.** Fix verifier/environment defects, schema/name mismatches, and baseline issues only within the approved scope and paths. Record amendments and re-run checks and independent review under a new run id. Any changed control file must have a new approved or explicitly pre-authorized hash; a newly observed failure cannot silently become an accepted baseline.
 4. **Stop or hold on a concrete gate:** use BLOCKED for repair-limit exhaustion, an unauthorized protected-path change, an unavailable independent reviewer or required prerequisite, or an action outside standing authorization (commit/push/publish/messages, licensed downloads, new spend). Use HOLD_FOR_HUMAN for required human evidence, material unresolved uncertainty, or an unapproved amendment. Give one consolidated decision request for the affected work.
@@ -94,10 +91,10 @@ The loop is **automated**. A human halt is a cost; every halt must be justified.
 ## Step 1: Investigate (read-only)
 
 Before writing anything:
-- **Find the current conventions.** Read `CLAUDE.md`, `AGENTS.md`, `README`, and the contributing docs. Look at existing `.claude/agents/`, `.claude/skills/`, `.claude/commands/`, and `.agents/skills/`, and at `.github/workflows/`, the test layout and markers, linters, type checkers, the docs build, and how the environment is set up (venvs, worktrees, GPU, data).
+- **Find the current conventions.** Read `CLAUDE.md`, `AGENTS.md`, `README`, and the contributing docs. Inspect only relevant project agent/skill instructions under `.codex/agents/`, `.agents/skills/`, and the selected host's `.claude/` paths; do not enumerate personal configuration or read credentials/settings for this purpose. Look at `.github/workflows/`, the test layout and markers, linters, type checkers, the docs build, and how the environment is set up (venvs, worktrees, GPU, data).
 - **Find what the task touches.** Identify the files, APIs, and data, the existing tests, and the riskiest invariants. Examples: units, coordinate systems, numerical tolerances, security boundaries, public APIs, migrations.
 - **Classify the task.** Is it code, documentation, data analysis, research or writing, infrastructure, or mixed? The classification decides what [V] checks are possible. For non-code tasks, still prefer deterministic checks: schema validation, link and citation checks, word or section limits, recomputing numbers from source data, spellcheck, build success. Where only judgment is possible, use [R] or [H] and say so explicitly in `TASK.md`.
-- **Check the installed tools.** Record the versions of the Claude Code CLI, Python, and the test tools. **Check the installed Claude Code** (`claude --help`, and the docs for subagents, skills, hooks, `/goal`, headless mode) before relying on any flag or file format below. Adapt to what's actually installed, and record any differences.
+- **Check the installed tools.** Record the host/client version (Codex app or `codex --version`, Claude Code `claude --version`), Python, and test tools. Check that host's help and official skills/subagent documentation before relying on formats or commands. Codex app execution does not require a separately installed Claude CLI. Use native delegation when available; do not install a CLI, change global config, enable permissions, or invent headless flags to make a run work.
 
 Ask the human **only** what can't be found in the repo: the business intent, priority trade-offs, or approvals. Anticipate the full question set and ask it **once, in one batch** (see Autonomy), recording answers as named decisions D1…Dn in the kit. Don't trickle questions later.
 
@@ -107,7 +104,7 @@ Create a kit directory at `.agent-loops/<task-slug>/`, plus the agent and skill 
 
 | File | Contents |
 |---|---|
-| `README.md` | What the loop does and the one-time setup. Setup covers the isolated worktree or branch, git-ignoring `PROGRESS.md` and `outputs/`, freezing `TASK.md` (`sha256sum` with the hash stored **outside** the repo, plus `chmod a-w`), and installing the verifier outside the repo. Then give the exact commands for each phase, the optional `/goal` text, the limits, the smoke tests, the rollout order, and the baseline comparison. |
+| `README.md` | What the loop does and the one-time setup. Setup covers the isolated worktree or branch, git-ignoring `PROGRESS.md` and `outputs/`, freezing `TASK.md` with a platform-appropriate hash command (`Get-FileHash -Algorithm SHA256` on Windows), and placing the trusted hashes/verifier in an explicitly approved control location outside worker write scope. Do not assume Unix permission commands, create unapproved profile/temp files, or claim a read-only attribute provides isolation. Then give the exact commands for each phase, the optional `/goal` text, the limits, the smoke tests, the rollout order, and the baseline comparison. |
 | `TASK.md` | **Status:** DRAFT, plus a contract version. Then these numbered sections: (1) the requested behavior and public interface; (2) the slices table (ID, content, dependencies); (3) the ACs: global ones (G1 no regressions against the baseline, G2 ordinary output changes stay within allowed paths; named, explicitly authorized supervisor amendments are checked separately against the trusted amendment record, G3 no weakened checks, G4 lint and format on changed files only, plus task-specific rules) and per-slice ones, each tagged [V], [R], or [H] and concrete enough to test; (4) allowed paths; (5) protected paths for the worker, where any worker change or unauthorized supervisor change means BLOCKED; explicitly pre-authorized supervisor amendments must be named and re-verified under the amendment rule; (6) approved tolerances and thresholds; (7) human decisions D1…Dn, never guessed; (8) out of scope. |
 | `REFERENCE.md` | The facts the agents may rely on: APIs and signatures, data formats, domain rules, and links to sources. Every item is marked "verify against the installed code." |
 | `LOOP_INSTRUCTIONS.md` | The authority order, the phases, and the per-slice cycle diagram: worker, then verifier, then reviewer, then a decision (`ADVANCE`, `NEEDS_REVISION`, `HOLD_FOR_HUMAN`, or `BLOCKED`), then the review gate below. Then come the exact decision rules, the limits (repairs, wall-clock time, one run lock, interrupted runs marked `UNVERIFIED`, one bounded retry for transient infrastructure errors only), the evidence layout, the update rule for `PROGRESS.md`, the optional `/goal` text, five workflow smoke tests, and the human handoff checklist. The smoke tests are: a planted known defect is caught; no source change gives a quiet no-op; a restart keeps findings and attempt counts; a missing prerequisite gives BLOCKED; a forbidden edit is refused. |
@@ -118,19 +115,80 @@ Create a kit directory at `.agent-loops/<task-slug>/`, plus the agent and skill 
 | `PROGRESS.md` | A template with a current-state table (slice, status, attempts n/3, last run, output hash, next action), human decisions, open findings, rejected findings, failed approaches, API differences, pre-existing baseline failures, and a compact newest-first log. A header says it is memory, not evidence. |
 | `BASELINE_single_prompt.md` | A plain single-prompt version of the same task, used as the comparison arm. |
 
-## Step 3: Generate Claude Code subagents and skills (thin wrappers that point to the kit)
+## Step 3: Generate wrappers for the selected host
 
-Check the installed format first. As of current docs:
-- **Subagents** are Markdown files in `.claude/agents/` with YAML frontmatter (`name`, `description`, `tools`, optional `model`).
-- **Skills** are `.claude/skills/<name>/SKILL.md` with frontmatter (`name`, `description`).
+All wrappers point to the shared kit; keep task logic in the kit, not copied into each wrapper. The worker must not edit the active Loop Kit, task contract, verifier, wrappers, baselines, or tolerances. The supervisor stores returned review evidence and decisions; the reviewer does not need write access to save its own report.
 
-Create:
-- `.claude/agents/<slug>-worker.md`: the tools needed for edits plus scoped `Bash` (tests, lint, `git diff` and `git status` only). The body is "Follow `.agent-loops/<slug>/WORKER_PROMPT.md` exactly," plus the "Never" list.
-- `.claude/agents/<slug>-reviewer.md`: **read-only tools only** (`Read`, `Grep`, `Glob`, and read-only `git diff`). The body is "Follow `REVIEWER_PROMPT.md`; you have no memory of the implementation." It must be run as a separate invocation, or as a subagent with its own context, never in the worker's conversation.
-- `.claude/agents/<slug>-initializer.md`: read-only, plus running the baseline checks. It follows `INIT_PROMPT.md`.
-- `.claude/skills/<slug>-loop/SKILL.md`: a short guide for a **supervising** session that explains how to step through a slice. The steps are: invoke the worker, run the verifier (the human's trusted copy, when the human configured that; otherwise tell the human to run it), invoke the reviewer, apply the auto-advance rule to the verifier and reviewer outputs, and record `decision.md`. It must implement the review gate below, including HOLD_FOR_HUMAN and BLOCKED, never substituting a model-written claim of success.
+### Codex
 
-Do **not** add hooks that block or auto-approve. Optionally, propose (without installing) a `PostToolUse` hook that runs cheap, scoped lint on edited files, and note that hooks give feedback only and are not enforcement.
+Use standalone TOML files in `.codex/agents/`, each with `name`, `description`, and `developer_instructions`. Inherit the current model and reasoning settings unless the user explicitly selected others. Do not generate `sandbox_mode`, `approval_policy`, or MCP overrides in these files; Codex subagents inherit the parent permissions. "Read-only reviewer" is a role instruction, not a separate security boundary.
+
+Generate these three task-specific wrappers, replacing `<slug>` consistently:
+
+`.codex/agents/<slug>-worker.toml`:
+```toml
+name = "<slug>-worker"
+description = "Implement the approved task slice and repair accepted findings."
+developer_instructions = """
+Read .agent-loops/<slug>/WORKER_PROMPT.md and follow the approved TASK.md.
+Edit only worker-allowed output paths. Do not change the contract, verifier,
+wrappers, baselines, tolerances, or active Loop Kit. Do not weaken checks.
+Do not certify success, commit, push, publish, send messages, install tools,
+or start expensive jobs without the required separate authorization.
+"""
+```
+
+`.codex/agents/<slug>-reviewer.toml`:
+```toml
+name = "<slug>-reviewer"
+description = "Independently review the exact output and verification evidence."
+developer_instructions = """
+Read .agent-loops/<slug>/REVIEWER_PROMPT.md and the approved TASK.md.
+Review only the supplied output snapshot, verification evidence, and relevant
+source context. Do not read worker reasoning, summaries, or earlier reviews.
+Do not modify files, run mutating commands, change controls, or take external
+actions. Return the required review JSON to the supervisor. Missing evidence
+is not approval. You cannot replace the independent verifier.
+"""
+```
+
+`.codex/agents/<slug>-initializer.toml`:
+```toml
+name = "<slug>-initializer"
+description = "Inspect task scope and run the authorized baseline checks."
+developer_instructions = """
+Read .agent-loops/<slug>/INIT_PROMPT.md and the approved TASK.md.
+Inspect the checkout and run only authorized baseline checks. Write no task
+implementation or control changes. Return the init report to the supervisor.
+Report missing prerequisites; do not install tools, commit, push, publish,
+or take external actions without separate authorization.
+"""
+```
+
+Generate `.agents/skills/<slug>-loop/SKILL.md` with YAML frontmatter `name: <slug>-loop` and a task-specific description. Its supervisor instructions must:
+1. Verify the checkout/worktree, approved contract/control hashes, execution authorization, slice, and run ID before dispatch.
+2. Use native Codex delegation to run the initializer, then each worker attempt; wait for each result. Dispatch completion is not task completion.
+3. Stop worker edits, snapshot the output, and run the trusted verifier when authorized. Persist its actual result under the run ID.
+4. Invoke the reviewer with fresh context and only the approved review inputs. Do not fork/inherit the worker's transcript or feed it the worker summary. If named custom roles are unavailable in that runtime, use a fresh generic subagent with the corresponding role prompt and constrained inputs; if independent context cannot be obtained, report BLOCKED.
+5. Capture actual worker/reviewer invocation identities, validate returned evidence against the exact snapshot, persist it without overwriting closed runs, and apply the shared review gate. Record `decision.md`; advance only when permitted. Do not let the worker write verification/review/decision evidence. A verifier failure remains actionable even when the reviewer finds nothing.
+
+Document invocation through `$<slug>-loop` or the app skill selector, plus a direct file-reference fallback when discovery has not refreshed. Verify the generated roles are recognized before relying on their names; otherwise use the explicit fresh-subagent fallback above. Do not enable global flags, change sandbox settings, or create persistent chats/automations as a workaround.
+
+Current official formats: [Codex subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents) and [skill discovery](https://learn.chatgpt.com/docs/build-skills). Verify against the installed client; parsing TOML alone does not prove runtime discovery.
+
+### Claude Code
+
+Retain the existing Claude format when that host is selected:
+- `.claude/agents/<slug>-worker.md`: Markdown/YAML with scoped edit and command tools; follows `WORKER_PROMPT.md` and the same protected-path/side-effect rules.
+- `.claude/agents/<slug>-reviewer.md`: read-only tools only; follows `REVIEWER_PROMPT.md` in a fresh invocation without worker reasoning. Return the review to the supervisor.
+- `.claude/agents/<slug>-initializer.md`: read-only inspection plus authorized baseline checks; follows `INIT_PROMPT.md`.
+- `.claude/skills/<slug>-loop/SKILL.md`: follows the same supervisor cycle and review gate; uses verified Claude-specific agent invocation. Never substitute Codex TOML for Claude's Markdown/YAML.
+
+Do not install hooks or auto-approve operations. Any optional hook proposal is feedback only, not enforcement.
+
+### Parallel tasks
+
+Use a unique slug, isolated checkout/worktree, output directories, and run lock per independent task. Name shared files/dependencies before starting concurrent work; sequence dependent changes, use distinct writable result/cache paths, and schedule GPU-heavy checks to avoid contention. Shared source data may be read-only. Each task's worker -> verifier -> reviewer cycle stays ordered; only independent tasks run concurrently. Passing feature reviews do not approve integration: test and independently review the exact combined output under its approved scope. Do not merge, commit, or push merely because the loops pass.
 
 ## Step 4: Self-check the kit, then stop
 
@@ -142,18 +200,19 @@ Run these checks over the generated kit and write the results to `.agent-loops/<
 - Every command in the README exists in the installed environment, or is marked "verify."
 - Decisions D1…Dn are listed in both `TASK.md` and `PROGRESS.md`.
 - Exercise the decision rules with: tests PASS but no review; a review of a stale output; a required test skipped; a required test FAIL with no reviewer finding (both remaining and exhausted repair budgets); a concrete blocker despite an advisory approval; missing [H] evidence despite run permission; a fully verified low-risk slice; and individually passing parallel changes without a combined review. Record the expected decision and rationale. Use the generated gate logic when executable; otherwise label this a manual walkthrough, not an execution test.
-- Keep the two Loop Kit skill copies aligned on this review gate; do not rewrite existing task kits or reinterpret their approvals without a separate request.
+- Validate selected-host wrappers: parse TOML for Codex and verify the required agent fields and skill frontmatter; validate Claude YAML only for that host. Confirm path/slug consistency and no overwritten existing kit. Record discovery/runtime checks separately from syntax checks. Walk through Codex with no Claude CLI, unavailable named roles with fresh native subagents, unavailable independent context, and overlapping parallel tasks.
+- Keep the two Loop Kit skill copies aligned; do not rewrite existing task kits or reinterpret their approvals without a separate request.
 
 Then reply with (stopping only if the Autonomy batch is still unanswered; otherwise continue straight into Phase 0 and the slices when the user has asked for a full run):
 1. the files created;
 2. the slice list, with the AC count per slice and the split between [V], [R], and [H];
 3. the human decisions needed before Phase 0;
-4. any Claude Code version differences found;
+4. the selected host, client/version differences, and which discovery/delegation checks actually ran;
 5. the exact next commands the human should run (freeze `TASK.md`, install the verifier, run Phase 0).
 
 Do not run Phase 0 or start any slice until `TASK.md` is approved and execution is explicitly authorized, including when both are granted together. Contract approval alone is not execution permission. Once both are recorded, proceed autonomously within that scope under the Autonomy section.
 
 ## Rules for this generation run
-- Write only inside `.agent-loops/<slug>/`, `.claude/agents/`, and `.claude/skills/`. Don't touch source, tests, CI, or the existing guidance files.
+- During kit generation, write only the new task kit `.agent-loops/<slug>/` and the selected host's task-specific wrappers: Codex `.codex/agents/<slug>-{worker,reviewer,initializer}.toml` plus `.agents/skills/<slug>-loop/SKILL.md`, or the corresponding Claude paths above. Do not modify source, tests, CI, or existing guidance during generation. During separately authorized execution, the worker may edit only output paths approved in `TASK.md`; the active Loop Kit, wrappers, contract, verifier, baselines, tolerances, and global configuration remain protected throughout.
 - Keep each generated file short and specific to the task. If something is generic, reference this design rather than padding the file.
 - If the task is too vague to write testable ACs, still produce the kit. Mark the vague ACs `[NEEDS DECISION]`, list the questions as decisions, and say so in your reply.
