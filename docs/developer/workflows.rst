@@ -41,6 +41,21 @@ That is all eleven installed commands. Two workflow classes have no CLI
 wrapper: :class:`monai_physio.WorkflowFinetuneICONRegistration` and
 :class:`monai_physio.WorkflowEvaluateMovement`.
 
+Time-series memory
+==================
+
+``WorkflowInferMovement.process_time_series(..., return_transforms=False)``
+writes the same images and meshes while releasing dense transforms and working
+image buffers after each stage. The default True retains all transforms for
+callers that need them. Both modes return output paths and ``stage_meshes`` for
+evaluation and USD animation, and report progress across the complete series.
+Memory for these meshes still grows with the number of stages; dense-field
+memory in the False mode depends on the size of one stage's working grid.
+
+Use the original CT as ``reference_image`` even when fitting used a smaller
+grid. Repeated one-stage calls are unnecessary when only saved outputs are
+needed.
+
 Workflow Example
 ================
 
