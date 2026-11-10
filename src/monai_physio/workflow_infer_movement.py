@@ -205,6 +205,7 @@ class WorkflowInferMovement(MONAIPhysioBase):
         exterior_direction_offset_mm: float = 0.0,
         exterior_direction_transition_mm: float = 5.0,
         exterior_falloff_distance_mm: float = 20.0,
+        return_transforms: bool = True,
     ) -> dict[str, Any]:
         """Predict one subject across a whole time series and write its geometry.
 
@@ -258,11 +259,17 @@ class WorkflowInferMovement(MONAIPhysioBase):
             exterior_falloff_distance_mm: Passed through as ``falloff_distance_mm``
                 -- how far outside ``exterior_mask`` the push and pull reaches.
                 Ignored when ``exterior_mask`` is omitted.
+            return_transforms: Retain each stage's dense transform in the result.
+                Default True preserves existing behavior. Set False when saved
+                images and meshes are sufficient: dense working fields and warped
+                image buffers are released before the next stage. Meshes and
+                output paths remain available, and progress spans the whole series.
 
         Returns:
             Dict with ``stages``, ``predicted_surfaces``, ``warped_images``,
             ``transforms``, ``usd_file`` and ``stage_meshes``. Entries that were
             not requested are empty lists or ``None``.
+            ``transforms`` is empty when ``return_transforms=False``.
 
             ``stage_meshes`` are the very objects written to
             ``predicted_surfaces``, handed back so a caller that scores them ---
@@ -356,7 +363,10 @@ class WorkflowInferMovement(MONAIPhysioBase):
                         exterior_direction_transition_mm,
                         exterior_falloff_distance_mm,
                     )
-                transforms.append(transform)
+                    del stage_mask, stage_normals
+                del field
+                if return_transforms:
+                    transforms.append(transform)
                 self._report_progress(
                     stage_start + 0.9 * stage_share, f"{label}: warping image"
                 )
@@ -370,6 +380,7 @@ class WorkflowInferMovement(MONAIPhysioBase):
                 warped_file = out_dir / f"{stem}_{tag}_warped.mha"
                 itk.imwrite(warped, str(warped_file), compression=True)
                 warped_images.append(warped_file)
+                del warped, transform
 
             self.log_info("stage %.3f -> %s", stage, surface_file.name)
             self._report_progress(stage_start + stage_share, f"{label}: done")

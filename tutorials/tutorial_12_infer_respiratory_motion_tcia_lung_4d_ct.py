@@ -307,6 +307,7 @@ if __name__ == "__main__":
         usd_project_name=f"{case_id}_mgn_motion",
         anatomy_type="lung",
         separate_by_connectivity=True,
+        return_transforms=False,
     )
     logger.log_info("USD: %s", infer_result["usd_file"])
     step_start = _record_step(step_times_s, "predict_and_warp", step_start)
