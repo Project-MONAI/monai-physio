@@ -250,6 +250,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             algorithm="dataset_surface"
         )
         self.patient_labelmap = patient_labelmap
+        self._patient_labelmap_source = patient_labelmap
 
         # Utilities (needed for create_reference_image when patient_image is None)
         self.transform_tools = ProcessTransforms()
@@ -646,13 +647,13 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
 
     def _resample_fitting_labelmap(self, reference_image: itk.Image) -> itk.Image:
         """Sample patient labels on a fitting grid without a dense identity field."""
-        assert self.patient_labelmap is not None
+        assert self._patient_labelmap_source is not None
         result = itk.resample_image_filter(
-            self.patient_labelmap,
+            self._patient_labelmap_source,
             reference_image=reference_image,
             use_reference_image=True,
             interpolator=itk.NearestNeighborInterpolateImageFunction.New(
-                self.patient_labelmap
+                self._patient_labelmap_source
             ),
             default_pixel_value=0,
         )

@@ -629,7 +629,9 @@ if __name__ == "__main__":
 
 
 @pytest.mark.parametrize("dtype", [np.int16, np.float32, np.int32])
-def test_crop_to_mask_keeps_tissue_and_oblique_coordinates(dtype: type) -> None:
+def test_crop_to_mask_keeps_tissue_and_oblique_coordinates(
+    dtype: type, tmp_path: Path
+) -> None:
     """A 12x10x8 grid isolates bounding-box and physical-margin arithmetic."""
     values: np.ndarray = np.arange(8 * 10 * 12).reshape(8, 10, 12).astype(dtype)
     image = itk.image_from_array(values)
@@ -660,9 +662,14 @@ def test_crop_to_mask_keeps_tissue_and_oblique_coordinates(dtype: type) -> None:
     )
     np.testing.assert_allclose(output.GetDirection(), image.GetDirection())
     assert itk.array_view_from_image(output).dtype == dtype
+    from monai_physio.process_tests import ProcessTests
+
+    checks = ProcessTests(class_name="mask_crop", results_dir=tmp_path)
+    checks.write_result_image(output, "oblique_crop.mha")
+    assert checks.compare_result_to_baseline_image("oblique_crop.mha")
 
 
-def test_crop_to_mask_clips_margin_at_image_boundary() -> None:
+def test_crop_to_mask_clips_margin_at_image_boundary(tmp_path: Path) -> None:
     """A corner voxel in a 4-cubed image keeps existing surrounding tissue."""
     image = itk.image_from_array(np.ones((4, 4, 4), dtype=np.float32))
     mask = itk.image_from_array(np.zeros((4, 4, 4), dtype=np.uint8))
@@ -670,9 +677,14 @@ def test_crop_to_mask_clips_margin_at_image_boundary() -> None:
     output = ProcessImages().crop_to_mask(image, mask, margin_mm=1.0)
     assert tuple(itk.size(output)) == (2, 2, 2)
     np.testing.assert_array_equal(itk.array_view_from_image(output), 1)
+    from monai_physio.process_tests import ProcessTests
+
+    checks = ProcessTests(class_name="mask_crop", results_dir=tmp_path)
+    checks.write_result_image(output, "boundary_crop.mha")
+    assert checks.compare_result_to_baseline_image("boundary_crop.mha")
 
 
-def test_crop_to_mask_on_downloaded_ct(test_images: list[Any]) -> None:
+def test_crop_to_mask_on_downloaded_ct(test_images: list[Any], tmp_path: Path) -> None:
     """Compare a crop directly against existing Slicer heart CT voxels."""
     image = test_images[0]
     values = itk.array_view_from_image(image)
@@ -687,6 +699,11 @@ def test_crop_to_mask_on_downloaded_ct(test_images: list[Any]) -> None:
     np.testing.assert_allclose(
         output.GetOrigin(), image.TransformIndexToPhysicalPoint([6, 5, 4])
     )
+    from monai_physio.process_tests import ProcessTests
+
+    checks = ProcessTests(class_name="mask_crop", results_dir=tmp_path)
+    checks.write_result_image(output, "slicer_ct_crop.mha")
+    assert checks.compare_result_to_baseline_image("slicer_ct_crop.mha")
 
 
 def test_crop_to_mask_rejects_empty_and_misaligned_masks() -> None:

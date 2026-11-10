@@ -94,7 +94,9 @@ With either option enabled, patient labels are sampled by nearest neighbor on
 the fitting grid before constructing distance maps. Label IDs and interior-label
 exclusions retain their meanings. Registration grids include patient and aligned
 template surfaces plus physical registration margins, including when a crop
-touches the input boundary. Meshes remain in patient coordinates. The original
+touches the input boundary. The source labelmap is retained and sampled directly
+onto expanded registration grids, preserving anatomy outside the CT extent.
+Meshes remain in patient coordinates. The original
 CT remains available as ``fit.original_patient_image`` for full-resolution motion
 warping; fitting stages, including intensity refinement, use ``fit.patient_image``.
 

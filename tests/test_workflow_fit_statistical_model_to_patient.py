@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import inspect
+from pathlib import Path
 from typing import Any
 
 import itk
@@ -22,6 +23,7 @@ from monai_physio.workflow_fit_statistical_model_to_patient import (
 
 def test_fitting_grid_crops_before_resampling_and_preserves_labels(
     monkeypatch: Any,
+    tmp_path: Path,
 ) -> None:
     """A 24-cubed grid checks constructor allocation order and label sampling."""
     values = np.zeros((24, 24, 24), dtype=np.float32)
@@ -66,6 +68,40 @@ def test_fitting_grid_crops_before_resampling_and_preserves_labels(
         302,
     }
     assert workflow.labelmap_interior_object_ids == [302]
+    from monai_physio.process_tests import ProcessTests
+
+    checks = ProcessTests(class_name="fitting_grid", results_dir=tmp_path)
+    checks.write_result_image(workflow.patient_labelmap, "patient_labels.mha")
+    assert checks.compare_result_to_baseline_image("patient_labels.mha")
+
+
+def test_expanded_fitting_grid_samples_original_labels_outside_ct(
+    tmp_path: Path,
+) -> None:
+    """A 20-cubed labelmap keeps anatomy beyond a 12-cubed CT's extent."""
+    image = itk.image_from_array(np.zeros((12, 12, 12), dtype=np.float32))
+    labels = np.zeros((20, 20, 20), dtype=np.uint16)
+    labels[4:10, 4:10, 8:18] = 301
+    labelmap = itk.image_from_array(labels)
+    model = pv.Sphere(radius=3, center=(14, 7, 7))
+    workflow = WorkflowFitStatisticalModelToPatient(
+        template_model=model,
+        patient_models=[model],
+        patient_image=image,
+        patient_labelmap=labelmap,
+        fitting_spacing_mm=2.0,
+    )
+    workflow.set_mask_dilation_mm(2.0)
+    reference = workflow._fitting_reference_image(model)
+    fitting_labels = workflow._resample_fitting_labelmap(reference)
+    sample = fitting_labels.TransformPhysicalPointToIndex([16.0, 6.0, 6.0])
+    assert fitting_labels.GetPixel(sample) == 301
+    assert itk.size(labelmap) == (20, 20, 20)
+    from monai_physio.process_tests import ProcessTests
+
+    checks = ProcessTests(class_name="fitting_grid", results_dir=tmp_path)
+    checks.write_result_image(fitting_labels, "expanded_patient_labels.mha")
+    assert checks.compare_result_to_baseline_image("expanded_patient_labels.mha")
 
 
 def test_fitting_registration_grid_contains_aligned_surfaces_and_margin() -> None:
