@@ -144,12 +144,15 @@ class SegmentHeartSimpleware(SegmentAnatomyBase):
     def set_simpleware_executable_path(self, path: str) -> None:
         """Set the path to the Simpleware Medical console executable.
 
+        The landmarks' coordinate mapping was measured on Y-2026.03; other
+        versions may place them elsewhere.
+
         Args:
             path (str): Full path to ConsoleSimplewareMedical.exe
 
         Example:
             >>> segmenter.set_simpleware_executable_path(
-            ...     "C:/Program Files/Synopsys/Simpleware Medical/X-2025.06/ConsoleSimplewareMedical.exe"
+            ...     "C:/Program Files/Synopsys/Simpleware Medical/Y-2026.03/ConsoleSimplewareMedical.exe"
             ... )
         """
         self.simpleware_exe_path = path
@@ -299,5 +302,8 @@ class SegmentHeartSimpleware(SegmentAnatomyBase):
         return labelmap_image
 
     def get_landmarks(self) -> dict[str, tuple[float, float, float]]:
-        """Get the landmarks from the last run, in the input image's physical space."""
+        """Get the landmarks from the last run, in the input image's physical space.
+
+        The mapping from Simpleware's frame was measured on Y-2026.03.
+        """
         return self.landmarks

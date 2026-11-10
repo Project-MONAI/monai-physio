@@ -154,6 +154,24 @@ class TestMaskCleanup:
         assert kept[4, 4, 4] == 0
         assert kept[8, 8, 7] == 0
 
+    def test_remove_islands_counts_past_65535_components(
+        self, labelmap_tools: ProcessLabelmaps
+    ) -> None:
+        """74,085 components, more than an unsigned short can number."""
+        arr = np.zeros((83, 83, 83), dtype=np.uint8)
+        arr[::2, ::2, ::2] = 1
+        # The one larger component: 8 voxels plus 3 islands it touches.
+        arr[:2, :2, :2] = 1
+        mask = _mask(arr, (1.0, 1.0, 1.0))
+
+        largest = itk.array_from_image(labelmap_tools.remove_islands(mask))
+        large = itk.array_from_image(
+            labelmap_tools.remove_islands(mask, min_island_volume_mm3=2.0)
+        )
+
+        assert int(largest.sum()) == 11
+        np.testing.assert_array_equal(large, largest)
+
     def test_remove_islands_volume_threshold_uses_spacing(
         self, labelmap_tools: ProcessLabelmaps
     ) -> None:

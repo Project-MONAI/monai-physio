@@ -365,7 +365,7 @@ jobs:
 # Simpleware tests (need a licensed local Simpleware Medical install):
 # - tests/test_segment_heart_simpleware.py and
 #   tests/test_segment_heart_simpleware_trimmed_branches.py (ASCardio)
-# - tests/test_contour_mesh_extraction.py::TestExtractTetrahedraExternal[simpleware]
+# - tests/test_contour_mesh_extraction.py::TestExtractLabelTetrahedraExternal::<test>[simpleware]
 #   (+FE Free tetrahedral meshing)
 #
 # Tutorial tests (SLOW - hours to complete):
@@ -378,7 +378,7 @@ jobs:
 #   pytest tests/ -v --run-gpu --run-slow       # GPU + slow (typical local dev profile)
 #   pytest tests/ -v --run-simpleware --run-gpu --run-slow  # Full Simpleware coverage
 #   # netgen + Simpleware tetrahedral meshing
-#   pytest tests/test_contour_mesh_extraction.py -v -k TestExtractTetrahedraExternal \
+#   pytest tests/test_contour_mesh_extraction.py -v -k TestExtractLabelTetrahedraExternal \
 #     --run-gpu --run-simpleware
 #   pytest tests/test_register_images_ants.py -v --run-slow
 #
@@ -386,7 +386,7 @@ jobs:
 # (--run-gpu --run-slow --run-simpleware --run-physicsnemo --run-tutorials).
 # That runner installs [dev_cuda13] (nvidia-physicsnemo is a base dependency;
 # the netgen extra is included, so the netgen meshing tests in
-# tests/test_contour_mesh_extraction.py::TestExtractTetrahedraExternal run there).
+# tests/test_contour_mesh_extraction.py::TestExtractLabelTetrahedraExternal run there).
 #
 # To run tutorial tests (manual only, slow):
 #   pytest tests/test_tutorials.py -v --run-tutorials

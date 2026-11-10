@@ -1059,5 +1059,33 @@ def test_transform_dataset_holds_a_displacement_field_at_its_edge(
     )
 
 
+def test_transform_dataset_reads_a_displacement_field_from_its_region_start(
+    transform_tools: ProcessTransforms,
+) -> None:
+    """A field whose buffered region starts past index 0 warps as ITK does."""
+    field = itk.Image[itk.Vector[itk.D, 3], 3].New()
+    region = itk.ImageRegion[3]()
+    region.SetIndex([3, 1, 2])
+    region.SetSize([5, 5, 5])
+    field.SetRegions(region)
+    field.Allocate(True)
+    field.SetSpacing((1.0, 2.0, 1.5))
+    rng = np.random.default_rng(0)
+    itk.array_view_from_image(field)[:] = rng.uniform(-1.0, 1.0, (5, 5, 5, 3))
+    field_tfm = itk.DisplacementFieldTransform[itk.D, 3].New()
+    field_tfm.SetDisplacementField(field)
+    # Continuous indices inside the region, mapped through the unit direction.
+    inside = np.array([[3.5, 1.2, 5.7], [6.9, 4.0, 2.2], [5.0, 3.3, 3.1]]) * np.array(
+        (1.0, 2.0, 1.5)
+    )
+
+    warped = np.asarray(
+        transform_tools.transform_dataset(pv.PolyData(inside), field_tfm).points
+    )
+
+    expected = [field_tfm.TransformPoint(p.tolist()) for p in inside]
+    np.testing.assert_allclose(warped, expected, atol=1e-9)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "-s"])

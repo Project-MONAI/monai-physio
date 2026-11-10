@@ -114,9 +114,8 @@ class ProcessLabelmaps(MONAIPhysioBase):
         """Remove the disconnected pieces of a binary mask.
 
         Foreground voxels are grouped into face-connected components with
-        ITK's ``ConnectedComponentImageFilter``, which
-        ``RelabelComponentImageFilter`` then orders by size.  Voxels that touch
-        only along an edge or at a corner belong to different components.
+        ITK's ``ConnectedComponentImageFilter``.  Voxels that touch only along
+        an edge or at a corner belong to different components.
 
         Args:
             mask: Binary mask; any non-zero voxel is foreground.
@@ -131,46 +130,32 @@ class ProcessLabelmaps(MONAIPhysioBase):
         binary = self._binary_uchar(mask)
         dimension = binary.GetImageDimension()
         mask_type = itk.Image[itk.UC, dimension]
-        # The relabeled ids are unsigned short, which is enough to number the
-        # components that survive any realistic mask.
-        label_type = itk.Image[itk.US, dimension]
         # ITK wraps 64-bit component ids as ULL on Windows but as UL on Linux,
         # where unsigned long is already 64 bits.
-        relabel_inputs = {
-            input_type
-            for input_type, output_type in itk.RelabelComponentImageFilter
-            if output_type is label_type
-        }
         component_type = next(
             output_type
             for input_type, output_type in itk.ConnectedComponentImageFilter
             if input_type is mask_type
-            and output_type in relabel_inputs
             and itk.template(output_type)[1][0] in (itk.ULL, itk.UL)
         )
-
         components = itk.ConnectedComponentImageFilter[mask_type, component_type].New(
             Input=binary, FullyConnected=False
         )
-        relabel = itk.RelabelComponentImageFilter[component_type, label_type].New(
-            Input=components.GetOutput()
-        )
-        if min_island_volume_mm3 is not None:
-            voxel_volume = float(np.prod(np.asarray(binary.GetSpacing())))
-            relabel.SetMinimumObjectSize(
-                int(np.ceil(min_island_volume_mm3 / voxel_volume))
-            )
-        relabel.Update()
+        components.Update()
 
-        # Relabeling numbers the components from 1 in decreasing size.
-        labels = itk.array_view_from_image(relabel.GetOutput())
-        kept = labels == 1 if min_island_volume_mm3 is None else labels > 0
-        found = relabel.GetOriginalNumberOfObjects()
-        n_kept = (
-            min(found, 1)
-            if min_island_volume_mm3 is None
-            else (relabel.GetNumberOfObjects())
-        )
+        labels = itk.array_view_from_image(components.GetOutput())
+        sizes = np.bincount(labels.ravel())
+        sizes[0] = 0
+        found = int(np.count_nonzero(sizes))
+        if min_island_volume_mm3 is None:
+            keep = np.zeros(sizes.shape, dtype=bool)
+            keep[np.argmax(sizes)] = found > 0
+        else:
+            voxel_volume = float(np.prod(np.asarray(binary.GetSpacing())))
+            keep = sizes >= np.ceil(min_island_volume_mm3 / voxel_volume)
+            keep[0] = False
+        kept = keep[labels]
+        n_kept = int(np.count_nonzero(keep))
         if found > n_kept:
             self.log_info(
                 "Removed %d of %d connected component(s).", found - n_kept, found

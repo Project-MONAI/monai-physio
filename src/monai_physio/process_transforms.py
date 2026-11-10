@@ -502,11 +502,12 @@ class ProcessTransforms(MONAIPhysioBase):
                 .GetDisplacementField()
             )
             direction = itk.array_from_matrix(field.GetDirection())
+            # The array starts at the buffered region's index, not at 0.
             continuous_index = (
                 (points - np.asarray(field.GetOrigin()))
                 @ np.linalg.inv(direction).T
                 / np.asarray(field.GetSpacing())
-            )
+            ) - np.asarray(field.GetBufferedRegion().GetIndex())
             # The field's array is indexed (z, y, x); "nearest" clamps.
             coordinates = continuous_index[:, ::-1].T
             displacement = itk.array_view_from_image(field)

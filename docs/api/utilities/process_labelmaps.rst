@@ -20,8 +20,8 @@ the image border alone.  Both return a 0/1 ``itk.UC`` mask.
 
 Run them before tetrahedral meshing: every island and enclosed cavity becomes
 an extra boundary shell, and
-:meth:`~ProcessVolumetricMesh.extract_label_tetrahedra_netgen` rejects a surface
-whose shells crowd each other.
+:meth:`~ProcessVolumetricMesh.extract_label_tetrahedra_netgen` can fail on a
+surface whose shells crowd each other.
 
 .. code-block:: python
 

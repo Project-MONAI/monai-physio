@@ -4,7 +4,8 @@
 ``extract_label_tetrahedra_vtk`` meshes every label of a labelmap and returns
 ``{label id: grid}``.  This rewrites every ``extract_tetrahedra(...)`` call in
 ``.py`` and ``.ipynb`` files to ``extract_label_tetrahedra_vtk(...)[1]``, which
-is the same mesh for a 0/1 mask (every mask monai_physio builds).  Names that
+is the same mesh for a 0/1 mask (every mask monai_physio builds), and renames
+a ``mask_image=`` keyword to ``labelmap_image=``.  Names that
 only start with ``extract_tetrahedra``, such as ``extract_tetrahedra_netgen``,
 are left alone.  Every changed line is printed, so check that none of them was
 an unrelated name of your own.
@@ -32,12 +33,14 @@ from __future__ import annotations
 
 import argparse
 import difflib
+import json
 import re
 import sys
 from pathlib import Path
 
 OLD_CALL = re.compile(r"\bextract_tetrahedra\s*\(")
 NEW_NAME = "extract_label_tetrahedra_vtk"
+OLD_KEYWORD = re.compile(r"\bmask_image(\s*=)")
 
 
 def _scan(text: str, start: int) -> tuple[int, int]:
@@ -76,7 +79,7 @@ def migrate(text: str) -> tuple[str, list[str]]:
         if match.start() < position:
             continue
         close, commas = _scan(text, match.end())
-        arguments = text[match.end() : close]
+        arguments = OLD_KEYWORD.sub(r"labelmap_image\1", text[match.end() : close])
         pieces.append(text[position : match.start()])
         pieces.append(f"{NEW_NAME}({arguments})[1]")
         position = close + 1
@@ -87,6 +90,28 @@ def migrate(text: str) -> tuple[str, list[str]]:
             manual.append(" ".join(f"{NEW_NAME}({arguments})".split()))
     pieces.append(text[position:])
     return "".join(pieces), manual
+
+
+def migrate_notebook(text: str) -> tuple[str, list[str]]:
+    """Return notebook JSON *text* with every code cell's source migrated."""
+    notebook = json.loads(text)
+    manual: list[str] = []
+    changed = False
+    for cell in notebook.get("cells", []):
+        if cell.get("cell_type") != "code":
+            continue
+        source = cell["source"]
+        joined = source if isinstance(source, str) else "".join(source)
+        migrated, cell_manual = migrate(joined)
+        manual += cell_manual
+        if migrated != joined:
+            changed = True
+            cell["source"] = (
+                migrated if isinstance(source, str) else migrated.splitlines(True)
+            )
+    if not changed:
+        return text, manual
+    return json.dumps(notebook, indent=1, ensure_ascii=False) + "\n", manual
 
 
 def main() -> int:
@@ -108,7 +133,9 @@ def main() -> int:
     changed = 0
     for path in files:
         original = path.read_text(encoding="utf-8")
-        migrated, manual = migrate(original)
+        migrated, manual = (
+            migrate_notebook(original) if path.suffix == ".ipynb" else migrate(original)
+        )
         if migrated == original:
             continue
         changed += 1

@@ -124,7 +124,7 @@ pytest tests/ -v --run-all
 pytest tests/ -v --run-simpleware --run-gpu --run-slow
 
 # netgen and Simpleware tetrahedral meshing (netgen tests need the netgen extra)
-pytest tests/test_contour_mesh_extraction.py -v -k TestExtractTetrahedraExternal --run-gpu --run-simpleware
+pytest tests/test_contour_mesh_extraction.py -v -k TestExtractLabelTetrahedraExternal --run-gpu --run-simpleware
 
 # Tutorial tests (SLOW - hours to complete)
 pytest tests/test_tutorials.py -v --run-tutorials

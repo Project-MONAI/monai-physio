@@ -63,8 +63,8 @@ Strengths
 - Each reference label is cleaned first (largest connected piece, enclosed
   cavities filled where no other label is), so every mesher fills one solid
   per label.
-- Neighboring labels' meshes meet on coincident nodes, and each label stays a
-  separate, named structure through the warp and into the USD.
+- Each label stays a separate, named structure through the warp and into the
+  USD.
 - Registers on the CPU with ``RegisterImagesGreedy``; no GPU needed for this
   stage.  Its stationary-velocity mode and a 1.0-voxel warp smoothing keep
   the warps from folding and inverting the tetrahedra they carry.
@@ -77,8 +77,11 @@ Weaknesses / Limitations
 ------------------------
 - Segmentation quality depends on the segmenter's training distribution;
   unusual pathologies or pediatric anatomy may degrade results.
-- Each label is its own tetmesh: neighbors' interface nodes coincide but are
-  not merged, so a simulation coupling the structures must tie them.
+- Each label is its own tetmesh, and neighbors' interface nodes are not
+  shared.  Simpleware's coincide but are not merged; trimming moves the vtk
+  meshes' apart; netgen re-tiles each label on its own, so its meshes may
+  overlap or gap slightly.  A simulation coupling the structures must tie
+  them.
   ``tetmesh_anatomy_groups`` in the script picks the structures.
 - Large 4D datasets (>20 phases, high resolution) can require 32 GB+ RAM.
 - All three tetmeshes use 2 mm elements (``mesh_element_size_mm``): at

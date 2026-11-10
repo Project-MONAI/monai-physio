@@ -89,14 +89,14 @@ Optional Python Backends
 ========================
 
 The netgen meshing tests
-(``TestExtractTetrahedraExternal`` in ``tests/test_contour_mesh_extraction.py``) need
+(``TestExtractLabelTetrahedraExternal`` in ``tests/test_contour_mesh_extraction.py``) need
 the ``netgen`` extra and skip with a reason when ``netgen-mesher`` is not
 installed. The ``dev_cuda12`` and ``dev_cuda13`` extras include it:
 
 .. code-block:: bash
 
    # netgen and Simpleware tetrahedral meshing
-   pytest tests/test_contour_mesh_extraction.py -v -k TestExtractTetrahedraExternal --run-gpu --run-simpleware
+   pytest tests/test_contour_mesh_extraction.py -v -k TestExtractLabelTetrahedraExternal --run-gpu --run-simpleware
 
 Continuous Integration
 ======================

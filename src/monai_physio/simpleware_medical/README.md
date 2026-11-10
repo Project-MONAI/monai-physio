@@ -113,7 +113,7 @@ Tests that launch Simpleware are marked `requires_simpleware` and run only with 
 
 ```bash
 # Tetrahedral meshing (fast)
-py -m pytest tests/test_contour_mesh_extraction.py -k TestExtractTetrahedraExternal --run-gpu --run-simpleware
+py -m pytest tests/test_contour_mesh_extraction.py -k TestExtractLabelTetrahedraExternal --run-gpu --run-simpleware
 
 # Heart segmentation (slow; needs the CHOP-Valve4D data)
 py -m pytest tests/test_segment_heart_simpleware.py --run-all
