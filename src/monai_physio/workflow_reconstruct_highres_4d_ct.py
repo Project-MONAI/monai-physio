@@ -64,10 +64,11 @@ class WorkflowReconstructHighres4DCT(MONAIPhysioBase):
         register_reference_time_frame_to_reference_image (bool): Whether to register
             the reference time frame to the reference image
         upsample_to_fixed_resolution (bool): Whether to upsample reconstruction
-        composite_mode (Literal["reference", "mean", "max"]): Which image is
-            warped back to each time point during reconstruction: the
-            reference image as-is, or a pixel-by-pixel mean/max composite of
-            the reference image and all registered time-series images
+        composite_mode (str): Which image is warped back to each time point:
+            "reference" uses the reference image as-is; "mean", "max", or
+            "percentile" combine it with all registered time-series images
+        composite_percentile (float): Percentile in [0, 100] for "percentile"
+            mode. Default: 95.0
         registrar (RegisterTimeSeriesImages): Internal registration object
         fixed_to_moving_transforms (list[itk.Transform]): one per frame; each warps its
             moving image onto the reference grid
@@ -157,7 +158,10 @@ class WorkflowReconstructHighres4DCT(MONAIPhysioBase):
 
         # Initialize parameters with defaults
         self.upsample_to_fixed_resolution: bool = True
-        self.composite_mode: Literal["reference", "mean", "max"] = "reference"
+        self.composite_mode: Literal["reference", "mean", "max", "percentile"] = (
+            "reference"
+        )
+        self.composite_percentile: float = 95.0
         self.modality: str = "ct"
         self.mask_dilation_mm: float = 0.0
         self.fixed_mask: Optional[itk.Image] = None
@@ -283,10 +287,12 @@ class WorkflowReconstructHighres4DCT(MONAIPhysioBase):
         }
 
     def get_composite_reference_image(self) -> Optional[itk.Image]:
-        """Get the source image used for reconstruction.
+        """Build the configured mean, max, or percentile reconstruction source.
+
+        Percentile mode uses ``composite_percentile`` (95.0 by default).
 
         Returns:
-            Optional[itk.Image]: The source image used for reconstruction
+            Optional[itk.Image]: The composite source, or None in reference mode
         """
         if self.fixed_to_moving_transforms is None:
             raise ValueError(
@@ -296,12 +302,13 @@ class WorkflowReconstructHighres4DCT(MONAIPhysioBase):
             raise ValueError(
                 "moving_to_fixed_transforms not set. Call register_time_series() first."
             )
-        if self.composite_mode not in ("mean", "max"):
+        if self.composite_mode not in ("mean", "max", "percentile"):
             return None
         self.composite_reference_image = self.registrar.compute_composite_reference(
             self.time_series_images,
             self.fixed_to_moving_transforms,
             self.composite_mode,
+            percentile=self.composite_percentile,
         )
         return self.composite_reference_image
 
@@ -318,35 +325,44 @@ class WorkflowReconstructHighres4DCT(MONAIPhysioBase):
         self.upsample_to_fixed_resolution = upsample_to_fixed_resolution
 
     def set_composite_mode(
-        self, composite_mode: Literal["reference", "mean", "max"]
+        self,
+        composite_mode: Literal["reference", "mean", "max", "percentile"],
+        percentile: float = 95.0,
     ) -> None:
         """Set which image is warped back to each time point during reconstruction.
 
         Args:
-            composite_mode (Literal["reference", "mean", "max"]): "reference"
+            composite_mode (str): "reference"
                 warps the reference image back to each time point (default).
-                "mean"/"max" first build a composite of the reference image
-                and every registered time-series image (pixel-by-pixel mean
-                or max on the reference grid), then warp that composite back
+                "mean"/"max"/"percentile" first build a composite of the reference
+                image and every registered time-series image, then warp it back
                 to each time point instead.
+            percentile (float, optional): Percentile in [0, 100], used only for
+                "percentile" mode, with linear interpolation between samples.
+                Out-of-coverage samples are excluded. Default: 95.0
 
         Raises:
             ValueError: If composite_mode is not one of "reference", "mean",
-                or "max"
+                "max", or "percentile", or percentile is not finite and within
+                [0, 100] in "percentile" mode
         """
-        if composite_mode not in ("reference", "mean", "max"):
+        if composite_mode not in ("reference", "mean", "max", "percentile"):
             raise ValueError(
-                f"composite_mode must be 'reference', 'mean', or 'max', "
+                f"composite_mode must be 'reference', 'mean', 'max', or 'percentile', "
                 f"got {composite_mode!r}"
             )
+        if composite_mode == "percentile" and not 0 <= percentile <= 100:
+            raise ValueError("percentile must be finite and in [0, 100]")
         self.composite_mode = composite_mode
+        self.composite_percentile = percentile
         self.composite_reference_image = None
 
     def reconstruct_time_series(self) -> dict:
         """Reconstruct high-resolution time series using inverse transforms.
 
         Applies the inverse transforms from registration to reconstruct each
-        time-series image in the high-resolution fixed image space.
+        time-series image in the high-resolution fixed image space. The source is
+        selected by ``composite_mode``; "percentile" uses ``composite_percentile``.
 
         Returns:
             dict: Dictionary containing:
@@ -371,9 +387,8 @@ class WorkflowReconstructHighres4DCT(MONAIPhysioBase):
         )
         self.log_info(f"Composite mode: {self.composite_mode}")
 
-        composite_mode: Literal["reference", "mean", "max", "existing"] = (
-            self.composite_mode
-        )
+        composite_mode: Literal["reference", "mean", "max", "percentile", "existing"]
+        composite_mode = self.composite_mode
         if self.composite_reference_image is not None:
             composite_mode = "existing"
             self.registrar.composite_reference_image = self.composite_reference_image
@@ -385,6 +400,7 @@ class WorkflowReconstructHighres4DCT(MONAIPhysioBase):
             upsample_to_fixed_resolution=self.upsample_to_fixed_resolution,
             fixed_to_moving_transforms=self.fixed_to_moving_transforms,
             composite_mode=composite_mode,
+            composite_percentile=self.composite_percentile,
         )
 
         self.log_info("Stage 2 complete: Time series reconstruction finished.")

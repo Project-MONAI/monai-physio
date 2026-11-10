@@ -5,7 +5,7 @@ from __future__ import annotations
 import importlib
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import pytest
 
@@ -54,6 +54,78 @@ def test_convert_image_to_usd_help_includes_fps(
     captured = capsys.readouterr()
     assert exc_info.value.code == 0
     assert "--fps" in captured.out
+
+
+@pytest.mark.parametrize("percentile", [None, "50"])
+def test_reconstruction_cli_percentile(
+    percentile: Optional[str], monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """The CLI forwards default and custom percentiles to the workflow."""
+    import itk
+    import numpy as np
+
+    from monai_physio import WorkflowReconstructHighres4DCT
+
+    module = importlib.import_module("monai_physio.cli.reconstruct_highres_4d_ct")
+    input_file = tmp_path / "input.mha"
+    input_file.touch()
+    image = itk.image_from_array(np.zeros((3, 3, 3), np.float32))
+    monkeypatch.setattr(itk, "imread", lambda *args, **kwargs: image)
+
+    def process(workflow: WorkflowReconstructHighres4DCT) -> dict[str, Any]:
+        assert workflow.composite_mode == "percentile"
+        assert workflow.composite_percentile == float(percentile or 95)
+        return {"reconstructed_images": []}
+
+    monkeypatch.setattr(WorkflowReconstructHighres4DCT, "process", process)
+    args = [
+        "reconstruct_highres_4d_ct",
+        "--time-series-images",
+        str(input_file),
+        "--fixed-image",
+        str(input_file),
+        "--output-dir",
+        str(tmp_path),
+        "--registration-method",
+        "Greedy",
+        "--composite-mode",
+        "percentile",
+    ]
+    if percentile is not None:
+        args.extend(["--composite-percentile", percentile])
+    monkeypatch.setattr(sys, "argv", args)
+    assert module.main() == 0
+
+
+@pytest.mark.parametrize("percentile", ["-1", "101", "nan", "inf"])
+def test_reconstruction_cli_rejects_invalid_percentile(
+    percentile: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Invalid percentile arguments fail before loading any files."""
+    module = importlib.import_module("monai_physio.cli.reconstruct_highres_4d_ct")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "reconstruct_highres_4d_ct",
+            "--time-series-images",
+            "frame.mha",
+            "--fixed-image",
+            "fixed.mha",
+            "--output-dir",
+            "results",
+            "--composite-mode",
+            "percentile",
+            f"--composite-percentile={percentile}",
+        ],
+    )
+    with pytest.raises(SystemExit) as exc_info:
+        module.main()
+    assert exc_info.value.code == 2
+    assert (
+        "--composite-percentile must be finite and in [0, 100]"
+        in capsys.readouterr().err
+    )
 
 
 def test_convert_image_to_usd_cli_passes_fps(

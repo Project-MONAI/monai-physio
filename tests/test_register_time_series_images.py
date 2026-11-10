@@ -644,6 +644,70 @@ class TestReconstructTimeSeriesCompositeMode:
         # (plain astype) would wrongly give -1003.
         assert np.all(arr == -1004), f"expected rounded mean -1004, got {arr.flat[0]}"
 
+    @pytest.mark.parametrize(
+        ("percentile", "expected"), [(0.0, 10.0), (50.0, 20.0), (100.0, 30.0)]
+    )
+    def test_composite_mode_percentile(
+        self, percentile: float, expected: float
+    ) -> None:
+        """Pure reduction on synthetic 4-cubed images includes the fixed sample."""
+        registrar = RegisterTimeSeriesImages()
+        registrar.set_fixed_image(_make_constant_image(10.0))
+        reconstructed = registrar.reconstruct_time_series(
+            moving_images=[_make_constant_image(20.0), _make_constant_image(30.0)],
+            moving_to_fixed_transforms=self._identity_transforms(2),
+            fixed_to_moving_transforms=self._identity_transforms(2),
+            composite_mode="percentile",
+            composite_percentile=percentile,
+        )
+        assert len(reconstructed) == 2
+        for image in reconstructed:
+            np.testing.assert_allclose(itk.array_from_image(image), expected)
+
+    def test_percentile_default_coverage_and_metadata(self) -> None:
+        """Synthetic 4/6-cubed samples test voxel-wise P95 and missing coverage."""
+        fixed = _make_constant_image(10.0, size=6)
+        fixed.SetSpacing((0.7, 0.8, 1.2))
+        fixed.SetOrigin((2.0, 3.0, 4.0))
+        fixed.SetDirection(itk.matrix_from_array(np.diag([-1.0, -1.0, 1.0])))
+        moving_array = np.full((4, 4, 4), -10.0, dtype=np.float32)
+        moving_array[:2] = 30.0
+        moving = itk.image_from_array(moving_array)
+        moving.CopyInformation(fixed)
+        registrar = RegisterTimeSeriesImages()
+        registrar.set_fixed_image(fixed)
+        composite = registrar.compute_composite_reference(
+            [moving], self._identity_transforms(1), "percentile"
+        )
+        expected = np.full((6, 6, 6), 10.0)
+        expected[:2, :4, :4] = 29.0
+        expected[2:4, :4, :4] = 9.0
+        np.testing.assert_allclose(itk.array_from_image(composite), expected)
+        assert composite.GetSpacing() == fixed.GetSpacing()
+        assert composite.GetOrigin() == fixed.GetOrigin()
+        np.testing.assert_array_equal(composite.GetDirection(), fixed.GetDirection())
+
+    def test_percentile_integer_dtype_rounds(self) -> None:
+        """Synthetic 4-cubed integer samples round the interpolated P95."""
+        registrar = RegisterTimeSeriesImages()
+        registrar.set_fixed_image(_make_constant_image(-1000, dtype=np.int16))
+        composite = registrar.compute_composite_reference(
+            [_make_constant_image(-1011, dtype=np.int16)],
+            self._identity_transforms(1),
+            "percentile",
+        )
+        result = itk.array_from_image(composite)
+        assert result.dtype == np.int16
+        np.testing.assert_array_equal(result, -1001)
+
+    @pytest.mark.parametrize("percentile", [-1.0, 101.0, np.nan, np.inf, -np.inf])
+    def test_percentile_rejects_invalid_value(self, percentile: float) -> None:
+        """Reject invalid percentile values before warping synthetic samples."""
+        registrar = RegisterTimeSeriesImages()
+        registrar.set_fixed_image(_make_constant_image(10.0))
+        with pytest.raises(ValueError, match="percentile"):
+            registrar.compute_composite_reference([], [], "percentile", percentile)
+
     def test_composite_mode_invalid_value(self) -> None:
         """An unrecognized composite_mode raises ValueError instead of
         silently falling back to mean/max behavior."""
@@ -661,8 +725,11 @@ class TestReconstructTimeSeriesCompositeMode:
                 composite_mode="bogus",  # type: ignore[arg-type]
             )
 
-    def test_composite_mode_requires_fixed_to_moving_transforms(self) -> None:
-        """mean/max composite_mode without fixed_to_moving_transforms raises ValueError."""
+    @pytest.mark.parametrize("mode", ["mean", "max", "percentile"])
+    def test_composite_mode_requires_fixed_to_moving_transforms(
+        self, mode: Any
+    ) -> None:
+        """Composite modes require transforms onto the fixed grid."""
         fixed_image = _make_constant_image(10.0)
         moving_images = [_make_constant_image(20.0)]
 
@@ -673,7 +740,7 @@ class TestReconstructTimeSeriesCompositeMode:
             registrar.reconstruct_time_series(
                 moving_images=moving_images,
                 moving_to_fixed_transforms=self._identity_transforms(1),
-                composite_mode="mean",
+                composite_mode=mode,
             )
 
 

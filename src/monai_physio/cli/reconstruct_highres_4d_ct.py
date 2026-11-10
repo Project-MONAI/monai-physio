@@ -150,14 +150,20 @@ Examples:
     # Reconstruction options
     parser.add_argument(
         "--composite-mode",
-        choices=["reference", "mean", "max"],
+        choices=["reference", "mean", "max", "percentile"],
         default="reference",
         help=(
             "Image warped back to each time point: 'reference' uses the "
-            "fixed image as-is (default); 'mean'/'max' first build a "
-            "pixel-by-pixel mean/max composite of the fixed image and all "
+            "fixed image as-is (default); 'mean'/'max'/'percentile' first build a "
+            "pixel-by-pixel composite of the fixed image and all "
             "registered time-series images"
         ),
+    )
+    parser.add_argument(
+        "--composite-percentile",
+        type=float,
+        default=95.0,
+        help="Percentile in [0, 100] for --composite-mode percentile (default: 95)",
     )
 
     # Output options
@@ -180,6 +186,10 @@ Examples:
     )
 
     args = parser.parse_args()
+    if args.composite_mode == "percentile" and not (
+        0 <= args.composite_percentile <= 100
+    ):
+        parser.error("--composite-percentile must be finite and in [0, 100]")
 
     # Expand wildcards in time-series-images
     time_series_files = []
@@ -321,7 +331,9 @@ Examples:
         print("\nStarting reconstruction pipeline...")
         print("=" * 70)
         workflow.set_upsample_to_fixed_resolution(True)
-        workflow.set_composite_mode(args.composite_mode)
+        workflow.set_composite_mode(
+            args.composite_mode, percentile=args.composite_percentile
+        )
         result = workflow.process()
 
         # Save results

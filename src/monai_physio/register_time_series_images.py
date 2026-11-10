@@ -335,7 +335,10 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         moving_to_fixed_transforms: list[itk.Transform],
         upsample_to_fixed_resolution: bool = False,
         fixed_to_moving_transforms: Optional[list[itk.Transform]] = None,
-        composite_mode: Literal["reference", "mean", "max", "existing"] = "reference",
+        composite_mode: Literal[
+            "reference", "mean", "max", "percentile", "existing"
+        ] = "reference",
+        composite_percentile: float = 95.0,
     ) -> list[itk.Image]:
         """Reconstruct time series images using moving_to_fixed_transforms.
 
@@ -346,9 +349,9 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         image's original origin and direction.
 
         By default (composite_mode="reference"), the fixed/reference image is
-        warped back to each time point. When composite_mode is "mean" or
-        "max", a single composite image is built first -- the pixel-by-pixel
-        mean or max across the fixed image and every moving image warped onto
+        warped back to each time point. When composite_mode is "mean", "max", or
+        "percentile", a single composite image is built first -- the pixel-by-pixel
+        reduction across the fixed image and every moving image warped onto
         the fixed grid via fixed_to_moving_transforms -- and that composite is warped
         back to each time point instead. This lets anatomy or contrast only
         visible in some frames propagate into every reconstructed time point.
@@ -367,13 +370,16 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             fixed_to_moving_transforms (list[itk.Transform], optional): List of
                 fixed-to-moving transforms (one per moving image), each used to
                 warp that moving image onto the fixed grid. Required when
-                composite_mode is "mean" or "max". Default: None
-            composite_mode (Literal["reference", "mean", "max", "existing"], optional):
+                composite_mode is "mean", "max", or "percentile". Default: None
+            composite_mode (str, optional):
                 Which image to warp back to each time point. "reference" uses
-                the fixed image as-is (default). "mean"/"max" build a composite
-                of the fixed image and all registered moving images first. "existing"
+                the fixed image as-is (default). "mean"/"max"/"percentile" first
+                build a composite of the fixed image and all registered moving
+                images. "existing"
                 uses the composite_reference_image previously computed.
                 Default: "reference"
+            composite_percentile (float, optional): Percentile in [0, 100], used
+                only for "percentile" mode. Default: 95.0
 
         Returns:
             list[itk.Image]: List of reconstructed images in fixed image space
@@ -382,11 +388,13 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             ValueError: If fixed_image is not set
             ValueError: If lengths of moving_images and
                 moving_to_fixed_transforms don't match
-            ValueError: If composite_mode is "mean"/"max" and
+            ValueError: If composite_mode is "mean"/"max"/"percentile" and
                 fixed_to_moving_transforms is not provided or its length
                 doesn't match moving_images
             ValueError: If composite_mode is "existing" and
                 composite_reference_image is not provided
+            ValueError: If composite_mode is invalid or the percentile is not
+                finite and within [0, 100] in "percentile" mode
 
         Example:
             >>> greedy = RegisterImagesGreedy()
@@ -418,7 +426,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
 
         if composite_mode == "reference":
             self.composite_reference_image = self.fixed_image
-        elif composite_mode in ("mean", "max"):
+        elif composite_mode in ("mean", "max", "percentile"):
             if fixed_to_moving_transforms is None or len(
                 fixed_to_moving_transforms
             ) != len(moving_images):
@@ -428,7 +436,10 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
                     f"{composite_mode!r}"
                 )
             self.composite_reference_image = self.compute_composite_reference(
-                moving_images, fixed_to_moving_transforms, composite_mode
+                moving_images,
+                fixed_to_moving_transforms,
+                composite_mode,
+                percentile=composite_percentile,
             )
         elif composite_mode == "existing":
             if self.composite_reference_image is None:
@@ -438,7 +449,8 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
                 )
         else:
             raise ValueError(
-                "composite_mode must be 'reference', 'mean', 'max', or 'existing', "
+                "composite_mode must be 'reference', 'mean', 'max', 'percentile', "
+                "or 'existing', "
                 f"got {composite_mode!r}"
             )
 
@@ -476,7 +488,8 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         self,
         moving_images: list[itk.Image],
         fixed_to_moving_transforms: list[itk.Transform],
-        mode: Literal["mean", "max"],
+        mode: Literal["mean", "max", "percentile"],
+        percentile: float = 95.0,
     ) -> itk.Image:
         """Build a composite reference image from the fixed image and moving images.
 
@@ -494,11 +507,23 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             fixed_to_moving_transforms (list[itk.Transform]): One
                 fixed_to_moving transform per moving image, warping it onto
                 the fixed grid
-            mode (Literal["mean", "max"]): Pixel-wise reduction to apply
+            mode (Literal["mean", "max", "percentile"]): Pixel-wise reduction
+            percentile (float, optional): Percentile in [0, 100], used only for
+                "percentile" mode. Uses linear interpolation between samples.
+                Default: 95.0. Unlike streaming mean/max, percentile reduction
+                retains the registered samples in memory.
 
         Returns:
             itk.Image: Composite image on the fixed image's grid
+
+        Raises:
+            ValueError: If mode is invalid or percentile is not finite and within
+                [0, 100] in "percentile" mode
         """
+        if mode not in ("mean", "max", "percentile"):
+            raise ValueError(f"Invalid composite mode: {mode!r}")
+        if mode == "percentile" and not 0 <= percentile <= 100:
+            raise ValueError("percentile must be finite and in [0, 100]")
         assert self.fixed_image is not None
         fixed_arr = itk.GetArrayViewFromImage(self.fixed_image)
         dtype = fixed_arr.dtype
@@ -512,6 +537,8 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         accumulator = fixed_arr.astype(accumulator_dtype)
         if mode == "mean":
             valid_count = np.ones_like(accumulator)
+        elif mode == "percentile":
+            samples = [accumulator]
 
         for moving_image, fixed_to_moving_transform in zip(
             moving_images, fixed_to_moving_transforms
@@ -539,14 +566,24 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             if mode == "mean":
                 accumulator += np.where(valid_mask, registered_arr, 0)
                 valid_count += valid_mask
+            elif mode == "percentile":
+                samples.append(
+                    np.where(valid_mask, registered_arr, np.nan).astype(
+                        accumulator_dtype
+                    )
+                )
             else:
                 masked = np.where(valid_mask, registered_arr, accumulator)
                 np.maximum(accumulator, masked, out=accumulator)
 
         if mode == "mean":
             accumulator /= valid_count
-            if np.issubdtype(dtype, np.integer):
-                accumulator = np.round(accumulator)
+        elif mode == "percentile":
+            accumulator = np.nanpercentile(
+                np.stack(samples), percentile, axis=0, method="linear"
+            )
+        if mode in ("mean", "percentile") and np.issubdtype(dtype, np.integer):
+            accumulator = np.round(accumulator)
         reduced = accumulator.astype(dtype)
 
         composite = itk.image_from_array(np.ascontiguousarray(reduced))
