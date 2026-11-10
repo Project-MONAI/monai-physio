@@ -1014,5 +1014,50 @@ class TestProcessTransforms:
         assert mean_diff < 10.0, "Identity transform changed image too much"
 
 
+def test_transform_dataset_holds_a_displacement_field_at_its_edge(
+    transform_tools: ProcessTransforms,
+) -> None:
+    """Inside its field a composite warp matches ITK; past it, the edge holds."""
+    field = itk.Image[itk.Vector[itk.D, 3], 3].New()
+    field.SetRegions([5, 5, 5])
+    field.Allocate()
+    field.SetOrigin((10.0, 20.0, 30.0))
+    field.SetSpacing((1.0, 2.0, 1.5))
+    flip = np.diag([-1.0, -1.0, 1.0])
+    field.SetDirection(itk.matrix_from_array(flip))
+    index = np.stack(np.meshgrid(*[np.arange(5.0)] * 3, indexing="ij"), axis=-1)
+    # Displacement grows along the field's own i axis, by 0.1 mm per voxel.
+    itk.array_view_from_image(field)[..., 0] = 0.1 * index[..., 2]
+    field_tfm = itk.DisplacementFieldTransform[itk.D, 3].New()
+    field_tfm.SetDisplacementField(field)
+    affine = itk.AffineTransform[itk.D, 3].New()
+    affine.SetTranslation((1.0, 2.0, 3.0))
+    composite = itk.CompositeTransform[itk.D, 3].New()
+    composite.AddTransform(affine)
+    composite.AddTransform(field_tfm)
+
+    def physical(continuous_index: list[float]) -> np.ndarray:
+        point: np.ndarray = np.array((10.0, 20.0, 30.0)) + flip @ (
+            np.array(continuous_index) * np.array((1.0, 2.0, 1.5))
+        )
+        return point
+
+    inside = np.array(
+        [physical(c) for c in ([0.5, 1.2, 3.7], [3.9, 0.0, 2.2], [2.0, 3.3, 1.1])]
+    )
+    # Six voxels past the field's last i index, on the field's -x side.
+    outside = np.array([physical([10.0, 2.0, 2.0])])
+    mesh = pv.PolyData(np.vstack([inside, outside]))
+
+    warped = np.asarray(transform_tools.transform_dataset(mesh, composite).points)
+
+    expected_inside = [composite.TransformPoint(p.tolist()) for p in inside]
+    np.testing.assert_allclose(warped[:3], expected_inside, atol=1e-9)
+    edge_displacement = np.array([0.4, 0.0, 0.0])
+    np.testing.assert_allclose(
+        warped[3], outside[0] + edge_displacement + np.array([1.0, 2.0, 3.0])
+    )
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "-s"])

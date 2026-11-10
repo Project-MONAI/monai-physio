@@ -16,7 +16,59 @@ import itk
 import numpy as np
 import pytest
 
-from monai_physio.segment_heart_simpleware import SegmentHeartSimpleware
+from monai_physio.segment_heart_simpleware import (
+    SegmentHeartSimpleware,
+    _simpleware_global_to_lps,
+)
+
+_COS = float(np.cos(0.35))
+_SIN = float(np.sin(0.35))
+
+
+@pytest.mark.parametrize(
+    ("direction", "global_point", "index", "expected"),
+    [
+        (np.diag([-1.0, -1.0, 1.0]), (-10, 20, 30), (0, 0, 0), (10, -20, 30)),
+        (np.diag([-1.0, -1.0, 1.0]), (-13, 14, 34), (3, 4, 2), (7, -26, 34)),
+        (np.diag([1.0, -1.0, -1.0]), (10, 20, -30), (0, 0, 0), (10, -20, 30)),
+        (np.diag([1.0, -1.0, -1.0]), (13, 14, -34), (3, 4, 2), (13, -26, 26)),
+        (
+            np.array([[-_COS, _SIN, 0.0], [-_SIN, -_COS, 0.0], [0.0, 0.0, 1.0]]),
+            (-16.251683481826589, 15.358476176508024, 30.0),
+            (0, 0, 0),
+            (10, -20, 30),
+        ),
+        (
+            np.array([[-_COS, _SIN, 0.0], [-_SIN, -_COS, 0.0], [0.0, 0.0, 1.0]]),
+            (-17.012414727634365, 8.6935465151802855, 34.0),
+            (3, 4, 2),
+            (9.23927, -26.6649, 34),
+        ),
+    ],
+)
+def test_simpleware_global_to_lps(
+    direction: np.ndarray,
+    global_point: tuple[float, float, float],
+    index: tuple[int, int, int],
+    expected: tuple[float, float, float],
+) -> None:
+    """Simpleware Y-2026.03 global-frame landmarks map to the input image's points.
+
+    Global points were measured in ConsoleSimplewareMedical Y-2026.03 on
+    synthetic NIfTI images with these geometries.
+    """
+    image = itk.Image[itk.F, 3].New()
+    image.SetRegions([20, 24, 16])
+    image.SetOrigin([10.0, -20.0, 30.0])
+    image.SetSpacing([1.0, 1.5, 2.0])
+    image.SetDirection(itk.matrix_from_array(direction))
+
+    lps = _simpleware_global_to_lps(global_point, image)
+
+    np.testing.assert_allclose(lps, expected, atol=1e-3)
+    np.testing.assert_allclose(
+        lps, image.TransformIndexToPhysicalPoint(index), atol=1e-3
+    )
 
 
 def _simpleware_available(segmenter: SegmentHeartSimpleware) -> bool:

@@ -8,6 +8,7 @@ negative-determinant direction can exercise.
 from __future__ import annotations
 
 import importlib
+import importlib.util
 import logging
 import sys
 from collections.abc import Sequence
@@ -72,7 +73,7 @@ def _touching_boxes() -> itk.Image:
     return labelmap
 
 
-def _point_keys(surface: pv.PolyData) -> set[tuple[float, ...]]:
+def _point_keys(surface: pv.DataSet) -> set[tuple[float, ...]]:
     """Return *surface*'s points as hashable, rounded coordinate triples."""
     return {tuple(point) for point in np.round(np.asarray(surface.points), 6).tolist()}
 
@@ -363,7 +364,8 @@ class TestSingleMaskSurface:
         assert contour_tools.is_watertight(reduced)
 
 
-class TestExtractTetrahedra:
+@pytest.mark.requires_gpu
+class TestExtractLabelTetrahedraVtk:
     """The per-label volume mesh must be tetrahedral and positively oriented."""
 
     @pytest.mark.requires_gpu
@@ -372,7 +374,7 @@ class TestExtractTetrahedra:
     ) -> None:
         """Every cell is a tetrahedron, six per labeled voxel."""
         mask = _label_mask(heart_labelmap, BORDER_LABEL)
-        mesh = volume_tools.extract_tetrahedra(mask)
+        mesh = volume_tools.extract_label_tetrahedra_vtk(mask)[1]
 
         assert set(mesh.celltypes) == {pv.CellType.TETRA}
         voxels = int(np.count_nonzero(itk.GetArrayViewFromImage(mask)))
@@ -386,7 +388,7 @@ class TestExtractTetrahedra:
         Regression guard for the hexahedron winding flip: triangulating the raw
         voxel cells of a left-handed image inverts every tetrahedron.
         """
-        mesh = volume_tools.extract_tetrahedra(_left_handed_box())
+        mesh = volume_tools.extract_label_tetrahedra_vtk(_left_handed_box())[1]
 
         volumes = mesh.compute_cell_sizes(volume=True)["Volume"]
         assert np.all(volumes > 0.0), "no tetrahedron may have negative volume"
@@ -400,8 +402,10 @@ class TestExtractTetrahedra:
         """Elements twice the voxel keep the volume while shedding cells cubically."""
         mask = _label_mask(heart_labelmap, BORDER_LABEL)
         voxel = float(np.min(np.asarray(mask.GetSpacing())))
-        full = volume_tools.extract_tetrahedra(mask, element_size_mm=voxel)
-        coarse = volume_tools.extract_tetrahedra(mask, element_size_mm=2.0 * voxel)
+        full = volume_tools.extract_label_tetrahedra_vtk(mask, element_size_mm=voxel)[1]
+        coarse = volume_tools.extract_label_tetrahedra_vtk(
+            mask, element_size_mm=2.0 * voxel
+        )[1]
 
         full_volume = float(np.sum(full.compute_cell_sizes(volume=True)["Volume"]))
         coarse_volume = float(np.sum(coarse.compute_cell_sizes(volume=True)["Volume"]))
@@ -414,7 +418,32 @@ class TestExtractTetrahedra:
         """A mask with nothing in it has no bounding box to mesh."""
         empty = itk.GetImageFromArray(np.zeros((4, 4, 4), dtype=np.uint8))
 
-        assert volume_tools.extract_tetrahedra(empty).n_cells == 0
+        assert volume_tools.extract_label_tetrahedra_vtk(empty) == {}
+
+    def test_each_label_gets_its_own_mesh(
+        self, volume_tools: ProcessVolumetricMesh
+    ) -> None:
+        """Touching labels are meshed apart, tagged, and meet on coincident nodes."""
+        labelmap = _touching_boxes()
+        meshes = volume_tools.extract_label_tetrahedra_vtk(labelmap)
+
+        assert sorted(meshes) == [1, 2]
+        labels = itk.GetArrayViewFromImage(labelmap)
+        for label_id, mesh in meshes.items():
+            assert mesh.field_data["SegmentationLabelIds"].tolist() == [label_id]
+            assert mesh.n_cells == 6 * int(np.count_nonzero(labels == label_id))
+        # The shared wall is 32 x 8 voxels, so 33 x 9 corner nodes.
+        assert len(_point_keys(meshes[1]) & _point_keys(meshes[2])) == 33 * 9
+
+    def test_label_ids_select_the_labels(
+        self, volume_tools: ProcessVolumetricMesh
+    ) -> None:
+        """Labels left out of *label_ids* are treated as background."""
+        meshes = volume_tools.extract_label_tetrahedra_vtk(
+            _touching_boxes(), label_ids=[2]
+        )
+
+        assert sorted(meshes) == [2]
 
     @pytest.mark.requires_gpu
     def test_elements_are_isotropic(self, volume_tools: ProcessVolumetricMesh) -> None:
@@ -424,11 +453,276 @@ class TestExtractTetrahedra:
         voxels inherits their slice pitch, which is what made these meshes
         blocky along one axis.
         """
-        mesh = volume_tools.extract_tetrahedra(_left_handed_box(), element_size_mm=1.0)
+        mesh = volume_tools.extract_label_tetrahedra_vtk(
+            _left_handed_box(), element_size_mm=1.0
+        )[1]
 
         volumes = np.asarray(mesh.compute_cell_sizes(volume=True)["Volume"])
         # Six tetrahedra fill a 1 mm cube.
         assert float(np.median(volumes)) == pytest.approx(1.0 / 6.0, rel=1e-6)
+
+
+def _volume_and_centroid(mesh: pv.UnstructuredGrid) -> tuple[float, np.ndarray]:
+    """Return *mesh*'s total cell volume and volume-weighted centroid."""
+    volumes = np.asarray(mesh.compute_cell_sizes(volume=True)["Volume"])
+    centers = np.asarray(mesh.cell_centers().points)
+    total = float(np.sum(volumes))
+    return total, (centers * volumes[:, np.newaxis]).sum(axis=0) / total
+
+
+_TETRAHEDRA_MESHERS = [
+    pytest.param(
+        "extract_label_tetrahedra_netgen",
+        marks=[
+            pytest.mark.requires_gpu,
+            pytest.mark.skipif(
+                importlib.util.find_spec("netgen") is None,
+                reason="netgen extra (netgen-mesher) not installed",
+            ),
+        ],
+        id="netgen",
+    ),
+    pytest.param(
+        "extract_label_tetrahedra_simpleware",
+        marks=[pytest.mark.requires_gpu, pytest.mark.requires_simpleware],
+        id="simpleware",
+    ),
+]
+
+
+@pytest.mark.parametrize("mesher", _TETRAHEDRA_MESHERS)
+class TestExtractLabelTetrahedraExternal:
+    """External meshers must fill the mask, in its frame, with valid tetrahedra."""
+
+    def test_mesh_fills_the_mask(
+        self,
+        volume_tools: ProcessVolumetricMesh,
+        heart_labelmap: itk.Image,
+        mesher: str,
+    ) -> None:
+        """Cells are positive tetrahedra matching the voxel mesh's volume and place."""
+        mask = _label_mask(heart_labelmap, BORDER_LABEL)
+        mesh = getattr(volume_tools, mesher)(mask, element_size_mm=3.0)[1]
+
+        assert set(mesh.celltypes) == {pv.CellType.TETRA}
+        volumes = mesh.compute_cell_sizes(volume=True)["Volume"]
+        assert np.all(volumes > 0.0), "no tetrahedron may be inverted"
+        volume, centroid = _volume_and_centroid(mesh)
+        voxel_volume, voxel_centroid = _volume_and_centroid(
+            volume_tools.extract_label_tetrahedra_vtk(mask)[1]
+        )
+        # netgen meshes a surface smoothed at the element size, which sheds
+        # about 5% of this label's volume at 3 mm.
+        assert volume == pytest.approx(voxel_volume, rel=0.1)
+        assert np.linalg.norm(centroid - voxel_centroid) < float(
+            np.max(mask.GetSpacing())
+        )
+
+    def test_left_handed_direction_keeps_frame_and_orientation(
+        self, volume_tools: ProcessVolumetricMesh, mesher: str
+    ) -> None:
+        """A negative-determinant direction neither inverts nor moves the mesh."""
+        mask = _left_handed_box()
+        mesh = getattr(volume_tools, mesher)(mask, element_size_mm=1.0)[1]
+
+        volumes = mesh.compute_cell_sizes(volume=True)["Volume"]
+        assert mesh.n_cells > 0
+        assert np.all(volumes > 0.0), "no tetrahedron may be inverted"
+        _, centroid = _volume_and_centroid(mesh)
+        _, voxel_centroid = _volume_and_centroid(
+            volume_tools.extract_label_tetrahedra_vtk(mask)[1]
+        )
+        assert np.linalg.norm(centroid - voxel_centroid) < 1.0
+
+    def test_empty_mask_yields_an_empty_mesh(
+        self, volume_tools: ProcessVolumetricMesh, mesher: str
+    ) -> None:
+        """A mask with nothing in it is not handed to the mesher."""
+        empty = itk.GetImageFromArray(np.zeros((4, 4, 4), dtype=np.uint8))
+
+        assert getattr(volume_tools, mesher)(empty) == {}
+
+    def test_touching_labels_meet_on_coincident_nodes(
+        self, volume_tools: ProcessVolumetricMesh, mesher: str
+    ) -> None:
+        """Each label gets its own valid mesh, and touching labels' meshes meet."""
+        meshes = getattr(volume_tools, mesher)(_touching_boxes(), element_size_mm=2.0)
+
+        assert sorted(meshes) == [1, 2]
+        for label_id, mesh in meshes.items():
+            assert mesh.field_data["SegmentationLabelIds"].tolist() == [label_id]
+            volumes = mesh.compute_cell_sizes(volume=True)["Volume"]
+            assert np.all(volumes > 0.0), "no tetrahedron may be inverted"
+        assert len(_point_keys(meshes[1]) & _point_keys(meshes[2])) > 100
+
+
+@pytest.mark.requires_gpu
+@pytest.mark.requires_simpleware
+def test_simpleware_independent_labels_share_no_nodes(
+    volume_tools: ProcessVolumetricMesh,
+) -> None:
+    """``shared_interfaces=False`` meshes each label in a model of its own."""
+    meshes = volume_tools.extract_label_tetrahedra_simpleware(
+        _touching_boxes(), element_size_mm=2.0, shared_interfaces=False
+    )
+
+    assert sorted(meshes) == [1, 2]
+    assert not _point_keys(meshes[1]) & _point_keys(meshes[2])
+
+
+@pytest.mark.requires_gpu
+@pytest.mark.requires_simpleware
+def test_simpleware_blur_smooths_the_boundary(
+    volume_tools: ProcessVolumetricMesh, heart_labelmap: itk.Image
+) -> None:
+    """The default blur takes the voxel staircase out of Simpleware's boundary.
+
+    A staircase shows as boundary faces whose normals lie along an image
+    axis; on this label the blur drops their share from about 47% to 41%.
+    """
+    mask = _label_mask(heart_labelmap, BORDER_LABEL)
+    staircase = volume_tools.extract_label_tetrahedra_simpleware(
+        mask, element_size_mm=3.0, smoothing_sigma_mm=0.0
+    )[1]
+    smoothed = volume_tools.extract_label_tetrahedra_simpleware(
+        mask, element_size_mm=3.0
+    )[1]
+
+    def axis_aligned_fraction(mesh: pv.UnstructuredGrid) -> float:
+        boundary = mesh.extract_surface(algorithm="dataset_surface").compute_normals(
+            cell_normals=True, point_normals=False
+        )
+        normals = np.abs(np.asarray(boundary.cell_data["Normals"]))
+        return float((normals.max(axis=1) > np.cos(np.radians(10.0))).mean())
+
+    assert axis_aligned_fraction(smoothed) < 0.95 * axis_aligned_fraction(staircase)
+
+
+@pytest.mark.requires_gpu
+@pytest.mark.skipif(
+    importlib.util.find_spec("netgen") is None,
+    reason="netgen extra (netgen-mesher) not installed",
+)
+def test_netgen_blur_reaches_the_surface(
+    volume_tools: ProcessVolumetricMesh, heart_labelmap: itk.Image
+) -> None:
+    """``smoothing_sigma_mm`` sets the blur of the surface netgen fills.
+
+    A wider blur pulls the contour in; on this label 6 mm sheds about 6% more
+    of the volume than no blur.
+    """
+    mask = _label_mask(heart_labelmap, BORDER_LABEL)
+    unblurred, _ = _volume_and_centroid(
+        volume_tools.extract_label_tetrahedra_netgen(
+            mask, element_size_mm=3.0, smoothing_sigma_mm=0.0
+        )[1]
+    )
+    blurred, _ = _volume_and_centroid(
+        volume_tools.extract_label_tetrahedra_netgen(
+            mask, element_size_mm=3.0, smoothing_sigma_mm=6.0
+        )[1]
+    )
+
+    assert blurred < 0.97 * unblurred
+
+
+@pytest.mark.requires_gpu
+@pytest.mark.skipif(
+    importlib.util.find_spec("netgen") is None,
+    reason="netgen extra (netgen-mesher) not installed",
+)
+def test_netgen_smoothing_iterations_reach_the_surface(
+    volume_tools: ProcessVolumetricMesh, heart_labelmap: itk.Image
+) -> None:
+    """``smoothing_iterations`` sets the Taubin smoothing of the surface netgen fills."""
+    mask = _label_mask(heart_labelmap, BORDER_LABEL)
+
+    def boundary_roughness(smoothing_iterations: int) -> float:
+        mesh = volume_tools.extract_label_tetrahedra_netgen(
+            mask, element_size_mm=3.0, smoothing_iterations=smoothing_iterations
+        )[1]
+        return _roughness(mesh.extract_surface(algorithm="dataset_surface"))
+
+    assert boundary_roughness(30) < boundary_roughness(0)
+
+
+@pytest.mark.requires_gpu
+@pytest.mark.skipif(
+    importlib.util.find_spec("netgen") is None,
+    reason="netgen extra (netgen-mesher) not installed",
+)
+def test_netgen_independent_labels_share_few_nodes(
+    volume_tools: ProcessVolumetricMesh,
+) -> None:
+    """``shared_interfaces=False`` re-tiles each label's surface on its own.
+
+    netgen keeps the vertices of sharp feature edges, such as the rim where
+    the boxes' shared wall meets their outer faces, so a few nodes still
+    coincide, but the wall's interior is tiled independently.
+    """
+
+    def shared_nodes(shared_interfaces: bool) -> int:
+        meshes = volume_tools.extract_label_tetrahedra_netgen(
+            _touching_boxes(),
+            element_size_mm=2.0,
+            shared_interfaces=shared_interfaces,
+            contour_spacing_mm=1.0,
+        )
+        assert sorted(meshes) == [1, 2]
+        for mesh in meshes.values():
+            volumes = mesh.compute_cell_sizes(volume=True)["Volume"]
+            assert np.all(volumes > 0.0), "no tetrahedron may be inverted"
+        return len(_point_keys(meshes[1]) & _point_keys(meshes[2]))
+
+    assert shared_nodes(False) < 0.2 * shared_nodes(True)
+
+
+@pytest.mark.skipif(
+    importlib.util.find_spec("netgen") is None,
+    reason="netgen extra (netgen-mesher) not installed",
+)
+def test_netgen_retiling_a_self_intersecting_surface_raises(
+    volume_tools: ProcessVolumetricMesh,
+) -> None:
+    """netgen's re-tiling ends its process on such a surface; ours survives."""
+    overlapping_boxes = pv.merge(
+        [
+            pv.Box(bounds=(0, 10, 0, 10, 0, 10), level=4).triangulate(),
+            pv.Box(bounds=(5, 15, 5, 15, 5, 15), level=4).triangulate(),
+        ]
+    ).extract_surface()
+
+    with pytest.raises(RuntimeError, match="intersects itself"):
+        volume_tools._retile_and_fill_netgen(overlapping_boxes, 2.0, 1)
+
+
+@pytest.mark.requires_gpu
+@pytest.mark.skipif(
+    importlib.util.find_spec("netgen") is None,
+    reason="netgen extra (netgen-mesher) not installed",
+)
+def test_netgen_contour_spacing_sets_the_boundary_triangles(
+    volume_tools: ProcessVolumetricMesh, heart_labelmap: itk.Image
+) -> None:
+    """A finer contour grid multiplies the shared boundary's triangles.
+
+    Re-tiling the surfaces on their own brings them back to about the
+    element size.
+    """
+    mask = _label_mask(heart_labelmap, BORDER_LABEL)
+
+    def boundary_triangles(**kwargs: Any) -> int:
+        mesh = volume_tools.extract_label_tetrahedra_netgen(
+            mask, element_size_mm=3.0, **kwargs
+        )[1]
+        return int(mesh.extract_surface(algorithm="dataset_surface").n_cells)
+
+    coarse = boundary_triangles()
+    fine = boundary_triangles(contour_spacing_mm=1.5)
+    retiled = boundary_triangles(contour_spacing_mm=1.5, shared_interfaces=False)
+
+    assert fine > 3 * coarse
+    assert 0.5 * coarse < retiled < 1.5 * coarse
 
 
 @pytest.mark.requires_gpu
@@ -458,7 +752,7 @@ class TestTrimTetrahedraToSurface:
         """
         mask = _label_mask(heart_labelmap, BORDER_LABEL)
         surface = contour_tools.extract_label_surfaces(mask)[1]
-        mesh = volume_tools.extract_tetrahedra(mask)
+        mesh = volume_tools.extract_label_tetrahedra_vtk(mask)[1]
         relaxed = volume_tools.trim_tetrahedra_to_surface(mesh, surface)
 
         before = self._boundary_gap(mesh, surface)
@@ -479,7 +773,7 @@ class TestTrimTetrahedraToSurface:
         """
         mask = _label_mask(heart_labelmap, BORDER_LABEL)
         surface = contour_tools.extract_label_surfaces(mask)[1]
-        mesh = volume_tools.extract_tetrahedra(mask)
+        mesh = volume_tools.extract_label_tetrahedra_vtk(mask)[1]
         relaxed = volume_tools.trim_tetrahedra_to_surface(mesh, surface)
 
         assert set(relaxed.celltypes) == {pv.CellType.TETRA}
@@ -489,19 +783,18 @@ class TestTrimTetrahedraToSurface:
         )
         assert np.min(quality) >= 0.1, "no tetrahedron may be left a sliver"
 
-    def test_anatomy_color_survives(
+    def test_cell_and_field_data_survive(
         self, contour_tools: ProcessSurfaceMesh, volume_tools: ProcessVolumetricMesh
     ) -> None:
-        """Cell and field data attached at extraction are carried through."""
+        """Cell and field data on the mesh are carried through."""
         mask = _left_handed_box()
         surface = contour_tools.extract_label_surfaces(mask)[1]
-        mesh = volume_tools.extract_tetrahedra(mask, anatomy_names=["heart"])
+        mesh = volume_tools.extract_label_tetrahedra_vtk(mask)[1]
+        mesh.cell_data["SegmentationLabelIds"] = np.ones(mesh.n_cells, np.int32)
         relaxed = volume_tools.trim_tetrahedra_to_surface(mesh, surface)
 
-        assert "Color" in relaxed.cell_data
-        assert np.array_equal(
-            relaxed.field_data["AnatomyColor"], mesh.field_data["AnatomyColor"]
-        )
+        assert "SegmentationLabelIds" in relaxed.cell_data
+        assert relaxed.field_data["SegmentationLabelIds"].tolist() == [1]
 
 
 @pytest.mark.requires_gpu
@@ -546,7 +839,9 @@ class TestRemoveBoundarySlivers:
     def test_leaves_a_mesh_without_slivers_unchanged(
         self, volume_tools: ProcessVolumetricMesh
     ) -> None:
-        mesh = volume_tools.extract_tetrahedra(_left_handed_box(), element_size_mm=1.0)
+        mesh = volume_tools.extract_label_tetrahedra_vtk(
+            _left_handed_box(), element_size_mm=1.0
+        )[1]
 
         assert volume_tools.remove_boundary_slivers(mesh) is mesh
 
@@ -560,7 +855,7 @@ class TestRemoveBoundarySlivers:
         mask = _label_mask(heart_labelmap, BORDER_LABEL)
         surface = contour_tools.extract_label_surfaces(mask)[1]
         relaxed = volume_tools.trim_tetrahedra_to_surface(
-            volume_tools.extract_tetrahedra(mask), surface
+            volume_tools.extract_label_tetrahedra_vtk(mask)[1], surface
         )
 
         cleaned = volume_tools.remove_boundary_slivers(relaxed)
@@ -740,7 +1035,7 @@ class TestS1TrimMatchesFrozenBase:
         """Default arguments, both direction handednesses."""
         mask = _ball_mask(spacing, direction_sign)
         surface = contour_tools.extract_label_surfaces(mask)[1]
-        mesh = volume_tools.extract_tetrahedra(mask)
+        mesh = volume_tools.extract_label_tetrahedra_vtk(mask)[1]
 
         expected, _ = _frozen_base_trim(mesh, surface)
         relaxed = volume_tools.trim_tetrahedra_to_surface(mesh, surface)
@@ -756,7 +1051,7 @@ class TestS1TrimMatchesFrozenBase:
         """A tight bound and a long step force the back-off to repeat."""
         mask = _ball_mask((1.0, 1.0, 1.0), 1.0)
         surface = contour_tools.extract_label_surfaces(mask)[1]
-        mesh = volume_tools.extract_tetrahedra(mask)
+        mesh = volume_tools.extract_label_tetrahedra_vtk(mask)[1]
 
         expected, passes = _frozen_base_trim(
             mesh, surface, relaxation=0.9, min_scaled_jacobian=0.4
@@ -776,7 +1071,7 @@ class TestS1TrimMatchesFrozenBase:
         """No sweep means only the crinkle clip is applied."""
         mask = _ball_mask((1.0, 1.0, 1.0), 1.0)
         surface = contour_tools.extract_label_surfaces(mask)[1]
-        mesh = volume_tools.extract_tetrahedra(mask)
+        mesh = volume_tools.extract_label_tetrahedra_vtk(mask)[1]
 
         expected, _ = _frozen_base_trim(mesh, surface, iterations=0)
         relaxed = volume_tools.trim_tetrahedra_to_surface(mesh, surface, iterations=0)
@@ -1110,8 +1405,10 @@ class TestS2GpuMatchesItk:
         """A coarser element size votes to the same tetrahedral mesh."""
         mask = _irregular_mask(spacing, direction_sign)
 
-        expected = _itk_volume_tools().extract_tetrahedra(mask, element_size_mm=1.5)
-        actual = volume_tools.extract_tetrahedra(mask, element_size_mm=1.5)
+        expected = _itk_volume_tools().extract_label_tetrahedra_vtk(
+            mask, element_size_mm=1.5
+        )[1]
+        actual = volume_tools.extract_label_tetrahedra_vtk(mask, element_size_mm=1.5)[1]
 
         assert abs(actual.n_cells - expected.n_cells) <= 0.01 * expected.n_cells
         assert set(actual.celltypes) == {int(pv.CellType.TETRA)}
@@ -1133,12 +1430,14 @@ class TestS2GpuMatchesItk:
             arr[step + 5, step + 5, step + 5] = 1
         thin_line = itk.GetImageFromArray(arr)
 
-        expected = _itk_volume_tools().extract_tetrahedra(
+        expected = _itk_volume_tools().extract_label_tetrahedra_vtk(
             thin_line, element_size_mm=8.0
         )
-        actual = volume_tools.extract_tetrahedra(thin_line, element_size_mm=8.0)
+        actual = volume_tools.extract_label_tetrahedra_vtk(
+            thin_line, element_size_mm=8.0
+        )
 
-        assert actual.n_cells == expected.n_cells == 0
+        assert actual == expected == {}
 
     @pytest.mark.requires_gpu
     def test_s2_2_closest_point_distance_matches_implicit_distance(
@@ -1149,7 +1448,7 @@ class TestS2GpuMatchesItk:
 
         mask = _ball_mask((1.0, 1.0, 1.0), 1.0)
         surface = contour_tools.extract_label_surfaces(mask)[1]
-        mesh = volume_tools.extract_tetrahedra(mask, element_size_mm=1.5)
+        mesh = volume_tools.extract_label_tetrahedra_vtk(mask, element_size_mm=1.5)[1]
         boundary = mesh.extract_surface(algorithm="dataset_surface")
 
         expected = float(
@@ -1222,7 +1521,7 @@ class TestS2UnsmoothedMatchesItk:
         """Tetrahedra fill exactly the voxels ITK's vote keeps, ties included."""
         mask = _irregular_mask(spacing, direction_sign)
 
-        mesh = volume_tools.extract_tetrahedra(mask, element_size_mm=1.5)
+        mesh = volume_tools.extract_label_tetrahedra_vtk(mask, element_size_mm=1.5)[1]
 
         cropped = ProcessImages().crop_to_nonzero(mask)
         voted = _itk_resample_labelmap_isotropic(
@@ -1287,7 +1586,7 @@ def test_s4_1_gpu_crinkle_matches_vtk_clip(
     """The GPU cell selection keeps the cells, arrays and scalars VTK's does."""
     mask = _ball_mask(spacing, direction_sign)
     surface = contour_tools.extract_label_surfaces(mask)[1]
-    mesh = volume_tools.extract_tetrahedra(mask, anatomy_names=["myocardium", "heart"])
+    mesh = volume_tools.extract_label_tetrahedra_vtk(mask)[1]
 
     expected = mesh.clip_surface(surface, invert=True, crinkle=True)
     relaxed = volume_tools.trim_tetrahedra_to_surface(mesh, surface, iterations=0)
@@ -1331,7 +1630,7 @@ def test_s4_1_trim_keeps_the_empty_result_when_the_surface_misses(
     """A surface that holds no point of the mesh trims every cell away."""
     mask = _ball_mask((1.0, 1.0, 1.0), 1.0)
     surface = contour_tools.extract_label_surfaces(mask)[1]
-    mesh = volume_tools.extract_tetrahedra(mask)
+    mesh = volume_tools.extract_label_tetrahedra_vtk(mask)[1]
     far = surface.translate((500.0, 0.0, 0.0), inplace=False)
 
     relaxed = volume_tools.trim_tetrahedra_to_surface(mesh, far)

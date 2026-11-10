@@ -15,7 +15,7 @@ This tutorial therefore builds the same model volumetrically:
 1. Build the unbiased mean surface of the population, exactly as Tutorial 6
    does.
 2. Fill that surface with tetrahedra
-   (``ProcessVolumetricMesh.extract_tetrahedra`` then ``trim_tetrahedra_to_surface``).
+   (``ProcessVolumetricMesh.extract_label_tetrahedra_vtk`` then ``trim_tetrahedra_to_surface``).
    Those cells become the elements the strain energy is summed over, and
    because every subject and phase inherits the template's topology, one set of
    element node ids stays valid across the whole cohort.
@@ -309,9 +309,9 @@ if __name__ == "__main__":
             reference_surface, voxelization_grid
         )
         template_mesh = volume_tools.trim_tetrahedra_to_surface(
-            volume_tools.extract_tetrahedra(
+            volume_tools.extract_label_tetrahedra_vtk(
                 reference_mask, element_size_mm=ssm_element_size_mm
-            ),
+            )[1],
             reference_surface,
             min_scaled_jacobian=0.25,
         )

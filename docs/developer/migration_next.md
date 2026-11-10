@@ -37,3 +37,52 @@ new_call(argument, required_option="value")
 
 **Automated conversion:** `<path to script or CLI>`, or `None needed`.
 ````
+
+## `ProcessVolumetricMesh.extract_tetrahedra` - now `extract_label_tetrahedra_vtk`, one mesh per label
+
+**Change:** `ProcessVolumetricMesh.extract_tetrahedra(mask_image, element_size_mm,
+anatomy_names)` is now
+`ProcessVolumetricMesh.extract_label_tetrahedra_vtk(labelmap_image,
+element_size_mm, label_ids)`.  It meshes every non-zero label of the image and
+returns `{label id: pv.UnstructuredGrid}`, each grid tagged with
+`field_data["SegmentationLabelIds"]`, mirroring
+`ProcessSurfaceMesh.extract_label_surfaces`; a 0/1 mask gives `{1: mesh}`, and
+an empty one `{}` instead of an empty grid.  `anatomy_names` is gone: color a
+mesh with `ProcessUSDAnatomy.apply_anatomy_color`.  It sits beside two new
+meshers with the same shape, `extract_label_tetrahedra_netgen` (the optional
+`netgen` extra) and `extract_label_tetrahedra_simpleware` (a licensed
+Simpleware Medical install).
+
+**Why:** a labelmap's structures - chambers, myocardium, vessels - are now
+meshed apart in one call, each keeping its identity through warping and into
+the USD, rather than fused into one solid; neighboring labels' meshes meet on
+coincident nodes.  The `extract_label_*` names and the labelmap argument match
+`extract_label_surfaces`, and the suffix says which mesher a call uses, so
+switching meshers is a one-word change.
+
+**Before**
+
+```python
+from monai_physio import ProcessVolumetricMesh
+
+mesh = ProcessVolumetricMesh().extract_tetrahedra(
+    mask, element_size_mm=1.5, anatomy_names=["heart"]
+)
+```
+
+**After**
+
+```python
+from monai_physio import ProcessUSDAnatomy, ProcessVolumetricMesh
+
+meshes = ProcessVolumetricMesh().extract_label_tetrahedra_vtk(mask, element_size_mm=1.5)
+mesh = meshes[1]
+ProcessUSDAnatomy(stage=None).apply_anatomy_color(mesh, ["heart"])
+```
+
+**Automated conversion:** `py utils/migrate_extract_label_tetrahedra.py [--dry-run] PATH [PATH ...]`
+rewrites each call and appends `[1]`; it reports calls passing
+`anatomy_names` for a hand edit.  Masks whose foreground is not 1, or that may
+be empty, also need a hand edit (index by the foreground value, or use
+`.get(1)`).  Run `utils/migrate_process_contours.py` first for code still
+using `ProcessContours`.

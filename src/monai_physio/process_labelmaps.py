@@ -4,7 +4,8 @@ Labelmap Tools for MONAI Physio
 This module provides the :class:`ProcessLabelmaps` class with the definitive
 utility for turning a multi-label (or binary) segmentation labelmap into a
 binary registration mask, optionally excluding specific labels and dilating
-the result by a physical radius in millimeters.
+the result by a physical radius in millimeters, and for cleaning binary masks
+by removing islands and filling enclosed holes.
 """
 
 import logging
@@ -35,6 +36,8 @@ class ProcessLabelmaps(MONAIPhysioBase):
         >>> mask = tools.convert_labelmap_to_mask(
         ...     labelmap, dilation_in_mm=5.0, exclude_labels=[8, 9]
         ... )
+        >>> # One solid piece, e.g. before tetrahedral meshing
+        >>> mask = tools.fill_holes(tools.remove_islands(mask))
     """
 
     def __init__(self, log_level: int | str = logging.INFO) -> None:
@@ -93,6 +96,101 @@ class ProcessLabelmaps(MONAIPhysioBase):
         return itk.binary_dilate_image_filter(
             mask, kernel=structuring_element, foreground_value=1
         )
+
+    @staticmethod
+    def _binary_uchar(mask: itk.Image) -> itk.Image:
+        """Return *mask*'s non-zero voxels as a 0/1 ``itk.UC`` image."""
+        binary = itk.image_from_array(
+            (itk.array_view_from_image(mask) != 0).astype(np.uint8)
+        )
+        binary.CopyInformation(mask)
+        return binary
+
+    def remove_islands(
+        self,
+        mask: itk.Image,
+        min_island_volume_mm3: Optional[float] = None,
+    ) -> itk.Image:
+        """Remove the disconnected pieces of a binary mask.
+
+        Foreground voxels are grouped into face-connected components with
+        ITK's ``ConnectedComponentImageFilter``, which
+        ``RelabelComponentImageFilter`` then orders by size.  Voxels that touch
+        only along an edge or at a corner belong to different components.
+
+        Args:
+            mask: Binary mask; any non-zero voxel is foreground.
+            min_island_volume_mm3: Components smaller than this volume are
+                removed and all others kept.  ``None`` (default) keeps only
+                the largest component.
+
+        Returns:
+            ``itk.Image[itk.UC, N]`` 0/1 mask in the same physical space as
+            *mask*; all zero if *mask* is empty.
+        """
+        binary = self._binary_uchar(mask)
+        dimension = binary.GetImageDimension()
+        mask_type = itk.Image[itk.UC, dimension]
+        # The relabeled ids are unsigned short, which is enough to number the
+        # components that survive any realistic mask.
+        component_type = itk.Image[itk.ULL, dimension]
+        label_type = itk.Image[itk.US, dimension]
+
+        components = itk.ConnectedComponentImageFilter[mask_type, component_type].New(
+            Input=binary, FullyConnected=False
+        )
+        relabel = itk.RelabelComponentImageFilter[component_type, label_type].New(
+            Input=components.GetOutput()
+        )
+        if min_island_volume_mm3 is not None:
+            voxel_volume = float(np.prod(np.asarray(binary.GetSpacing())))
+            relabel.SetMinimumObjectSize(
+                int(np.ceil(min_island_volume_mm3 / voxel_volume))
+            )
+        relabel.Update()
+
+        # Relabeling numbers the components from 1 in decreasing size.
+        labels = itk.array_view_from_image(relabel.GetOutput())
+        kept = labels == 1 if min_island_volume_mm3 is None else labels > 0
+        found = relabel.GetOriginalNumberOfObjects()
+        n_kept = (
+            min(found, 1)
+            if min_island_volume_mm3 is None
+            else (relabel.GetNumberOfObjects())
+        )
+        if found > n_kept:
+            self.log_info(
+                "Removed %d of %d connected component(s).", found - n_kept, found
+            )
+        result = itk.image_from_array(kept.astype(np.uint8))
+        result.CopyInformation(binary)
+        return result
+
+    def fill_holes(self, mask: itk.Image) -> itk.Image:
+        """Fill the enclosed holes of a binary mask.
+
+        ITK's ``BinaryFillholeImageFilter`` sets to foreground every
+        background region that is not face-connected to the image border, so
+        cavities enclosed by the mask are filled while openings to the
+        outside are kept.
+
+        Args:
+            mask: Binary mask; any non-zero voxel is foreground.
+
+        Returns:
+            ``itk.Image[itk.UC, N]`` 0/1 mask in the same physical space as
+            *mask*.
+        """
+        binary = self._binary_uchar(mask)
+        filled = itk.binary_fillhole_image_filter(
+            binary, foreground_value=1, fully_connected=False
+        )
+        added = int(np.count_nonzero(itk.array_view_from_image(filled))) - int(
+            np.count_nonzero(itk.array_view_from_image(binary))
+        )
+        if added:
+            self.log_info("Filled %d hole voxel(s).", added)
+        return filled
 
     def create_distance_map(
         self,

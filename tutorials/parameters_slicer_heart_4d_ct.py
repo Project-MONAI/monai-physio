@@ -40,7 +40,10 @@ class ParametersSlicerHeart4DCT(ParametersBase):
             small pulmonary vessels; 1.8 mm starts to break them off.
         mesh_element_size_mm: Edge length of the isotropic voxels a labelmap
             is resampled to before it is meshed into tetrahedra, which is the
-            resulting element size.
+            resulting element size; also the target element size of the
+            netgen and Simpleware tetmeshes.  At 1 mm the smoothed
+            heart-and-contrast surface netgen meshes touches itself at thin
+            walls and netgen rejects it; 2 mm meshes in under a minute.
         segmenter_class: Segmenter every Slicer-Heart-CT tutorial instantiates.
         registration_class: Registration method every Slicer-Heart-CT tutorial
             instantiates.
@@ -49,7 +52,7 @@ class ParametersSlicerHeart4DCT(ParametersBase):
 
     surface_reduction_rate: float = 0.2
     surface_distance_sigma_mm: float = 1.2
-    mesh_element_size_mm: float = 1.0
+    mesh_element_size_mm: float = 2.0
 
     segmenter_class: type[SegmentAnatomyBase] = SegmentChestTotalSegmentatorWithContrast
     registration_class: type[RegisterImagesBase] = RegisterImagesGreedy

@@ -221,6 +221,15 @@ cuda12 = [
   "torch>=2.10,<2.12",
   "torchvision",
 ]
+# Unstructured tetrahedral meshing of labelmaps with netgen
+# (ProcessVolumetricMesh.extract_label_tetrahedra_netgen). An extra rather than a
+# base dependency: only that one method imports it, and netgen-mesher is
+# LGPL-2.1 and bundles OpenCASCADE (netgen-occt), a large download most users
+# never need. Wheels: Windows x64, Linux x86_64 and macOS, CPython 3.10-3.14
+# (none for Linux aarch64).
+netgen = [
+  "netgen-mesher>=6.2",
+]
 # Development, testing, and documentation tooling -- no CUDA/cupy component,
 # for pairing with `uv pip install --torch-backend=auto -e ".[dev]"`.
 dev = [
@@ -257,15 +266,18 @@ dev = [
   "imageio-ffmpeg>=0.5.0",
 ]
 # Full source/dev installs: CUDA-matched acceleration plus dev/test/docs
-# tooling. Recommended for anyone building from source, per the assumption
+# tooling, plus every optional Python backend (netgen) so the full test suite
+# can run. Recommended for anyone building from source, per the assumption
 # that a source install implies wanting to run tests and build docs too.
 dev_cuda13 = [
   "monai-physio[cuda13]",
   "monai-physio[dev]",
+  "monai-physio[netgen]",
 ]
 dev_cuda12 = [
   "monai-physio[cuda12]",
   "monai-physio[dev]",
+  "monai-physio[netgen]",
 ]
 
 [project.urls]
@@ -342,6 +354,8 @@ module = [
   "itk",
   "matplotlib",
   "matplotlib.*",
+  "netgen",
+  "netgen.*",
   "nibabel",
   "nibabel.*",
   "nrrd",
@@ -539,6 +553,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 # Run by Simpleware Medical as a script, by this file name
 "src/monai_physio/simpleware_medical/SimplewareScript_heart_segmentation.py" = ["N999"]
+"src/monai_physio/simpleware_medical/SimplewareScript_tetrahedral_mesh.py" = ["N999"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["monai_physio"]

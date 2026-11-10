@@ -9,8 +9,6 @@ structure mappings.
 import csv
 import logging
 import os
-import subprocess
-import sys
 import tempfile
 
 import itk
@@ -18,6 +16,33 @@ import numpy as np
 
 from .process_images import ProcessImages
 from .segment_anatomy_base import SegmentAnatomyBase
+from .simpleware_medical import DEFAULT_SIMPLEWARE_EXE_PATH, run_simpleware_script
+
+
+def _simpleware_global_to_lps(
+    point: tuple[float, float, float], reference_image: itk.Image
+) -> tuple[float, float, float]:
+    """Convert a Simpleware Medical global-frame point to reference_image's frame.
+
+    Measured on ConsoleSimplewareMedical Y-2026.03: an imported image with
+    direction ``D`` and origin ``O`` gets the image-to-global matrix
+    ``[D | D @ O]``, applied to image-space coordinates ``index * spacing``.
+    Exported measurements (``landmarks.csv``) are in that global frame, so
+    ``g = D @ (O + index * spacing)`` and the physical point is
+    ``g - D @ O + O``. This holds for any orthonormal ``D``, oblique included,
+    and is unaffected by cropping or resampling the Simpleware document.
+
+    Args:
+        point: Point ``g`` as exported by Simpleware Medical, in mm.
+        reference_image: The image that was imported into Simpleware.
+
+    Returns:
+        The point in reference_image's physical space.
+    """
+    direction = itk.array_from_matrix(reference_image.GetDirection())
+    origin = np.array(reference_image.GetOrigin())
+    lps = np.asarray(point) - direction @ origin + origin
+    return (float(lps[0]), float(lps[1]), float(lps[2]))
 
 
 class SegmentHeartSimpleware(SegmentAnatomyBase):
@@ -107,7 +132,7 @@ class SegmentHeartSimpleware(SegmentAnatomyBase):
         self._finalize_other_group()
 
         # Path to Simpleware Medical console executable
-        self.simpleware_exe_path = "C:/Program Files/Synopsys/Simpleware Medical/Y-2026.03/ConsoleSimplewareMedical.exe"
+        self.simpleware_exe_path = DEFAULT_SIMPLEWARE_EXE_PATH
 
         # Path to the Simpleware Python script for heart segmentation
         self.simpleware_script_path = os.path.join(
@@ -161,18 +186,6 @@ class SegmentHeartSimpleware(SegmentAnatomyBase):
         Example:
             >>> labelmap = segmenter.segmentation_method(preprocessed_ct)
         """
-        # Check if Simpleware Medical executable exists
-        if not os.path.exists(self.simpleware_exe_path):
-            raise FileNotFoundError(
-                f"Simpleware Medical executable not found at: {self.simpleware_exe_path}"
-            )
-
-        # Check if Simpleware script exists
-        if not os.path.exists(self.simpleware_script_path):
-            raise FileNotFoundError(
-                f"Simpleware script not found at: {self.simpleware_script_path}"
-            )
-
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Save preprocessed image to temporary file
             tmp_input_image_file = os.path.join(tmp_dir, "input_image.nii.gz")
@@ -180,78 +193,17 @@ class SegmentHeartSimpleware(SegmentAnatomyBase):
             self.log_info("Writing input image to: %s", tmp_input_image_file)
             itk.imwrite(preprocessed_image, tmp_input_image_file, compression=True)
 
-            # Build command line for Simpleware Medical
-            # Pass the input NIfTI file path directly as a command-line argument
-            # Use --run-script to execute the Python script
-            # Use --exit-after-script to close after execution
-            cmd = [
-                self.simpleware_exe_path,
-                "--input-file",  # Use only with ConsoleSimplewareMedical.exe
-                tmp_input_image_file,  # Input NIfTI file path as positional argument
-                "--input-value",
-                tmp_dir,
-                "--run-script",
-                self.simpleware_script_path,
-                "--exit-after-script",
-                "--no-progress",  # Use only with ConsoleSimplewareMedical.exe
-                # "--no-splash",  # Use only with SimplewareMedical.exe
-            ]
-            user_input = "y\n"
-
             self.log_info("Running Simpleware Medical ASCardio segmentation...")
-            self.log_info("Command: %s", " ".join(cmd))
-
-            try:
-                # Run Simpleware Medical as a subprocess. When the process exits,
-                # the OS frees all of its resources (GPU, memory); no extra
-                # cleanup is required. Using Popen so we can kill the process
-                # tree on timeout and ensure no child processes keep holding GPU.
-                proc = subprocess.Popen(
-                    cmd,
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                    start_new_session=(
-                        sys.platform != "win32"
-                    ),  # process group on Unix
-                )
-                try:
-                    stdout, stderr = proc.communicate(
-                        input=user_input,
-                        timeout=600,  # 10 minute timeout
-                    )
-                except subprocess.TimeoutExpired:
-                    # Kill process tree so GPU/memory are released (child may have spawned others)
-                    if sys.platform == "win32":
-                        subprocess.run(
-                            ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
-                            capture_output=True,
-                            check=False,
-                        )
-                    else:
-                        os.killpg(os.getpgid(proc.pid), 9)
-                    proc.wait()
-                    raise RuntimeError(
-                        "Simpleware Medical segmentation timed out after 600 seconds"
-                    )
-                if proc.returncode != 0:
-                    raise subprocess.CalledProcessError(
-                        proc.returncode, cmd, stdout, stderr
-                    )
-                result = type("Result", (), {"stdout": stdout, "stderr": stderr})()
-
-                # Log output from Simpleware
-                if result.stdout:
-                    self.log_info("Simpleware stdout:\n%s", result.stdout)
-                if result.stderr:
-                    self.log_warning("Simpleware stderr:\n%s", result.stderr)
-
-            except subprocess.CalledProcessError as e:
-                raise RuntimeError(
-                    f"Simpleware Medical segmentation failed with return code {e.returncode}:\n"
-                    f"stdout: {e.stdout}\nstderr: {e.stderr}"
-                )
+            stdout, stderr = run_simpleware_script(
+                self.simpleware_exe_path,
+                tmp_input_image_file,
+                tmp_dir,
+                self.simpleware_script_path,
+            )
+            if stdout:
+                self.log_info("Simpleware stdout:\n%s", stdout)
+            if stderr:
+                self.log_warning("Simpleware stderr:\n%s", stderr)
 
             # Simpleware's right ventricle, left atrium, right atrium correspond to
             #   the interior of those regions.
@@ -283,6 +235,8 @@ class SegmentHeartSimpleware(SegmentAnatomyBase):
             # very small ROIs or unsupported acquisitions). Treat its
             # absence as "no landmarks for this case" rather than a hard
             # failure, so callers that only need the labelmap still succeed.
+            # Landmarks are exported in Simpleware's global frame; see
+            # _simpleware_global_to_lps for the conversion.
             landmarks_file = os.path.join(tmp_dir, "landmarks.csv")
             self.landmarks.clear()
             if os.path.exists(landmarks_file):
@@ -290,10 +244,9 @@ class SegmentHeartSimpleware(SegmentAnatomyBase):
                     next(fh)  # skip line 1 (file header)
                     for row in csv.DictReader(fh):
                         coords = row["Measurement"].replace(" mm", "").split(",")
-                        self.landmarks[row["Name"]] = (
-                            float(coords[0]),
-                            float(coords[1]),
-                            float(coords[2]),
+                        self.landmarks[row["Name"]] = _simpleware_global_to_lps(
+                            (float(coords[0]), float(coords[1]), float(coords[2])),
+                            preprocessed_image,
                         )
             else:
                 self.log_warning(
@@ -327,6 +280,9 @@ class SegmentHeartSimpleware(SegmentAnatomyBase):
                     "ensure the ASCardio module ran successfully."
                 )
 
+            # Y-2026.03 mask exports carry preprocessed_image's direction, so
+            # this flip is a no-op there; it is kept for older exports
+            # (X-2025.06) whose direction could differ.
             if mask_image is not None:
                 in_direction = itk.array_from_matrix(preprocessed_image.GetDirection())
                 out_direction = itk.array_from_matrix(mask_image.GetDirection())
@@ -336,40 +292,6 @@ class SegmentHeartSimpleware(SegmentAnatomyBase):
                         self.log_info(f"Flipping labelmap array along {i}-axis")
                         labelmap_array = np.flip(labelmap_array, axis=(2 - i))
                         flip[i] = True
-                origin = np.array(mask_image.GetOrigin())
-                edge = np.array(
-                    mask_image.TransformIndexToPhysicalPoint(
-                        mask_image.GetLargestPossibleRegion().GetSize()
-                    )
-                )
-                self.log_debug(f"Origin {origin} Edge {edge}")
-                point = np.zeros(3)
-                for landmark_name, landmark_position in self.landmarks.items():
-                    for i in range(3):
-                        point[i] = landmark_position[i]
-
-                    self.log_debug(f"{landmark_name} {point}")
-                    for i in range(3):
-                        if in_direction[i, i] < 0:
-                            self.log_debug(
-                                f"   Flipping {i} from {point[i]} "
-                                f"with edge {edge[i]} and origin {origin[i]}"
-                            )
-                            if i < 2:
-                                point[i] = -origin[i] + (-origin[i] - point[i])
-                            else:
-                                point[i] = edge[i] - (point[i] - origin[i])
-                        elif i < 2:
-                            point[i] = -point[i]
-                    self.log_debug(f"   New point {point}")
-                    # convert ras to lps as used by this project
-                    point[0] = -point[0]
-                    point[1] = -point[1]
-                    self.landmarks[landmark_name] = (
-                        float(point[0]),
-                        float(point[1]),
-                        float(point[2]),
-                    )
 
             labelmap_image = itk.GetImageFromArray(labelmap_array.astype(np.uint8))
             labelmap_image.CopyInformation(preprocessed_image)
@@ -377,5 +299,5 @@ class SegmentHeartSimpleware(SegmentAnatomyBase):
         return labelmap_image
 
     def get_landmarks(self) -> dict[str, tuple[float, float, float]]:
-        """Get the landmarks."""
+        """Get the landmarks from the last run, in the input image's physical space."""
         return self.landmarks

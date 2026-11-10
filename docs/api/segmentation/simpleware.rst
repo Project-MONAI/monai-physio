@@ -65,9 +65,18 @@ Installation Note
 =================
 
 ``SegmentHeartSimpleware`` requires a licensed installation of Synopsys
-Simpleware Medical and its ASCardio module. The class invokes the Simpleware
-executable as a subprocess; the executable and helper script paths must be
-configured on the host system.
+Simpleware Medical and its ASCardio module. The class runs
+``ConsoleSimplewareMedical.exe`` as a subprocess (10-minute timeout, with the
+whole process tree killed on expiry), passing the preprocessed image with
+``--input-file`` and a temporary output directory with ``--input-value``; the
+in-Simpleware script ``simpleware_medical/SimplewareScript_heart_segmentation.py``
+ships with the package. The executable defaults to
+``C:/Program Files/Synopsys/Simpleware Medical/Y-2026.03/ConsoleSimplewareMedical.exe``;
+point elsewhere with ``set_simpleware_executable_path()``.
+
+The same launcher, ``monai_physio.simpleware_medical.run_simpleware_script``,
+drives Simpleware's +FE Free mesher for
+:meth:`~monai_physio.ProcessVolumetricMesh.extract_label_tetrahedra_simpleware`.
 
 See Also
 ========
@@ -75,3 +84,4 @@ See Also
 * :doc:`base`
 * :doc:`totalsegmentator`
 * :doc:`index`
+* :doc:`../utilities/process_volumetric_mesh` - Simpleware tetrahedral meshing

@@ -16,6 +16,8 @@ Utility modules provide low-level operations:
 * **Transform Tools**: Coordinate transforms and warping
 * **Landmark Tools**: Landmark-based registration validation metrics
 * **Contour Tools**: Contour extraction and processing
+* **Volumetric Mesh Tools**: Tetrahedral meshes from masks (voxel-based,
+  netgen, or Simpleware Medical)
 * **4D Image Conversion**: 4D image to 3D time-series conversion utilities
 * **Test Tools**: Baseline and result comparison helpers
 * **Data Download Tools**: Optional dataset download helpers
@@ -25,11 +27,13 @@ Quick Links
 
 **Utility Modules**:
    * :doc:`process_images` - Image processing utilities
-   * :doc:`process_labelmaps` - Labelmap to registration-mask conversion
+   * :doc:`process_labelmaps` - Labelmap to registration-mask conversion, and
+     mask cleanup (islands, holes)
    * :doc:`process_transforms` - Transform operations
    * :doc:`process_landmarks` - Landmark-based registration validation
    * :doc:`process_surface_mesh` - Surface mesh extraction and processing
-   * :doc:`process_volumetric_mesh` - Tetrahedral mesh extraction and relaxation
+   * :doc:`process_volumetric_mesh` - Tetrahedral meshes (voxel-based, netgen,
+     or Simpleware), their relaxation and repair
    * :doc:`process_mesh_kernels` - GPU mesh and distance-map primitives
    * :doc:`image_conversion` - 4D image to 3D time-series utilities
    * :doc:`process_tests` - Baseline / result comparison helpers

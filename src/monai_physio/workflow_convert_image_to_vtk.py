@@ -162,7 +162,9 @@ class WorkflowConvertImageToVTK(MONAIPhysioBase):
         """
         finest_spacing = float(np.min(np.asarray(mask.GetSpacing())))
         while True:
-            mesh = self._volume_tools.extract_tetrahedra(mask, element_size_mm)
+            mesh = self._volume_tools.extract_label_tetrahedra_vtk(
+                mask, element_size_mm
+            ).get(1, pv.UnstructuredGrid())
             volume = float(np.sum(mesh.compute_cell_sizes(volume=True)["Volume"]))
             if volume > 0.5 * surface.volume or element_size_mm <= finest_spacing:
                 break

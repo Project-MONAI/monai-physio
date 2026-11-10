@@ -34,6 +34,15 @@ Installed by default:
 
 CuPy is installed with the ``[cuda12]`` or ``[cuda13]`` extra.
 
+Optional Python extras:
+
+* ``[netgen]`` - ``netgen-mesher`` (LGPL-2.1), needed only by
+  :meth:`~monai_physio.ProcessVolumetricMesh.extract_label_tetrahedra_netgen` for
+  unstructured tetrahedral meshes. Wheels cover Windows x64, Linux x86_64, and
+  macOS; there is none for Linux aarch64. Add it to any install, for example
+  ``uv pip install "monai-physio[cuda12,netgen]" ...``. The ``dev_cuda12`` and
+  ``dev_cuda13`` source-install extras include it.
+
 Installing
 ==========
 
@@ -174,7 +183,8 @@ For CUDA 13, follow the pip sequence under *CUDA 13* above with
 Development Tools
 ==================
 
-The ``dev`` extra - included in ``dev_cuda12`` and ``dev_cuda13`` - provides:
+The ``dev`` extra - included in ``dev_cuda12`` and ``dev_cuda13``, which also
+pull in the ``netgen`` extra so the netgen meshing tests can run - provides:
 
 * **ruff** (linting and formatting)
 * **mypy** (type checking)
@@ -235,16 +245,23 @@ verify:
 Optional External Software
 --------------------------
 
-One segmentation backend is not a Python dependency and cannot be installed
-with pip:
+One segmentation and meshing backend is not a Python dependency and cannot be
+installed with pip:
 
 * **Synopsys Simpleware Medical** - required by
   :class:`~monai_physio.SegmentHeartSimpleware` and
-  :class:`~monai_physio.SegmentHeartSimplewareTrimmedBranches`, and therefore by
-  Tutorial 13, which uses Simpleware to segment the heart. It needs a local
-  licensed installation; see :doc:`api/segmentation/simpleware`. Everything
-  else in the toolkit runs without it, and the ``requires_simpleware`` tests
-  skip cleanly when it is absent.
+  :class:`~monai_physio.SegmentHeartSimplewareTrimmedBranches` (ASCardio
+  module), and therefore by Tutorial 13, which uses Simpleware to segment the
+  heart; and by
+  :meth:`~monai_physio.ProcessVolumetricMesh.extract_label_tetrahedra_simpleware`
+  (+FE Free module) for tetrahedral meshing. It needs a local installation
+  licensed for whichever of those modules is used; see
+  :doc:`api/segmentation/simpleware` and
+  :doc:`api/utilities/process_volumetric_mesh`. The default executable path is
+  ``C:/Program Files/Synopsys/Simpleware Medical/Y-2026.03/ConsoleSimplewareMedical.exe``;
+  override it with ``set_simpleware_executable_path()`` on either class.
+  Everything else in the toolkit runs without it, and the
+  ``requires_simpleware`` tests skip cleanly when it is absent.
 
 PyTorch with CUDA
 -----------------

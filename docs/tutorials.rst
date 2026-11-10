@@ -508,11 +508,24 @@ Script
    ``tutorials/tutorial_01_convert_to_usd_tcia_lung_4d_ct.py`` (TCIA-4DLung)
 
    ``tutorials/tutorial_01_convert_to_usd_tetmesh_slicer_heart_4d_ct.py`` (Slicer-Heart-CT) -
-   fills the reference-phase heart surface with tetrahedra and warps that one
-   volume mesh through every phase's registration instead of exporting a
+   fills the reference-phase heart mask with tetrahedra and warps that volume
+   mesh through every phase's registration instead of exporting a
    surface-only USD, so every frame shares the reference mesh's connectivity -
    needed for downstream finite-element work (e.g. strain energy) that a
-   surface cannot support.
+   surface cannot support. Each heart and contrast label is cleaned
+   (:meth:`~monai_physio.ProcessLabelmaps.remove_islands`,
+   :meth:`~monai_physio.ProcessLabelmaps.fill_holes`), then the labelmap is
+   meshed three ways, one tetmesh per label, and each mesher's meshes are
+   warped and saved on their own, as one USD prim per label:
+   :meth:`~monai_physio.ProcessVolumetricMesh.extract_label_tetrahedra_vtk`
+   relaxed by
+   :meth:`~monai_physio.ProcessVolumetricMesh.trim_tetrahedra_to_surface`,
+   :meth:`~monai_physio.ProcessVolumetricMesh.extract_label_tetrahedra_netgen`,
+   and, when Simpleware Medical is installed,
+   :meth:`~monai_physio.ProcessVolumetricMesh.extract_label_tetrahedra_simpleware`.
+   All three use 2 mm elements (``mesh_element_size_mm``), since at 1 mm the
+   smoothed surface netgen meshes touches itself at thin walls and netgen
+   rejects it.
 
 Workflow
    :class:`~monai_physio.WorkflowConvertImageToUSD`, driving
@@ -526,7 +539,9 @@ Dataset
 
 Requirements
    Greedy registers every phase against the reference on the CPU; a GPU is
-   still needed for segmentation.
+   still needed for segmentation. The tetmesh variant also needs the
+   ``netgen`` extra, and writes its Simpleware mesh only where Simpleware
+   Medical (licensed for +FE Free) is installed.
 
 Preview
    .. figure:: assets/tutorial_01_heart_4d.gif
@@ -566,9 +581,11 @@ Outputs
    The animated USD named after ``usd_project_name``, the per-phase registered
    volumes, the reference phase's labelmap, and screenshots - all under
    ``tutorials/output/tutorial_01_convert_to_usd_{slicer_heart,tcia_lung}_4d_ct/``.
-   The tetmesh variant instead writes one ``heart_tetmesh_<phase>.vtu`` per
-   cardiac phase, the phases as one animated ``UsdGeomTetMesh`` in
-   ``heart_tetmesh.usd``, and a reference-surface screenshot, under
+   The tetmesh variant instead writes, for each mesher ``<mesher>`` (``vtk``,
+   ``netgen``, and ``simpleware`` when available), one
+   ``heart_tetmesh_<mesher>_<phase>.vtu`` per cardiac phase and the phases as
+   one animated ``UsdGeomTetMesh`` in ``heart_tetmesh_<mesher>.usd``, plus a
+   reference-surface screenshot, under
    ``tutorials/output/tutorial_01_convert_to_usd_tetmesh_slicer_heart_4d_ct/``.
 
 Adapt to your data
@@ -1734,7 +1751,7 @@ Script
 Workflow
    :class:`~monai_physio.WorkflowCreateStatisticalModel` with
    ``solve_for_surface_pca=False`` on a tetrahedral template built by
-   :meth:`~monai_physio.ProcessVolumetricMesh.extract_tetrahedra` and
+   :meth:`~monai_physio.ProcessVolumetricMesh.extract_label_tetrahedra_vtk` and
    :meth:`~monai_physio.ProcessVolumetricMesh.trim_tetrahedra_to_surface`, then
    :class:`~monai_physio.WorkflowFitStatisticalModelToPatient` per case and
    gated frame.
@@ -1797,8 +1814,8 @@ Outputs
 Adapt to your data
    ``ssm_element_size_mm`` in ``parameters_duke_heart_4d_labelmaps_physics.py`` is
    the one number that decides how much of the myocardium the physics term
-   ever sees, because ``extract_tetrahedra`` resamples with a vote and drops
-   any wall thinner than the element size. Measured against the 208,259 mm^3
+   ever sees, because ``extract_label_tetrahedra_vtk`` resamples with a vote and
+   drops any wall thinner than the element size. Measured against the 208,259 mm^3
    the Duke mean surface encloses, the template holds 99.5% of it at 1.0 mm
    (305,696 nodes), 88.3% at 1.5 mm (100,903 nodes) and 72.1% at 2.0 mm
    (43,826 nodes); the default is 1.5 mm.

@@ -196,7 +196,11 @@ registration (``RegisterModelsICP``, ``RegisterModelsICPITK``,
 base-class boundary so new surface- or shape-based registration methods can
 be added the same way.
 
-Geometry utilities bridge ITK masks and PyVista meshes. USD tools are
+Geometry utilities bridge ITK masks and PyVista meshes.
+``ProcessVolumetricMesh`` fills a mask with tetrahedra either itself
+(voxel-based) or through an external mesher - netgen, an optional Python
+extra, or Simpleware Medical, run as a subprocess through the same launcher
+the Simpleware segmenters use. USD tools are
 responsible for OpenUSD stage creation, material assignment, coordinate
 conversion, and time samples.
 

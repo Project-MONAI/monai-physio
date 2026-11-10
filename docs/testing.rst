@@ -68,7 +68,7 @@ Specific Areas
 
    pytest tests/test_convert_vtk_to_usd.py -v
    pytest tests/test_convert_image_4d_to_3d.py -v
-   pytest tests/test_contour_tools.py -v
+   pytest tests/test_contour_mesh_extraction.py -v --run-gpu
    pytest tests/test_transform_tools.py -v
    pytest tests/test_image_tools.py -v
    pytest tests/test_workflow_train_physicsnemo.py -v
@@ -82,13 +82,27 @@ Tests that need downloadable data request the session fixtures
 downloaded on first use, so these tests run by default. GPU-bound tests are
 marked ``requires_gpu`` (opt-in via ``--run-gpu``); Simpleware-bound tests are
 marked ``requires_simpleware`` (opt-in via ``--run-simpleware`` and require a
-licensed Simpleware Medical installation locally).
+licensed Simpleware Medical installation locally: ASCardio for the
+segmentation tests, +FE Free for the meshing tests).
+
+Optional Python Backends
+========================
+
+The netgen meshing tests
+(``TestExtractTetrahedraExternal`` in ``tests/test_contour_mesh_extraction.py``) need
+the ``netgen`` extra and skip with a reason when ``netgen-mesher`` is not
+installed. The ``dev_cuda12`` and ``dev_cuda13`` extras include it:
+
+.. code-block:: bash
+
+   # netgen and Simpleware tetrahedral meshing
+   pytest tests/test_contour_mesh_extraction.py -v -k TestExtractTetrahedraExternal --run-gpu --run-simpleware
 
 Continuous Integration
 ======================
 
 CI runs the fast subset by default. The self-hosted GPU runner installs
-``.[dev,cuda13]`` and invokes pytest with ``--run-all`` (which
+``.[dev_cuda13]`` (which includes the ``netgen`` extra) and invokes pytest with ``--run-all`` (which
 enables every ``--run-*`` bucket); tests whose host requirements aren't met
 (e.g. a licensed Simpleware install on a runner without one) runtime-skip
 cleanly via their internal guards.

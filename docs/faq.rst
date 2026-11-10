@@ -93,6 +93,22 @@ Which segmentation method should I use?
 
 See :doc:`api/segmentation/index` for comparison.
 
+Which tetrahedral mesher should I use?
+--------------------------------------
+
+All three ``ProcessVolumetricMesh`` meshers take a labelmap and return one
+mesh of positively oriented tetrahedra per label:
+
+* **extract_label_tetrahedra_vtk**: voxel-based and structured; pair it with
+  ``trim_tetrahedra_to_surface`` for a smooth boundary. No extra dependency;
+  what the tutorials and statistical shape models use.
+* **extract_label_tetrahedra_netgen**: open-source, unstructured, graded
+  elements inside a smooth surface; needs the ``netgen`` extra.
+* **extract_label_tetrahedra_simpleware**: unstructured +FE Free meshes; needs
+  a Simpleware Medical install licensed for +FE Free.
+
+See :doc:`api/utilities/process_volumetric_mesh` for a comparison.
+
 Which registration method should I use?
 ----------------------------------------
 
