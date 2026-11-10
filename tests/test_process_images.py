@@ -75,16 +75,21 @@ def test_explicit_int16_rounds_clips_and_preserves_geometry(tmp_path: Path) -> N
     assert checks.compare_result_to_baseline_image("explicit_int16.mha")
 
 
-def test_uint64_intensities_outside_exact_float64_range_are_rejected() -> None:
+@pytest.mark.parametrize("output_dtype", [None, np.float64])
+@pytest.mark.parametrize("value", [2**53 + 1, 2**64 - 1])
+def test_integer_intensities_outside_exact_float64_range_are_rejected(
+    value: int, output_dtype: Optional[type]
+) -> None:
     """One voxel checks the unsigned range guard without scalar promotion."""
-    image = itk.image_from_array(np.full((1, 1, 1), 2**53 + 1, dtype=np.uint64))
+    image = itk.image_from_array(np.full((1, 1, 1), value, dtype=np.uint64))
     with pytest.raises(ValueError, match="exact range"):
-        ProcessImages().convert_intensity_image(image)
+        ProcessImages().convert_intensity_image(image, output_dtype)
 
 
-def test_int16_rejects_nonfinite_intensities() -> None:
+@pytest.mark.parametrize("value", [np.nan, np.inf, -np.inf])
+def test_int16_rejects_nonfinite_intensities(value: float) -> None:
     """A one-voxel image cannot encode NaN as an integer intensity."""
-    image = itk.image_from_array(np.full((1, 1, 1), np.nan))
+    image = itk.image_from_array(np.full((1, 1, 1), value))
     with pytest.raises(ValueError, match="nonfinite"):
         ProcessImages().convert_intensity_image(image, np.int16)
 
