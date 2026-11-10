@@ -113,6 +113,21 @@ def test_time_series_can_release_dense_fields_between_stages(
             itk.array_from_image(kept_image), itk.array_from_image(released_image)
         )
         np.testing.assert_allclose(kept_image.GetOrigin(), released_image.GetOrigin())
+        from monai_physio.process_tests import ProcessTests
+
+        checks = ProcessTests(
+            class_name=(
+                "movement_time_series_exterior"
+                if restrict_exterior
+                else "movement_time_series_plain"
+            ),
+            results_dir=released_path.parent,
+        )
+        assert checks.compare_result_to_baseline_image(
+            released_path.name,
+            per_pixel_absolute_error_tol=1e-5,
+            total_absolute_error_tol=0.05,
+        )
 
 
 def test_process_time_series_reports_each_stage_and_usd(tmp_path: Path) -> None:
