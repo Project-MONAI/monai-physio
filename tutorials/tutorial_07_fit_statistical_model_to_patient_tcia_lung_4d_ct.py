@@ -131,7 +131,9 @@ if __name__ == "__main__":
     )
     lung_labelmap = segmentation_result["labelmap"]
 
-    # Workflow initialization
+    # Workflow initialization. To evaluate a smaller lung fitting grid, pass
+    # fitting_crop_margin_mm=40.0 and fitting_spacing_mm=1.5 here. Validate the
+    # fitted surface, coefficients and motion before adopting these settings.
 
     workflow = WorkflowFitStatisticalModelToPatient(
         template_model=pca_mean,

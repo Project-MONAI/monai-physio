@@ -141,6 +141,9 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         labelmap_interior_object_ids: Optional[list] = None,
         segmentation_method: Optional[SegmentAnatomyBase] = None,
         log_level: int | str = logging.INFO,
+        *,
+        fitting_crop_margin_mm: Optional[float] = None,
+        fitting_spacing_mm: Optional[float] = None,
     ):
         """Initialize the model-to-image-and-model registration pipeline.
 
@@ -151,6 +154,9 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             patient_image: Optional patient image providing the target coordinate frame.
                 If None, a reference image is created from the patient model surface
                 via create_reference_image (contour_tools).
+            patient_labelmap: Optional anatomy-specific patient labels for PCA's
+                distance map and, when requested, the fitting crop bounds.
+            template_labelmap: Optional labels propagated with the fitted template.
             labelmap_interior_object_ids: Optional list of labelmap IDs that should
                 not be used when computing the distance map since they are interior (surrounded
                 by other objects).
@@ -162,10 +168,22 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
                 Ignored when patient_models is supplied.
             log_level: Logging level (logging.DEBUG, logging.INFO, logging.WARNING).
                 Default: logging.INFO
+            fitting_crop_margin_mm: Optional crop to the nonzero patient_labelmap
+                bounds plus this margin in millimeters, before resampling. Requires
+                a labelmap on the patient image grid. None keeps the full image.
+            fitting_spacing_mm: Optional positive isotropic fitting spacing in
+                millimeters. None preserves the existing finest-spacing behavior.
+                The original CT is retained as ``original_patient_image`` for
+                full-resolution warping. With either fitting option, labelmaps are
+                resampled with nearest-neighbor interpolation before distance maps
+                are constructed. Choose these options for the anatomy and validate
+                fit accuracy; they do not change mesh physical coordinates.
 
         Raises:
             TypeError: If segmentation_method is neither None nor a
                 SegmentAnatomyBase instance.
+            ValueError: For invalid fitting spacing/margin or a crop without a
+                patient image and labelmap on the same grid.
         """
         # Initialize base class with logging
         super().__init__(
@@ -180,6 +198,22 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             )
 
         self.template_model = template_model
+        if fitting_spacing_mm is not None and (
+            not np.isfinite(fitting_spacing_mm) or fitting_spacing_mm <= 0
+        ):
+            raise ValueError("fitting_spacing_mm must be finite and positive")
+        if fitting_crop_margin_mm is not None and (
+            not np.isfinite(fitting_crop_margin_mm) or fitting_crop_margin_mm < 0
+        ):
+            raise ValueError("fitting_crop_margin_mm must be finite and nonnegative")
+        if fitting_crop_margin_mm is not None and (
+            patient_image is None or patient_labelmap is None
+        ):
+            raise ValueError("Fitting crop requires patient_image and patient_labelmap")
+        self.original_patient_image = patient_image
+        self._custom_fitting_grid = (
+            fitting_crop_margin_mm is not None or fitting_spacing_mm is not None
+        )
         self.template_model_surface = template_model.extract_surface(
             algorithm="dataset_surface"
         )
@@ -216,6 +250,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             algorithm="dataset_surface"
         )
         self.patient_labelmap = patient_labelmap
+        self._patient_labelmap_source = patient_labelmap
 
         # Utilities (needed for create_reference_image when patient_image is None)
         self.transform_tools = ProcessTransforms()
@@ -224,19 +259,29 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
 
         if patient_image is not None:
             self.patient_image = patient_image
+            if fitting_crop_margin_mm is not None:
+                self.patient_image = ProcessImages().crop_to_mask(
+                    patient_image, patient_labelmap, fitting_crop_margin_mm
+                )
             spacing = np.asarray(patient_image.GetSpacing(), dtype=np.float64)
             isotropic_spacing = bool(np.allclose(spacing, spacing[0]))
-            if not isotropic_spacing:
+            if fitting_spacing_mm is not None or not isotropic_spacing:
                 self.patient_image = ProcessImages().make_isotropic_image(
-                    self.patient_image
+                    self.patient_image,
+                    spacing=fitting_spacing_mm if fitting_spacing_mm is not None else 0,
                 )
         else:
             self.patient_image = self.contour_tools.create_reference_image(
                 mesh=self.patient_model_surface,
-                spatial_resolution=1.0,
+                spatial_resolution=(
+                    fitting_spacing_mm if fitting_spacing_mm is not None else 1.0
+                ),
                 buffer_factor=0.25,
                 ptype=itk.F,
             )
+
+        if self._custom_fitting_grid and self.patient_labelmap is not None:
+            self.patient_labelmap = self._resample_fitting_labelmap(self.patient_image)
 
         self.registrar_Greedy = RegisterImagesGreedy()
         self.registrar_Greedy.set_number_of_iterations([5, 2, 5])
@@ -541,6 +586,8 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         """Perform ICP alignment of template model to patient model.
 
         Uses RegisterModelsICPITK class for ICP alignment.
+        With a custom fitting grid, propagated labels include the aligned
+        template and registration margins outside the patient crop.
 
         Returns:
             dict: Dictionary containing:
@@ -579,7 +626,9 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             self.icp_template_labelmap = self.transform_tools.transform_image(
                 self.template_labelmap,
                 self.icp_fixed_to_moving_transform,
-                self.patient_image,
+                self._fitting_reference_image(self.icp_template_model_surface)
+                if self._custom_fitting_grid
+                else self.patient_image,
                 interpolation_method="nearest",
             )
         else:
@@ -600,6 +649,48 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             "fitted_reference_labelmap": self.icp_template_labelmap,
         }
 
+    def _resample_fitting_labelmap(self, reference_image: itk.Image) -> itk.Image:
+        """Sample patient labels on a fitting grid without a dense identity field."""
+        assert self._patient_labelmap_source is not None
+        result = itk.resample_image_filter(
+            self._patient_labelmap_source,
+            reference_image=reference_image,
+            use_reference_image=True,
+            interpolator=itk.NearestNeighborInterpolateImageFunction.New(
+                self._patient_labelmap_source
+            ),
+            default_pixel_value=0,
+        )
+        result.DisconnectPipeline()
+        return result
+
+    def _fitting_reference_image(self, moving_model: pv.DataSet) -> itk.Image:
+        """Include both surfaces and registration margins on the selected grid."""
+        spacing = np.asarray(self.patient_image.GetSpacing())
+        size = np.asarray(self.patient_image.GetLargestPossibleRegion().GetSize())
+        margin_mm = max(
+            2.5 * self.mask_dilation_mm,
+            np.sqrt(self._distancemap_squared_max()),
+            10.0,
+        )
+        margin = np.maximum(1, np.ceil(margin_mm / spacing)).astype(int)
+        if self._custom_fitting_grid:
+            points = np.vstack((moving_model.points, self.patient_model_surface.points))
+            direction = itk.array_from_matrix(self.patient_image.GetDirection())
+            indices = (
+                (points - np.asarray(self.patient_image.GetOrigin()))
+                @ np.linalg.inv(direction).T
+            ) / spacing
+            margin += np.ceil(
+                np.maximum(
+                    0,
+                    np.maximum(-indices.min(axis=0), indices.max(axis=0) - (size - 1)),
+                )
+            ).astype(int)
+        return ProcessImages().pad_image(
+            self.patient_image, pad_voxels=margin.tolist(), background_value=-1000
+        )
+
     def register_model_to_model_pca(self) -> dict:
         """Perform PCA-based registration after ICP alignment.
 
@@ -607,6 +698,8 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         map of the patient. The statistical model's modes are defined in the
         un-aligned template frame, so the registrar is given the raw template
         and the ICP alignment is passed as its ``post_pca_transform``.
+        With a custom fitting grid, propagated labels include the fitted
+        template and registration margins outside the patient crop.
 
         Returns:
             dict: Dictionary containing:
@@ -654,6 +747,12 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         # objective outweighs the other. None and 1.0 leave them in mm.
         distance_map_clip_mm: Optional[float] = None
         distance_map_scale = 1.0
+        reference_image = self.patient_image
+        if self._custom_fitting_grid:
+            assert self.icp_template_model_surface is not None
+            reference_image = self._fitting_reference_image(
+                self.icp_template_model_surface
+            )
         if self.use_surface:
             pca_template_model = self.template_model_surface
             fixed_model = self.patient_model_surface
@@ -666,7 +765,9 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
                 distance_map_clip_mm = 10.0
                 distance_map_scale = 5.0
                 fixed_distance_map = self.labelmap_tools.create_distance_map(
-                    self.patient_labelmap,
+                    self._resample_fitting_labelmap(reference_image)
+                    if self._custom_fitting_grid
+                    else self.patient_labelmap,
                     max_distance_mm=distance_map_clip_mm,
                     distance_scale=distance_map_scale,
                     preserve_labels=False,
@@ -684,7 +785,7 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             post_pca_transform=self.icp_moving_to_fixed_transform,
             fixed_model=fixed_model,
             fixed_distance_map=fixed_distance_map,
-            reference_image=self.patient_image,
+            reference_image=reference_image,
             distance_map_clip_mm=distance_map_clip_mm,
             distance_map_scale=distance_map_scale,
         )
@@ -769,7 +870,9 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             self.pca_template_labelmap = self.transform_tools.transform_image(
                 self.template_labelmap,
                 pca_image_transform,
-                self.patient_image,
+                self._fitting_reference_image(self.pca_template_model_surface)
+                if self._custom_fitting_grid
+                else self.patient_image,
                 interpolation_method="nearest",
             )
         else:
@@ -794,6 +897,8 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
 
         Uses RegisterModelsDistanceMaps with Greedy affine followed by ICON deformable
         registration on distance maps derived from the model surfaces.
+        With a custom fitting grid, propagated labels remain on an expanded
+        grid for subsequent intensity refinement.
 
         Returns:
             dict: Dictionary containing:
@@ -824,8 +929,12 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         margin_mm = 2.5 * self.mask_dilation_mm
         spacing = np.asarray(self.patient_image.GetSpacing(), dtype=np.float64)
         pad_voxels = np.maximum(1, np.ceil(margin_mm / spacing)).astype(int).tolist()
-        padded_patient_image = ProcessImages().pad_image(
-            self.patient_image, pad_voxels=pad_voxels, background_value=-1000
+        padded_patient_image = (
+            self._fitting_reference_image(self.pca_template_model_surface)
+            if self._custom_fitting_grid
+            else ProcessImages().pad_image(
+                self.patient_image, pad_voxels=pad_voxels, background_value=-1000
+            )
         )
         labelmap_registrar = RegisterModelsDistanceMaps(
             moving_model=self.pca_template_model_surface,
@@ -855,7 +964,9 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             self.l2l_template_labelmap = self.transform_tools.transform_image(
                 self.pca_template_labelmap,
                 self.l2l_fixed_to_moving_transform,
-                self.patient_image,
+                self._fitting_reference_image(self.l2l_template_model_surface)
+                if self._custom_fitting_grid
+                else self.patient_image,
                 interpolation_method="nearest",
             )
         else:
