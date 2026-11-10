@@ -20,6 +20,145 @@ from monai_physio.workflow_fit_statistical_model_to_patient import (
 )
 
 
+def test_fitting_grid_crops_before_resampling_and_preserves_labels(
+    monkeypatch: Any,
+) -> None:
+    """A 24-cubed grid checks constructor allocation order and label sampling."""
+    values = np.zeros((24, 24, 24), dtype=np.float32)
+    image = itk.image_from_array(values)
+    image.SetSpacing([0.5, 0.5, 2.0])
+    labels = np.zeros(values.shape, dtype=np.uint16)
+    labels[8:16, 8:16, 8:16] = 301
+    labels[10:14, 10:14, 10:14] = 302
+    labelmap = itk.image_from_array(labels)
+    labelmap.CopyInformation(image)
+    model = pv.Sphere(radius=1, center=(6, 6, 24))
+    from monai_physio import ProcessImages
+
+    resample = ProcessImages.make_isotropic_image
+    sizes = []
+
+    def capture(self: ProcessImages, image: itk.Image, spacing: float = 0) -> itk.Image:
+        sizes.append(tuple(itk.size(image)))
+        return resample(self, image, spacing)
+
+    monkeypatch.setattr(ProcessImages, "make_isotropic_image", capture)
+    workflow = WorkflowFitStatisticalModelToPatient(
+        template_model=model,
+        patient_models=[model],
+        patient_image=image,
+        patient_labelmap=labelmap,
+        fitting_crop_margin_mm=1.0,
+        fitting_spacing_mm=1.5,
+        labelmap_interior_object_ids=[302],
+    )
+    assert sizes == [(12, 12, 10)]
+    assert workflow.original_patient_image is image
+    assert tuple(workflow.patient_image.GetSpacing()) == (1.5, 1.5, 1.5)
+    assert itk.size(workflow.patient_image) == itk.size(workflow.patient_labelmap)
+    np.testing.assert_allclose(
+        workflow.patient_image.GetOrigin(), workflow.patient_labelmap.GetOrigin()
+    )
+    assert set(np.unique(itk.array_view_from_image(workflow.patient_labelmap))) == {
+        0,
+        301,
+        302,
+    }
+    assert workflow.labelmap_interior_object_ids == [302]
+
+
+def test_fitting_registration_grid_contains_aligned_surfaces_and_margin() -> None:
+    """A 12-cubed oblique grid must expand for an aligned template outside it."""
+    image = itk.image_from_array(np.zeros((12, 12, 12), dtype=np.float32))
+    image.SetDirection(
+        itk.matrix_from_array(
+            np.array([[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
+        )
+    )
+    patient = pv.Sphere(radius=2, center=(-6, 6, 6))
+    aligned = pv.Sphere(radius=3, center=(-14, 6, 6))
+    workflow = WorkflowFitStatisticalModelToPatient(
+        template_model=aligned,
+        patient_models=[patient],
+        patient_image=image,
+        fitting_spacing_mm=2.0,
+    )
+    workflow.set_mask_dilation_mm(2.0)
+    reference = workflow._fitting_reference_image(aligned)
+    points = np.vstack((patient.points, aligned.points))
+    direction = itk.array_from_matrix(reference.GetDirection())
+    indices = (
+        (points - np.asarray(reference.GetOrigin())) @ np.linalg.inv(direction).T
+    ) / np.asarray(reference.GetSpacing())
+    assert np.all(indices.min(axis=0) >= 10 / 2)
+    assert np.all(indices.max(axis=0) <= np.asarray(itk.size(reference)) - 1 - 10 / 2)
+
+
+def test_pca_distance_map_uses_selected_grid_and_exclusions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A 16-cubed labelmap exercises real distance-map preparation before PCA."""
+    image = itk.image_from_array(np.zeros((16, 16, 16), dtype=np.float32))
+    labels = np.zeros((16, 16, 16), dtype=np.uint16)
+    labels[4:12, 4:12, 4:12] = 301
+    labels[6:10, 6:10, 6:10] = 302
+    labelmap = itk.image_from_array(labels)
+    model = pv.Sphere(radius=3, center=(8, 8, 8))
+    workflow = WorkflowFitStatisticalModelToPatient(
+        template_model=model,
+        patient_models=[model],
+        patient_image=image,
+        patient_labelmap=labelmap,
+        fitting_crop_margin_mm=1.0,
+        fitting_spacing_mm=2.0,
+        labelmap_interior_object_ids=[302],
+    )
+    workflow.icp_template_model_surface = model
+    workflow.set_mask_dilation_mm(2.0)
+    workflow.set_use_pca_registration(
+        True,
+        pca_model={"eigenvalues": [1.0], "components": [[0.0]]},
+        number_of_pca_components=1,
+        use_surface=False,
+    )
+    captured: dict[str, Any] = {}
+    create_distance_map = workflow.labelmap_tools.create_distance_map
+
+    def capture_distance(labels: itk.Image, **kwargs: Any) -> itk.Image:
+        captured["exclude_labels"] = kwargs["exclude_labels"]
+        return create_distance_map(labels, **kwargs)
+
+    def capture_registrar(**kwargs: Any) -> None:
+        captured.update(kwargs)
+        raise RuntimeError("configuration captured")
+
+    from monai_physio import workflow_fit_statistical_model_to_patient as module
+
+    monkeypatch.setattr(
+        workflow.labelmap_tools, "create_distance_map", capture_distance
+    )
+    monkeypatch.setattr(
+        module.RegisterModelsPCA, "from_pca_model", staticmethod(capture_registrar)
+    )
+    with pytest.raises(RuntimeError, match="configuration captured"):
+        workflow.register_model_to_model_pca()
+    distance = captured["fixed_distance_map"]
+    reference = captured["reference_image"]
+    assert tuple(distance.GetSpacing()) == (2.0, 2.0, 2.0)
+    assert itk.size(distance) == itk.size(reference)
+    np.testing.assert_allclose(distance.GetOrigin(), reference.GetOrigin())
+    assert captured["exclude_labels"] == [302]
+
+
+@pytest.mark.parametrize("spacing", [0.0, -1.0, np.nan, np.inf])
+def test_fitting_grid_rejects_invalid_spacing(spacing: float) -> None:
+    model = pv.Sphere()
+    with pytest.raises(ValueError, match="fitting_spacing_mm"):
+        WorkflowFitStatisticalModelToPatient(
+            template_model=model, fitting_spacing_mm=spacing
+        )
+
+
 def test_transform_model_applies_staged_transform() -> None:
     """Transform helper updates mesh points with image shape (Z, Y, X) = (3, 3, 3)."""
     image = itk.image_from_array(np.zeros((3, 3, 3), dtype=np.float32))

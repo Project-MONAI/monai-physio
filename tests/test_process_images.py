@@ -626,3 +626,78 @@ class TestResampleImageByScale:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "-s"])
+
+
+@pytest.mark.parametrize("dtype", [np.int16, np.float32, np.int32])
+def test_crop_to_mask_keeps_tissue_and_oblique_coordinates(dtype: type) -> None:
+    """A 12x10x8 grid isolates bounding-box and physical-margin arithmetic."""
+    values = np.arange(8 * 10 * 12).reshape(8, 10, 12).astype(dtype)
+    image = itk.image_from_array(values)
+    image.SetSpacing([0.5, 1.0, 2.0])
+    image.SetOrigin([15.0, -10.0, 8.0])
+    angle = np.pi / 6
+    image.SetDirection(
+        itk.matrix_from_array(
+            np.array(
+                [
+                    [np.cos(angle), -np.sin(angle), 0.0],
+                    [np.sin(angle), np.cos(angle), 0.0],
+                    [0.0, 0.0, 1.0],
+                ]
+            )
+        )
+    )
+    labels = np.zeros(values.shape, dtype=np.uint16)
+    labels[2:5, 3:6, 4:8] = 300
+    mask = itk.image_from_array(labels)
+    mask.CopyInformation(image)
+    output = ProcessImages().crop_to_mask(image, mask, margin_mm=1.0)
+    np.testing.assert_array_equal(
+        itk.array_view_from_image(output), values[1:6, 2:7, 2:10]
+    )
+    np.testing.assert_allclose(
+        output.GetOrigin(), image.TransformIndexToPhysicalPoint([2, 2, 1])
+    )
+    np.testing.assert_allclose(output.GetDirection(), image.GetDirection())
+    assert itk.array_view_from_image(output).dtype == dtype
+
+
+def test_crop_to_mask_clips_margin_at_image_boundary() -> None:
+    """A corner voxel in a 4-cubed image keeps existing surrounding tissue."""
+    image = itk.image_from_array(np.ones((4, 4, 4), dtype=np.float32))
+    mask = itk.image_from_array(np.zeros((4, 4, 4), dtype=np.uint8))
+    itk.array_view_from_image(mask)[0, 0, 0] = 1
+    output = ProcessImages().crop_to_mask(image, mask, margin_mm=1.0)
+    assert tuple(itk.size(output)) == (2, 2, 2)
+    np.testing.assert_array_equal(itk.array_view_from_image(output), 1)
+
+
+def test_crop_to_mask_on_downloaded_ct(test_images: list[Any]) -> None:
+    """Compare a crop directly against existing Slicer heart CT voxels."""
+    image = test_images[0]
+    values = itk.array_view_from_image(image)
+    labels = np.zeros(values.shape, dtype=np.uint8)
+    labels[5:10, 6:11, 7:12] = 1
+    mask = itk.image_from_array(labels)
+    mask.CopyInformation(image)
+    output = ProcessImages().crop_to_mask(image, mask, margin_mm=1.5)
+    np.testing.assert_array_equal(
+        itk.array_view_from_image(output), values[4:11, 5:12, 6:13]
+    )
+    np.testing.assert_allclose(
+        output.GetOrigin(), image.TransformIndexToPhysicalPoint([6, 5, 4])
+    )
+
+
+def test_crop_to_mask_rejects_empty_and_misaligned_masks() -> None:
+    """A 4-cubed grid must have foreground and matching physical metadata."""
+    image = itk.image_from_array(np.ones((4, 4, 4), dtype=np.float32))
+    mask = itk.image_from_array(np.zeros((4, 4, 4), dtype=np.uint8))
+    with pytest.raises(ValueError, match="nonzero"):
+        ProcessImages().crop_to_mask(image, mask)
+    itk.array_view_from_image(mask)[1, 1, 1] = 1
+    mask.SetOrigin([0.0, 0.0, 0.5])
+    with pytest.raises(ValueError, match="same grid"):
+        ProcessImages().crop_to_mask(image, mask)
+    with pytest.raises(ValueError, match="margin_mm"):
+        ProcessImages().crop_to_mask(image, image, -1.0)

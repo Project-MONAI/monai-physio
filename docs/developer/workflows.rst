@@ -65,6 +65,44 @@ Workflow Example
 
    results = workflow.process()
 
+Selecting a fitting grid
+========================
+
+``WorkflowFitStatisticalModelToPatient`` accepts optional constructor arguments
+``fitting_crop_margin_mm`` and ``fitting_spacing_mm``. Cropping happens before
+isotropic resampling, avoiding a full-volume fine-grid allocation. The crop uses
+the nonzero patient labelmap, which must share the input image grid. Provide an
+anatomy-specific labelmap so neighboring organs do not contribute to PCA fitting.
+
+For an initial lung configuration to validate on your data::
+
+   fit = WorkflowFitStatisticalModelToPatient(
+       template_model=mean_lung_model,
+       patient_models=[patient_lung_surface],
+       patient_image=ct,
+       patient_labelmap=lung_labelmap,
+       fitting_crop_margin_mm=40.0,
+       fitting_spacing_mm=1.5,
+   )
+
+These values are examples, not heart or lung defaults. Omitting both options
+preserves existing behavior. ``ProcessImages.crop_to_mask`` is also available
+independently; it retains surrounding tissue and pixel type, unlike the
+labelmap-only ``crop_to_nonzero`` with its added zero padding.
+
+With either option enabled, patient labels are sampled by nearest neighbor on
+the fitting grid before constructing distance maps. Label IDs and interior-label
+exclusions retain their meanings. Registration grids include patient and aligned
+template surfaces plus physical registration margins, including when a crop
+touches the input boundary. Meshes remain in patient coordinates. The original
+CT remains available as ``fit.original_patient_image`` for full-resolution motion
+warping; fitting stages, including intensity refinement, use ``fit.patient_image``.
+
+Coarser sampling can remove small structures and change PCA coefficients and
+motion. Compare lung and heart surface errors, coefficients, and predicted
+motion against the full-resolution configuration before selecting a grid for a
+new dataset. Agreement with another fit is not accuracy against ground truth.
+
 Adding a Workflow
 =================
 

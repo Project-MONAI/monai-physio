@@ -243,6 +243,9 @@ if __name__ == "__main__":
     # Step 3: fit the shape model to the reference phase. The coefficients are
     # what the network is conditioned on; the fitted surface is what its
     # displacements are added to.
+    # Optional fitting_crop_margin_mm=40.0 and fitting_spacing_mm=1.5 reduce
+    # the lung fit's working volume; validate accuracy before adopting them.
+    # Keep reference_image at its original resolution for the motion warp.
     fit_workflow = WorkflowFitStatisticalModelToPatient(
         template_model=pca_mean_surface,
         patient_models=[lung_surface],

@@ -336,7 +336,7 @@ class ProcessImages(MONAIPhysioBase):
             Resampled image with uniform spacing.
 
         Raises:
-            ValueError: If *image* is not 3-D.
+            ValueError: If *image* is not 3-D or spacing is negative/nonfinite.
         """
         if image.GetImageDimension() != 3:
             raise ValueError(
@@ -345,6 +345,8 @@ class ProcessImages(MONAIPhysioBase):
             )
         image = self.convert_intensity_image(image)
         input_spacing = np.asarray(image.GetSpacing(), dtype=np.float64)
+        if not np.isfinite(spacing) or spacing < 0:
+            raise ValueError("spacing must be finite and nonnegative")
         size = np.asarray(image.GetLargestPossibleRegion().GetSize(), dtype=np.int64)
 
         min_spacing = float(input_spacing.min()) if spacing == 0 else float(spacing)
@@ -569,6 +571,76 @@ class ProcessImages(MONAIPhysioBase):
         result.DisconnectPipeline()
         return result
 
+    def crop_to_mask(
+        self, image: itk.Image, mask: itk.Image, margin_mm: float = 0.0
+    ) -> itk.Image:
+        """Crop an image to a mask's nonzero bounds and surrounding tissue.
+
+        Args:
+            image: Scalar 3-D image to crop, preserving its pixel type.
+            mask: Nonempty scalar mask or labelmap on exactly the same grid.
+                Every nonzero label contributes to the bounds.
+            margin_mm: Nonnegative physical margin, rounded up per axis and
+                clipped to the input extent. Surrounding image voxels are kept.
+
+        Returns:
+            Cropped image with unchanged voxel positions, spacing and direction.
+
+        Raises:
+            ValueError: For invalid margins, empty masks, or mismatched grids.
+        """
+        if not np.isfinite(margin_mm) or margin_mm < 0:
+            raise ValueError("margin_mm must be finite and nonnegative")
+        if (
+            image.GetImageDimension() != 3
+            or mask.GetImageDimension() != 3
+            or image.GetNumberOfComponentsPerPixel() != 1
+            or mask.GetNumberOfComponentsPerPixel() != 1
+            or image.GetLargestPossibleRegion() != mask.GetLargestPossibleRegion()
+            or not np.allclose(image.GetSpacing(), mask.GetSpacing())
+            or not np.allclose(image.GetOrigin(), mask.GetOrigin(), rtol=0, atol=1e-6)
+            or not np.allclose(image.GetDirection(), mask.GetDirection())
+        ):
+            raise ValueError(
+                "image and mask must be scalar 3-D images on the same grid"
+            )
+        foreground = itk.array_view_from_image(mask)
+        start, stop = self._nonzero_bounds(foreground)
+        spacing = np.asarray(image.GetSpacing())
+        margins = np.ceil(margin_mm / spacing).astype(int)[::-1]
+        for axis in range(3):
+            start[axis] = max(0, int(start[axis] - margins[axis]))
+            stop[axis] = min(foreground.shape[axis], int(stop[axis] + margins[axis]))
+        values = itk.array_view_from_image(image)
+        result = itk.image_from_array(
+            np.ascontiguousarray(
+                values[tuple(slice(a, b) for a, b in zip(start, stop))]
+            )
+        )
+        result.SetSpacing(image.GetSpacing())
+        result.SetDirection(image.GetDirection())
+        index = np.asarray(image.GetLargestPossibleRegion().GetIndex())
+        result.SetOrigin(
+            np.asarray(image.GetOrigin())
+            + itk.array_from_matrix(image.GetDirection())
+            @ (spacing * (index + np.asarray(start[::-1])))
+        )
+        return result
+
+    @staticmethod
+    def _nonzero_bounds(values: np.ndarray) -> tuple[list[int], list[int]]:
+        """Find array bounds with axis projections rather than foreground indices."""
+        foreground = values != 0
+        if not foreground.any():
+            raise ValueError("mask must contain at least one nonzero voxel")
+        start, stop = [], []
+        for axis in range(values.ndim):
+            others = tuple(other for other in range(values.ndim) if other != axis)
+            hits = np.flatnonzero(foreground.any(axis=others))
+            start.append(int(hits[0]))
+            stop.append(int(hits[-1]) + 1)
+        return start, stop
+
     def crop_to_nonzero(
         self, labelmap_image: itk.Image, pad_voxels: int = 0
     ) -> itk.Image:
@@ -583,17 +655,14 @@ class ProcessImages(MONAIPhysioBase):
 
         Returns:
             The cropped labelmap, as uint16.
+
+        Raises:
+            ValueError: If the labelmap has no nonzero voxels.
         """
         labels = itk.GetArrayViewFromImage(labelmap_image)
-        nonzero = labels != 0
         # The array's axes are reversed relative to the image, so the crop's
         # start comes out as (z, y, x) and is flipped for the origin.
-        start, stop = [], []
-        for axis in range(labels.ndim):
-            others = tuple(other for other in range(labels.ndim) if other != axis)
-            hits = np.flatnonzero(nonzero.any(axis=others))
-            start.append(int(hits[0]))
-            stop.append(int(hits[-1]) + 1)
+        start, stop = self._nonzero_bounds(labels)
         cropped_arr = np.pad(
             labels[tuple(slice(a, b) for a, b in zip(start, stop))], pad_voxels
         )
