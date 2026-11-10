@@ -275,6 +275,55 @@ class ProcessImages(MONAIPhysioBase):
 
         return itk_image
 
+    def convert_intensity_image(
+        self, image: itk.Image, dtype: Optional[type] = None
+    ) -> itk.Image:
+        """Prepare a scalar image for the wrapped ITK intensity filters.
+
+        Args:
+            image: Scalar 3-D intensity image, including an in-memory image.
+            dtype: Explicit output type: ``np.float32``, ``np.float64``, or
+                ``np.int16``. With None, preserve uint8, int16, uint16, float32,
+                and float64; convert other integers to float64. Integers outside
+                float64's exact range are rejected rather than rounded silently,
+                including when float64 is requested explicitly.
+                Explicit int16 conversion rounds ties to even and clips to
+                [-32768, 32767]; nonfinite values are rejected.
+
+        Returns:
+            Image with the same grid. Already suitable images are returned as is.
+
+        Raises:
+            ValueError: For a nonscalar/non-3-D image, unsupported output type,
+                nonfinite int16 input, or integers outside the exact float64 range.
+        """
+        if image.GetImageDimension() != 3 or image.GetNumberOfComponentsPerPixel() != 1:
+            raise ValueError("Expected a scalar 3-D intensity image")
+        values = itk.array_view_from_image(image)
+        if dtype is None:
+            if values.dtype in (np.uint8, np.int16, np.uint16, np.float32, np.float64):
+                return image
+            dtype = np.float64
+        if dtype not in (np.float32, np.float64, np.int16):
+            raise ValueError("dtype must be np.float32, np.float64, or np.int16")
+        if (
+            dtype == np.float64
+            and np.issubdtype(values.dtype, np.integer)
+            and values.size
+            and (int(values.min()) < -(2**53) or int(values.max()) > 2**53)
+        ):
+            raise ValueError("Integer intensities exceed float64's exact range")
+        if values.dtype == np.dtype(dtype):
+            return image
+        if dtype == np.int16:
+            if not np.isfinite(values).all():
+                raise ValueError("Cannot convert nonfinite intensities to int16")
+            values = np.clip(np.rint(values), -32768, 32767)
+        result = itk.image_from_array(values.astype(dtype))
+        result.CopyInformation(image)
+        result.SetRegions(image.GetLargestPossibleRegion())
+        return result
+
     def make_isotropic_image(self, image: itk.Image, spacing: float = 0) -> itk.Image:
         """Resample a 3-D *image* to isotropic spacing.
 
@@ -294,6 +343,7 @@ class ProcessImages(MONAIPhysioBase):
                 f"make_isotropic_image requires a 3-D image; "
                 f"got {image.GetImageDimension()}-D"
             )
+        image = self.convert_intensity_image(image)
         input_spacing = np.asarray(image.GetSpacing(), dtype=np.float64)
         size = np.asarray(image.GetLargestPossibleRegion().GetSize(), dtype=np.int64)
 

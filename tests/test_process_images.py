@@ -16,6 +16,82 @@ import pytest
 import SimpleITK as sitk
 
 from monai_physio.process_images import ProcessImages
+from monai_physio.segment_anatomy_base import SegmentAnatomyBase
+
+
+@pytest.mark.parametrize(
+    "dtype", [np.uint8, np.int16, np.uint16, np.float32, np.float64]
+)
+def test_supported_intensities_are_preserved(dtype: type) -> None:
+    """A 4-cubed image keeps its supported pixel type and allocation."""
+    image = itk.image_from_array(np.ones((4, 4, 4), dtype=dtype))
+    assert ProcessImages().convert_intensity_image(image) is image
+
+
+@pytest.mark.parametrize("target_spacing", [0.0, 2.0])
+def test_int32_intensities_precede_segmentation_filters(
+    target_spacing: float, tmp_path: Path
+) -> None:
+    """In-memory 4-cubed integer data works with and without resampling."""
+    image = itk.image_from_array(np.full((4, 4, 4), 100001, dtype=np.int32))
+    image.SetOrigin([10.0, 20.0, 30.0])
+    segmenter = SegmentAnatomyBase()
+    segmenter.target_spacing = target_spacing
+    output = segmenter.preprocess_input(image)
+    np.testing.assert_array_equal(itk.array_view_from_image(output), 100001)
+    np.testing.assert_allclose(output.GetOrigin(), image.GetOrigin())
+    assert itk.array_view_from_image(image).dtype == np.int32
+    expected_spacing = target_spacing if target_spacing else 1.0
+    assert tuple(output.GetSpacing()) == (expected_spacing,) * 3
+    assert tuple(itk.size(output)) == ((2,) * 3 if target_spacing else (4,) * 3)
+    from monai_physio.process_tests import ProcessTests
+
+    checks = ProcessTests(class_name="intensity_voxel_types", results_dir=tmp_path)
+    filename = f"int32_spacing_{int(target_spacing)}.mha"
+    checks.write_result_image(output, filename)
+    assert checks.compare_result_to_baseline_image(filename)
+
+
+def test_explicit_int16_rounds_clips_and_preserves_geometry(tmp_path: Path) -> None:
+    """Six intensities exercise the explicit, lossy conversion policy."""
+    image = itk.image_from_array(
+        np.array([[[-40000.0, -1.5, 0.5, 1.5, 32767.4, 50000.0]]])
+    )
+    image.SetSpacing([0.8, 1.2, 2.0])
+    image.SetOrigin([5.0, 6.0, 7.0])
+    image.SetDirection(itk.matrix_from_array(np.diag([-1.0, -1.0, 1.0])))
+    output = ProcessImages().convert_intensity_image(image, np.int16)
+    np.testing.assert_array_equal(
+        itk.array_view_from_image(output), [[[-32768, -2, 0, 2, 32767, 32767]]]
+    )
+    np.testing.assert_allclose(output.GetSpacing(), image.GetSpacing())
+    np.testing.assert_allclose(output.GetOrigin(), image.GetOrigin())
+    np.testing.assert_allclose(output.GetDirection(), image.GetDirection())
+    assert itk.array_view_from_image(output).dtype == np.int16
+    from monai_physio.process_tests import ProcessTests
+
+    checks = ProcessTests(class_name="intensity_voxel_types", results_dir=tmp_path)
+    checks.write_result_image(output, "explicit_int16.mha")
+    assert checks.compare_result_to_baseline_image("explicit_int16.mha")
+
+
+@pytest.mark.parametrize("output_dtype", [None, np.float64])
+@pytest.mark.parametrize("value", [2**53 + 1, 2**64 - 1])
+def test_integer_intensities_outside_exact_float64_range_are_rejected(
+    value: int, output_dtype: Optional[type]
+) -> None:
+    """One voxel checks the unsigned range guard without scalar promotion."""
+    image = itk.image_from_array(np.full((1, 1, 1), value, dtype=np.uint64))
+    with pytest.raises(ValueError, match="exact range"):
+        ProcessImages().convert_intensity_image(image, output_dtype)
+
+
+@pytest.mark.parametrize("value", [np.nan, np.inf, -np.inf])
+def test_int16_rejects_nonfinite_intensities(value: float) -> None:
+    """A one-voxel image cannot encode NaN as an integer intensity."""
+    image = itk.image_from_array(np.full((1, 1, 1), value))
+    with pytest.raises(ValueError, match="nonfinite"):
+        ProcessImages().convert_intensity_image(image, np.int16)
 
 
 class TestProcessImages:
