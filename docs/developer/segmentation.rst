@@ -56,6 +56,34 @@ Backend classes
 * :class:`monai_physio.SegmentHeartSimpleware`
 * :class:`monai_physio.SegmentAnatomyBase`
 
+Releasing cached model resources
+================================
+
+NV-Segment-CT and NV-Segment-CTMR retain a pipeline for reuse across patients.
+After the last segmentation, the owner may explicitly call::
+
+   outputs = segmenter.segment(image)
+   segmenter.release_resources(empty_cuda_cache=True)
+
+``release_resources()`` drops these backends' cached pipelines without changing
+their configuration, returned labelmaps, or downloaded weights. The next
+segmentation rebuilds the pipeline lazily. Other segmenters inherit a no-op
+default. Workflows never release a caller-owned segmenter automatically. Call
+only while the segmenter is idle, not concurrently with segmentation.
+
+The optional ``empty_cuda_cache=True`` also collects unreachable objects and
+releases unused PyTorch allocator blocks. It affects the process-wide CUDA cache
+and can make later allocations slower; the default False avoids that side
+effect. Live tensors held by the caller or another library remain allocated.
+
+For memory measurements, separate process RSS, PyTorch allocated bytes and
+reserved bytes before/after segmentation, after dropping owned resources, and
+after cache release. Synchronize CUDA before recording device measurements.
+Also measure fitting and a complete respiratory cycle on the original image
+grid. Python object release and a lower allocated-byte count do not guarantee
+that ITK, VTK or a system allocator returns memory to the operating system.
+Applications may still benefit from a subprocess boundary.
+
 Adding a New Segmenter
 ======================
 

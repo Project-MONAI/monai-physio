@@ -79,6 +79,30 @@ class SegmentAnatomyBase(MONAIPhysioBase):
         # populate this; ProcessUSDAnatomy and ConvertVTKToUSD consume it.
         self.taxonomy = AnatomyTaxonomy()
 
+    def release_resources(self, empty_cuda_cache: bool = False) -> None:
+        """Explicitly release backend resources when segmentation is finished.
+
+        Subclasses with cached models override this method to drop their owned
+        references before calling this implementation. Segmenters without such
+        resources do nothing by default. Workflows never invoke this implicitly
+        on a caller-owned segmenter. Call only when segmentation is idle.
+
+        Args:
+            empty_cuda_cache: Also collect unreachable Python objects and return
+                unused PyTorch CUDA allocator blocks. Default False avoids
+                affecting the process-wide allocator. This cannot free live
+                tensors held by callers or other libraries, or guarantee lower
+                process RSS. Cached weights on disk are retained.
+        """
+        if empty_cuda_cache:
+            import gc
+
+            import torch
+
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
     def _finalize_other_group(self, id_range: range = range(1, 256)) -> None:
         """Fill the ``other`` group with any unclaimed ids in *id_range*.
 

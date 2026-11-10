@@ -238,6 +238,8 @@ if __name__ == "__main__":
     )
     lung_labelmap = segmentation_result["labelmap"]
     itk.imwrite(lung_labelmap, str(lung_labelmap_file), compression=True)
+    # This tutorial owns the segmenter and will not segment another image.
+    segmentation_method.release_resources(empty_cuda_cache=True)
     step_start = _record_step(step_times_s, "segment_reference", step_start)
 
     # Step 3: fit the shape model to the reference phase. The coefficients are
