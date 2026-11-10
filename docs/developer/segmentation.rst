@@ -30,6 +30,28 @@ for the per-segmenter key sets and the general contract.
 Implemented Segmenters
 ======================
 
+Intensity pixel types
+---------------------
+
+Shared preprocessing accepts scalar 3-D images, including in-memory int32 CTs.
+Before resampling, ``ProcessImages.convert_intensity_image(image)`` preserves
+uint8, int16, uint16, float32, and float64 images and converts other integers
+to float64 without clipping CT intensities. Integers outside the exact float64
+range are rejected. ``make_isotropic_image`` uses the same preparation.
+
+For a backend that explicitly requires signed short, request the lossy conversion::
+
+   import numpy as np
+   from monai_physio import ProcessImages
+
+   image = ProcessImages().convert_intensity_image(image, dtype=np.int16)
+
+This rounds ties to even, clips to the int16 range, rejects nonfinite values,
+and preserves the image grid. Do not apply it to labelmaps.
+
+Backend classes
+---------------
+
 * :class:`monai_physio.SegmentChestTotalSegmentator`
 * :class:`monai_physio.SegmentHeartSimpleware`
 * :class:`monai_physio.SegmentAnatomyBase`

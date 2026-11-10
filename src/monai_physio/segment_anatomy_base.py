@@ -13,6 +13,7 @@ import numpy as np
 
 from .anatomy_taxonomy import AnatomyTaxonomy
 from .monai_physio_base import MONAIPhysioBase
+from .process_images import ProcessImages
 
 
 class SegmentAnatomyBase(MONAIPhysioBase):
@@ -139,7 +140,9 @@ class SegmentAnatomyBase(MONAIPhysioBase):
         """Preprocess the input image for segmentation.
 
         Performs image preprocessing including resampling to isotropic spacing
-        and optional intensity rescaling. The preprocessing ensures consistent
+        and optional intensity rescaling. Unsupported integer pixel types are
+        converted to float64 before any templated filter; supported floating-point
+        inputs retain their precision. The preprocessing ensures consistent
         image characteristics for reliable segmentation.
 
         Args:
@@ -159,6 +162,7 @@ class SegmentAnatomyBase(MONAIPhysioBase):
 
         # Check the input image
         assert len(input_image.GetSpacing()) == 3, "The input image must be 3D"
+        input_image = ProcessImages().convert_intensity_image(input_image)
 
         rescale_image = False
         results_image = None
