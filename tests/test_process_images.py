@@ -631,7 +631,7 @@ if __name__ == "__main__":
 @pytest.mark.parametrize("dtype", [np.int16, np.float32, np.int32])
 def test_crop_to_mask_keeps_tissue_and_oblique_coordinates(dtype: type) -> None:
     """A 12x10x8 grid isolates bounding-box and physical-margin arithmetic."""
-    values = np.arange(8 * 10 * 12).reshape(8, 10, 12).astype(dtype)
+    values: np.ndarray = np.arange(8 * 10 * 12).reshape(8, 10, 12).astype(dtype)
     image = itk.image_from_array(values)
     image.SetSpacing([0.5, 1.0, 2.0])
     image.SetOrigin([15.0, -10.0, 8.0])

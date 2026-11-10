@@ -54,6 +54,7 @@ def test_fitting_grid_crops_before_resampling_and_preserves_labels(
     )
     assert sizes == [(12, 12, 10)]
     assert workflow.original_patient_image is image
+    assert workflow.patient_labelmap is not None
     assert tuple(workflow.patient_image.GetSpacing()) == (1.5, 1.5, 1.5)
     assert itk.size(workflow.patient_image) == itk.size(workflow.patient_labelmap)
     np.testing.assert_allclose(
