@@ -144,6 +144,8 @@ class ProcessLabelmaps(MONAIPhysioBase):
         components.Update()
 
         labels = itk.array_view_from_image(components.GetOutput())
+        # Older NumPy's bincount rejects unsigned 64-bit labels.
+        labels = labels.astype(np.intp, copy=False)
         sizes = np.bincount(labels.ravel())
         sizes[0] = 0
         found = int(np.count_nonzero(sizes))

@@ -40,13 +40,13 @@ from pathlib import Path
 
 OLD_CALL = re.compile(r"\bextract_tetrahedra\s*\(")
 NEW_NAME = "extract_label_tetrahedra_vtk"
-OLD_KEYWORD = re.compile(r"\bmask_image(\s*=)")
+OLD_KEYWORD = re.compile(r"(\s*)mask_image(\s*=)")
 
 
-def _scan(text: str, start: int) -> tuple[int, int]:
+def _scan(text: str, start: int) -> tuple[int, list[int]]:
     """Return the ``)`` closing the ``(`` before *start*, and its top-level commas."""
     depth = 1
-    commas = 0
+    commas: list[int] = []
     quote = ""
     index = start
     while index < len(text):
@@ -65,7 +65,7 @@ def _scan(text: str, start: int) -> tuple[int, int]:
             if depth == 0:
                 return index, commas
         elif char == "," and depth == 1:
-            commas += 1
+            commas.append(index)
         index += 1
     raise ValueError("unbalanced parentheses after extract_tetrahedra(")
 
@@ -78,8 +78,18 @@ def migrate(text: str) -> tuple[str, list[str]]:
     for match in OLD_CALL.finditer(text):
         if match.start() < position:
             continue
-        close, commas = _scan(text, match.end())
-        arguments = OLD_KEYWORD.sub(r"labelmap_image\1", text[match.end() : close])
+        close, comma_positions = _scan(text, match.end())
+        commas = len(comma_positions)
+        # Rename the keyword only where it starts one of this call's own
+        # arguments, not inside a nested call.
+        starts = [match.end()] + [comma + 1 for comma in comma_positions]
+        ends = [*comma_positions, close]
+        arguments = ",".join(
+            OLD_KEYWORD.sub(r"\1labelmap_image\2", text[start:end], count=1)
+            if OLD_KEYWORD.match(text, start, end)
+            else text[start:end]
+            for start, end in zip(starts, ends)
+        )
         pieces.append(text[position : match.start()])
         pieces.append(f"{NEW_NAME}({arguments})[1]")
         position = close + 1

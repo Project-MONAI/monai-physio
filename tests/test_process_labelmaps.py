@@ -157,10 +157,10 @@ class TestMaskCleanup:
     def test_remove_islands_counts_past_65535_components(
         self, labelmap_tools: ProcessLabelmaps
     ) -> None:
-        """74,085 components, more than an unsigned short can number."""
-        arr = np.zeros((83, 83, 83), dtype=np.uint8)
-        arr[::2, ::2, ::2] = 1
-        # The one larger component: 8 voxels plus 3 islands it touches.
+        """A 64-voxel-per-side checkerboard: 131,063 components, past 65,535."""
+        index = np.indices((64, 64, 64)).sum(axis=0)
+        arr = (index % 2 == 0).astype(np.uint8)
+        # The one larger component: 8 voxels plus the 6 islands it touches.
         arr[:2, :2, :2] = 1
         mask = _mask(arr, (1.0, 1.0, 1.0))
 
@@ -169,7 +169,7 @@ class TestMaskCleanup:
             labelmap_tools.remove_islands(mask, min_island_volume_mm3=2.0)
         )
 
-        assert int(largest.sum()) == 11
+        assert int(largest.sum()) == 14
         np.testing.assert_array_equal(large, largest)
 
     def test_remove_islands_volume_threshold_uses_spacing(
