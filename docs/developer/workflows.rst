@@ -96,6 +96,8 @@ exclusions retain their meanings. Registration grids include patient and aligned
 template surfaces plus physical registration margins, including when a crop
 touches the input boundary. The source labelmap is retained and sampled directly
 onto expanded registration grids, preserving anatomy outside the CT extent.
+Intermediate template labelmaps also use expanded grids, allowing later
+registration stages to move anatomy back inside the crop without losing labels.
 Meshes remain in patient coordinates. The original
 CT remains available as ``fit.original_patient_image`` for full-resolution motion
 warping; fitting stages, including intensity refinement, use ``fit.patient_image``.

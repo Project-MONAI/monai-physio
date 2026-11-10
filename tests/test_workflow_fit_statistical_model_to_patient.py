@@ -196,6 +196,110 @@ def test_fitting_grid_rejects_invalid_spacing(spacing: float) -> None:
         )
 
 
+@pytest.mark.parametrize("use_pca", [False, True])
+def test_template_labels_survive_leaving_and_reentering_fitting_crop(
+    use_pca: bool, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Labels on a 16-cubed grid leave a 3-cubed crop before returning via L2L."""
+    from monai_physio import workflow_fit_statistical_model_to_patient as module
+    from monai_physio.process_tests import ProcessTests
+
+    image = itk.image_from_array(np.zeros((16, 16, 16), dtype=np.float32))
+    patient_labels = np.zeros((16, 16, 16), dtype=np.uint16)
+    patient_labels[4:7, 4:7, 4:7] = 301
+    template_labels = np.zeros_like(patient_labels)
+    template_labels[4:7, 4:7, 9:12] = 301
+    template_labelmap = itk.image_from_array(template_labels)
+    template = pv.Cube(center=(10, 5, 5), x_length=2, y_length=2, z_length=2)
+    patient = pv.Cube(center=(5, 5, 5), x_length=2, y_length=2, z_length=2)
+    identity = itk.AffineTransform[itk.D, 3].New()
+    identity.SetIdentity()
+    forward = itk.AffineTransform[itk.D, 3].New()
+    forward.SetIdentity()
+    forward.SetTranslation([-5, 0, 0])
+    inverse = itk.AffineTransform[itk.D, 3].New()
+    inverse.SetIdentity()
+    inverse.SetTranslation([5, 0, 0])
+
+    class FakeICP:
+        def __init__(self, **kwargs: Any) -> None:
+            pass
+
+        def register(self, **kwargs: Any) -> dict[str, Any]:
+            return {
+                "moving_to_fixed_transform": identity,
+                "fixed_to_moving_transform": identity,
+                "registered_model": template,
+            }
+
+    class FakePCA:
+        def register(self) -> dict[str, Any]:
+            return {"pca_coefficients": np.zeros(1), "registered_model": template}
+
+        def compute_pca_transforms(self, **kwargs: Any) -> dict[str, Any]:
+            return {
+                "moving_to_fixed_transform": identity,
+                "fixed_to_moving_transform": identity,
+            }
+
+    class FakeL2L:
+        def __init__(self, **kwargs: Any) -> None:
+            pass
+
+        def register(self, **kwargs: Any) -> dict[str, Any]:
+            return {
+                "moving_to_fixed_transform": forward,
+                "fixed_to_moving_transform": inverse,
+                "registered_model": patient,
+            }
+
+    monkeypatch.setattr(module, "RegisterModelsICPITK", FakeICP)
+    monkeypatch.setattr(module, "RegisterModelsDistanceMaps", FakeL2L)
+    monkeypatch.setattr(
+        module.RegisterModelsPCA,
+        "from_pca_model",
+        staticmethod(lambda **kwargs: FakePCA()),
+    )
+    workflow = WorkflowFitStatisticalModelToPatient(
+        template_model=template,
+        patient_models=[patient],
+        patient_image=image,
+        patient_labelmap=itk.image_from_array(patient_labels),
+        template_labelmap=template_labelmap,
+        fitting_crop_margin_mm=0,
+        fitting_spacing_mm=1,
+    )
+    workflow.set_mask_dilation_mm(2)
+    if use_pca:
+        workflow.set_use_pca_registration(
+            True,
+            pca_model={"eigenvalues": [1.0], "components": [[0.0]]},
+            number_of_pca_components=1,
+            use_surface=True,
+        )
+    for stage in (
+        workflow.register_model_to_model_icp,
+        workflow.register_model_to_model_pca,
+    ):
+        labels = stage()["fitted_reference_labelmap"]
+        index = labels.TransformPhysicalPointToIndex([10.0, 5.0, 5.0])
+        assert labels.GetLargestPossibleRegion().IsInside(index)
+        assert labels.GetPixel(index) == 301
+    workflow.register_labelmap_to_labelmap()
+    labels = workflow.fitted_reference_labelmap
+    assert labels is not None
+    assert all(
+        a > b for a, b in zip(itk.size(labels), itk.size(workflow.patient_image))
+    )
+    index = labels.TransformPhysicalPointToIndex([5.0, 5.0, 5.0])
+    assert labels.GetPixel(index) == 301
+    checks = ProcessTests(class_name="fitting_grid", results_dir=tmp_path)
+    checks.write_result_image(labels, "template_labels_returned_to_crop.mha")
+    assert checks.compare_result_to_baseline_image(
+        "template_labels_returned_to_crop.mha"
+    )
+
+
 def test_transform_model_applies_staged_transform() -> None:
     """Transform helper updates mesh points with image shape (Z, Y, X) = (3, 3, 3)."""
     image = itk.image_from_array(np.zeros((3, 3, 3), dtype=np.float32))

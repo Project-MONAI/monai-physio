@@ -586,6 +586,8 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         """Perform ICP alignment of template model to patient model.
 
         Uses RegisterModelsICPITK class for ICP alignment.
+        With a custom fitting grid, propagated labels include the aligned
+        template and registration margins outside the patient crop.
 
         Returns:
             dict: Dictionary containing:
@@ -624,7 +626,9 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             self.icp_template_labelmap = self.transform_tools.transform_image(
                 self.template_labelmap,
                 self.icp_fixed_to_moving_transform,
-                self.patient_image,
+                self._fitting_reference_image(self.icp_template_model_surface)
+                if self._custom_fitting_grid
+                else self.patient_image,
                 interpolation_method="nearest",
             )
         else:
@@ -694,6 +698,8 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
         map of the patient. The statistical model's modes are defined in the
         un-aligned template frame, so the registrar is given the raw template
         and the ICP alignment is passed as its ``post_pca_transform``.
+        With a custom fitting grid, propagated labels include the fitted
+        template and registration margins outside the patient crop.
 
         Returns:
             dict: Dictionary containing:
@@ -864,7 +870,9 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             self.pca_template_labelmap = self.transform_tools.transform_image(
                 self.template_labelmap,
                 pca_image_transform,
-                self.patient_image,
+                self._fitting_reference_image(self.pca_template_model_surface)
+                if self._custom_fitting_grid
+                else self.patient_image,
                 interpolation_method="nearest",
             )
         else:
@@ -889,6 +897,8 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
 
         Uses RegisterModelsDistanceMaps with Greedy affine followed by ICON deformable
         registration on distance maps derived from the model surfaces.
+        With a custom fitting grid, propagated labels remain on an expanded
+        grid for subsequent intensity refinement.
 
         Returns:
             dict: Dictionary containing:
@@ -954,7 +964,9 @@ class WorkflowFitStatisticalModelToPatient(MONAIPhysioBase):
             self.l2l_template_labelmap = self.transform_tools.transform_image(
                 self.pca_template_labelmap,
                 self.l2l_fixed_to_moving_transform,
-                self.patient_image,
+                self._fitting_reference_image(self.l2l_template_model_surface)
+                if self._custom_fitting_grid
+                else self.patient_image,
                 interpolation_method="nearest",
             )
         else:
