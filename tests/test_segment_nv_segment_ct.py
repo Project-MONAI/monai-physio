@@ -8,6 +8,7 @@ device.
 """
 
 import logging
+import weakref
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +17,55 @@ import numpy as np
 import pytest
 
 from monai_physio.segment_nv_segment_ct import SegmentNVSegmentCT
+from monai_physio.segment_nv_segment_ct_mri import SegmentNVSegmentCTMRI
+
+
+@pytest.mark.parametrize("segmenter_type", [SegmentNVSegmentCT, SegmentNVSegmentCTMRI])
+def test_release_resources_drops_pipeline_and_allows_reload(
+    segmenter_type: type,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Profile ownership of a cached model without downloading its weights."""
+
+    class CachedPipeline:
+        pass
+
+    segmenter = segmenter_type()
+    segmenter._pipeline = CachedPipeline()
+    reference = weakref.ref(segmenter._pipeline)
+    labels = segmenter.taxonomy.all_labels().copy()
+    assert segmenter._ensure_pipeline() is reference()
+    segmenter.release_resources()
+    assert reference() is None
+    assert segmenter.taxonomy.all_labels() == labels
+    segmenter.release_resources()
+
+    def require_reload() -> str:
+        raise RuntimeError("pipeline reload requested")
+
+    monkeypatch.setattr(segmenter, "_ensure_model", require_reload)
+    with pytest.raises(RuntimeError, match="pipeline reload requested"):
+        segmenter._ensure_pipeline()
+
+
+@pytest.mark.requires_gpu
+@pytest.mark.parametrize("segmenter_type", [SegmentNVSegmentCT, SegmentNVSegmentCTMRI])
+def test_release_resources_reclaims_owned_cuda_allocation(segmenter_type: type) -> None:
+    """Measure release of a 4-MiB cached tensor without segmentation weights."""
+    import torch
+
+    if not torch.cuda.is_available():
+        pytest.skip("CUDA is unavailable")
+    torch.cuda.synchronize()
+    baseline = torch.cuda.memory_allocated()
+    segmenter = segmenter_type()
+    segmenter._pipeline = torch.empty((1024, 1024), device="cuda", dtype=torch.float32)
+    allocated = torch.cuda.memory_allocated()
+    assert allocated - baseline >= 4 * 1024 * 1024
+    segmenter.release_resources(empty_cuda_cache=True)
+    torch.cuda.synchronize()
+    assert torch.cuda.memory_allocated() <= baseline
+
 
 #: Anatomy groups this segmenter must populate, besides the inherited "other".
 EXPECTED_GROUPS = (

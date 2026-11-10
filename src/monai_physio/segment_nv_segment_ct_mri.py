@@ -552,6 +552,16 @@ class SegmentNVSegmentCTMRI(SegmentAnatomyBase):
             )
         self.modality = modality
 
+    def release_resources(self, empty_cuda_cache: bool = False) -> None:
+        """Drop the cached pipeline; the next segmentation recreates it lazily.
+
+        Args:
+            empty_cuda_cache: Also collect unreachable objects and release unused
+                CUDA allocator blocks; see the base method for ownership limits.
+        """
+        self._pipeline = None
+        super().release_resources(empty_cuda_cache=empty_cuda_cache)
+
     def _ensure_model(self) -> str:
         """Download the NV-Segment-CTMR bundle if needed and return its path.
 
