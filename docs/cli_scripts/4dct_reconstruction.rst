@@ -58,10 +58,11 @@ Composite Mode
 ===============
 
 By default, the high-resolution reference image is warped back to each time
-point. ``--composite-mode mean`` or ``--composite-mode max`` instead build a
-pixel-by-pixel mean or max composite of the reference image and every
-registered time-series image first, then warp that composite back to each
-time point - useful when anatomy or contrast is only visible in some frames.
+point. ``--composite-mode mean``, ``--composite-mode max``, or
+``--composite-mode percentile`` instead build a pixel-by-pixel composite of
+the reference image and every registered time-series image first, then warp
+that composite back to each time point - useful when anatomy or contrast is
+only visible in some frames.
 
 .. code-block:: bash
 
@@ -69,6 +70,24 @@ time point - useful when anatomy or contrast is only visible in some frames.
        --time-series-images frame_*.mha \
        --fixed-image highres_reference.mha \
        --composite-mode mean \
+       --output-dir ./results
+
+Percentile mode defaults to the 95th percentile. Use
+``--composite-percentile`` to choose any percentile from 0 to 100 inclusive.
+Percentiles use linear interpolation between samples at each voxel; samples
+outside a registered image's coverage are excluded. The reference image
+contributes one sample at every voxel. The composite preserves the reference
+image's grid and pixel type, rounding interpolated values for integer images.
+Exact percentile calculation retains the registered samples in memory and
+requires more memory than the streaming mean and max reductions.
+
+.. code-block:: bash
+
+   monai-physio-reconstruct-highres-4d-ct \
+       --time-series-images frame_*.mha \
+       --fixed-image highres_reference.mha \
+       --composite-mode percentile \
+       --composite-percentile 95 \
        --output-dir ./results
 
 Outputs
@@ -83,6 +102,14 @@ Python API
 
 Use :class:`monai_physio.WorkflowReconstructHighres4DCT` for programmatic
 access.
+
+Configure percentile reconstruction before calling ``workflow.process()``:
+
+.. code-block:: python
+
+   workflow.set_composite_mode("percentile")  # Defaults to the 95th percentile
+   workflow.set_composite_mode("percentile", percentile=90.0)  # Custom percentile
+   result = workflow.process()
 
 Related Pages
 =============
