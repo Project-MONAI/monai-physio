@@ -23,7 +23,7 @@ This directory contains comprehensive test suites for the MONAI Physio package, 
 - **`test_register_images_icon.py`** - ICON deep learning registration
 
 ### Geometry & Visualization Tests
-- **`test_contour_tools.py`** - PyVista mesh extraction and manipulation
+- **`test_contour_mesh_extraction.py`** - Surface and tetrahedral mesh extraction: `ProcessSurfaceMesh` surfaces; `ProcessVolumetricMesh` voxel, netgen (`netgen` extra), and Simpleware (`--run-simpleware`) tetrahedra, relaxation, and repair
 - **`test_transform_tools.py`** - ITK transform operations and visualization
 - **`test_convert_vtk_to_usd.py`** - VTK to USD conversion
 
@@ -123,6 +123,9 @@ pytest tests/ -v --run-all
 # Full Simpleware coverage (requires Simpleware Medical installed locally)
 pytest tests/ -v --run-simpleware --run-gpu --run-slow
 
+# netgen and Simpleware tetrahedral meshing (netgen tests need the netgen extra)
+pytest tests/test_contour_mesh_extraction.py -v -k TestExtractLabelTetrahedraExternal --run-gpu --run-simpleware
+
 # Tutorial tests (SLOW - hours to complete)
 pytest tests/test_tutorials.py -v --run-tutorials
 
@@ -162,8 +165,9 @@ tests.
 - `@pytest.mark.slow` - Tests taking >30 seconds. Opt in: `--run-slow`.
 - `@pytest.mark.requires_gpu` - Tests needing CUDA. Opt in: `--run-gpu`.
 - `@pytest.mark.requires_simpleware` - Tests needing a licensed Synopsys
-  Simpleware Medical install. Opt in: `--run-simpleware`. (Combine with
-  `--run-gpu` and `--run-slow`.)
+  Simpleware Medical install (ASCardio for segmentation, +FE Free for
+  tetrahedral meshing). Opt in: `--run-simpleware`. (Combine with
+  `--run-gpu`, and `--run-slow` for the segmentation tests.)
 - `@pytest.mark.requires_physicsnemo` - Tests needing PhysicsNeMo (a base
   dependency, requires Python >= 3.11). Opt in: `--run-physicsnemo`.
 - `@pytest.mark.tutorial` - Tutorial scripts run end-to-end (SLOW, never in
@@ -190,7 +194,7 @@ test_convert_image_4d_to_3d
     ↓                    ├─→ test_register_images_ANTS ──→ test_transform_tools
     ↓                    ├─→ test_register_images_ICON
     ↓                    ↓
-test_segment_chest_total_segmentator ────→ test_contour_tools
+test_segment_chest_total_segmentator ────→ test_contour_mesh_extraction
                                                 ↓
                                            test_convert_vtk_to_usd
 ```

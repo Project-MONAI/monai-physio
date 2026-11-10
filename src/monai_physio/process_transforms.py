@@ -19,6 +19,7 @@ import numpy as np
 import pyvista as pv
 import SimpleITK as sitk
 import vtk
+from scipy.ndimage import map_coordinates
 
 from .monai_physio_base import MONAIPhysioBase
 from .process_images import ProcessImages
@@ -428,6 +429,12 @@ class ProcessTransforms(MONAIPhysioBase):
         returns a deep copy with the original cells, cell data, and point data
         preserved. This is appropriate for non-contour datasets such as
         UnstructuredGrid inputs where casting to PolyData would lose topology.
+
+        A displacement field, alone or inside a composite, keeps its edge
+        displacement beyond its extent.  ITK's own ``TransformPoint`` moves
+        such points by nothing, which tears a mesh that runs past the edge of
+        the image the field was registered on - a heart cut by the scan's
+        field of view, say - and inverts the elements across the tear.
         """
 
         new_mesh = mesh.copy(deep=True)
@@ -442,12 +449,8 @@ class ProcessTransforms(MONAIPhysioBase):
                     f"Expected single transform, got list with {len(tfm)} transforms"
                 )
 
-        pnts = np.array(pnts)
-        new_pnts = [
-            np.array(tfm.TransformPoint((float(p[0]), float(p[1]), float(p[2]))))
-            for p in pnts
-        ]
-        new_mesh.points = np.asarray(new_pnts, dtype=float).reshape(-1, 3)
+        new_pnts = self._transform_points(pnts, tfm)
+        new_mesh.points = new_pnts
 
         if with_deformation_magnitude:
             try:
@@ -475,6 +478,52 @@ class ProcessTransforms(MONAIPhysioBase):
                 )
 
         return new_mesh
+
+    def _transform_points(self, points: np.ndarray, tfm: itk.Transform) -> np.ndarray:
+        """Apply *tfm* to *points*, holding displacement fields at their edge.
+
+        Displacement fields are sampled here, with ITK's linear interpolation,
+        but clamped to their extent; every other transform is applied by ITK.
+        """
+        name = tfm.GetNameOfClass()
+        precision = itk.template(tfm)[1][0]
+        if name == "CompositeTransform":
+            composite = itk.CompositeTransform[precision, 3].cast(tfm)
+            # ITK applies a composite's last-added transform first.
+            for index in reversed(range(composite.GetNumberOfTransforms())):
+                points = self._transform_points(
+                    points, composite.GetNthTransform(index)
+                )
+            return points
+        if name == "DisplacementFieldTransform":
+            field = (
+                itk.DisplacementFieldTransform[precision, 3]
+                .cast(tfm)
+                .GetDisplacementField()
+            )
+            direction = itk.array_from_matrix(field.GetDirection())
+            # The array starts at the buffered region's index, not at 0.
+            continuous_index = (
+                (points - np.asarray(field.GetOrigin()))
+                @ np.linalg.inv(direction).T
+                / np.asarray(field.GetSpacing())
+            ) - np.asarray(field.GetBufferedRegion().GetIndex())
+            # The field's array is indexed (z, y, x); "nearest" clamps.
+            coordinates = continuous_index[:, ::-1].T
+            displacement = itk.array_view_from_image(field)
+            return points + np.stack(  # type: ignore[no-any-return]
+                [
+                    map_coordinates(
+                        displacement[..., axis], coordinates, order=1, mode="nearest"
+                    )
+                    for axis in range(3)
+                ],
+                axis=1,
+            )
+        return np.array(
+            [tfm.TransformPoint([float(c) for c in point]) for point in points],
+            dtype=np.float64,
+        ).reshape(-1, 3)
 
     def transform_image(
         self,

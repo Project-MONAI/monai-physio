@@ -604,6 +604,29 @@ class TestSyntheticConversion:
         assert stage.GetPrimAtPath("/World/Looks/Anatomy/ventricle_material").IsValid()
         assert stage.GetPrimAtPath("/World/Looks/Anatomy/atrium_material").IsValid()
 
+    def test_mask_ids_split_tetrahedra_into_tet_mesh_prims(
+        self, tmp_path: Path
+    ) -> None:
+        """With output_tet_mesh, each label's tetrahedra become a TetMesh prim."""
+        grid = pv.ImageData(dimensions=(3, 2, 2)).cast_to_unstructured_grid()
+        tetrahedra = grid.triangulate()
+        tetrahedra.cell_data["SegmentationLabelIds"] = np.repeat(
+            np.array([1, 2], dtype=np.int32), tetrahedra.n_cells // 2
+        )
+        converter = ConvertVTKToUSD(
+            data_basename="Heart",
+            input_polydata=[tetrahedra],
+            mask_ids={1: "ventricle", 2: "atrium"},
+            output_tet_mesh=True,
+        )
+        stage = converter.convert(str(tmp_path / "out.usd"))
+
+        for name in ("ventricle", "atrium"):
+            prim = stage.GetPrimAtPath(f"/World/Heart/Anatomy/{name}")
+            assert prim.IsA(UsdGeom.TetMesh), f"{name} must be a TetMesh"
+            indices = UsdGeom.TetMesh(prim).GetTetVertexIndicesAttr().Get(0.0)
+            assert len(indices) == tetrahedra.n_cells // 2
+
     def test_structured_grid_extracts_surface(self, tmp_path: Path) -> None:
         """StructuredGrid input is surface-extracted when convert_to_surface is true."""
         x, y, z = np.meshgrid([0.0, 1.0], [0.0, 1.0], [0.0, 1.0], indexing="ij")

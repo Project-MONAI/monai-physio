@@ -1,95 +1,95 @@
 # Simpleware Medical Integration for MONAI Physio
 
-This directory contains integration code for using Synopsys Simpleware Medical with MONAI Physio for heart segmentation.
+This directory contains the code MONAI Physio uses to drive Synopsys Simpleware Medical for heart segmentation (ASCardio) and for tetrahedral meshing (+FE Free).
 
 ## Overview
 
-The integration enables MONAI Physio to leverage Simpleware Medical's ASCardio module for automated cardiac segmentation. The implementation uses a two-component architecture:
+Each integration has two parts: a MONAI Physio method that runs in your Python environment, and a script that runs inside Simpleware Medical's own Python environment. Both MONAI Physio methods launch Simpleware through one shared function.
 
-1. **segment_heart_simpleware.py** (in parent directory): A Python class that inherits from `SegmentAnatomyBase` and manages the external Simpleware Medical process
-2. **SimplewareScript_heart_segmentation.py** (this directory): A Python script that runs within the Simpleware Medical environment and performs the actual segmentation using ASCardio
+| Task | MONAI Physio entry point | Script run inside Simpleware | Simpleware module |
+|------|--------------------------|------------------------------|-------------------|
+| Heart segmentation | `SegmentHeartSimpleware.segment()` (`segment_heart_simpleware.py`) and `SegmentHeartSimplewareTrimmedBranches` | `SimplewareScript_heart_segmentation.py` | ASCardio |
+| Tetrahedral meshing | `ProcessVolumetricMesh.extract_label_tetrahedra_simpleware()` (`process_volumetric_mesh.py`) | `SimplewareScript_tetrahedral_mesh.py` | +FE Free |
+
+`__init__.py` provides the shared pieces:
+
+- `DEFAULT_SIMPLEWARE_EXE_PATH` - `C:/Program Files/Synopsys/Simpleware Medical/Y-2026.03/ConsoleSimplewareMedical.exe`
+- `run_simpleware_script(exe_path, input_file, input_value, script_path, timeout_s=600)` - checks that the executable and script exist, runs Simpleware, answers its start-up prompt, and returns `(stdout, stderr)`. On timeout it kills the whole process tree (`taskkill /T` on Windows, the process group elsewhere) so no child keeps holding the GPU, then raises `RuntimeError`; a non-zero exit also raises `RuntimeError`.
 
 ## Requirements
 
-- Synopsys Simpleware Medical X-2025.06 or later
-- ASCardio module license
-- Valid Simpleware Medical installation with console mode and Python scripting support
-- ConsoleSimplewareMedical.exe (command-line version)
+- Synopsys Simpleware Medical with console mode and Python scripting: X-2025.06 or later for segmentation; meshing has been tested with Y-2026.03, the default path
+- ASCardio license for segmentation; +FE Free license for meshing
+- `ConsoleSimplewareMedical.exe` (the command-line version)
+- No additional Python packages: the scripts use Simpleware's own Python environment
 
-## Current Status
+## How It Works
 
-**FUNCTIONAL**: This integration works as expected.
-
-### How It Works
-
-The integration passes the input CT image and output directory directly to Simpleware Medical:
-
-1. **Input**: The preprocessed NIfTI image is written to a temporary file; its path is passed via `--input-file` so Simpleware opens it as the active document.
-2. **Output directory**: The temporary output directory is passed via `--input-value`; the script reads it with `app.GetInputValue()`.
-3. The script runs ASCardio on the current document (the loaded NIfTI), then exports each mask as `mask_<name>.mhd` into that directory.
-4. `SegmentHeartSimpleware` reads the MHD mask files, assembles the labelmap, and returns the result.
+Both integrations exchange files through a temporary directory:
 
 ```bash
 ConsoleSimplewareMedical.exe \
-    --input-file input_image.nii.gz \      # Input CT (becomes active document)
-    --input-value <output_dir> \            # Where to write mask_*.mhd files
-    --run-script SimplewareScript_heart_segmentation.py \
+    --input-file <input image> \       # Becomes the active document
+    --input-value <working dir> \       # Read by the script with app.GetInputValue()
+    --run-script <script> \
     --exit-after-script \
     --no-progress
 ```
 
-The Python script then:
-```python
-output_dir = app.GetInputValue()  # Output directory from --input-value
-doc = sw.App.GetDocument()  # Active document (loaded NIfTI)
-as_cardio = doc.GetAutoSegmenters().GetASCardio()
-# ... run ASCardio, then export each mask to mask_<name>.mhd in output_dir ...
-```
+### Heart segmentation
 
-## Installation
+1. MONAI Physio preprocesses the CT image (1 mm isotropic, intensity scaling) and writes it as `input_image.nii.gz`.
+2. `SimplewareScript_heart_segmentation.py` runs ASCardio on the active document and exports each mask as `mask_<name>.mhd`, plus `landmarks.csv` when ASCardio produces landmarks.
+3. `SegmentHeartSimpleware` reads the masks, assembles the labelmap (deriving the heart exterior from the interior regions), and returns the result.
 
-1. Install Simpleware Medical (default path: `C:\Program Files\Synopsys\Simpleware Medical\X-2025.06\`)
-2. Ensure the ASCardio module is licensed and available
-3. No additional Python packages are required (Simpleware has its own Python environment)
+### Tetrahedral meshing
+
+1. `extract_label_tetrahedra_simpleware` crops the labelmap to its nonzero voxels, pads it so the structures and their blur are off the image border, renumbers its labels 1..N in ascending order, and writes it as `labelmap.mha` with the labelmap's spacing but an identity direction and a zero origin. It writes `params.json` with `element_size_mm`, `smoothing_sigma_mm`, `part_count` (N) and `shared_interfaces`.
+2. `SimplewareScript_tetrahedral_mesh.py` creates one mask per label value and blurs each with the recursive Gaussian filter (`smoothing_sigma_mm`; a 0/1 mask otherwise meshes as a voxel staircase). With `shared_interfaces` it builds one +FE Free FE model holding every mask as a part, so neighboring parts share their interface nodes, and exports `tetrahedra.vtk`, whose `PartId` cell array numbers the parts in label order; otherwise it builds one model per mask and exports `tetrahedra_<part>.vtk` for each. Every model's maximum edge length is `element_size_mm` and its target minimum half of it (Simpleware's defaults when `element_size_mm` is `None`).
+3. MONAI Physio reads the linear tetrahedra, splits them by part back into one mesh per original label, and maps the points back through the cropped labelmap's origin and direction. Because Simpleware only ever sees an identity frame, the result does not depend on how Simpleware interprets image orientation. Any inverted cell has two corners swapped, so every tetrahedron has positive volume.
 
 ## Usage
 
-### Basic Usage
+### Heart segmentation
 
 ```python
-from monai_physio.segment_heart_simpleware import SegmentHeartSimpleware
 import itk
 
-# Create segmenter instance
+from monai_physio import SegmentHeartSimpleware
+
 segmenter = SegmentHeartSimpleware()
+result = segmenter.segment(itk.imread("heart_ct.nii.gz"))
 
-# Load CT image
-ct_image = itk.imread("heart_ct.nii.gz")
-
-# Perform segmentation
-result = segmenter.segment(ct_image)
-
-# Access results
 labelmap = result["labelmap"]
 heart_mask = result["heart"]
 vessel_mask = result["major_vessels"]
-
-# Save results
-itk.imwrite(labelmap, "heart_segmentation.nii.gz")
 ```
 
-### Custom Simpleware Path
-
-If Simpleware Medical is installed in a non-default location:
+### Tetrahedral meshing
 
 ```python
-segmenter = SegmentHeartSimpleware()
+from monai_physio import ProcessVolumetricMesh
+
+volume_tools = ProcessVolumetricMesh()
+meshes = volume_tools.extract_label_tetrahedra_simpleware(labelmap, element_size_mm=2.0)
+for label_id, mesh in meshes.items():
+    mesh.save(f"heart_tetrahedra_{label_id}.vtu")
+```
+
+### Custom Simpleware path
+
+Both classes accept a different install location:
+
+```python
 segmenter.set_simpleware_executable_path(
+    "D:/CustomPath/Simpleware/ConsoleSimplewareMedical.exe"
+)
+volume_tools.set_simpleware_executable_path(
     "D:/CustomPath/Simpleware/ConsoleSimplewareMedical.exe"
 )
 ```
 
-### Segmentation Output
+### Segmentation output
 
 The ASCardio module segments the following cardiac structures (label IDs match `segment_heart_simpleware.py`):
 
@@ -107,128 +107,76 @@ The ASCardio module segments the following cardiac structures (label IDs match `
 - 9: Right Coronary Artery
 - 10: Left Coronary Artery
 
-## Architecture
+## Testing
 
-### Process Flow
+Tests that launch Simpleware are marked `requires_simpleware` and run only with `--run-simpleware` (or `--run-all`):
 
-1. MONAI Physio preprocesses the CT image (resampling to 1 mm isotropic, intensity scaling).
-2. Preprocessed image is saved to a temporary NIfTI file (e.g. `input_image.nii.gz`) in a temporary directory.
-3. `ConsoleSimplewareMedical.exe` is launched with:
-   - `--input-file <path_to_input.nii.gz>` - the preprocessed CT (Simpleware opens it as the active document)
-   - `--input-value <tmp_dir>` - directory where the script will write mask files
-   - `--run-script SimplewareScript_heart_segmentation.py`
-   - `--exit-after-script` and `--no-progress`
-4. The script runs inside Simpleware:
-   - Gets the output directory from `app.GetInputValue()`
-   - Uses the current document (the loaded NIfTI) and ASCardio to segment heart and vessels
-   - Exports each mask as `mask_<name>.mhd` into the output directory
-5. MONAI Physio reads the `mask_*.mhd` files, builds the labelmap (including heart exterior from interior regions), and returns the result.
+```bash
+# Tetrahedral meshing (fast)
+py -m pytest tests/test_contour_mesh_extraction.py -k TestExtractLabelTetrahedraExternal --run-gpu --run-simpleware
 
-### Communication
-
-- **Executable**: `ConsoleSimplewareMedical.exe` (command-line version)
-- **Script**: `--run-script SimplewareScript_heart_segmentation.py`
-- **Input**: NIfTI image path via `--input-file` (becomes the active document)
-- **Output**: Directory path via `--input-value`; script writes `mask_<name>.mhd` per structure
-- **Protocol**: File-based I/O via temporary directory
-- **Timeout**: 10 minutes (configurable in `segment_heart_simpleware.py`)
+# Heart segmentation (slow; needs the CHOP-Valve4D data)
+py -m pytest tests/test_segment_heart_simpleware.py --run-all
+```
 
 ## Troubleshooting
 
-### Common Issues
-
 **Issue**: `FileNotFoundError: Simpleware Medical executable not found`
 - **Solution**:
-  - Verify Simpleware installation path
-  - Ensure you're using `ConsoleSimplewareMedical.exe` not `SimplewareMedical.exe`
-  - Use `set_simpleware_executable_path()` to specify custom location
+  - Verify the Simpleware installation path
+  - Use `ConsoleSimplewareMedical.exe`, not `SimplewareMedical.exe`
+  - Call `set_simpleware_executable_path()` with the right location
 
 **Issue**: `unrecognised option '-python'`
-- **Solution**: The GUI version `SimplewareMedical.exe` doesn't support command-line scripting. Use `ConsoleSimplewareMedical.exe` instead.
+- **Solution**: The GUI version `SimplewareMedical.exe` does not support command-line scripting. Use `ConsoleSimplewareMedical.exe`.
 
 **Issue**: `ImportError: Failed to import Simpleware modules`
-- **Solution**: Ensure the script is being called with `--run-script` flag through `ConsoleSimplewareMedical.exe`
+- **Solution**: The scripts only run inside Simpleware, via `--run-script` through `ConsoleSimplewareMedical.exe`; do not import them from your own Python.
 
-**Issue**: `WARNING: No segmentation masks were created` or missing mask files
-- **Solution**: Check that the input NIfTI is passed via `--input-file` so the document is loaded. Ensure input image quality, contrast, and field of view; the heart should be clearly visible.
+**Issue**: Missing `mask_*.mhd` files, or `Simpleware Medical produced no segmentation output`
+- **Solution**: Check that the input image is passed via `--input-file` so the document is loaded, and that the heart is clearly visible with adequate contrast and field of view.
 
-**Issue**: Segmentation timeout after 600 seconds
-- **Solution**: Image may be too large or high resolution. Consider adjusting preprocessing parameters.
+**Issue**: `Simpleware Medical exported no mesh` or `exported no linear tetrahedra`
+- **Solution**: Check the +FE Free license and the Simpleware stderr that MONAI Physio logs as a warning. Run with `log_level=logging.DEBUG` to see Simpleware's stdout.
+
+**Issue**: `... timed out after 600 seconds`
+- **Solution**: The image or mesh is too large for the timeout. For segmentation, adjust preprocessing; for meshing, use a coarser `element_size_mm` or pass a larger `timeout_s`.
 
 ### Logging
-
-Enable detailed logging to troubleshoot issues:
 
 ```python
 import logging
 
 segmenter = SegmentHeartSimpleware(log_level=logging.DEBUG)
+volume_tools = ProcessVolumetricMesh(log_level=logging.DEBUG)
 ```
 
 ## Customization
 
-### Modifying ASCardio Parameters
+Edit the script for the task:
 
-To customize ASCardio segmentation parameters, edit `SimplewareScript_heart_segmentation.py`:
-
-```python
-cardio.auto_segment(
-    image=image,
-    segment_chambers=True,
-    segment_myocardium=True,
-    segment_vessels=True,
-    # Add custom parameters here
-)
-```
+- `SimplewareScript_heart_segmentation.py` - which ASCardio parts to segment (the `sw.HeartParts(...)` call) and what is exported.
+- `SimplewareScript_tetrahedral_mesh.py` - +FE Free model settings such as edge lengths, target maximum error, and export type. The method expects linear tetrahedra in `tetrahedra.vtk`; other cell types are dropped with a warning.
 
 ## Reference Documentation
 
-For more information on Simpleware Medical and ASCardio:
-- Simpleware Medical User Guide
-- ASCardio Module Documentation
-- Simpleware Python API Reference (ScriptingAPI.chm)
-- Console Mode Documentation
+- Simpleware Medical reference guide
+- Simpleware Python API reference (`ScriptingAPI.chm`), with type stubs in `Python3/simpleware/scripting.pyi`
+- Console mode: `ConsoleSimplewareMedical.exe --help`
 
-Located in: `C:\Program Files\Synopsys\Simpleware Medical\X-2025.06\Documentation\`
+These are installed under `C:\Program Files\Synopsys\Simpleware Medical\<version>\Documentation\`.
 
-### Console Mode Command Reference
+### Console mode options used here
 
 ```bash
-# View all command-line options
-ConsoleSimplewareMedical.exe --help
-
-# Key options used by this integration:
---input-file <file>         # Open input (NIfTI image); becomes active document
---input-value <value>       # Single string passed to script via app.GetInputValue() (e.g. output dir)
+--input-file <file>         # Open input image; becomes the active document
+--input-value <value>       # Single string passed to the script via app.GetInputValue()
 --run-script <script>       # Execute a Python script
---exit-after-script         # Close after script completes
+--exit-after-script         # Close after the script completes
 --no-progress               # Disable progress messages
-```
-
-### Example Command (as used by SegmentHeartSimpleware)
-
-```bash
-ConsoleSimplewareMedical.exe \
-    --input-file /tmp/.../input_image.nii.gz \
-    --input-value /tmp/.../output_dir \
-    --run-script SimplewareScript_heart_segmentation.py \
-    --exit-after-script \
-    --no-progress
-```
-
-### Simpleware Python API Usage
-
-Within the script, the output directory is passed via `--input-value` and read as:
-
-```python
-import simpleware.scripting as sw
-
-app = sw.App.GetInstance()
-output_dir = app.GetInputValue()  # Value from --input-value (output directory)
-doc = sw.App.GetDocument()  # Active document (NIfTI loaded via --input-file)
 ```
 
 ## License
 
 This integration code is part of MONAI Physio and follows the same license.
-Simpleware Medical and ASCardio are commercial products requiring separate licenses from Synopsys.
+Simpleware Medical, ASCardio, and +FE Free are commercial products requiring separate licenses from Synopsys.

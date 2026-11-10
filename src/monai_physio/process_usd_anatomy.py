@@ -1046,6 +1046,8 @@ class ProcessUSDAnatomy(MONAIPhysioBase):
     def enhance_meshes(self, segmentator: Any) -> None:
         """Apply per-organ OmniSurface materials to every matching mesh prim.
 
+        Both ``UsdGeom.Mesh`` and ``UsdGeom.TetMesh`` prims are matched.
+
         Walks the segmenter's :class:`AnatomyTaxonomy` and applies a material
         to each mesh prim whose leaf name matches an organ name in any group.
         An organ-level entry in :attr:`render_params` (e.g. ``"liver"``,
@@ -1094,8 +1096,7 @@ class ProcessUSDAnatomy(MONAIPhysioBase):
                 organ_params[organ_name] = selected
 
         for prim in self.stage.Traverse():
-            mesh_prim = UsdGeom.Mesh(prim)
-            if not mesh_prim:
+            if not (prim.IsA(UsdGeom.Mesh) or prim.IsA(UsdGeom.TetMesh)):
                 continue
             prim_name = prim.GetName()
             # ConvertVTKToUSD may prefix prim names with an index like

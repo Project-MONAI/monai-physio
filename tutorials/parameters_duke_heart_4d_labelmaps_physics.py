@@ -35,8 +35,8 @@ class ParametersDukeHeart4DLabelmapsPhysics(ParametersDukeHeart4DLabelmaps):
             sizes the elements the strain energy is integrated over.
 
             It is a coverage/cost trade, and the numbers are measured rather
-            than assumed: ``extract_tetrahedra`` resamples the mask with a vote,
-            so any wall thinner than the element size is dropped, and the thin
+            than assumed: ``extract_label_tetrahedra_vtk`` resamples the mask
+            with a vote, so any wall thinner than the element size is dropped, and the thin
             atrial and right-ventricular walls go first.  Against the 208 259
             mm^3 the mean surface encloses, the template holds 99.5% of it at
             1.0 mm (305,696 nodes), 88.3% at 1.5 mm (100,903 nodes), 72.1% at

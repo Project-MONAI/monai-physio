@@ -255,20 +255,26 @@ class TestTutorial01ConvertToUSDTetmeshSlicerHeart4DCT:
         results = _run_tutorial_script(
             "tutorial_01_convert_to_usd_tetmesh_slicer_heart_4d_ct.py"
         )
-        assert results["tetmesh_files"], "Tutorial 1 tetmesh should write tetmeshes"
-        for tetmesh_file in results["tetmesh_files"]:
-            assert Path(tetmesh_file).exists(), f"Tetmesh missing: {tetmesh_file}"
-        # The USD screenshot helper renders UsdGeom.Mesh only, so the
-        # UsdGeomTetMesh is checked by its structure instead.
-        stage = Usd.Stage.Open(results["usd_file"])
-        tet_meshes = [
-            UsdGeom.TetMesh(prim)
-            for prim in stage.Traverse()
-            if prim.IsA(UsdGeom.TetMesh)
-        ]
-        assert len(tet_meshes) == 1, "USD should hold one UsdGeomTetMesh"
-        point_samples = tet_meshes[0].GetPointsAttr().GetTimeSamples()
-        assert len(point_samples) == len(results["tetmesh_files"])
+        # Simpleware's mesh is written only where Simpleware is installed.
+        assert {"vtk", "netgen"} <= set(results["tetmesh_files"])
+        assert set(results["usd_files"]) == set(results["tetmesh_files"])
+        for mesher, tetmesh_files in results["tetmesh_files"].items():
+            assert tetmesh_files, f"Tutorial 1 tetmesh should write {mesher} meshes"
+            for tetmesh_file in tetmesh_files:
+                assert Path(tetmesh_file).exists(), f"Tetmesh missing: {tetmesh_file}"
+            # The USD screenshot helper renders UsdGeom.Mesh only, so the
+            # UsdGeomTetMesh is checked by its structure instead.
+            stage = Usd.Stage.Open(results["usd_files"][mesher])
+            tet_meshes = [
+                UsdGeom.TetMesh(prim)
+                for prim in stage.Traverse()
+                if prim.IsA(UsdGeom.TetMesh)
+            ]
+            # One TetMesh per heart and contrast label.
+            assert len(tet_meshes) > 1, f"{mesher} USD should hold a TetMesh per label"
+            for tet_mesh in tet_meshes:
+                point_samples = tet_mesh.GetPointsAttr().GetTimeSamples()
+                assert len(point_samples) == len(tetmesh_files)
 
         _compare_screenshots(
             results["screenshots"],

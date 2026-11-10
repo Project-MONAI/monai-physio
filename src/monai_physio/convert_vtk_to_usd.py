@@ -133,8 +133,9 @@ class ConvertVTKToUSD(MONAIPhysioBase):
             log_level: Logging level
             output_tet_mesh: If True, write each tetrahedral unstructured grid
                       as a UsdGeomTetMesh holding every tetrahedron instead of
-                      its extracted surface. Overrides ``convert_to_surface``
-                      and does not combine with ``mask_ids``.
+                      its extracted surface. Overrides ``convert_to_surface``;
+                      with ``mask_ids``, each label's tetrahedra become a
+                      UsdGeomTetMesh of their own.
 
         Raises:
             ValueError: If time_codes or object_names is not None and its length
@@ -1018,7 +1019,11 @@ class ConvertVTKToUSD(MONAIPhysioBase):
             vtk_mesh = pv.wrap(vtk_mesh)
 
         # Extract surface if needed
-        if isinstance(vtk_mesh, pv.UnstructuredGrid) and self.convert_to_surface:
+        if (
+            isinstance(vtk_mesh, pv.UnstructuredGrid)
+            and self.convert_to_surface
+            and not self.output_tet_mesh
+        ):
             vtk_mesh = vtk_mesh.extract_surface(algorithm="dataset_surface")
 
         # Per-cell label IDs, as ProcessSurfaceMesh.combine_surfaces writes them

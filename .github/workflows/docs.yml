@@ -94,7 +94,10 @@ jobs:
   
   deploy:
     needs: build-docs
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Forks have no Pages site to deploy to; they still build the docs.
+    if: >-
+      github.repository == 'Project-MONAI/monai-physio' &&
+      github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
