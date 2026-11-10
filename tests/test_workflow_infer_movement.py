@@ -39,9 +39,10 @@ def test_time_series_can_release_dense_fields_between_stages(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, restrict_exterior: bool
 ) -> None:
     """A 16-cubed warp checks outputs and reference lifetimes without a network."""
-    sphere = pv.Sphere(radius=3, theta_resolution=8, phi_resolution=8)
+    # Equal-area faces give the same axis-aligned point normals across VTK versions.
+    mesh = pv.Octahedron(radius=3)
     mesh_file = tmp_path / "fitted.vtp"
-    sphere.save(str(mesh_file))
+    mesh.save(str(mesh_file))
     coeff_file = tmp_path / "subject.json"
     coeff_file.write_text(json.dumps([0.0, 0.0]), encoding="utf-8")
     values = np.indices((16, 16, 16)).sum(axis=0).astype(np.float32)
@@ -49,7 +50,7 @@ def test_time_series_can_release_dense_fields_between_stages(
     image.SetOrigin([-8.0, -8.0, -8.0])
     mask = itk.image_from_array((values < 24).astype(np.uint8))
     mask.CopyInformation(image)
-    workflow = WorkflowInferMovement(cast(Any, _StubInference(sphere, tmp_path)))
+    workflow = WorkflowInferMovement(cast(Any, _StubInference(mesh, tmp_path)))
     options: dict[str, Any] = {
         "shape_parameters": coeff_file,
         "stages": [0.0, 0.5, 1.0],
