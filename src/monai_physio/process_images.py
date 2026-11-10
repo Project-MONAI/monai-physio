@@ -302,7 +302,7 @@ class ProcessImages(MONAIPhysioBase):
         if dtype is None:
             if values.dtype in (np.uint8, np.int16, np.uint16, np.float32, np.float64):
                 return image
-            if values.min() < -(2**53) or values.max() > 2**53:
+            if int(values.min()) < -(2**53) or int(values.max()) > 2**53:
                 raise ValueError("Integer intensities exceed float64's exact range")
             dtype = np.float64
         if dtype not in (np.float32, np.float64, np.int16):
