@@ -1020,7 +1020,7 @@ def test_transform_dataset_holds_a_displacement_field_at_its_edge(
     """Inside its field a composite warp matches ITK; past it, the edge holds."""
     field = itk.Image[itk.Vector[itk.D, 3], 3].New()
     field.SetRegions([5, 5, 5])
-    field.Allocate()
+    field.Allocate(True)
     field.SetOrigin((10.0, 20.0, 30.0))
     field.SetSpacing((1.0, 2.0, 1.5))
     flip = np.diag([-1.0, -1.0, 1.0])

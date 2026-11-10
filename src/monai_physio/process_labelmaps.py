@@ -133,8 +133,21 @@ class ProcessLabelmaps(MONAIPhysioBase):
         mask_type = itk.Image[itk.UC, dimension]
         # The relabeled ids are unsigned short, which is enough to number the
         # components that survive any realistic mask.
-        component_type = itk.Image[itk.ULL, dimension]
         label_type = itk.Image[itk.US, dimension]
+        # ITK wraps 64-bit component ids as ULL on Windows but as UL on Linux,
+        # where unsigned long is already 64 bits.
+        relabel_inputs = {
+            input_type
+            for input_type, output_type in itk.RelabelComponentImageFilter
+            if output_type is label_type
+        }
+        component_type = next(
+            output_type
+            for input_type, output_type in itk.ConnectedComponentImageFilter
+            if input_type is mask_type
+            and output_type in relabel_inputs
+            and itk.template(output_type)[1][0] in (itk.ULL, itk.UL)
+        )
 
         components = itk.ConnectedComponentImageFilter[mask_type, component_type].New(
             Input=binary, FullyConnected=False
