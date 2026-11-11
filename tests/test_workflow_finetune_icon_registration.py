@@ -8,6 +8,7 @@ monkey-patched.
 
 from __future__ import annotations
 
+import importlib
 import json
 import logging
 import subprocess
@@ -402,10 +403,9 @@ def test_expected_weights_path_layout(tmp_path: Path) -> None:
 
     # The filename must track uniGradICON's own checkpoint prefix, so an
     # upstream rename breaks this test rather than silently sending the
-    # tutorials to a path that only ever holds stock weights.  The finetuning
-    # submodule exists only on the feat-add-finetuning branch, so skip where
-    # it is absent.
-    finetune = pytest.importorskip("unigradicon.finetuning.finetune")
+    # tutorials to a path that only ever holds stock weights.
+    finetune = importlib.import_module("unigradicon.finetuning.finetune")
+    assert expected.parent.name == finetune.CHECKPOINT_DIR
     assert expected.name == f"{finetune.NETWORK_WEIGHTS_PREFIX}_final.trch"
 
 

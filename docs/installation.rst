@@ -192,6 +192,28 @@ pull in the ``netgen`` extra so the netgen meshing tests can run - provides:
 * **pre-commit** (git hooks for automatic checks)
 * **sphinx** and extensions (documentation)
 
+ICON registration and fine-tuning
+================================
+
+Registration and fine-tuning use the published packages
+``icon-registration>=1.1.9`` and ``unigradicon>=1.0.6``. The
+``unigradicon.finetuning.finetune`` module is included in uniGradICON 1.0.6;
+no branch checkout or local package patch is required. Both packages are
+installed by the standard MONAI Physio commands above.
+
+To update an environment that previously used the fine-tuning branch:
+
+.. code-block:: bash
+
+   pip install --upgrade "icon-registration>=1.1.9" "unigradicon>=1.0.6"
+   python -m unigradicon.finetuning.finetune --help
+
+Remove an old uniGradICON source directory from ``PYTHONPATH`` if it shadows
+the installed package. Leave ``WorkflowFinetuneICONRegistration``'s
+``unigradicon_src_path`` unset for the published package; that optional argument
+remains available for intentional source development. Existing workflow calls
+and checkpoint paths are unchanged.
+
 Verify Installation
 ===================
 

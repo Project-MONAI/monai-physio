@@ -434,10 +434,8 @@ class WorkflowFinetuneICONRegistration(MONAIPhysioBase):
         of training -- its ``NETWORK_WEIGHTS_PREFIX`` plus the ``"final"`` epoch
         label.  Also the return value of :meth:`process`.
 
-        The filename is hard-coded rather than imported: training runs in a
-        subprocess so that this process never imports ``unigradicon`` (its
-        ``finetuning`` submodule exists only on the ``feat-add-finetuning``
-        branch, so an import here would raise on a stock install).  An upstream
+        The filename is hard-coded rather than imported to keep the training
+        package in its subprocess instead of importing it here.  An upstream
         rename is caught by ``test_expected_weights_path_layout``, which
         compares this filename against ``NETWORK_WEIGHTS_PREFIX`` wherever the
         submodule is installed, and by the ``FileNotFoundError`` :meth:`process`
