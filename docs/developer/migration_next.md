@@ -86,3 +86,31 @@ rewrites each call and appends `[1]`; it reports calls passing
 be empty, also need a hand edit (index by the foreground value, or use
 `.get(1)`).  Run `utils/migrate_process_contours.py` first for code still
 using `ProcessContours`.
+
+## Registration dependencies - published fine-tuning support
+
+**Change:** registration now requires `icon-registration>=1.1.9` and
+`unigradicon>=1.0.6` from the package index. The uniGradICON fine-tuning branch
+override is removed. Public workflow signatures and checkpoint paths are
+unchanged.
+
+**Why:** uniGradICON 1.0.6 includes `unigradicon.finetuning.finetune`, so
+registration and fine-tuning can use the same published dependencies without a
+branch checkout or local package patches.
+
+**Before**
+
+```bash
+pip install "unigradicon @ git+https://github.com/uncbiag/uniGradICON.git@feat-add-finetuning"
+```
+
+**After**
+
+```bash
+pip install --upgrade "icon-registration>=1.1.9" "unigradicon>=1.0.6"
+```
+
+Remove any old uniGradICON source path from `PYTHONPATH` and leave
+`unigradicon_src_path=None` unless deliberately testing a source checkout.
+
+**Automated conversion:** None needed.
