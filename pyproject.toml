@@ -109,13 +109,12 @@ dependencies = [
   # solver is free to pick 0.5.3, whose newest Windows wheel is 3.12, and on
   # 3.13 that means building ANTs and ITK from source -- which fails.
   "antspyx>=0.6.1",
-  "icon-registration>=1.0.0",
+  "icon-registration>=1.1.9",
   "picsl-greedy>=0.0.12",
   "scipy>=1.10.0",
-  # Finetuning (``unigradicon.finetuning``, used by
-  # WorkflowFinetuneICONRegistration and Tutorial 2) only exists on the
-  # uniGradICON ``feat-add-finetuning`` branch; see [tool.uv.sources] below.
-  "unigradicon>=1.0.0",
+  # 1.0.6 includes the finetuning module used by
+  # WorkflowFinetuneICONRegistration and Tutorial 2.
+  "unigradicon>=1.0.6",
 
   # Visualization and USD
   "pyvista[all]>=0.47.0",
@@ -171,14 +170,6 @@ torchvision = [
   { index = "pytorch-cu128", extra = "cuda12" },
   { index = "pytorch-cu130", extra = "cuda13" },
 ]
-# The PyPI unigradicon release ships no ``unigradicon.finetuning`` module, so
-# finetuning (WorkflowFinetuneICONRegistration, Tutorial 2) needs this branch.
-# Declared as a uv source instead of a PEP 508 direct reference in
-# [project.dependencies] because PyPI rejects direct references at upload time.
-# pip users must install the branch explicitly:
-#   pip install "unigradicon @ git+https://github.com/uncbiag/uniGradICON.git@feat-add-finetuning"
-unigradicon = { git = "https://github.com/uncbiag/uniGradICON.git", branch = "feat-add-finetuning" }
-
 [[tool.uv.index]]
 name = "pytorch-cu130"
 url = "https://download.pytorch.org/whl/cu130"
