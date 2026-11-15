@@ -9,9 +9,10 @@ Repository Instructions
 =======================
 
 ``AGENTS.md`` holds the role-based guidance that applies across every
-assistant; ``CLAUDE.md`` adds Claude-specific instructions. Role subagents live
-in ``.agents/agents/`` and slash-command skills in ``.agents/skills/``. Read
-those before hand-writing a prompt that repeats project conventions.
+assistant; ``CLAUDE.md`` adds Claude-specific instructions. The repository does
+not ship agent or skill definitions; contributors keep their own outside the
+checkout. Read these instruction files before hand-writing a prompt that
+repeats project conventions.
 
 One of those conventions binds every assistant: MONAI Physio prefers
 compatibility, breaks a public API only when the change is generally beneficial

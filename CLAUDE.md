@@ -171,22 +171,9 @@ came from.
 
 ## Agents and Skills
 
-Role-specific subagents live in `.agents/agents/`; slash-command skills in
-`.agents/skills/`. See `AGENTS.md` for role-based guidance that applies across
-Claude, Codex, and other AI tooling.
-
-- `/plan` - inspect files, summarize design, produce a numbered plan (no code changes)
-- `/impl` - read → summarize → plan → implement in small diffs
-- `/test-feature` - propose test plan, write real-data-driven pytest tests
-  with baselines
-- `/doc-feature` - update docstrings
-- `/check-conventions` - audit changed files against project hard rules
-  (base-class, logging, coordinate frame, USD entry point, Windows mp guard,
-  quoting, type hints, line length, emoji ban)
-- `/simplify-staged` - readability / quality pass over `git diff HEAD`
-- `/commit` - stage tracked changes, draft `<TAG>: …` message, loop until hooks pass
-- `/review-pr <NUMBER>` - drive `utils/ai_agent_github_reviews.py` to triage
-  a PR's review comments and apply accepted edits as pending changes
+This repository does not ship AI agent or skill definitions; contributors keep
+their own outside the checkout. See `AGENTS.md` for role-based guidance that
+applies across Claude, Codex, and other AI tooling.
 
 ## File Operations
 

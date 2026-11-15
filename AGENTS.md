@@ -44,9 +44,9 @@ test to avoid the marker.
 
 Non-Python tools used by contributor workflows:
 
-- **Codex CLI** (`codex`) - can run the `.agents/` slash skills and is the
-  default PR-review agent for `ai_agent_github_reviews.py`.
-- **Claude Code CLI** (`claude`) - can run the `.agents/` slash skills and
+- **Codex CLI** (`codex`) - the default PR-review agent for
+  `ai_agent_github_reviews.py`.
+- **Claude Code CLI** (`claude`) - runs
   `ai_agent_github_reviews.py --agent claude`.
   Install: `winget install Anthropic.ClaudeCode`.
 - **gh CLI** (`gh`) - required by `ai_agent_github_reviews.py` to fetch PR
