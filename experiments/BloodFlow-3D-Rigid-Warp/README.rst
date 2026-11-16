@@ -4,9 +4,11 @@ Rigid aorta: 3D blood flow with Warp FEM
 A demonstration of three-dimensional, time-dependent blood flow in the
 Tutorial 13 aorta with a rigid wall. It shares its geometry cuts, inlet
 waveform and outlet totals with the 1D experiment in
-``../BloodFlow-1D-Rigid-Warp``. The solver, the outlet model and the viewer
-are reusable library classes: ``WarpNavierStokes``, ``Windkessel`` and
-``VisualizeFlowFields`` in ``src/monai_physio``.
+``../BloodFlow-1D-Rigid-Warp``, whose ``aorta_lumen.py`` prepares the
+Tutorial 13 lumen and LV flux for both. The solver, the outlet model, the
+inlet waveform and the viewer are reusable library code: ``WarpNavierStokes``,
+``Windkessel``, ``inlet_flow`` and ``VisualizeFlowFields`` in
+``src/monai_physio``.
 
 What it computes
 ----------------

@@ -1,14 +1,16 @@
 """Prepare the rigid aortic lumen mesh and LV inlet waveform for 3D flow.
 
 The Tutorial 13 aorta is frozen at sample 69, cut into a five-port lumen by
-SimulateAortaFlowWarp, voxelized and meshed with Netgen. Boundary triangles
-are labelled 0 (wall) or by the region id of their port.
+``../BloodFlow-1D-Rigid-Warp/aorta_lumen.py``, voxelized and meshed with
+Netgen. Boundary triangles are labelled 0 (wall) or by the region id of their
+port.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -18,10 +20,12 @@ import numpy as np
 import pyvista as pv
 
 from monai_physio.process_volumetric_mesh import ProcessVolumetricMesh
-from monai_physio.simulate_aorta_flow_warp import SimulateAortaFlowWarp
 
 ROOT = Path(__file__).resolve().parent
 REPOSITORY = ROOT.parents[1]
+# The Tutorial 13 lumen preparation is shared with the 1D experiment.
+sys.path.insert(0, str(ROOT.parent / "BloodFlow-1D-Rigid-Warp"))
+from aorta_lumen import AortaLumen
 
 
 def outer_faces(tets: np.ndarray) -> np.ndarray:
@@ -74,7 +78,7 @@ def prepare(source_path: Path, output: Path, config: dict[str, Any]) -> dict[str
     """Write the frozen anatomy, the tagged tetrahedral lumen and the waveform."""
     started = time.perf_counter()
     output.mkdir(parents=True, exist_ok=True)
-    tools = SimulateAortaFlowWarp()
+    tools = AortaLumen()
     source = tools.load_source(
         source_path, config["source_sha256"], config["frozen_sample"]
     )

@@ -1,4 +1,4 @@
-"""Windkessel and analytic pipe checks of the Warp Navier-Stokes solver."""
+"""Windkessel, inlet-flow and analytic pipe checks of the Warp Navier-Stokes solver."""
 
 import inspect
 from typing import Any
@@ -12,6 +12,7 @@ from monai_physio.warp_navier_stokes import (
     WarpNavierStokes,
     Windkessel,
     find_cudss_library,
+    inlet_flow,
 )
 
 RADIUS, LENGTH, VISCOSITY = 0.002, 0.024, 0.04
@@ -149,6 +150,24 @@ def test_windkessel_steady_state_and_split() -> None:
     assert abs(sum(w.compliance for w in outlets) / 6.8e-9 - 1) < 1e-12
     for windkessel, resistance in zip(outlets, resistances):
         assert abs(windkessel.proximal_resistance / resistance - 0.06) < 1e-12
+
+
+def test_inlet_flow_preserves_volume_and_sign() -> None:
+    """Gaussian smoothing keeps Q >= 0, every beat volume and a consistent dQ/dt."""
+    flux = np.zeros(100)
+    for start in (0, 34, 67):
+        flux[start : start + 12] = np.repeat([20e-6, 120e-6, 180e-6, 60e-6], 3)
+    times = (np.arange(30000) + 0.5) * 1e-4
+    flow, derivative = inlet_flow(times, flux, 0.03, 0.03)
+    assert np.all(flow >= 0)
+    assert flow.max() < flux.max()
+    for start, low, high in ((0, -0.2, 0.82), (34, 0.82, 1.81), (67, 1.81, 2.8)):
+        window = np.mod(times - low, 3.0) < high - low
+        beat = flow[window].sum() * 1e-4
+        assert abs(beat / (flux[start : start + 12].sum() * 0.03) - 1) <= 1e-6
+    numerical = np.gradient(flow, times)
+    scale = np.abs(derivative).max()
+    np.testing.assert_allclose(derivative[1:-1], numerical[1:-1], atol=1e-5 * scale)
 
 
 @pytest.mark.requires_gpu

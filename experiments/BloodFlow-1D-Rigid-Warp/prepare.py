@@ -1,9 +1,9 @@
 """Extract the rigid aortic trunk centreline and section areas for 1D flow.
 
 The Tutorial 13 aorta is frozen at sample 69. A radius-weighted interior
-geodesic joins the centroids of the root and distal cuts of the 3D experiment
-(SimulateAortaFlowWarp), and each section area is the closed plane section
-of the source surface normal to the curve.
+geodesic joins the centroids of the root and distal cuts that
+``aorta_lumen.py`` also makes for the 3D experiment, and each section area is
+the closed plane section of the source surface normal to the curve.
 """
 
 from __future__ import annotations
@@ -16,11 +16,10 @@ from typing import Any
 
 import numpy as np
 import pyvista as pv
+from aorta_lumen import AortaLumen
 from scipy.ndimage import distance_transform_edt, gaussian_filter1d
 from scipy.spatial import cKDTree
 from skimage.graph import MCP_Geometric
-
-from monai_physio.simulate_aorta_flow_warp import SimulateAortaFlowWarp
 
 ROOT = Path(__file__).resolve().parent
 REPOSITORY = ROOT.parents[1]
@@ -97,7 +96,7 @@ def prepare(source_path: Path, output: Path, config: dict[str, Any]) -> dict[str
     """Write the frozen anatomy, trunk geometry and LV interval flux."""
     started = time.perf_counter()
     output.mkdir(parents=True, exist_ok=True)
-    tools = SimulateAortaFlowWarp()
+    tools = AortaLumen()
     source = tools.load_source(
         source_path, config["source_sha256"], config["frozen_sample"]
     )

@@ -19,9 +19,8 @@ from typing import Any, Optional
 import numpy as np
 import warp as wp
 
-from monai_physio.simulate_aorta_flow_warp import SimulateAortaFlowWarp
 from monai_physio.warp_fluid_structure import WarpFluidStructure, WarpHyperelasticWall
-from monai_physio.warp_navier_stokes import WarpNavierStokes, Windkessel
+from monai_physio.warp_navier_stokes import WarpNavierStokes, Windkessel, inlet_flow
 
 ROOT = Path(__file__).resolve().parent
 MMHG = 133.322
@@ -153,8 +152,8 @@ def run(
     count = count or round(config["duration_s"] / dt)
     stride = round(config["frame_interval_s"] / dt)
     times = np.arange(1, count + 1) * dt
-    inflow = SimulateAortaFlowWarp.inlet_flow(
-        times, flux, config["waveform_smoothing_s"]
+    inflow = inlet_flow(
+        times, flux, config["waveform_interval_s"], config["waveform_smoothing_s"]
     )[0]
     frames = count // stride
     fields = {

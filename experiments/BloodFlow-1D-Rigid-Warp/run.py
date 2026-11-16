@@ -22,8 +22,7 @@ from typing import Any
 import numpy as np
 import warp as wp
 
-from monai_physio.simulate_aorta_flow_warp import SimulateAortaFlowWarp
-from monai_physio.warp_navier_stokes import Windkessel
+from monai_physio.warp_navier_stokes import Windkessel, inlet_flow
 
 ROOT = Path(__file__).resolve().parent
 MMHG = 133.322
@@ -86,8 +85,11 @@ def run(preparation: Path, output: Path, config: dict[str, Any]) -> dict[str, An
     interval_flux = np.load(preparation / "waveform.npz")["inlet_interval_flux_m3_s"]
     dt = config["dt_s"]
     times = (np.arange(round(config["duration_s"] / dt)) + 0.5) * dt
-    flux, derivative = SimulateAortaFlowWarp.inlet_flow(
-        times, interval_flux, config["waveform_smoothing_s"]
+    flux, derivative = inlet_flow(
+        times,
+        interval_flux,
+        config["waveform_interval_s"],
+        config["waveform_smoothing_s"],
     )
     arc, area = geometry["arc_length_m"], geometry["area_m2"]
     velocity, drop = evaluate(

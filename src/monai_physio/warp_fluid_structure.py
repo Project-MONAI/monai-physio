@@ -129,7 +129,7 @@ class WarpHyperelasticWall(MONAIPhysioBase):
     a tangent factored by cuDSS and refreshed only when convergence slows,
     so most solves reuse one factorization. Everything runs in float64: in
     float32 the internal force is too inexact for the Newton tolerance.
-    Nodal arrays are in the canonical P2 order: vertices, then :attr:`edges`.
+    Nodal arrays are in the canonical P2 order: vertices, then ``edges``.
     """
 
     def __init__(

@@ -112,7 +112,6 @@ from .segment_heart_simpleware_trimmed_branches import (
 )
 from .segment_nv_segment_ct import SegmentNVSegmentCT
 from .segment_nv_segment_ct_mri import SegmentNVSegmentCTMRI
-from .simulate_aorta_flow_warp import SimulateAortaFlowWarp
 from .train_physicsnemo_base import TrainPhysicsNeMoBase
 from .train_physicsnemo_mgn import TrainPhysicsNeMoMGN
 from .train_physicsnemo_mlp import TrainPhysicsNeMoMLP
@@ -186,7 +185,6 @@ __all__ = [
     "SegmentHeartSimplewareTrimmedBranches",
     "SegmentNVSegmentCT",
     "SegmentNVSegmentCTMRI",
-    "SimulateAortaFlowWarp",
     "TrainPhysicsNeMoBase",
     "TrainPhysicsNeMoMGN",
     "TrainPhysicsNeMoMLP",

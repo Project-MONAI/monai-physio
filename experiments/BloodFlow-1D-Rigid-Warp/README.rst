@@ -4,7 +4,10 @@ Rigid aorta: 1D blood flow
 A quick, transparent estimate of aortic pressure and mean velocity: the
 Tutorial 13 aorta is treated as a rigid tube driven by the left-ventricle
 (LV) volume change. It shares its geometry cuts, inlet waveform and outlet
-model with the 3D experiment in ``../BloodFlow-3D-Rigid-Warp``.
+model with the 3D experiment in ``../BloodFlow-3D-Rigid-Warp``. Both prepare
+the Tutorial 13 lumen and LV flux with ``aorta_lumen.py`` in this folder and
+smooth the inflow with ``inlet_flow`` from
+``src/monai_physio/warp_navier_stokes.py``.
 
 What it computes
 ----------------

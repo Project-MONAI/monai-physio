@@ -3,7 +3,8 @@
 Velocity is quadratic and pressure linear (Taylor-Hood P2/P1). Each time step
 uses backward Euler, the symmetric viscous stress and a single-step
 semi-Lagrangian backtrace of the previous velocity. Walls and the inlet are
-Dirichlet boundaries. Every outlet carries a three-element Windkessel (RCR)
+Dirichlet boundaries; :func:`inlet_flow` builds a smooth periodic inlet flow
+from interval fluxes. Every outlet carries a three-element Windkessel (RCR)
 traction, coupled implicitly, plus backflow stabilization. GMRES solves the
 saddle-point system with a block-triangular Schur-complement preconditioner
 whose pressure block is factored once on the GPU by NVIDIA cuDSS.
@@ -28,6 +29,7 @@ import numpy as np
 import warp as wp
 from scipy import sparse
 from scipy.spatial import cKDTree
+from scipy.special import ndtr
 from warp import fem
 from warp.optim.linear import LinearOperator, gmres
 from warp.sparse import (
@@ -131,6 +133,48 @@ class Windkessel:
         resistance, offset = self.implicit(dt)
         self.pressure = self._decay(dt) * (self.pressure + dt * flow / self.compliance)
         return resistance * flow + offset
+
+
+def inlet_flow(
+    times: np.ndarray,
+    interval_flux: np.ndarray,
+    interval_s: float,
+    sigma_s: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return a smoothed periodic inlet flow Q(t) and dQ/dt.
+
+    ``interval_flux`` holds the mean flux of consecutive source intervals of
+    ``interval_s`` seconds (for example the left-ventricle volume loss between
+    frames of a cardiac image series) and repeats with period
+    ``len(interval_flux) * interval_s``. This staircase has unphysical jumps,
+    so it is convolved with a periodic Gaussian of standard deviation
+    ``sigma_s``, evaluated exactly with the normal CDF. A nonnegative kernel
+    of unit integral keeps Q >= 0 and preserves the volume of every beat whose
+    window boundaries lie in diastole, many ``sigma_s`` from ejection.
+
+    Args:
+        times: Evaluation times in seconds.
+        interval_flux: Flux of each source interval in m^3/s.
+        interval_s: Duration of each source interval in seconds.
+        sigma_s: Gaussian standard deviation in seconds, much less than one
+            period (three periodic images are summed).
+
+    Returns:
+        Flow in m^3/s and its derivative in m^3/s^2 at ``times``.
+    """
+    flux = np.asarray(interval_flux, dtype=np.float64)
+    period = len(flux) * interval_s
+    edges = np.arange(len(flux) + 1) * interval_s
+    t = np.mod(np.asarray(times, dtype=np.float64), period)[:, None]
+    flow = np.zeros(len(t))
+    derivative = np.zeros(len(t))
+    for shift in (-period, 0.0, period):
+        start = (t - edges[:-1] - shift) / sigma_s
+        end = (t - edges[1:] - shift) / sigma_s
+        flow += (ndtr(start) - ndtr(end)) @ flux
+        density = np.exp(-0.5 * start**2) - np.exp(-0.5 * end**2)
+        derivative += density @ flux / (sigma_s * np.sqrt(2 * np.pi))
+    return flow, derivative
 
 
 def find_cudss_library() -> Path:
@@ -482,7 +526,7 @@ class WarpNavierStokes(MONAIPhysioBase):
     oriented boundary triangles labelled 0 (no-slip wall) or by a port
     region id. Velocity arrays exchanged with callers are in the canonical
     P2 order: vertices, then the sorted unique tetrahedron edges
-    (:attr:`edges`). Pressure arrays are per vertex.
+    (``edges``). Pressure arrays are per vertex.
 
     Moving walls (ALE) for fluid-structure coupling: before each step call
     :meth:`move` with the vertex displacement and mesh velocity (ports must

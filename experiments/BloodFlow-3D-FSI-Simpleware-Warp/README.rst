@@ -5,10 +5,10 @@ A demonstration of basic fluid-structure interaction (FSI) in an aorta: the
 blood pressure pushes an elastic wall outward, and the moving wall changes the
 blood flow. It reuses the flow model of ``../BloodFlow-3D-Rigid-Warp``
 (experiment 2) on the Simpleware candidate-20 blood and wall meshes. It is a
-demonstration, not validated physiology. The solvers are library classes:
-``WarpNavierStokes`` and ``Windkessel`` (flow), ``WarpHyperelasticWall`` and
-``WarpFluidStructure`` (wall and coupling) and ``VisualizeFlowFields``
-(viewer) in ``src/monai_physio``.
+demonstration, not validated physiology. The solvers are library code:
+``WarpNavierStokes``, ``Windkessel`` and ``inlet_flow`` (flow),
+``WarpHyperelasticWall`` and ``WarpFluidStructure`` (wall and coupling) and
+``VisualizeFlowFields`` (viewer) in ``src/monai_physio``.
 
 What it models
 --------------

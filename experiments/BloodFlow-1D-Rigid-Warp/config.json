@@ -5,6 +5,7 @@
   "distal_margin_m": 0.010,
   "voxel_spacing_m": 0.00075,
   "centerline_spacing_m": 0.0015,
+  "waveform_interval_s": 0.03,
   "waveform_smoothing_s": 0.03,
   "density_kg_m3": 1060.0,
   "viscosity_pa_s": 0.004,

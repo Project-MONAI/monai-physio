@@ -1,9 +1,12 @@
-"""Aortic lumen and LV-derived inlet waveform for blood-flow demonstrations.
+"""Tutorial 13 aortic lumen and LV interval flux for the blood-flow experiments.
 
 The five-port lumen is a computational truncation of the Tutorial 13 aorta: a
 root inlet (not a valve), three arch-branch stump outlets and a distal outlet
 above the CT crop. Nothing here connects missing vessels or infers pressure.
-The flow solver lives in :mod:`monai_physio.warp_navier_stokes`.
+The prim paths, landmarks and timing are specific to the Tutorial 13 USD, so
+this module lives with the experiments (``prepare.py`` here and in
+``../BloodFlow-3D-Rigid-Warp``) rather than in the library. The smoothed
+inlet flow is :func:`monai_physio.warp_navier_stokes.inlet_flow`.
 """
 
 from __future__ import annotations
@@ -19,10 +22,8 @@ from pxr import Usd, UsdGeom
 from scipy import sparse
 from scipy.sparse.csgraph import connected_components
 from scipy.spatial import cKDTree
-from scipy.special import ndtr
 
-from .monai_physio_base import MONAIPhysioBase
-from .process_usd import ProcessUSD
+from monai_physio.process_usd import ProcessUSD
 
 
 @dataclass
@@ -68,8 +69,8 @@ class AortaBoundary:
         return mesh
 
 
-class SimulateAortaFlowWarp(MONAIPhysioBase):
-    """Prepare a rigid aortic lumen and a periodic LV-derived inlet flow.
+class AortaLumen:
+    """Prepare the rigid five-port aortic lumen and the LV interval flux.
 
     Input points are read through the public ProcessUSD loader; authored
     topology and time metadata are inspected directly through USD. Three
@@ -92,10 +93,6 @@ class SimulateAortaFlowWarp(MONAIPhysioBase):
     )
     LCCA_NORMAL: ClassVar[tuple[float, float, float]] = (0.123, 0.990, -0.063)
     SAMPLE_INTERVAL_S = 0.03
-
-    def __init__(self) -> None:
-        """Initialize logging."""
-        super().__init__(class_name=self.__class__.__name__)
 
     @staticmethod
     def file_sha256(path: Path) -> str:
@@ -259,7 +256,7 @@ class SimulateAortaFlowWarp(MONAIPhysioBase):
                 segments.append(ids)
         # Reuse the rim routine by adding a private apex to each segment.
         apex = len(positions)
-        loops = SimulateAortaFlowWarp.boundary_loops(
+        loops = AortaLumen.boundary_loops(
             np.c_[np.asarray(segments), np.full(len(segments), apex)]
         )
         loop = min(loops, key=lambda x: np.linalg.norm(positions[x].mean(0) - target))
@@ -558,39 +555,3 @@ class SimulateAortaFlowWarp(MONAIPhysioBase):
             ],
             "assumptions": "60 bpm, ideal non-regurgitant valve, closed mitral",
         }
-
-    @classmethod
-    def inlet_flow(
-        cls, times: np.ndarray, interval_flux: np.ndarray, sigma_s: float
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """Return the smoothed periodic inlet flow Q(t) and dQ/dt.
-
-        The interval flux is piecewise constant over each 0.03 s source
-        interval, which gives a staircase with unphysical jumps. It is
-        convolved with a periodic Gaussian of standard deviation ``sigma_s``,
-        evaluated exactly with the normal CDF. A nonnegative kernel of unit
-        integral keeps Q >= 0 and preserves the ejected volume of every beat
-        whose window boundaries lie in diastole, many ``sigma_s`` from
-        ejection.
-
-        Args:
-            times: Evaluation times in seconds.
-            interval_flux: Flux of each source interval in m^3/s.
-            sigma_s: Gaussian standard deviation in seconds.
-
-        Returns:
-            Flow in m^3/s and its derivative in m^3/s^2 at ``times``.
-        """
-        flux = np.asarray(interval_flux, dtype=np.float64)
-        period = len(flux) * cls.SAMPLE_INTERVAL_S
-        edges = np.arange(len(flux) + 1) * cls.SAMPLE_INTERVAL_S
-        t = np.mod(np.asarray(times, dtype=np.float64), period)[:, None]
-        flow = np.zeros(len(t))
-        derivative = np.zeros(len(t))
-        for shift in (-period, 0.0, period):
-            start = (t - edges[:-1] - shift) / sigma_s
-            end = (t - edges[1:] - shift) / sigma_s
-            flow += (ndtr(start) - ndtr(end)) @ flux
-            density = np.exp(-0.5 * start**2) - np.exp(-0.5 * end**2)
-            derivative += density @ flux / (sigma_s * np.sqrt(2 * np.pi))
-        return flow, derivative
