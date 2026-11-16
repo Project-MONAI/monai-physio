@@ -1,0 +1,19 @@
+{
+  "source": "tutorials/output/tutorial_13_combine_heart_and_lung_motion_chest_3d_ct/heart_and_lung_motion.usd",
+  "source_sha256": "a4425c5871c0b1daa9fb322f444e88e681c34db30f4e1c13d92c6cbc34f86954",
+  "frozen_sample": 69,
+  "distal_margin_m": 0.010,
+  "voxel_spacing_m": 0.00075,
+  "centerline_spacing_m": 0.0015,
+  "waveform_smoothing_s": 0.03,
+  "density_kg_m3": 1060.0,
+  "viscosity_pa_s": 0.004,
+  "dt_s": 0.003,
+  "duration_s": 3.0,
+  "windkessel": {
+    "total_resistance_pa_s_m3": 3.33e8,
+    "total_compliance_m3_pa": 6.8e-9,
+    "proximal_fraction": 0.06,
+    "initial_pressure_pa": 10665.79
+  }
+}

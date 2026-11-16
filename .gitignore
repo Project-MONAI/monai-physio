@@ -70,3 +70,7 @@ test_output.txt
 
 # docs
 docs_buildhtml
+
+# Local agent loop kits for the aorta experiments (kept outside version control)
+.agents/skills/aorta-*/
+.agents/skills/tutorial-19-aorta-warp-loop/

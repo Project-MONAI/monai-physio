@@ -112,12 +112,16 @@ from .segment_heart_simpleware_trimmed_branches import (
 )
 from .segment_nv_segment_ct import SegmentNVSegmentCT
 from .segment_nv_segment_ct_mri import SegmentNVSegmentCTMRI
+from .simulate_aorta_flow_warp import SimulateAortaFlowWarp
 from .train_physicsnemo_base import TrainPhysicsNeMoBase
 from .train_physicsnemo_mgn import TrainPhysicsNeMoMGN
 from .train_physicsnemo_mlp import TrainPhysicsNeMoMLP
 from .train_physicsnemo_physics_informed_motion import (
     TrainPhysicsNeMoPhysicsInformedMotion,
 )
+from .visualize_flow_fields import VisualizeFlowFields
+from .warp_fluid_structure import WarpFluidStructure, WarpHyperelasticWall
+from .warp_navier_stokes import WarpNavierStokes, Windkessel
 from .workflow_convert_image_to_usd import WorkflowConvertImageToUSD
 
 # Core workflow processor
@@ -182,10 +186,16 @@ __all__ = [
     "SegmentHeartSimplewareTrimmedBranches",
     "SegmentNVSegmentCT",
     "SegmentNVSegmentCTMRI",
+    "SimulateAortaFlowWarp",
     "TrainPhysicsNeMoBase",
     "TrainPhysicsNeMoMGN",
     "TrainPhysicsNeMoMLP",
     "TrainPhysicsNeMoPhysicsInformedMotion",
+    "VisualizeFlowFields",
+    "WarpFluidStructure",
+    "WarpHyperelasticWall",
+    "WarpNavierStokes",
+    "Windkessel",
     "WorkflowConvertImageToUSD",
     "WorkflowConvertImageToVTK",
     "WorkflowConvertVTKToUSD",
