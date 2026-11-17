@@ -78,6 +78,20 @@ def test_prepared_trunk() -> None:
     assert np.all(area > 0) and np.abs(np.diff(area) / area[:-1]).max() < 0.1
 
 
+def test_prepared_waveform() -> None:
+    """The LV flux covers 100 intervals of 0.03 s and flows only when gated."""
+    require(PREPARED / "waveform.npz")
+    waveform = np.load(PREPARED / "waveform.npz")
+    start, end = waveform["times_s"], waveform["interval_end_times_s"]
+    np.testing.assert_allclose(end - start, 0.03, atol=1e-14)
+    np.testing.assert_allclose(end[-1], 3.0, atol=1e-12)
+    volume, flux = waveform["lv_volume_m3"], waveform["inlet_interval_flux_m3_s"]
+    loss = volume - np.roll(volume, -1)
+    np.testing.assert_array_equal(waveform["ejection_gate"], loss > 0)
+    np.testing.assert_array_equal(flux > 0, waveform["ejection_gate"])
+    np.testing.assert_allclose(flux * (end - start), np.maximum(loss, 0), rtol=1e-12)
+
+
 def test_saved_fields() -> None:
     """Saved fields conserve flow and volume and add the Windkessel pressure."""
     require(RESULTS / "fields.npz")

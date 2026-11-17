@@ -1,9 +1,9 @@
-"""Prepare the rigid aortic lumen mesh and LV inlet waveform for 3D flow.
+"""Prepare the rigid aortic lumen mesh for 3D flow.
 
 The Tutorial 13 aorta is frozen at sample 69, cut into a five-port lumen by
 ``../BloodFlow-1D-Rigid-Warp/aorta_lumen.py``, voxelized and meshed with
 Netgen. Boundary triangles are labelled 0 (wall) or by the region id of their
-port.
+port. The inlet waveform is written by the 1D experiment's ``prepare.py``.
 """
 
 from __future__ import annotations
@@ -75,7 +75,7 @@ def mesh_lumen(surface: pv.PolyData, config: dict[str, Any]) -> pv.UnstructuredG
 
 
 def prepare(source_path: Path, output: Path, config: dict[str, Any]) -> dict[str, Any]:
-    """Write the frozen anatomy, the tagged tetrahedral lumen and the waveform."""
+    """Write the frozen anatomy and the tagged tetrahedral lumen."""
     started = time.perf_counter()
     output.mkdir(parents=True, exist_ok=True)
     tools = AortaLumen()
@@ -88,12 +88,6 @@ def prepare(source_path: Path, output: Path, config: dict[str, Any]) -> dict[str
     frozen = source.aorta[source.frame]
     pv.PolyData(frozen, np.c_[np.full(len(source.faces), 3), source.faces]).save(
         output / "source.vtp"
-    )
-    inlet = tools.infer_inlet(source)
-    np.savez_compressed(
-        output / "waveform.npz",
-        inlet_interval_flux_m3_s=np.asarray(inlet["inlet_interval_flux_m3_s"]),
-        lv_volume_m3=np.asarray(inlet["lv_volume_m3"]),
     )
 
     grid = mesh_lumen(surface, config)
@@ -160,7 +154,6 @@ def prepare(source_path: Path, output: Path, config: dict[str, Any]) -> dict[str
         "mesh_volume_relative_error": float(
             six_volumes(points, tets).sum() / 6 / lumen_volume - 1
         ),
-        "stroke_volumes_ml": [v * 1e6 for v in inlet["stroke_volumes_m3"]],
         "ports": ports,
         "config": config,
         "preparation_seconds": time.perf_counter() - started,

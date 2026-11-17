@@ -127,8 +127,11 @@ def prepare(source_path: Path, output: Path, config: dict[str, Any]) -> dict[str
     )
     np.savez_compressed(
         output / "waveform.npz",
-        inlet_interval_flux_m3_s=np.asarray(inlet["inlet_interval_flux_m3_s"]),
+        times_s=source.seconds,
+        interval_end_times_s=source.seconds + tools.SAMPLE_INTERVAL_S,
         lv_volume_m3=np.asarray(inlet["lv_volume_m3"]),
+        inlet_interval_flux_m3_s=np.asarray(inlet["inlet_interval_flux_m3_s"]),
+        ejection_gate=np.asarray(inlet["ejection_gate"]),
     )
     report = {
         "source": str(source.path),

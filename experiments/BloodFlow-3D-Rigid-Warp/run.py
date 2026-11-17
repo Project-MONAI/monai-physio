@@ -23,6 +23,7 @@ from scipy.spatial import cKDTree
 from monai_physio.warp_navier_stokes import WarpNavierStokes, Windkessel, inlet_flow
 
 ROOT = Path(__file__).resolve().parent
+REPOSITORY = ROOT.parents[1]
 MMHG = 133.322
 
 
@@ -84,7 +85,7 @@ def run(
     """Solve the configured duration and write fields, port series and summary."""
     geometry = np.load(preparation / "geometry.npz")
     ports = json.loads((preparation / "ports.json").read_text(encoding="utf-8"))
-    flux = np.load(preparation / "waveform.npz")["inlet_interval_flux_m3_s"]
+    flux = np.load(REPOSITORY / config["waveform"])["inlet_interval_flux_m3_s"]
     windkessel = config["windkessel"]
     outlets = {
         port["region_id"]: Windkessel.from_total(

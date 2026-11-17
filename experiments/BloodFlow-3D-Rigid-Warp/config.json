@@ -8,6 +8,7 @@
   "contour_spacing_mm": 0.35,
   "smoothing_sigma_mm": 0.18,
   "smoothing_iterations": 30,
+  "waveform": "experiments/BloodFlow-1D-Rigid-Warp/output/prepared/waveform.npz",
   "waveform_interval_s": 0.03,
   "waveform_smoothing_s": 0.03,
   "density_kg_m3": 1060.0,

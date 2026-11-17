@@ -17,6 +17,7 @@
   "duration_s": 2.01,
   "report_from_s": 1.02,
   "frame_interval_s": 0.03,
+  "waveform": "experiments/BloodFlow-1D-Rigid-Warp/output/prepared/waveform.npz",
   "waveform_interval_s": 0.03,
   "waveform_smoothing_s": 0.03,
   "backflow_beta": 1.0,

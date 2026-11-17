@@ -2,19 +2,19 @@
 
 The Simpleware candidate-20 ``geometry.npz`` holds one point array shared by
 a blood (fluid) and a wall (solid) tetrahedral mesh that meet on exactly
-shared triangles. Only that file and ``waveform.npz`` are read; the stale
-per-mesh fields of its ``ports.json`` are not. Both meshes are compacted to
-their own vertices, ports are recomputed from the face regions, and each port
-gets a clamped wall collar: the wall vertices at or beyond the cap plane,
-within ``collar_margin_m`` of the rim, that connect to it (the wall overhangs
-the caps by up to about 2 mm).
+shared triangles. Only that file is read; the stale per-mesh fields of its
+``ports.json`` are not. Both meshes are compacted to their own vertices,
+ports are recomputed from the face regions, and each port gets a clamped wall
+collar: the wall vertices at or beyond the cap plane, within
+``collar_margin_m`` of the rim, that connect to it (the wall overhangs the
+caps by up to about 2 mm). The inlet waveform is written by the 1D
+experiment's ``prepare.py``.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import shutil
 from pathlib import Path
 from typing import Any
 
@@ -66,7 +66,7 @@ def collar(
 
 
 def prepare(source: Path, output: Path, config: dict[str, Any]) -> dict[str, Any]:
-    """Write compact meshes, port data, wall clamps and the inlet waveform."""
+    """Write compact meshes, port data and wall clamps."""
     data = np.load(source / "geometry.npz")
     points = data["points_m"]
     fluid_ids, fluid_tets = compact(data["fluid_tetrahedra"])
@@ -124,7 +124,6 @@ def prepare(source: Path, output: Path, config: dict[str, Any]) -> dict[str, Any
         solid_clamped=clamped,
         solid_outer_faces=outer,
     )
-    shutil.copyfile(source / "waveform.npz", output / "waveform.npz")
     (output / "ports.json").write_text(json.dumps(ports, indent=2), encoding="utf-8")
     report = {
         "source": str(source),

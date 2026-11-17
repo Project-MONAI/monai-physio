@@ -5,8 +5,11 @@ A quick, transparent estimate of aortic pressure and mean velocity: the
 Tutorial 13 aorta is treated as a rigid tube driven by the left-ventricle
 (LV) volume change. It shares its geometry cuts, inlet waveform and outlet
 model with the 3D experiment in ``../BloodFlow-3D-Rigid-Warp``. Both prepare
-the Tutorial 13 lumen and LV flux with ``aorta_lumen.py`` in this folder and
-smooth the inflow with ``inlet_flow`` from
+the Tutorial 13 lumen with ``aorta_lumen.py`` in this folder. This
+experiment's ``prepare.py`` also writes ``output/prepared/waveform.npz``, the
+only copy of the LV inflow; the 3D rigid and FSI experiments read it through
+the ``waveform`` entry of their ``config.json``, so run this ``prepare.py``
+first. Each experiment smooths the inflow with ``inlet_flow`` from
 ``src/monai_physio/warp_navier_stokes.py``.
 
 What it computes
@@ -22,7 +25,9 @@ What it computes
   (an ideal valve: filling intervals carry no flow). Three beats are retimed
   to 3 s (60 bpm). The resulting staircase is smoothed by a periodic Gaussian
   (sigma 0.03 s), which keeps Q >= 0 and preserves every stroke volume
-  (35.9, 36.1 and 36.2 mL).
+  (35.9, 36.1 and 36.2 mL). ``waveform.npz`` holds the sample start and end
+  times (``times_s``, ``interval_end_times_s``), the LV volume, the interval
+  flux and the ejection gate (intervals with flow).
 * **Model.** In a rigid tube the flow is the same at every section and the
   mean velocity is Q/A. Warp evaluates, in float64 on the GPU,
 

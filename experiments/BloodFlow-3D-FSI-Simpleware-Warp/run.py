@@ -23,6 +23,7 @@ from monai_physio.warp_fluid_structure import WarpFluidStructure, WarpHyperelast
 from monai_physio.warp_navier_stokes import WarpNavierStokes, Windkessel, inlet_flow
 
 ROOT = Path(__file__).resolve().parent
+REPOSITORY = ROOT.parents[1]
 MMHG = 133.322
 
 
@@ -90,7 +91,7 @@ def run(
     """Solve ``count`` steps (default: the configured duration) and save results."""
     mesh = np.load(preparation / "mesh.npz")
     ports = json.loads((preparation / "ports.json").read_text(encoding="utf-8"))
-    flux = np.load(preparation / "waveform.npz")["inlet_interval_flux_m3_s"]
+    flux = np.load(REPOSITORY / config["waveform"])["inlet_interval_flux_m3_s"]
     settings = config["windkessel"]
     outlets = {
         port["region_id"]: Windkessel.from_total(

@@ -236,12 +236,13 @@ Each subdirectory represents a different experimental domain:
 - `DisplacementField_To_USD/` - Convert registration displacement fields to USD for PhysicsNeMo visualization
 
 ### Blood Flow
-- `BloodFlow-1D-Rigid-Warp/` - 1D pressure and mean velocity in the rigid Tutorial 13 aorta; `aorta_lumen.py` prepares the lumen and left-ventricle flux shared with the 3D rigid experiment
+- `BloodFlow-1D-Rigid-Warp/` - 1D pressure and mean velocity in the rigid Tutorial 13 aorta; `aorta_lumen.py` prepares the lumen shared with the 3D rigid experiment, and `prepare.py` writes the left-ventricle inflow `waveform.npz` used by all three
 - `BloodFlow-3D-Rigid-Warp/` - 3D Navier-Stokes flow in the same rigid lumen with Windkessel outlets
 - `BloodFlow-3D-FSI-Simpleware-Warp/` - Two-way fluid-structure interaction with a compliant aortic wall
 
 Each has `prepare.py`, `run.py`, `view.py`, a README with results and a
-`test_*.py` that checks its outputs (`--run-gpu` for the GPU checks).
+`test_*.py` that checks its outputs (`--run-gpu` for the GPU checks). Run
+the 1D `prepare.py` first.
 
 ### Data Processing
 - `Reconstruct4DCT/` - 4D CT reconstruction from sparse temporal samples using deformable registration

@@ -15,8 +15,8 @@ What it models
 
 * **Meshes.** Candidate 20 holds a blood mesh (342,795 linear tetrahedra) and
   a wall mesh (294,506 tetrahedra, about 1.5 mm thick) that share 83,504
-  interface triangles. ``prepare.py`` reads only its ``geometry.npz`` and
-  ``waveform.npz``. The ports (root inlet; BCT, LSA and LCCA stumps; distal
+  interface triangles. ``prepare.py`` reads only its ``geometry.npz``. The
+  ports (root inlet; BCT, LSA and LCCA stumps; distal
   outlet) are recomputed from the face regions. The distal cap lies about
   1.6 mm above the CT crop, so the lumen there differs from experiment 2.
 * **Blood.** As experiment 2: P2/P1 Warp FEM in float32, backward Euler with
@@ -25,8 +25,9 @@ What it models
   the precision's default, 1e-5 in float32 and 1e-6 in float64, and
   ``run.py --precision float64`` selects float64). Float32 residuals stall
   near 1e-6, so 1e-5 is the tightest reliably reachable value, and the
-  coupling still converges with it (see below). The smoothed LV inflow
-  (about 36 mL per beat, 60 bpm) enters with a blunt root profile, and
+  coupling still converges with it (see below). The smoothed LV inflow of
+  experiment 1 (``waveform`` in ``config.json``; about 36 mL per beat,
+  60 bpm) enters with a blunt root profile, and
   three-element Windkessel (RCR) outlets carry backflow stabilization.
   Totals 3.55e8 Pa s/m3 and 2.2e-9 m3/Pa (see *Outlet calibration*) are
   split distal/BCT/LSA/LCCA = 70/17/8/5%, 6% proximal.
@@ -109,16 +110,21 @@ How to run
 
 The input is the Simpleware candidate-20 export, meshing run
 ``POC3-S1-r20``, of which ``prepare.py`` reads only ``geometry.npz`` (SHA-256
-``3f011c48...79af3``) and ``waveform.npz`` (``855e0322...d09dd``). It is not
-in Git and cannot be regenerated from this repository alone: it was made on
-2026-11-11 by Simpleware meshing scripts that are not in this repository and
-that also read surfaces and label maps of earlier meshing runs. Place that
-folder at the ``source`` named in ``config.json`` (relative to the
-repository root) or pass ``--source``.
+``3f011c48...79af3``). It is not in Git and cannot be regenerated from this
+repository alone: it was made on 2026-11-11 by Simpleware meshing scripts
+that are not in this repository and that also read surfaces and label maps
+of earlier meshing runs. Place that folder at the ``source`` named in
+``config.json`` (relative to the repository root) or pass ``--source``.
+The inflow is the ``waveform.npz`` written by experiment 1's ``prepare.py``
+from Tutorial 13. Its arrays are identical to those of the copy that was
+saved with candidate 20 (SHA-256 ``855e0322...d09dd``) and used for the
+results below; that copy has since been removed.
 
 From the repository root, with a CUDA GPU and NVIDIA cuDSS (the
-``nvidia-cudss-cu13`` wheel, or ``CUDSS_LIBRARY`` set to the library file)::
+``nvidia-cudss-cu13`` wheel, or ``CUDSS_LIBRARY`` set to the library file).
+The first line writes the inlet waveform::
 
+  python experiments/BloodFlow-1D-Rigid-Warp/prepare.py --source PATH/heart_and_lung_motion.usd
   python experiments/BloodFlow-3D-FSI-Simpleware-Warp/prepare.py --source PATH/POC3-S1-r20
   python experiments/BloodFlow-3D-FSI-Simpleware-Warp/run.py
   python experiments/BloodFlow-3D-FSI-Simpleware-Warp/view.py

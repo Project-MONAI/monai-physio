@@ -5,10 +5,11 @@ A demonstration of three-dimensional, time-dependent blood flow in the
 Tutorial 13 aorta with a rigid wall. It shares its geometry cuts, inlet
 waveform and outlet totals with the 1D experiment in
 ``../BloodFlow-1D-Rigid-Warp``, whose ``aorta_lumen.py`` prepares the
-Tutorial 13 lumen and LV flux for both. The solver, the outlet model, the
-inlet waveform and the viewer are reusable library code: ``WarpNavierStokes``,
-``Windkessel``, ``inlet_flow`` and ``VisualizeFlowFields`` in
-``src/monai_physio``.
+Tutorial 13 lumen for both and whose ``prepare.py`` writes the LV inflow
+``waveform.npz`` (named by ``waveform`` in ``config.json``). The solver, the
+outlet model, the inlet waveform smoothing and the viewer are reusable library
+code: ``WarpNavierStokes``, ``Windkessel``, ``inlet_flow`` and
+``VisualizeFlowFields`` in ``src/monai_physio``.
 
 What it computes
 ----------------
@@ -42,8 +43,10 @@ How to run
 
 From the repository root, in an environment with this package installed and
 a CUDA GPU. The solver needs NVIDIA cuDSS: install the ``nvidia-cudss-cu13``
-wheel (or ``-cu12``) or set ``CUDSS_LIBRARY`` to the cuDSS library file. ::
+wheel (or ``-cu12``) or set ``CUDSS_LIBRARY`` to the cuDSS library file.
+The first line writes the inlet waveform::
 
+  python experiments/BloodFlow-1D-Rigid-Warp/prepare.py --source PATH/heart_and_lung_motion.usd
   python experiments/BloodFlow-3D-Rigid-Warp/prepare.py --source PATH/heart_and_lung_motion.usd
   python experiments/BloodFlow-3D-Rigid-Warp/run.py
   python experiments/BloodFlow-3D-Rigid-Warp/view.py
