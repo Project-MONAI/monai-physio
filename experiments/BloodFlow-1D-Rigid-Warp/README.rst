@@ -25,7 +25,7 @@ What it computes
   (an ideal valve: filling intervals carry no flow). Three beats are retimed
   to 3 s (60 bpm). The resulting staircase is smoothed by a periodic Gaussian
   (sigma 0.03 s), which keeps Q >= 0 and preserves every stroke volume
-  (35.9, 36.1 and 36.2 mL). ``waveform.npz`` holds the sample start and end
+  (35.8, 36.1 and 36.1 mL). ``waveform.npz`` holds the sample start and end
   times (``times_s``, ``interval_end_times_s``), the LV volume, the interval
   flux and the ejection gate (intervals with flow).
 * **Model.** In a rigid tube the flow is the same at every section and the
@@ -75,12 +75,12 @@ The numbers in this section come from development runs of this code
 in the repository. ``run.py`` reproduces them, though timings are
 machine-specific.
 
-Last beat (2.01-3.00 s) of the 3 s run, which takes 0.6 s:
+Last beat (2.01-3.00 s) of the 3 s run, which takes under a second:
 
 ==========================================  =================
 Root pressure, systolic / diastolic / mean  112 / 78 / 92 mmHg
 Outlet (Windkessel) pressure                112 / 77 mmHg
-Root-to-outlet pressure difference          +11.7 / -10.6 mmHg
+Root-to-outlet pressure difference          +11.7 / -10.5 mmHg
 Peak inlet flow                             157 mL/s
 Peak section-mean velocity                  0.95 m/s (distal)
 ==========================================  =================

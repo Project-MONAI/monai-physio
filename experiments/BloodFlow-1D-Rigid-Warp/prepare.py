@@ -97,9 +97,7 @@ def prepare(source_path: Path, output: Path, config: dict[str, Any]) -> dict[str
     started = time.perf_counter()
     output.mkdir(parents=True, exist_ok=True)
     tools = AortaLumen()
-    source = tools.load_source(
-        source_path, config["source_sha256"], config["frozen_sample"]
-    )
+    source = tools.load_source(source_path, config["frozen_sample"])
     ports = tools.prepare_boundaries(source, config["distal_margin_m"]).ports
     root, distal = ports["root_inlet"], ports["distal_crop_outlet"]
     surface = pv.PolyData(
@@ -135,7 +133,6 @@ def prepare(source_path: Path, output: Path, config: dict[str, Any]) -> dict[str
     )
     report = {
         "source": str(source.path),
-        "source_sha256": source.sha256,
         "frozen_sample": source.frame,
         "distal_crop_y_m": float(source.aorta[source.frame][:, 1].min()),
         "root_plane": {k: root[k] for k in ("center_m", "plane_normal")},

@@ -1,6 +1,5 @@
 {
   "source": "tutorials/output/tutorial_13_combine_heart_and_lung_motion_chest_3d_ct/heart_and_lung_motion.usd",
-  "source_sha256": "a4425c5871c0b1daa9fb322f444e88e681c34db30f4e1c13d92c6cbc34f86954",
   "frozen_sample": 69,
   "distal_margin_m": 0.010,
   "voxel_spacing_m": 0.00075,

@@ -2,8 +2,9 @@
 
 The Tutorial 13 aorta is frozen at sample 69, cut into a five-port lumen by
 ``../BloodFlow-1D-Rigid-Warp/aorta_lumen.py``, voxelized and meshed with
-Netgen. Boundary triangles are labelled 0 (wall) or by the region id of their
-port. The inlet waveform is written by the 1D experiment's ``prepare.py``.
+Netgen, with finer elements around the narrow ports. Boundary triangles are
+labelled 0 (wall) or by the region id of their port. The inlet waveform is
+written by the 1D experiment's ``prepare.py``.
 """
 
 from __future__ import annotations
@@ -13,7 +14,7 @@ import json
 import sys
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import itk
 import numpy as np
@@ -51,11 +52,64 @@ def six_volumes(points: np.ndarray, tets: np.ndarray) -> np.ndarray:
     )
 
 
-def mesh_lumen(surface: pv.PolyData, config: dict[str, Any]) -> pv.UnstructuredGrid:
+# USD (x, y, z) metres with Y up maps to LPS (x, -z, y) millimetres.
+USD_TO_LPS_MM = np.array([1000.0, -1000.0, 1000.0])
+
+
+def port_element_sizes(
+    caps: dict[str, pv.PolyData], ports: dict[str, Any], config: dict[str, Any]
+) -> tuple[Optional[itk.Image], dict[str, float]]:
+    """Return element sizes that put ``port_cells_across`` elements across ports.
+
+    A port whose diameter / ``port_cells_across`` is under 90% of
+    ``element_size_mm`` gets elements of that size within ``port_zone_radii``
+    of its radius from its centre, sampled every ``port_size_grid_mm`` in the
+    LPS millimetres the lumen is meshed in; where zones overlap, the finer
+    size wins.  Without that, a narrow opening is tiled by one or two
+    triangles whose no-slip rim pins every velocity node, so it carries
+    little or no flow.
+    """
+    zones = {}
+    for name, cap in caps.items():
+        radius = float(np.sqrt(cap.area * 1e6 / np.pi))
+        size = 2 * radius / config["port_cells_across"]
+        if size < 0.9 * config["element_size_mm"]:
+            center = np.asarray(ports[name]["center_m"])[[0, 2, 1]] * USD_TO_LPS_MM
+            zones[name] = (center, config["port_zone_radii"] * radius, size)
+    # Coarse zones first, so a finer zone overwrites any overlap.
+    zones = dict(sorted(zones.items(), key=lambda item: -item[1][2]))
+    if not zones:
+        return None, {}
+    spacing = config["port_size_grid_mm"]
+    low = np.min([c - r for c, r, _ in zones.values()], axis=0)
+    high = np.max([c + r for c, r, _ in zones.values()], axis=0)
+    axes = [
+        low[a] + spacing * np.arange(int((high - low)[a] / spacing) + 2)
+        for a in range(3)
+    ]
+    labels = np.zeros([len(axes[2]), len(axes[1]), len(axes[0])], dtype=np.uint8)
+    for label, (center, zone_radius, _) in enumerate(zones.values(), 1):
+        distance2 = (
+            (axes[0] - center[0])[None, None, :] ** 2
+            + (axes[1] - center[1])[None, :, None] ** 2
+            + (axes[2] - center[2])[:, None, None] ** 2
+        )
+        labels[distance2 <= zone_radius**2] = label
+    zone_image = itk.GetImageFromArray(labels)
+    zone_image.SetOrigin(low)
+    zone_image.SetSpacing([spacing] * 3)
+    size_image = ProcessVolumetricMesh.create_element_size_image(
+        zone_image, {label: zone[2] for label, zone in enumerate(zones.values(), 1)}
+    )
+    return size_image, {name: zone[2] for name, zone in zones.items()}
+
+
+def mesh_lumen(
+    surface: pv.PolyData, config: dict[str, Any], size_image: Optional[itk.Image]
+) -> pv.UnstructuredGrid:
     """Voxelize the closed lumen in LPS millimetres and fill it with Netgen."""
-    # USD (x, y, z) metres with Y up maps to LPS (x, -z, y) millimetres.
     lps = surface.copy()
-    lps.points = np.asarray(surface.points)[:, [0, 2, 1]] * [1000, -1000, 1000]
+    lps.points = np.asarray(surface.points)[:, [0, 2, 1]] * USD_TO_LPS_MM
     voxels = lps.voxelize_binary_mask(spacing=config["voxel_spacing_mm"])
     dimensions = tuple(int(v) for v in voxels.dimensions)
     array = np.asarray(voxels.active_scalars).reshape(dimensions, order="F")
@@ -70,6 +124,7 @@ def mesh_lumen(surface: pv.PolyData, config: dict[str, Any]) -> pv.UnstructuredG
         smoothing_iterations=config["smoothing_iterations"],
         shared_interfaces=False,
         label_ids=[1],
+        element_size_image=size_image,
     )
     return meshes[1]
 
@@ -79,9 +134,7 @@ def prepare(source_path: Path, output: Path, config: dict[str, Any]) -> dict[str
     started = time.perf_counter()
     output.mkdir(parents=True, exist_ok=True)
     tools = AortaLumen()
-    source = tools.load_source(
-        source_path, config["source_sha256"], config["frozen_sample"]
-    )
+    source = tools.load_source(source_path, config["frozen_sample"])
     boundary = tools.prepare_boundaries(source, config["distal_margin_m"])
     surface = boundary.surface()
     surface.save(output / "computational_surface.vtp")
@@ -89,8 +142,15 @@ def prepare(source_path: Path, output: Path, config: dict[str, Any]) -> dict[str
     pv.PolyData(frozen, np.c_[np.full(len(source.faces), 3), source.faces]).save(
         output / "source.vtp"
     )
+    caps = {
+        name: surface.extract_cells(
+            np.flatnonzero(boundary.regions == port["region_id"]).tolist()
+        ).extract_surface()
+        for name, port in boundary.ports.items()
+    }
+    size_image, port_sizes = port_element_sizes(caps, boundary.ports, config)
 
-    grid = mesh_lumen(surface, config)
+    grid = mesh_lumen(surface, config, size_image)
     if not np.all(grid.celltypes == pv.CellType.TETRA):
         raise ValueError("Netgen returned non-tetrahedral cells")
     lps = np.asarray(grid.points, dtype=np.float64)
@@ -116,8 +176,7 @@ def prepare(source_path: Path, output: Path, config: dict[str, Any]) -> dict[str
     ports: dict[str, Any] = {}
     for name, port in boundary.ports.items():
         rid = port["region_id"]
-        cap = surface.extract_cells(np.flatnonzero(boundary.regions == rid).tolist())
-        cap = cap.extract_surface()
+        cap = caps[name]
         normal = np.asarray(cap.compute_normals(cell_normals=True).cell_normals)
         normal = normal.mean(axis=0) / np.linalg.norm(normal.mean(axis=0))
         origin = np.asarray(cap.points).mean(axis=0)
@@ -131,6 +190,8 @@ def prepare(source_path: Path, output: Path, config: dict[str, Any]) -> dict[str
             "normal": normal.tolist(),
             "mesh_area_m2": float(areas[selected].sum()),
             "source_area_m2": float(cap.area),
+            "mesh_faces": int(selected.sum()),
+            "element_size_mm": port_sizes.get(name, config["element_size_mm"]),
         }
     np.savez_compressed(
         output / "geometry.npz",
@@ -146,7 +207,6 @@ def prepare(source_path: Path, output: Path, config: dict[str, Any]) -> dict[str
     lumen_volume = tools.signed_surface_volume(boundary.points, boundary.faces)
     report = {
         "source": str(source.path),
-        "source_sha256": source.sha256,
         "frozen_sample": source.frame,
         "distal_crop_y_m": float(frozen[:, 1].min()),
         "points": len(points),

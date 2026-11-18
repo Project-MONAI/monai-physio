@@ -18,7 +18,12 @@ What it computes
   lumen with five openings: a root inlet (a truncation, not a valve), the
   brachiocephalic (BCT), left subclavian (LSA) and left common carotid (LCCA)
   stumps, and a distal outlet 10 mm above the inferior CT crop. Netgen fills
-  it with 66,190 tetrahedra (2 mm target size).
+  it with 77,865 tetrahedra: 2 mm elements, refined to eight elements across
+  each opening too narrow for that (``port_cells_across``; 0.38 mm at the
+  LCCA stump, 0.61 mm at the LSA, 0.74 mm at the BCT) within 1.5 opening
+  radii of its centre. The refinement uses
+  ``ProcessVolumetricMesh.create_element_size_image`` and the
+  ``element_size_image`` of ``extract_label_tetrahedra_netgen``.
 * **Inlet.** The left-ventricle volume loss of each 0.03 s source interval
   (ideal valve), three beats in 3 s (60 bpm), smoothed by a periodic Gaussian
   (sigma 0.03 s) that keeps Q >= 0 and each stroke volume (about 36 mL). The
@@ -82,73 +87,52 @@ in the repository. ``run.py`` reproduces them, though float32 runs are not
 bit-reproducible and timings are machine-specific.
 
 Last beat (2.01-3.00 s) of the 3 s run with the default configuration
-(float32). On an otherwise idle GPU it takes 0.7 minutes (600
-steps, 0.069 s each):
+(float32). On an otherwise idle GPU it takes 0.8 minutes (600
+steps, 0.078 s each):
 
 ==========================================  =====================
-Root pressure, systolic / diastolic / mean  114 / 77 / 92 mmHg
+Root pressure, systolic / diastolic / mean  113 / 77 / 92 mmHg
 Change of mean root pressure from beat 2    -0.6 mmHg
-Mean inlet flow                             36.4 mL/s
+Mean inlet flow                             36.3 mL/s
 Outlet flow split distal/BCT/LSA/LCCA       70.0 / 17.0 / 8.0 / 5.0%
-Peak speed more than 10 mm from an outlet   0.85 m/s
-Peak speed anywhere                         5.3 m/s (LCCA stump)
+Peak speed more than 10 mm from an outlet   0.81 m/s
+Peak speed anywhere                         3.2 m/s (LCCA cap)
 Net flow through all ports                  2e-7 of peak inflow
 ==========================================  =====================
 
 The root pressure exceeds the distal-outlet pressure by up to 10.3 mmHg in
 early systole and falls 7.7 mmHg below it during deceleration (inertia; the
-1D experiment gives +11.7 / -10.6 mmHg). Each outlet receives its assigned
+1D experiment gives +11.7 / -10.5 mmHg). Each outlet receives its assigned
 share because the Windkessel resistances dominate the lumen. The fastest
-flow is at the small branch caps: 5.3 m/s at the LCCA stump, whose 4.5 mm2
-cap has a single free velocity node, and 2.6 and 2.1 m/s at the BCT and LSA
-caps. The movie command above records the last beat: pressure on the lumen
-and on a slice 10 mm above the root, with velocity arrows, and color limits
-fixed over the beat (76.6-114.0 mmHg).
+flow is at the small branch caps: 3.2, 2.8 and 2.1 m/s at the LCCA, BCT and
+LSA caps. These cap speeds depend on the mesh there: refined meshes of
+nearly the same surface gave 2.2-3.2 m/s at the LCCA. The movie command
+above records the last beat: pressure on the lumen and on a slice 10 mm
+above the root, with velocity arrows, and color limits fixed over the beat
+(76.5-113.8 mmHg).
 
-Development runs
-----------------
-
-These comparisons come from development runs whose outputs are not in the
-repository.
-
-**Reference run.** Against an earlier float64 run at dt = 2.5 ms with a
-midpoint backtrace, the root pressures differ by at most 0.12 mmHg, the flow
-shares by 0.02 points, the outlet flows by 0.3% and the velocity field by
-13% (relative L2 over the saved frames). The pressure field differs by 0.06%
-of the absolute pressure, which is dominated by its 77-114 mmHg level; its
-spatially varying part differs by 2.7%. The velocity difference lies mostly
-in the slow diastolic flow (7% in systole, 43% in diastole) and comes mostly
-from the cheaper single-step backtrace: alone it changes the velocity by
-10.9%, halving dt alone by 7.0%. This single comparison does not establish
-time convergence.
-
-**Float32 against float64.** ``compare_precision.py`` ran both cases of the
-current configuration on the otherwise idle GPU and compared them with the
-reference run; the default run above repeats its float32 case (0.069 s
-per step):
-
-======================================  ===========  ===========
-                                        float64      float32
-======================================  ===========  ===========
-Time per step, mean                     0.39 s       0.068 s
-Whole run, including setup              4.0 min      0.7 min
-GMRES iterations per step, mean / max   25 / 25      25 / 50
-Warp memory peak                        4.4 GiB      2.5 GiB
-Unconverged steps                       0            0
-======================================  ===========  ===========
-
-Float32 differs from float64 by 0.16% in velocity, 1e-6 in pressure and
-below 1e-4 mmHg in root pressure, far below the 13% difference from the
-reference run, so precision is not the limiting error here, and float32 is
-the default.
+**Port refinement.** The LCCA stump's source cap is 7.2 mm2. Without the
+refinement, the uniform 2 mm mesh tiled it with two triangles (4.5 mm2) or,
+after a 20-50 um change of the Tutorial 13 surface, one (3.5 mm2). The
+solver holds every velocity node of the wall at zero, so two triangles left
+one free node, which carried the whole 5% share (5.3 m/s, a numerical
+artifact), and one triangle left none: the LCCA then carried no flow and the
+root pressure rose to 118 / 80 mmHg. With the refinement the branch caps
+have 70-96 triangles and their areas are within 3.2% of the source (the
+unrefined root and distal caps have 696 and 492, the distal one 5.8% under
+its source area). Refined meshes of the two Tutorial 13 surfaces gave root
+pressures within 0.2% and flow shares within 0.01 points, as close as their
+inflows (0.2%).
 
 Limitations
 -----------
 
 * Rigid wall: no wall motion or pulse-wave propagation.
 * Time and mesh convergence are not established.
-* The arch branches are short stumps. The LCCA stump is resolved by only a
-  few mesh nodes, so speeds next to the branch outlets are not reliable.
+* The arch branches are short stumps. Their caps are resolved by eight
+  elements across, but speeds next to the branch outlets vary by up to about
+  45% (LCCA 2.2-3.2 m/s) between refined meshes of nearly the same surface;
+  they are not mesh converged.
 * The outlet totals are not typical adult values. The resistance,
   3.33e8 Pa s/m3 = 2.5 mmHg s/mL, is about twice a typical total
   peripheral resistance; it offsets the cardiac output of about 2.2 L/min,

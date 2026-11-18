@@ -57,8 +57,11 @@ def test_prepared_lumen() -> None:
         offset = (selected - selected.mean(axis=0)) @ np.asarray(port["normal"])
         # Netgen smooths the voxelized lumen, so cap vertices stay within ~1 mm.
         assert np.abs(offset).max() < 0.0015, name
-        if name != "LCCA_stump_outlet":
-            assert abs(port["mesh_area_m2"] / port["source_area_m2"] - 1) < 0.1
+        assert abs(port["mesh_area_m2"] / port["source_area_m2"] - 1) < 0.1, name
+        # Half the triangles of a disc port_cells_across elements wide: enough
+        # free velocity nodes that the opening's flow is not carried by one.
+        cells = CONFIG["port_cells_across"]
+        assert port["mesh_faces"] >= 0.5 * np.pi / 4 * cells**2, name
     report = json.loads((PREPARED / "preparation.json").read_text(encoding="utf-8"))
     distal = ports["distal_crop_outlet"]["center_m"][1]
     assert distal >= report["distal_crop_y_m"] + CONFIG["distal_margin_m"] - 1e-9
@@ -90,6 +93,10 @@ def test_saved_flow() -> None:
             windkessel.advance(q, report["dt_s"]) for q in flows[:, names.index(name)]
         ]
         np.testing.assert_allclose(steps["outlet_pressure_pa"][:, column], replay)
+        # Every outlet carries about its configured share of the flow; an
+        # opening tiled too coarsely carries little or none.
+        share = report["last_beat"]["outlets"][name]["flow_share"]
+        assert abs(share / settings["flow_fractions"][name] - 1) < 0.1, name
     mesh = np.load(RESULTS / "mesh.npz")
     wall = mesh["boundary_faces"][mesh["boundary_regions"] == 0]
     velocity = np.load(RESULTS / "velocity_m_s.npy", mmap_mode="r")

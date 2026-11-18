@@ -16,7 +16,7 @@ import os
 import subprocess
 import sys
 import tempfile
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import ClassVar, Optional, cast
 
@@ -32,16 +32,19 @@ from .process_surface_mesh import ProcessSurfaceMesh
 from .simpleware_medical import DEFAULT_SIMPLEWARE_EXE_PATH, run_simpleware_script
 
 # Run by ProcessVolumetricMesh._retile_and_fill_netgen in a child process:
-# argv is the ASCII STL surface, the .npz to write, and the maximum element
-# size ("" for netgen's default).  netgen numbers points from 1.
+# argv is the ASCII STL surface, the .npz to write, the maximum element size
+# ("" for netgen's default) and netgen's local mesh-size file ("" for none).
+# netgen numbers points from 1.
 _NETGEN_STL_SCRIPT = """
 import sys
 
 import numpy as np
 from netgen.stl import STLGeometry
 
-stl_file, result_file, element_size = sys.argv[1:4]
+stl_file, result_file, element_size, size_file = sys.argv[1:5]
 options = {"maxh": float(element_size)} if element_size else {}
+if size_file:
+    options["meshsizefilename"] = size_file
 mesh = STLGeometry(stl_file).GenerateMesh(**options)
 connectivity = (
     np.asarray(mesh.Elements3D().NumPy()["nodes"])[:, :4].astype(np.int64) - 1
@@ -86,6 +89,11 @@ class ProcessVolumetricMesh(MONAIPhysioBase):
     # back where it started instead, which both ends the search and keeps the
     # mesh free of moves too small to matter.
     MIN_TRIM_DAMPING = 2.0**-10
+
+    # How fast netgen lets the local element size grow away from a size
+    # restriction (netgen's own default), for the fixed-surface path, which
+    # builds that size field itself before netgen fills the surface.
+    NETGEN_GRADING = 0.3
 
     def __init__(self, log_level: int | str = logging.INFO):
         """Initialize ProcessVolumetricMesh.
@@ -284,6 +292,65 @@ class ProcessVolumetricMesh(MONAIPhysioBase):
         connectivity[inverted] = connectivity[inverted][:, [0, 1, 3, 2]]
         return pv.UnstructuredGrid({pv.CellType.TETRA: connectivity}, points)
 
+    @staticmethod
+    def create_element_size_image(
+        labelmap_image: itk.image, element_sizes_mm: Mapping[int, float]
+    ) -> itk.image:
+        """Return an image of target element sizes taken from a labelmap.
+
+        Each voxel of a label in *element_sizes_mm* holds that label's size;
+        every other voxel holds infinity, which leaves the mesher's own size
+        there.  The labels need not be the ones being meshed: label an organ,
+        a region of interest or a zone around a boundary feature, such as a
+        ball around each outlet of a vessel, and pass the result as
+        :meth:`extract_label_tetrahedra_netgen`'s *element_size_image*.  Each
+        voxel below the mesher's size becomes one restriction, so label on a
+        grid near the target sizes (for example a labelmap resampled with
+        :meth:`ProcessMeshKernels.vote_resample_labelmap`), not a fine scan's.
+
+        Args:
+            labelmap_image: Labelmap whose labels mark the regions to size.
+            element_sizes_mm: Label id → target edge length in that label.
+
+        Returns:
+            A float image on *labelmap_image*'s grid.
+        """
+        labels = itk.GetArrayViewFromImage(labelmap_image)
+        sizes = np.full(labels.shape, np.inf, dtype=np.float32)
+        for label_id, size_mm in element_sizes_mm.items():
+            sizes[labels == label_id] = size_mm
+        size_image = itk.GetImageFromArray(sizes)
+        size_image.CopyInformation(labelmap_image)
+        return size_image
+
+    @staticmethod
+    def _element_size_points(
+        element_size_image: itk.image, element_size_mm: Optional[float]
+    ) -> np.ndarray:
+        """Return one (x, y, z, size) row per voxel that asks for finer elements.
+
+        A voxel asks when its size is finite and below *element_size_mm*
+        (any finite size when that is ``None``); the row holds its centre in
+        world coordinates.
+
+        Raises:
+            ValueError: If a size is NaN or not positive.
+        """
+        sizes = itk.GetArrayViewFromImage(element_size_image)
+        finite = np.isfinite(sizes)
+        if np.isnan(sizes).any() or np.any(sizes[finite] <= 0.0):
+            raise ValueError("Element sizes must be positive or infinite")
+        cap = np.inf if element_size_mm is None else element_size_mm
+        # The array's axes are (k, j, i); the image's index order is (i, j, k).
+        kji = np.argwhere(finite & (sizes < cap))
+        spacing = np.asarray(element_size_image.GetSpacing(), dtype=np.float64)
+        direction = itk.array_from_matrix(element_size_image.GetDirection())
+        points = (
+            np.asarray(element_size_image.GetOrigin(), dtype=np.float64)
+            + (kji[:, ::-1] * spacing) @ direction.T
+        )
+        return np.column_stack([points, sizes[tuple(kji.T)]]).astype(np.float64)
+
     def extract_label_tetrahedra_netgen(
         self,
         labelmap_image: itk.image,
@@ -293,6 +360,7 @@ class ProcessVolumetricMesh(MONAIPhysioBase):
         smoothing_iterations: int = 30,
         shared_interfaces: bool = True,
         contour_spacing_mm: Optional[float] = None,
+        element_size_image: Optional[itk.image] = None,
     ) -> dict[int, pv.UnstructuredGrid]:
         """Build one unstructured tetrahedral mesh filling each label with netgen.
 
@@ -354,6 +422,21 @@ class ProcessVolumetricMesh(MONAIPhysioBase):
                 triangle, so halving the spacing roughly quadruples the
                 boundary triangles and the mesh; without it netgen's re-tiling
                 brings the triangles back to about *element_size_mm*.
+            element_size_image: Target edge length at each voxel, for finer
+                elements in parts of the mesh, such as an organ of interest
+                or the openings of a vessel (see
+                :meth:`create_element_size_image`).  Every voxel whose size is
+                finite and below *element_size_mm* restricts netgen's local
+                element size at its centre, and netgen grades the elements
+                back up to *element_size_mm* away from it; infinite voxels
+                leave the size unrestricted.  Each such voxel is one
+                restriction, so give the image a spacing near the sizes it
+                holds rather than finer.  Without *shared_interfaces* the
+                re-tiled surfaces are refined too; with it the contoured
+                surfaces are kept, so only the interior is refined and a
+                finer *contour_spacing_mm* is what refines the boundary.
+                ``None`` (default) sizes the elements by *element_size_mm*
+                alone.
 
         Returns:
             Label id → that label's tetrahedral mesh, whose
@@ -366,8 +449,20 @@ class ProcessVolumetricMesh(MONAIPhysioBase):
                 without *shared_interfaces*, cannot re-tile one; a surface
                 that intersects itself, as heavy smoothing can make of a thin
                 wall, is the usual cause.
+            ValueError: If *element_size_image* holds a size that is NaN or
+                not positive.
         """
-        from netgen.meshing import FaceDescriptor, Mesh
+        from netgen.meshing import FaceDescriptor, Mesh, Pnt
+
+        size_points = (
+            np.zeros((0, 4))
+            if element_size_image is None
+            else self._element_size_points(element_size_image, element_size_mm)
+        )
+        if element_size_image is not None:
+            self.log_info(
+                "Restricting netgen's element size at %d points", len(size_points)
+            )
 
         surfaces = self._surface_tools.extract_label_surfaces(
             labelmap_image,
@@ -393,13 +488,19 @@ class ProcessVolumetricMesh(MONAIPhysioBase):
                     data=np.ascontiguousarray(surface.regular_faces, dtype=np.int32),
                     base=0,
                 )
+                if len(size_points):
+                    # Build netgen's size field from the surface, as it would
+                    # itself, then lower it at the requested points.
+                    mesh.CalcLocalH(self.NETGEN_GRADING, 1)
+                    for x, y, z, size_mm in size_points:
+                        mesh.RestrictLocalH(Pnt(x, y, z), size_mm)
                 mesh.GenerateVolumeMesh(**size_options)
                 # netgen numbers points from 1.
                 connectivity = np.asarray(mesh.Elements3D().NumPy()["nodes"])[:, :4] - 1
                 points = np.asarray(mesh.Coordinates(), dtype=np.float64)
             else:
                 points, connectivity = self._retile_and_fill_netgen(
-                    surface, element_size_mm, label_id
+                    surface, element_size_mm, label_id, size_points
                 )
             if len(connectivity) == 0:
                 raise RuntimeError(
@@ -414,13 +515,18 @@ class ProcessVolumetricMesh(MONAIPhysioBase):
 
     @staticmethod
     def _retile_and_fill_netgen(
-        surface: pv.PolyData, element_size_mm: Optional[float], label_id: int
+        surface: pv.PolyData,
+        element_size_mm: Optional[float],
+        label_id: int,
+        size_points: Optional[np.ndarray] = None,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Have netgen re-tile *surface* and fill it, in a child process.
 
         netgen's STL mesher ends the whole process, rather than raising, when
         the surface intersects itself, so it runs in a child Python process
-        whose failure is reported as an exception here.
+        whose failure is reported as an exception here.  *size_points* rows
+        (x, y, z, size), if any, restrict the local element size through
+        netgen's mesh-size file.
 
         Returns:
             The tetrahedra's points and zero-based connectivity.
@@ -435,6 +541,15 @@ class ProcessVolumetricMesh(MONAIPhysioBase):
             pv.PolyData(surface.points, faces=surface.faces).save(
                 stl_file, binary=False
             )
+            size_file = ""
+            if size_points is not None and len(size_points):
+                # netgen's format: the point count, one "x y z size" row per
+                # point, then the (here zero) count of sized edges.
+                size_file = str(Path(tmp) / "sizes.txt")
+                with open(size_file, "w", encoding="ascii") as f:
+                    f.write(f"{len(size_points)}\n")
+                    np.savetxt(f, size_points, fmt="%.9g")
+                    f.write("0\n")
             completed = subprocess.run(
                 [
                     sys.executable,
@@ -443,6 +558,7 @@ class ProcessVolumetricMesh(MONAIPhysioBase):
                     str(stl_file),
                     str(result_file),
                     "" if element_size_mm is None else str(element_size_mm),
+                    size_file,
                 ],
                 capture_output=True,
                 text=True,

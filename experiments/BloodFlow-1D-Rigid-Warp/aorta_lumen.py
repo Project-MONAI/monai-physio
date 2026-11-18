@@ -11,7 +11,6 @@ inlet flow is :func:`monai_physio.warp_navier_stokes.inlet_flow`.
 
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, ClassVar, Optional
@@ -35,7 +34,6 @@ class AortaSource:
     """
 
     path: Path
-    sha256: str
     times: np.ndarray
     seconds: np.ndarray
     aorta: np.ndarray
@@ -94,27 +92,13 @@ class AortaLumen:
     LCCA_NORMAL: ClassVar[tuple[float, float, float]] = (0.123, 0.990, -0.063)
     SAMPLE_INTERVAL_S = 0.03
 
-    @staticmethod
-    def file_sha256(path: Path) -> str:
-        """Hash a file in blocks."""
-        digest = hashlib.sha256()
-        with path.open("rb") as stream:
-            for block in iter(lambda: stream.read(1024 * 1024), b""):
-                digest.update(block)
-        return digest.hexdigest()
-
-    def load_source(
-        self, path: Path, expected_sha256: Optional[str] = None, frame: int = 69
-    ) -> AortaSource:
+    def load_source(self, path: Path, frame: int = 69) -> AortaSource:
         """Read all aorta and LV samples and the branches at ``frame``.
 
         Reject changing topology, non-SI stage units or unauthored physical
         timing. Sample 69 is the nearest sample to 70% of the 0..99 range.
         """
         path = Path(path).resolve()
-        digest = self.file_sha256(path)
-        if expected_sha256 is not None and digest != expected_sha256.lower():
-            raise ValueError("Source USD SHA256 differs from the expected input")
         stage = Usd.Stage.Open(str(path))
         if stage is None:
             raise ValueError("Cannot open source USD")
@@ -176,7 +160,6 @@ class AortaLumen:
         }
         return AortaSource(
             path,
-            digest,
             times,
             np.arange(100) * self.SAMPLE_INTERVAL_S,
             arrays[0],
