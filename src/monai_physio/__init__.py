@@ -20,7 +20,7 @@ Main Components:
     - MONAIPhysioBase: Base class with standardized logging and debug settings
 """
 
-__version__ = "2026.11.1"
+__version__ = "2026.11.2"
 
 import importlib.metadata as _importlib_metadata
 import importlib.util as _importlib_util
