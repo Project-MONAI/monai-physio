@@ -50,7 +50,8 @@ TRIANGLE_MASS = (
 )
 
 
-# Warp 1.17 FEM treats every annotation, including return, as an input.
+# Warp 1.17 FEM treats every annotation, including return, as an input. The
+# wp.identity ignores are needed by the Warp 1.17 stubs, not by 1.19.
 @fem.integrand
 def wall_stress(  # type: ignore[no-untyped-def]
     s: fem.Sample,
@@ -61,7 +62,7 @@ def wall_stress(  # type: ignore[no-untyped-def]
     lam: wp.float64,
 ):
     """Prestressed Neo-Hookean first Piola stress ``F S0 + P(F)`` against grad v."""
-    f = wp.identity(n=3, dtype=wp.float64) + fem.grad(u, s)  # type: ignore[type-var,arg-type]
+    f = wp.identity(n=3, dtype=wp.float64) + fem.grad(u, s)  # type: ignore[type-var,arg-type,unused-ignore]
     inverse_t = wp.transpose(wp.inverse(f))
     stress = (
         f * prestress[s.qp_index]
@@ -82,7 +83,7 @@ def wall_tangent(  # type: ignore[no-untyped-def]
     lam: wp.float64,
 ):
     """Tangent of :func:`wall_stress` at the displacement ``d``."""
-    f = wp.identity(n=3, dtype=wp.float64) + fem.grad(d, s)  # type: ignore[type-var,arg-type]
+    f = wp.identity(n=3, dtype=wp.float64) + fem.grad(d, s)  # type: ignore[type-var,arg-type,unused-ignore]
     inverse_t = wp.transpose(wp.inverse(f))
     h = fem.grad(u, s)
     stress = (
@@ -103,7 +104,7 @@ def linear_stress(  # type: ignore[no-untyped-def]
 ):
     """Small-strain stress, used as the prestress S0."""
     h = fem.grad(u, s)
-    identity = wp.identity(n=3, dtype=wp.float64)  # type: ignore[type-var,arg-type]
+    identity = wp.identity(n=3, dtype=wp.float64)  # type: ignore[type-var,arg-type,unused-ignore]
     return mu * (h + wp.transpose(h)) + lam * wp.trace(h) * identity
 
 
@@ -402,11 +403,14 @@ def quasi_newton_update(
     """Change of the interface guess for ``residual`` (IQN-ILS, relaxed).
 
     ``columns`` holds (residual difference, response difference, step) pairs,
-    newest first. Columns whose part orthogonal to the newer ones is below
-    ``filter_tolerance`` of their norm are removed from it in place. See
+    newest first. Columns beyond the length of ``residual``, and columns whose
+    part orthogonal to the newer ones is below ``filter_tolerance`` of their
+    norm, are removed from it in place. See
     :class:`WarpFluidStructure` for the method.
     """
     update = relaxation * residual
+    # At most len(residual) columns can be independent; keep the newest.
+    del columns[len(residual) :]
     while columns:
         v = torch.stack([column[0] for column in columns], dim=1)
         q, r = torch.linalg.qr(v)

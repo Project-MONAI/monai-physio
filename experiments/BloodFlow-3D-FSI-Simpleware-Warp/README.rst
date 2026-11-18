@@ -132,7 +132,8 @@ The first line writes the inlet waveform::
 ``prepare.py`` writes ``output/prepared`` and ``run.py`` writes
 ``output/fsi`` in this folder (``run.json`` summarizing beat 2, per-step
 ``steps.npz`` and the saved fields); ``run.py --steps N`` runs a short smoke
-test and ``--output`` and ``--precision`` run other cases. The viewer serves
+test and ``--output`` and ``--precision`` run other cases. ``run.py``
+refuses an output folder that is not empty. The viewer serves
 http://127.0.0.1:8703 with the experiment 2 controls plus a *Wall
 displacement* field; the lumen moves at true scale. ``--screenshot PATH``
 saves one frame, and this records beat 2 off screen (MP4 output needs

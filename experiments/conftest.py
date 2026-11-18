@@ -1,14 +1,14 @@
 """Opt-in GPU tests for experiment folders, as ``tests/conftest.py`` does.
 
-When ``tests/`` is collected in the same run, ``tests/conftest.py`` has
-already added --run-gpu (and --run-all), so the option is not added again.
+When ``tests/`` is collected in the same run, whichever conftest loads first
+adds --run-gpu and the other skips it; ``tests/conftest.py`` adds --run-all.
 """
 
 import pytest
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
-    """Add --run-gpu unless ``tests/conftest.py`` already added it."""
+    """Add --run-gpu unless ``tests/conftest.py`` has added it."""
     try:
         parser.addoption(
             "--run-gpu",

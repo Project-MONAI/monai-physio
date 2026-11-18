@@ -140,6 +140,8 @@ def test_viewer_controls(tmp_path: Path) -> None:
         viewer.playing = True
         viewer.advance(viewer.times[3] + 1e-9)
         assert viewer.index == 3
+        viewer.advance(viewer.times[-1] + 1e-9)  # The last frame gets its turn.
+        assert viewer.index == len(viewer.times) - 1
         movie = viewer.record_movie(tmp_path / "movie.mp4", float(viewer.times[-2]))
         assert movie["frames"] == 2 and (tmp_path / "movie.mp4").stat().st_size
         shown = np.asarray(viewer.pressure[-2:]) / MMHG

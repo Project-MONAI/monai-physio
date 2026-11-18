@@ -84,6 +84,18 @@ def test_quasi_newton_filters_dependent_columns() -> None:
     torch.testing.assert_close(update, expected)
 
 
+def test_quasi_newton_keeps_at_most_residual_length_columns() -> None:
+    """Three columns for a two-component residual: the two newest are used."""
+    generator = torch.Generator().manual_seed(2)
+    v, w = torch.randn(2, 2, 3, generator=generator, dtype=torch.float64)
+    residual = torch.randn(2, generator=generator, dtype=torch.float64)
+    columns = [(v[:, k], w[:, k], 0) for k in range(3)]
+    update = quasi_newton_update(residual, columns, 0.1, 1e-2)
+    assert len(columns) == 2
+    c = torch.linalg.solve(v[:, :2], -residual)
+    torch.testing.assert_close(update, 0.1 * residual + (w - 0.9 * v)[:, :2] @ c)
+
+
 class ScriptedSolvers:
     """Fluid and wall stand-in whose interface residual follows a script.
 

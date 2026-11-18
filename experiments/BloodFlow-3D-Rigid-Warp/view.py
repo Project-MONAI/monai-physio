@@ -66,7 +66,8 @@ def main() -> None:
             viewer.set_slice("y", (root + 0.010 - low) / (high - low))
             viewer.set_vectors(True)
             viewer.rotate_camera(30, 25)
-            start = json.loads((ROOT / "config.json").read_text())["report_from_s"]
+            run = json.loads((args.results / "run.json").read_text())
+            start = run["config"]["report_from_s"]
             report = viewer.record_movie(args.movie.resolve(), start)
             print(json.dumps(report, indent=2))
         elif args.screenshot:

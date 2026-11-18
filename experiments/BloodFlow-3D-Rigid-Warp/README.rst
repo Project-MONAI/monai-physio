@@ -58,10 +58,11 @@ The first line writes the inlet waveform::
 
 Without ``--source`` the Tutorial 13 output named in ``config.json`` is used.
 Results go to ``output/prepared`` and ``output/flow`` in this folder;
-``run.py --dt``, ``--precision`` and ``--output`` run other cases. The
-viewer serves http://127.0.0.1:8702: play or scrub time, show speed or
-pressure on the lumen and on a movable slice, add velocity arrows, pick the
-color range and rotate or zoom. ``--screenshot PATH`` saves one frame, and
+``run.py --dt``, ``--precision`` and ``--output`` run other cases, and
+``run.py`` refuses an output folder that is not empty. The viewer serves
+http://127.0.0.1:8702: play or scrub time, show speed or pressure on the lumen
+and on a movable slice, add velocity arrows, pick the color range and rotate
+or zoom. ``--screenshot PATH`` saves one frame, and
 this records the last beat off screen (MP4 output needs ``imageio-ffmpeg``,
 part of the ``dev`` extra)::
 

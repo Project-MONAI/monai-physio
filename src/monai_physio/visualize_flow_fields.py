@@ -310,10 +310,16 @@ class VisualizeFlowFields(MONAIPhysioBase):
         self.plotter.render()
 
     def advance(self, elapsed: float) -> None:
-        """Show the frame at ``elapsed`` seconds of looping playback."""
+        """Show the frame at ``elapsed`` seconds of looping playback.
+
+        The saved frames are evenly spaced; each, including the last, is shown
+        for one frame interval from its own time.
+        """
         if self.playing:
-            moment = elapsed % self.times[-1]
-            self.set_time(int(np.searchsorted(self.times, moment, side="right")) - 1)
+            count = len(self.times)
+            spacing = (self.times[-1] - self.times[0]) / max(count - 1, 1)
+            offset = (elapsed - self.times[0]) / spacing if spacing > 0 else 0.0
+            self.set_time(int(np.floor(offset)) % count)
 
     def rotate_camera(self, azimuth: float, elevation: float) -> None:
         """Rotate the camera about the focal point (degrees)."""
@@ -405,7 +411,7 @@ def create_app(viewer: VisualizeFlowFields, title: str, notes: list[str]) -> Any
     from trame.app import get_server  # type: ignore[import-untyped]
     from trame.ui.vuetify3 import SinglePageLayout  # type: ignore[import-untyped]
     from trame.widgets import html, vuetify3  # type: ignore[import-untyped]
-    from trame_pyvista.ui import plotter_ui
+    from trame_pyvista import plotter_ui
 
     server = get_server("flow-fields", client_type="vue3")
     state, controller = server.state, server.controller

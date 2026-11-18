@@ -1,7 +1,8 @@
 """Compare float64 and float32 runs of the 3D flow with each other and a reference.
 
-All folders are required. A float64 or float32 folder without ``run.json`` is
-first computed by ``run.py``, and the GPU utilization just before that run is
+All folders are required. A missing or empty float64 or float32 folder is
+first computed by ``run.py`` (which refuses a folder with partial results),
+and the GPU utilization just before that run is
 recorded because the timings depend on other GPU work. Speed, GMRES behaviour
 and accuracy go to ``OUTPUT.json`` and a Markdown table ``OUTPUT.md``.
 """
@@ -52,6 +53,12 @@ def accuracy(folder: Path, base: Path) -> dict[str, Any]:
     )
     if not np.allclose(times, base_times):
         raise ValueError(f"{folder} and {base} save different frames")
+    mesh, base_mesh = (np.load(f / "mesh.npz") for f in (folder, base))
+    if any(not np.array_equal(mesh[key], base_mesh[key]) for key in mesh.files):
+        raise ValueError(f"{folder} and {base} use different meshes")
+    steps, base_steps = (np.load(f / "steps.npz") for f in (folder, base))
+    if list(steps["port_names"]) != list(base_steps["port_names"]):
+        raise ValueError(f"{folder} and {base} order their ports differently")
     fields = {}
     for name in ("velocity_m_s", "pressure_pa"):
         value, reference = (np.load(f / f"{name}.npy") for f in (folder, base))
@@ -62,7 +69,6 @@ def accuracy(folder: Path, base: Path) -> dict[str, Any]:
         json.loads((f / "run.json").read_text(encoding="utf-8"))["last_beat"]
         for f in (folder, base)
     )
-    steps, base_steps = (np.load(f / "steps.npz") for f in (folder, base))
     flows = steps["port_flow_m3_s"]
     base_flows = np.stack(
         [

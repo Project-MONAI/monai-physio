@@ -47,7 +47,12 @@ class AortaSource:
 
 @dataclass
 class AortaBoundary:
-    """Closed computational boundary with sparse source-vertex provenance."""
+    """Closed computational boundary with sparse source-vertex provenance.
+
+    ``points`` stay in the source's USD world frame (metres, Y-up), not the
+    library's LPS millimetres: the solvers work in SI units, and
+    ``prepare.py`` converts to LPS only for meshing.
+    """
 
     points: np.ndarray
     faces: np.ndarray
@@ -58,7 +63,7 @@ class AortaBoundary:
     discarded_faces: dict[str, list[int]] = field(default_factory=dict)
 
     def surface(self) -> pv.PolyData:
-        """Return the tagged computational surface."""
+        """Return the tagged computational surface in USD metres (not LPS)."""
         mesh = pv.PolyData(
             self.points, np.c_[np.full(len(self.faces), 3), self.faces].ravel()
         )

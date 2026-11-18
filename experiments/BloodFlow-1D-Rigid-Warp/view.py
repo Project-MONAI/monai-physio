@@ -155,7 +155,7 @@ def create_app(viewer: TrunkViewer) -> Any:
     from trame.app import get_server  # type: ignore[import-untyped]
     from trame.ui.vuetify3 import SinglePageLayout  # type: ignore[import-untyped]
     from trame.widgets import html, vuetify3  # type: ignore[import-untyped]
-    from trame_pyvista.ui import plotter_ui
+    from trame_pyvista import plotter_ui
 
     server = get_server("aorta-1d", client_type="vue3")
     state, controller = server.state, server.controller

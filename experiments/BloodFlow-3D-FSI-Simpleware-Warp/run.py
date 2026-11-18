@@ -106,7 +106,8 @@ def run(
     }
     names = sorted(ports, key=lambda n: ports[n]["region_id"])
     dt = config["dt_s"]
-    output.mkdir(parents=True, exist_ok=False)
+    if output.exists() and any(output.iterdir()):
+        raise FileExistsError(f"Delete {output} or choose another --output")
     started = time.perf_counter()
     faces, regions = mesh["fluid_boundary_faces"], mesh["fluid_boundary_regions"]
     fluid = WarpNavierStokes(
@@ -141,6 +142,7 @@ def run(
         **config["coupling"],
     )
     setup_seconds = time.perf_counter() - started
+    output.mkdir(parents=True, exist_ok=True)
     root = regions == ports["root_inlet"]["region_id"]
     root_weights = np.zeros(len(fluid.points))
     np.add.at(
@@ -151,7 +153,7 @@ def run(
     root_weights /= root_weights.sum()
 
     count = count or round(config["duration_s"] / dt)
-    stride = round(config["frame_interval_s"] / dt)
+    stride = max(1, round(config["frame_interval_s"] / dt))
     times = np.arange(1, count + 1) * dt
     inflow = inlet_flow(
         times, flux, config["waveform_interval_s"], config["waveform_smoothing_s"]

@@ -137,11 +137,6 @@ def prepare(source_path: Path, output: Path, config: dict[str, Any]) -> dict[str
     source = tools.load_source(source_path, config["frozen_sample"])
     boundary = tools.prepare_boundaries(source, config["distal_margin_m"])
     surface = boundary.surface()
-    surface.save(output / "computational_surface.vtp")
-    frozen = source.aorta[source.frame]
-    pv.PolyData(frozen, np.c_[np.full(len(source.faces), 3), source.faces]).save(
-        output / "source.vtp"
-    )
     caps = {
         name: surface.extract_cells(
             np.flatnonzero(boundary.regions == port["region_id"]).tolist()
@@ -193,6 +188,13 @@ def prepare(source_path: Path, output: Path, config: dict[str, Any]) -> dict[str
             "mesh_faces": int(selected.sum()),
             "element_size_mm": port_sizes.get(name, config["element_size_mm"]),
         }
+    # Write only after meshing succeeds, so a failure leaves any earlier
+    # preparation whole.
+    surface.save(output / "computational_surface.vtp")
+    frozen = source.aorta[source.frame]
+    pv.PolyData(frozen, np.c_[np.full(len(source.faces), 3), source.faces]).save(
+        output / "source.vtp"
+    )
     np.savez_compressed(
         output / "geometry.npz",
         points_m=points,

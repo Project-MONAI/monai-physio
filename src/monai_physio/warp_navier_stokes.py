@@ -20,6 +20,7 @@ import ctypes
 import ctypes.util
 import os
 import site
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -235,7 +236,7 @@ class CuDssFactor:
         """
         library = find_cudss_library()
         self._directories: list[Any] = []
-        if os.name == "nt":
+        if sys.platform == "win32":
             folders = [library.parent]
             cuda = os.environ.get("CUDA_PATH")
             if cuda:
@@ -420,13 +421,18 @@ def backflow_form(  # type: ignore[no-untyped-def]
     s: fem.Sample,
     domain: fem.Domain,
     previous: fem.Field,
+    mesh: fem.Field,
     u: fem.Field,
     v: fem.Field,
     beta: wp.float64,
 ):
-    """Outflow stabilization ``beta |min(u_n . n, 0)| u . v`` on boundary sides."""
+    """Outflow stabilization ``beta |min((u_n - w) . n, 0)| u . v`` on boundary sides.
+
+    The flux is relative to the mesh velocity ``w``, so it vanishes on a moving
+    no-slip wall and acts only where blood re-enters through a port.
+    """
     normal = fem.normal(domain, s)
-    flux = wp.dot(previous(s), normal)  # type: ignore[operator]
+    flux = wp.dot(previous(s) - mesh(s), normal)  # type: ignore[operator]
     inflow = wp.min(flux, normal.dtype(0.0))
     return -normal.dtype(beta) * inflow * wp.dot(u(s), v(s))  # type: ignore[operator]
 
@@ -445,7 +451,8 @@ def constrain_velocity_matrix(
         if constrained[row] != 0 or constrained[col] != 0:
             block = values.dtype(0.0)
             if row == col:
-                block = wp.identity(n=3, dtype=block.dtype)  # type: ignore[arg-type]
+                # Needed by the Warp 1.17 stubs, not by 1.19.
+                block = wp.identity(n=3, dtype=block.dtype)  # type: ignore[arg-type,unused-ignore]
             values[index] = block
 
 
@@ -923,6 +930,7 @@ class WarpNavierStokes(MONAIPhysioBase):
                 backflow_form,
                 fields={
                     "previous": self.u_field.trace(),
+                    "mesh": self.w_field.trace(),
                     "u": self.side_trial,
                     "v": self.side_test,
                 },
@@ -971,8 +979,10 @@ class WarpNavierStokes(MONAIPhysioBase):
             use_cuda_graph=False,
         )
         # With right preconditioning Warp recomputes the true residual
-        # |b - A x| after every restart cycle; threshold is tolerance |b|.
-        residual = float(error) * self.tolerance / float(threshold)
+        # |b - A x| after every restart cycle; threshold is tolerance |b|,
+        # zero at rest with no inflow, where the solution is zero.
+        size = float(threshold) / self.tolerance
+        residual = float(error) / size if size > 0 else float(error)
         if not residual <= self.tolerance:
             self.log_warning(
                 "GMRES stopped after %d iterations at relative residual %.3g",

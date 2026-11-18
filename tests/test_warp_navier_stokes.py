@@ -217,6 +217,29 @@ def test_precisions_match_poiseuille() -> None:
 
 
 @pytest.mark.requires_gpu
+def test_solver_at_rest_stays_at_rest() -> None:
+    """No inflow, a still wall and an empty Windkessel give zero, not an error."""
+    require_cudss()
+    points, tets, faces, regions = pipe_mesh()
+    solver = WarpNavierStokes(
+        points,
+        tets,
+        faces,
+        regions,
+        inlet_region=1,
+        outlets={2: Windkessel(0.0, 0.0, 1.0, 0.0)},
+        dt=0.05,
+        viscosity=VISCOSITY,
+        precision="float64",
+    )
+    try:
+        assert solver.step(0.0)["residual"] == 0
+        assert not solver.velocity().any() and not solver.pressure().any()
+    finally:
+        solver.close()
+
+
+@pytest.mark.requires_gpu
 def test_solver_moving_mesh_translation() -> None:
     """A rigidly translated deformable mesh reproduces the fixed-mesh solution."""
     require_cudss()
