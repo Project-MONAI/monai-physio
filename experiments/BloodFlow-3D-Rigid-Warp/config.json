@@ -1,0 +1,37 @@
+{
+  "source": "tutorials/output/tutorial_13_combine_heart_and_lung_motion_chest_3d_ct/heart_and_lung_motion.usd",
+  "frozen_sample": 69,
+  "distal_margin_m": 0.010,
+  "voxel_spacing_mm": 0.35,
+  "element_size_mm": 2.0,
+  "port_cells_across": 8,
+  "port_zone_radii": 1.5,
+  "port_size_grid_mm": 0.5,
+  "contour_spacing_mm": 0.35,
+  "smoothing_sigma_mm": 0.18,
+  "smoothing_iterations": 30,
+  "waveform": "experiments/BloodFlow-1D-Rigid-Warp/output/prepared/waveform.npz",
+  "waveform_interval_s": 0.03,
+  "waveform_smoothing_s": 0.03,
+  "density_kg_m3": 1060.0,
+  "viscosity_pa_s": 0.004,
+  "dt_s": 0.005,
+  "precision": "float32",
+  "duration_s": 3.0,
+  "report_from_s": 2.01,
+  "frame_interval_s": 0.03,
+  "backflow_beta": 1.0,
+  "inlet_blunt_fraction": 0.2,
+  "windkessel": {
+    "total_resistance_pa_s_m3": 3.33e8,
+    "total_compliance_m3_pa": 6.8e-9,
+    "proximal_fraction": 0.06,
+    "initial_pressure_pa": 10665.79,
+    "flow_fractions": {
+      "distal_crop_outlet": 0.70,
+      "BCT_outlet": 0.17,
+      "LSA_outlet": 0.08,
+      "LCCA_stump_outlet": 0.05
+    }
+  }
+}

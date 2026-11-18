@@ -1,0 +1,49 @@
+{
+  "source": "experiments/BloodFlow-3D-FSI-Simpleware-Warp/output/POC3-S1-r20",
+  "ports": {
+    "BCT_outlet": 1,
+    "LSA_outlet": 2,
+    "root_inlet": 3,
+    "LCCA_stump_outlet": 4,
+    "distal_crop_outlet": 5
+  },
+  "inlet": "root_inlet",
+  "collar_margin_m": 0.003,
+  "density_kg_m3": 1060.0,
+  "viscosity_pa_s": 0.004,
+  "dt_s": 0.0025,
+  "precision": "float32",
+  "gmres_tolerance": null,
+  "duration_s": 2.01,
+  "report_from_s": 1.02,
+  "frame_interval_s": 0.03,
+  "waveform": "experiments/BloodFlow-1D-Rigid-Warp/output/prepared/waveform.npz",
+  "waveform_interval_s": 0.03,
+  "waveform_smoothing_s": 0.03,
+  "backflow_beta": 1.0,
+  "inlet_blunt_fraction": 0.2,
+  "wall": {
+    "young_modulus_pa": 1.0e6,
+    "poisson_ratio": 0.45,
+    "tether_stiffness_pa_m": 5.0e5
+  },
+  "coupling": {
+    "relaxation": 0.1,
+    "reuse": 2,
+    "tolerance": 1e-3,
+    "max_iterations": 20
+  },
+  "windkessel": {
+    "calibration": "Totals chosen with a 0D Windkessel plus the 2.08e-9 m3/Pa wall compliance for a root pulse near 40 mmHg; see README.rst",
+    "total_resistance_pa_s_m3": 3.55e8,
+    "total_compliance_m3_pa": 2.2e-9,
+    "proximal_fraction": 0.06,
+    "initial_pressure_pa": 10665.79,
+    "flow_fractions": {
+      "distal_crop_outlet": 0.70,
+      "BCT_outlet": 0.17,
+      "LSA_outlet": 0.08,
+      "LCCA_stump_outlet": 0.05
+    }
+  }
+}

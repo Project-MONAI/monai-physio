@@ -677,6 +677,122 @@ def test_netgen_independent_labels_share_few_nodes(
     assert shared_nodes(False) < 0.2 * shared_nodes(True)
 
 
+def _sized_box() -> tuple[itk.Image, itk.Image]:
+    """Return a 48 mm long box and an image asking for 1.5 mm elements at one end.
+
+    The x axis is mirrored, so the end refined by index (i >= 38) lies at
+    world x <= -38: a size field placed by index rather than through the
+    direction would refine the other end.
+    """
+    arr = np.zeros((28, 28, 52), dtype=np.uint8)
+    arr[2:26, 2:26, 2:50] = 1
+    labelmap = itk.GetImageFromArray(arr)
+    labelmap.SetDirection(itk.matrix_from_array(np.diag([-1.0, 1.0, 1.0])))
+    zones = np.zeros_like(arr)
+    zones[2:26, 2:26, 38:50] = 2
+    zone_image = itk.GetImageFromArray(zones)
+    zone_image.CopyInformation(labelmap)
+    return labelmap, ProcessVolumetricMesh.create_element_size_image(
+        zone_image, {2: 1.5}
+    )
+
+
+@pytest.mark.requires_gpu
+@pytest.mark.skipif(
+    importlib.util.find_spec("netgen") is None,
+    reason="netgen extra (netgen-mesher) not installed",
+)
+@pytest.mark.parametrize("shared_interfaces", [True, False])
+def test_netgen_element_size_image_refines_its_region(
+    volume_tools: ProcessVolumetricMesh, shared_interfaces: bool
+) -> None:
+    """``element_size_image`` refines its region and leaves the rest coarse.
+
+    netgen grades the elements back to the coarse size over about 12 mm, so
+    the coarse end is measured beyond that.
+    """
+    labelmap, sizes = _sized_box()
+
+    def median_volumes(mesh: pv.UnstructuredGrid) -> tuple[float, float]:
+        volumes = np.asarray(mesh.compute_cell_sizes(volume=True)["Volume"])
+        x = np.asarray(mesh.cell_centers().points)[:, 0]
+        return float(np.median(volumes[x < -40])), float(np.median(volumes[x > -24]))
+
+    def mesh(size_image: Optional[itk.Image]) -> pv.UnstructuredGrid:
+        return volume_tools.extract_label_tetrahedra_netgen(
+            labelmap,
+            element_size_mm=4.0,
+            shared_interfaces=shared_interfaces,
+            element_size_image=size_image,
+        )[1]
+
+    coarse_refined_half, coarse_other_half = median_volumes(mesh(None))
+    refined_half, other_half = median_volumes(mesh(sizes))
+    assert refined_half < 0.25 * coarse_refined_half
+    assert other_half > 0.5 * coarse_other_half
+
+
+@pytest.mark.skipif(
+    importlib.util.find_spec("netgen") is None,
+    reason="netgen extra (netgen-mesher) not installed",
+)
+def test_netgen_element_size_image_rejects_non_positive_sizes(
+    volume_tools: ProcessVolumetricMesh,
+) -> None:
+    """A size of zero or less, or NaN, is an error, not a request for no elements."""
+    labelmap, _ = _sized_box()
+    for size_mm in (0.0, np.nan):
+        sizes = ProcessVolumetricMesh.create_element_size_image(labelmap, {1: size_mm})
+        with pytest.raises(ValueError, match="positive"):
+            volume_tools.extract_label_tetrahedra_netgen(
+                labelmap, element_size_mm=4.0, element_size_image=sizes
+            )
+
+
+def test_element_size_points_are_voxel_centres_below_the_cap() -> None:
+    """Each finer-than-the-cap voxel becomes its world centre and its size.
+
+    The grid has unequal spacing, an offset origin and a mirrored, permuted
+    direction, so dropping or reordering any of them moves the points.
+    """
+    labels = np.zeros((3, 4, 5), dtype=np.uint8)
+    labels[1, 2, 3] = 1
+    labels[2, 0, 1] = 2
+    labels[0, 3, 0] = 3
+    labelmap = itk.GetImageFromArray(labels)
+    labelmap.SetSpacing([0.8, 1.2, 1.5])
+    labelmap.SetOrigin([-3.0, 7.0, 2.5])
+    labelmap.SetDirection(
+        itk.matrix_from_array(
+            np.array([[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
+        )
+    )
+    sizes = ProcessVolumetricMesh.create_element_size_image(
+        labelmap, {1: 0.5, 2: 1.0, 3: 3.0}
+    )
+
+    def expected(rows: list[tuple[int, int, int, float]]) -> np.ndarray:
+        return np.array(
+            [
+                [*labelmap.TransformIndexToPhysicalPoint([i, j, k]), size]
+                for i, j, k, size in rows
+            ]
+        )
+
+    def sorted_rows(points: np.ndarray) -> np.ndarray:
+        return points[np.argsort(points[:, 3])]
+
+    capped = ProcessVolumetricMesh._element_size_points(sizes, 2.0)
+    np.testing.assert_allclose(
+        sorted_rows(capped), expected([(3, 2, 1, 0.5), (1, 0, 2, 1.0)])
+    )
+    uncapped = ProcessVolumetricMesh._element_size_points(sizes, None)
+    np.testing.assert_allclose(
+        sorted_rows(uncapped),
+        expected([(3, 2, 1, 0.5), (1, 0, 2, 1.0), (0, 3, 0, 3.0)]),
+    )
+
+
 @pytest.mark.skipif(
     importlib.util.find_spec("netgen") is None,
     reason="netgen extra (netgen-mesher) not installed",

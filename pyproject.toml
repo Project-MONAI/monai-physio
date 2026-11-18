@@ -102,7 +102,9 @@ dependencies = [
   "nvidia-physicsnemo>=2.0.0",
   "torch-geometric>=2.5.0",
   "torch-scatter>=2.1.0",
-  "warp-lang>=1.0.0",
+  # 1.17 is the oldest release tested with WarpNavierStokes and
+  # WarpFluidStructure (warp.sparse.bsr_from_triplets, warp.fem).
+  "warp-lang>=1.17.0",
 
   # Registration
   # 0.6.1 is the first release with a CPython 3.13 Windows wheel. Below it the
@@ -118,6 +120,9 @@ dependencies = [
 
   # Visualization and USD
   "pyvista[all]>=0.47.0",
+  # plotter_ui of the VisualizeFlowFields web viewer; PyVista 0.47 does not
+  # install it.
+  "trame-pyvista>=0.1.7",
   "usd-core>=24.5",
   "trimesh>=4.0.0",
   "pyacvd>=0.4.0",
@@ -219,7 +224,9 @@ cuda12 = [
 # never need. Wheels: Windows x64, Linux x86_64 and macOS, CPython 3.10-3.14
 # (none for Linux aarch64).
 netgen = [
-  "netgen-mesher>=6.2",
+  # 6.2.2608 is the oldest release tested with element_size_image, which
+  # needs Mesh.RestrictLocalH.
+  "netgen-mesher>=6.2.2608",
 ]
 # Development, testing, and documentation tooling -- no CUDA/cupy component,
 # for pairing with `uv pip install --torch-backend=auto -e ".[dev]"`.

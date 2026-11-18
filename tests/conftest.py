@@ -88,12 +88,15 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         default=False,
         help="Run tests marked 'slow' (skipped by default)",
     )
-    parser.addoption(
-        "--run-gpu",
-        action="store_true",
-        default=False,
-        help="Run tests marked 'requires_gpu' (skipped by default)",
-    )
+    try:  # experiments/conftest.py may have added it first.
+        parser.addoption(
+            "--run-gpu",
+            action="store_true",
+            default=False,
+            help="Run tests marked 'requires_gpu' (skipped by default)",
+        )
+    except ValueError:
+        pass
     parser.addoption(
         "--run-physicsnemo",
         action="store_true",

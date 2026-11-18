@@ -17,6 +17,7 @@ This section provides detailed documentation for all MONAI Physio classes, funct
    model_registration/index
    physicsnemo/index
    usd/index
+   blood_flow
    utilities/index
    cli/index
 
@@ -69,6 +70,13 @@ By Category
    * :class:`~monai_physio.RegisterModelsICPITK` - ICP with ITK
    * :class:`~monai_physio.RegisterModelsDistanceMaps` - Distance map-based
    * :class:`~monai_physio.RegisterModelsPCA` - PCA-based registration
+
+**Blood Flow (Warp)**
+   * :class:`~monai_physio.WarpNavierStokes` - GPU incompressible Navier-Stokes on tetrahedra
+   * :class:`~monai_physio.Windkessel` - Three-element (RCR) outlet model
+   * :class:`~monai_physio.WarpHyperelasticWall` - Prestressed Neo-Hookean vessel wall
+   * :class:`~monai_physio.WarpFluidStructure` - Two-way fluid-structure coupling
+   * :class:`~monai_physio.VisualizeFlowFields` - Flow-field viewer and movie export
 
 **USD Tools**
    * :mod:`~monai_physio.process_usd` - USD file utilities

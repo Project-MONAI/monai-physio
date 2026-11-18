@@ -141,6 +141,40 @@ from a 1 mm grid.
        shared_interfaces=False,
    )
 
+``element_size_image`` gives netgen finer elements where they are needed: an
+image of target edge lengths in mm, in the labelmap's world frame but on any
+grid.  Each voxel whose size is below ``element_size_mm`` restricts netgen's
+local size at its centre, and netgen grades the elements back up to
+``element_size_mm`` over the next few elements; infinite voxels leave the
+size alone.  :meth:`~ProcessVolumetricMesh.create_element_size_image` builds
+such an image from a labelmap and a size per label, so any region that can be
+labelled - an organ of interest, a lesion, a zone around the openings of a
+vessel - can be refined.  Without shared interfaces the re-tiled surface is
+refined too; with them the contoured surface is kept, so only the interior is
+refined and a finer ``contour_spacing_mm`` is what refines the boundary.
+
+.. code-block:: python
+
+   from monai_physio import ProcessMeshKernels, ProcessVolumetricMesh
+
+   volume_tools = ProcessVolumetricMesh()
+   # 0.5 mm elements in label 3 (say, a tumour), 2 mm elsewhere.  The size
+   # image is labelled on a 0.5 mm grid, not the scan's finer one.
+   zones = ProcessMeshKernels().vote_resample_labelmap(labelmap, 0.5)
+   sizes = volume_tools.create_element_size_image(zones, {3: 0.5})
+   meshes = volume_tools.extract_label_tetrahedra_netgen(
+       labelmap, element_size_mm=2.0, element_size_image=sizes,
+       shared_interfaces=False,
+   )
+
+Each restricting voxel is one point handed to netgen, so give the size image
+a spacing near the sizes it holds rather than the labelmap's finest, as
+above; a whole organ at a CT's 0.6 mm spacing would be millions.  The 3D
+rigid blood-flow experiment
+(``experiments/BloodFlow-3D-Rigid-Warp/prepare.py``) refines a ball around
+each narrow vessel opening this way, so that every outlet is tiled finely
+enough to carry flow.
+
 ``smoothing_sigma_mm`` is passed to
 :meth:`ProcessSurfaceMesh.extract_label_surfaces` as ``distance_sigma_mm``:
 ``None`` (default) blurs the distance map by the contour grid spacing and ``0``
