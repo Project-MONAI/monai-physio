@@ -428,8 +428,9 @@ def backflow_form(  # type: ignore[no-untyped-def]
 ):
     """Outflow stabilization ``beta |min((u_n - w) . n, 0)| u . v`` on boundary sides.
 
-    The flux is relative to the mesh velocity ``w``, so it vanishes on a moving
-    no-slip wall and acts only where blood re-enters through a port.
+    The flux is relative to the mesh velocity ``w``, so it vanishes where the
+    fluid moves with the mesh, as on a no-slip wall, and acts where blood
+    re-enters through a port.
     """
     normal = fem.normal(domain, s)
     flux = wp.dot(previous(s) - mesh(s), normal)  # type: ignore[operator]
@@ -917,8 +918,8 @@ class WarpNavierStokes(MONAIPhysioBase):
 
         Returns:
             GMRES iterations, the relative residual ``|b - A x| / |b|`` of the
-            linear solve, the outward flow of every port in m^3/s and the
-            pressure of every outlet in Pa.
+            linear solve (``|b - A x|`` when ``b`` is zero), the outward flow
+            of every port in m^3/s and the pressure of every outlet in Pa.
         """
         lifting_values = self.inlet_shape * inlet_flow
         if wall_velocity is not None:

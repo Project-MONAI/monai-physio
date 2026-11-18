@@ -5,12 +5,16 @@ from typing import Any
 
 import numpy as np
 import pytest
+import warp as wp
 from scipy.spatial import Delaunay
 from scipy.special import jv
+from warp import fem
 
 from monai_physio.warp_navier_stokes import (
+    SPEED,
     WarpNavierStokes,
     Windkessel,
+    backflow_form,
     find_cudss_library,
     inlet_flow,
 )
@@ -254,6 +258,55 @@ def test_solver_moving_mesh_translation() -> None:
     finally:
         fixed.close()
         moved.close()
+
+
+@pytest.mark.requires_gpu
+def test_backflow_uses_flux_relative_to_mesh() -> None:
+    """Backflow stabilization acts on ``u - w``: none when the fluid moves with the mesh."""
+    require_cudss()
+    points, tets, faces, regions = pipe_mesh()
+    solver = WarpNavierStokes(
+        points,
+        tets,
+        faces,
+        regions,
+        inlet_region=1,
+        outlets={2: Windkessel(1e9, 0.0, 1.0, 0.0)},
+        dt=0.05,
+        viscosity=VISCOSITY,
+        precision="float64",
+    )
+    try:
+        # Uniform fields need no reordering into Warp's node order.
+        fluid = np.array([0.003, -0.002, 0.01])
+        solver.u_field.dof_values.assign(
+            np.tile(fluid / SPEED, (len(solver.dof_points), 1))
+        )
+
+        def stabilization(mesh_velocity: np.ndarray) -> float:
+            """Sum of |entries| of the assembled backflow matrix."""
+            solver.move(np.zeros_like(points), np.tile(mesh_velocity, (len(points), 1)))
+            matrix = fem.integrate(
+                backflow_form,
+                fields={
+                    "previous": solver.u_field.trace(),
+                    "mesh": solver.w_field.trace(),
+                    "u": solver.side_trial,
+                    "v": solver.side_test,
+                },
+                values={"beta": wp.float64(1.0)},
+                output_dtype=solver.scalar,
+            )
+            # nnz is only an upper bound; the row offsets count the stored blocks.
+            count = int(matrix.offsets.numpy()[-1])
+            return float(np.abs(matrix.values.numpy()[:count]).sum())
+
+        still = stabilization(0 * fluid)
+        assert still > 0
+        assert stabilization(fluid) == 0
+        assert stabilization(0.5 * fluid) == pytest.approx(0.5 * still, rel=1e-12)
+    finally:
+        solver.close()
 
 
 @pytest.mark.requires_gpu
