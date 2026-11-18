@@ -72,8 +72,10 @@ def test_prepared_meshes() -> None:
 def test_saved_fsi() -> None:
     """Finite fields, the requested inflow, replayable Windkessels, a moving wall.
 
-    A full run must also give a 30-50 mmHg root pulse and converge the
-    coupling in at least 95% of the reported steps.
+    A full run must also give a 30-50 mmHg root pulse, converge the
+    coupling in at least 95% of the reported steps, keep every reported
+    step within 5% coupling residual and balance each reported step's
+    volume within 1% of the peak inflow.
     """
     require(RESULTS / "steps.npz")
     steps = np.load(RESULTS / "steps.npz")
@@ -111,6 +113,10 @@ def test_saved_fsi() -> None:
         reported = int(np.sum(steps["time_s"] >= report["report_from_s"]))
         assert summary["nonconverged_steps"] <= summary["capped_steps"]
         assert summary["capped_steps"] <= 0.05 * reported
+        # Every reported (beat-2) step, capped ones at their best iterate,
+        # must stay close; beat 1 is not bounded.
+        assert summary["max_coupling_residual"] <= 0.05
+        assert summary["max_volume_imbalance_relative"] <= 0.01
 
 
 def test_viewer_shows_wall_displacement(tmp_path: Path) -> None:

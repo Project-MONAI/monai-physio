@@ -459,11 +459,12 @@ class WarpFluidStructure(MONAIPhysioBase):
 
     A step still unconverged after ``max_iterations`` is solved once more at
     its lowest-residual iterate, which it keeps (so the fluid and wall states
-    belong to the kept interface), and the columns are restored to those of
-    the earlier steps. Such a step usually stalls at the residual noise of
-    the fluid and wall solves, and columns of that noise would mislead the
-    next steps. It is reported, not rejected; its re-solve may also meet
-    the convergence criterion.
+    belong to the kept interface), and all columns are dropped, so the next
+    step starts without reused columns. Such a step usually stalls at the
+    residual noise of the fluid and wall solves, and reused columns may
+    have misled it; columns from either would mislead the next steps. It is
+    reported, not rejected; its re-solve may also meet the convergence
+    criterion.
     """
 
     def __init__(
@@ -585,14 +586,12 @@ class WarpFluidStructure(MONAIPhysioBase):
         load = np.zeros_like(wall.dof_points)
         self.step_count += 1
         self.columns = [c for c in self.columns if c[2] >= self.step_count - self.reuse]
-        # The QR filter may drop earlier columns in favour of this step's.
-        earlier = list(self.columns)
         last: Optional[tuple[torch.Tensor, torch.Tensor]] = None
         gmres = newton = updates = 0
         best = (np.inf, guess)
         for iteration in range(1, self.max_iterations + 2):
             if iteration > self.max_iterations:
-                self.columns, guess = earlier, best[1]
+                self.columns, guess = [], best[1]
             if iteration > 1:
                 fluid.u_field.dof_values.assign(start_velocity)
                 for region, windkessel in fluid.outlets.items():

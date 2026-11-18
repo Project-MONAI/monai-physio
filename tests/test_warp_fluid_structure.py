@@ -131,15 +131,14 @@ class ScriptedSolvers:
         return self.value
 
 
-def test_capped_step_keeps_best_iterate_and_drops_its_columns(
+def test_capped_step_keeps_best_iterate_and_drops_all_columns(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """After the iteration cap the best iterate is solved again and kept.
 
-    The re-solve starts from the step-start fluid state. The capped step's
-    own quasi-Newton columns are dropped and the earlier step's column is
-    kept, although it is parallel to the new ones, so the QR filter drops it
-    during the step.
+    The re-solve starts from the step-start fluid state. All quasi-Newton
+    columns are dropped, the capped step's and the reused earlier step's,
+    so the next step starts without reused columns.
     """
     solvers = ScriptedSolvers([1e-3, 1e-5, 1e-2, 1e-4])
     coupled = WarpFluidStructure.__new__(WarpFluidStructure)
@@ -165,7 +164,7 @@ def test_capped_step_keeps_best_iterate_and_drops_its_columns(
     motion = np.sqrt(np.mean(solvers.guesses[1] ** 2))
     assert result["coupling_residual"] == pytest.approx(1e-4 / motion)
     assert solvers.outlets[1].pressure == 101.0
-    assert len(coupled.columns) == 1 and coupled.columns[0] is earlier
+    assert coupled.columns == []
 
 
 def compact(tets: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

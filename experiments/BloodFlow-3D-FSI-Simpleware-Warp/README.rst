@@ -60,8 +60,9 @@ What it models
   is the relative part alone, so steps with little motion converge, through
   the 1 nm term, while reporting more than 1e-3. A step still unconverged
   after 20 iterations is capped: it is solved once more at its
-  lowest-residual iterate, which it keeps, and the quasi-Newton columns
-  are reset to those of the earlier steps (see *Limitations*). A capped
+  lowest-residual iterate, which it keeps, and all quasi-Newton columns are
+  dropped, so the next step starts without reused columns (see
+  *Development runs* and *Limitations*). A capped
   step reports 21 iterations, and its re-solve may meet the criterion, so
   ``run.json`` counts capped steps (``capped_steps``) and steps left
   unconverged (``nonconverged_steps``) separately. Neither is rejected.
@@ -90,14 +91,16 @@ It is driven by the inflow of the 3D runs, stepped with backward Euler at
 dt = 2.5 ms (implicit in the outlet flow, as in the 3D solver) for two beats
 from 80 mmHg, and summarized over 1.02-2.01 s like the 3D runs. Root
 pressure, systolic / diastolic / mean (pulse), in mmHg, from this 0D
-development calculation and from the 3D development runs:
+development calculation and from the 3D development runs (the Aitken run
+used an earlier Tutorial 13 inflow, 0.2% larger, which raises the 0D
+values by at most 0.2 mmHg):
 
 ================  =========  ==========================  =========================
 Totals R, C       C_w        0D model                    3D run
 ================  =========  ==========================  =========================
-3.33e8, 6.8e-9    none       112.7 / 77.2 / 92.5 (35.5)  experiment 2: pulse 36.3 (36.6 at the distal outlet)
-3.33e8, 6.8e-9    2.08e-9    105.7 / 79.5 / 90.9 (26.2)  Aitken float64 run: 106 / 80 / 91 (26)
-3.55e8, 2.2e-9    2.08e-9    118.5 / 77.4 / 96.8 (41.1)  this experiment: 117.0 / 78.0 / 97.2 (38.9)
+3.33e8, 6.8e-9    none       112.6 / 77.1 / 92.4 (35.5)  experiment 2: pulse 36.2 (36.5 at the distal outlet)
+3.33e8, 6.8e-9    2.08e-9    105.6 / 79.4 / 90.8 (26.1)  Aitken float64 run: 106 / 80 / 91 (26)
+3.55e8, 2.2e-9    2.08e-9    118.3 / 77.3 / 96.7 (41.0)  this experiment: 116.8 / 77.9 / 97.1 (38.9)
 ================  =========  ==========================  =========================
 
 The last row lowers the outlet compliance to 2.2e-9 m3/Pa and raises the
@@ -109,16 +112,13 @@ How to run
 ----------
 
 The input is the Simpleware candidate-20 export, meshing run
-``POC3-S1-r20``, of which ``prepare.py`` reads only ``geometry.npz`` (SHA-256
-``3f011c48...79af3``). It is not in Git and cannot be regenerated from this
-repository alone: it was made on 2026-11-11 by Simpleware meshing scripts
-that are not in this repository and that also read surfaces and label maps
-of earlier meshing runs. Place that folder at the ``source`` named in
-``config.json`` (relative to the repository root) or pass ``--source``.
-The inflow is the ``waveform.npz`` written by experiment 1's ``prepare.py``
-from Tutorial 13. Its arrays are identical to those of the copy that was
-saved with candidate 20 (SHA-256 ``855e0322...d09dd``) and used for the
-results below; that copy has since been removed.
+``POC3-S1-r20``, of which ``prepare.py`` reads only ``geometry.npz``. It is
+not in Git and cannot be regenerated from this repository alone: it was made
+on 2026-11-11 by Simpleware meshing scripts that are not in this repository
+and that also read surfaces and label maps of earlier meshing runs. Place
+that folder at the ``source`` named in ``config.json`` (relative to the
+repository root) or pass ``--source``. The inflow is the ``waveform.npz``
+written by experiment 1's ``prepare.py`` from Tutorial 13.
 
 From the repository root, with a CUDA GPU and NVIDIA cuDSS (the
 ``nvidia-cudss-cu13`` wheel, or ``CUDSS_LIBRARY`` set to the library file).
@@ -161,7 +161,7 @@ bit-reproducible and timings are machine-specific.
 
 Beat 2 (1.02-2.01 s) of the default two-beat run, which starts at rest at
 80 mmHg (float32 blood, IQN-ILS coupling, the outlet totals above). Its
-time steps took 56 minutes on an otherwise idle GPU (804 steps, 4.3 s each
+time steps took 56 minutes on an otherwise idle GPU (804 steps, 4.4 s each
 in beat 2), plus 26 s setup. ``run.json`` reports the capped and
 unconverged step counts; the 1 nm count is inferred in a development
 analysis of the per-step residuals, as converged steps whose relative
@@ -171,38 +171,39 @@ residual exceeds 1e-3:
 Root pressure, systolic / diastolic / mean  117 / 78 / 97 mmHg
                                             (pulse 39 mmHg)
 Mean inlet flow                             36.4 mL/s
-Outlet flow split distal/BCT/LSA/LCCA       69.9 / 17.0 / 8.0 / 5.0%
-Peak / mean wall displacement               0.99 / 0.19 mm
+Outlet flow split distal/BCT/LSA/LCCA       70.0 / 17.0 / 8.0 / 5.0%
+Peak / mean wall displacement               0.98 / 0.19 mm
 Lumen volume change over the beat           11.1 mL (8.2%)
-Coupling iterations, mean / max             5.4 / 21
-Capped steps (more than 20 iterations,      12 of 397, kept residuals
-re-solved)                                  1.8e-3 to 4.1e-3; 11 left
+Coupling iterations, mean / max             5.6 / 21
+Capped steps (more than 20 iterations,      13 of 397, kept residuals
+re-solved)                                  1.6e-3 to 5.4e-3; 9 left
                                             unconverged
-1 nm term decided convergence (inferred)    266 of 386 converged steps
-Median / largest coupling residual          1.3e-3 / 5.0e-3 (relative
+1 nm term decided convergence (inferred)    253 of 388 converged steps
+Median / largest coupling residual          1.3e-3 / 5.4e-3 (relative
                                             part)
-Inflow - outflow - dV/dt                    at most 0.18% of peak inflow;
-                                            0.014% over the beat
+Inflow - outflow - dV/dt                    at most 0.16% of peak inflow;
+                                            0.012% over the beat
 Largest GMRES relative residual             2.7e-6
 ==========================================  ==========================
 
 The root pulse pressure, 38.9 mmHg, is close to the 40 mmHg target and to
-the 0D prediction (118.5 / 77.4 mmHg, mean 96.8, pulse 41.1): the 3D run
-gives 117.0 / 78.0 mmHg, mean 97.2. The lumen volume follows the root
-pressure with dV/dP = 2.12e-9 m3/Pa, the wall compliance assumed in the
+the 0D prediction (118.3 / 77.3 mmHg, mean 96.7, pulse 41.0): the 3D run
+gives 116.8 / 77.9 mmHg, mean 97.1. The lumen volume follows the root
+pressure with dV/dP = 2.12e-9 m3/Pa, close to the wall compliance assumed in the
 calibration (2.08e-9). The root pressure exceeds the distal-outlet pressure
 by up to 7.4 mmHg in early systole and falls 4.3 mmHg below it during
 deceleration. Beat 2 is not exactly periodic: the root pressure at the end
-of the beats is 79.76 mmHg (1.00 s) and 79.48 mmHg (2.00 s), the beat
-means are 98.16 and 97.24 mmHg, the two beats' inflow volumes differ
-slightly (35.8 and 36.2 mL), and the 0D model, with the beat-2
+of the beats is 79.68 mmHg (1.00 s) and 79.35 mmHg (2.00 s), the beat
+means are 98.08 and 97.11 mmHg, the two beats' inflow volumes differ
+slightly (35.7 and 36.1 mL), and the 0D model, with the beat-2
 inflow repeated 12 times to reach a periodic state, puts the two-beat
-run's beat 2 about 0.3-0.4 mmHg (at most 0.5 mmHg) above that state, for wall compliances 2.08e-9
-and 2.12e-9 m3/Pa. Of the 12 capped steps, 7 fall in late ejection and
-deceleration (1.35-1.60 s, after the inflow peak at 1.25 s) and 5 in
-diastole (1.695-1.98 s); one met the convergence test on its re-solve. A
-13th step reached 20 iterations and converged on its 20th. The 1 nm term
-decides most steps: the interface moves only micrometres per step, so
+run's beat 2 about 0.4 mmHg (at most 0.6 mmHg) above that state, for wall
+compliances 2.08e-9 and 2.12e-9 m3/Pa. Of the 13 capped steps, 3 fall in
+early ejection (1.07-1.085 s), 1 in deceleration (1.325 s, after the
+inflow peak at 1.25 s), 5 at the end of ejection (1.5575-1.605 s, inflow
+below 0.3% of peak) and 4 in diastole (1.705-1.98 s); 4 met the convergence
+test on their re-solve. A 14th step reached 20 iterations and converged
+on its 20th. The 1 nm term decides most steps: the interface moves only micrometres per step, so
 1e-3 of that motion is comparable to 1 nm. The Aitken development run
 (see *Development runs*) used the same test (by the same inference, 286 of
 its 348 converged steps needed the 1 nm term). ``steps.npz`` stores only
@@ -223,7 +224,7 @@ root.
 The wall is softer than a thin-wall estimate suggests. For E = 1 MPa, a 1.55
 mm wall and a radius near 12 mm, a circular tube would bulge about 0.41-0.44
 mm at the peak pulse and give dV/dP of about 1.5e-9 m3/Pa; the run gives
-0.99 mm and 2.12e-9 m3/Pa, and a static wall solve at 120 mmHg in a
+0.98 mm and 2.12e-9 m3/Pa, and a static wall solve at 120 mmHg in a
 development calculation agrees (0.92 mm), so this is a property of the wall model and geometry, not of the
 coupling. The non-circular, curved lumen is a plausible but unverified
 cause. The resulting distensibility, 2.06e-3 per mmHg, and Bramwell-Hill
@@ -269,26 +270,44 @@ Inflow - outflow - dV/dt                    at most 0.8% of peak inflow;
                                             0.01% over the beat
 ==========================================  ==========================
 
-**Run before the capped-step handling**, two beats, same code and
-configuration otherwise. A capped step then kept its last iterate and its
-quasi-Newton columns (see *Limitations*):
+**Earlier capped-step handling**, two beats each, same code and
+configuration otherwise. *None*: a capped step kept its last iterate and
+its quasi-Newton columns (see *Limitations*). *Restored*: it kept its best
+iterate, and the columns were reset to those of the earlier steps; these
+two runs used the earlier Tutorial 13 inflow, 0.2% larger. *Restored,
+current inflow*: the same handling on the current inflow. *Current*: all
+columns are dropped (this experiment):
 
-===============================================  ==========  ==========
-                                                 Before      Current
-===============================================  ==========  ==========
-Volume imbalance over both beats (mL)            -0.208      -0.011
-Largest kept coupling residual, beat 2           0.068       5.0e-3
-Largest step imbalance, beat 2 (of peak inflow)  1.41%       0.18%
-Beat 2 steps at 20 iterations / unconverged      18 / 15     13 / 11
-Beat 2 root pressure, mean (mmHg)                97.12       97.24
-Beat 2 root pressure, diastolic (mmHg)           77.85       78.03
-Peak wall displacement (mm)                      0.982       0.985
-===============================================  ==========  ==========
+===============================================  =======  ========  ========  =======
+                                                 None     Restored  Restored  Current
+                                                                    (current
+                                                                    inflow)
+===============================================  =======  ========  ========  =======
+Volume imbalance over both beats (mL)            -0.208   -0.011    n/a       -0.009
+Largest kept coupling residual, beat 2           0.068    5.0e-3    0.36      5.4e-3
+Largest step imbalance, beat 2 (of peak inflow)  1.41%    0.18%     8.7%      0.16%
+Beat 2 steps at 20 iterations / unconverged      18 / 15  13 / 11   13 / 12   14 / 9
+Coupling iterations per step, beat 2             5.6      5.4       5.1       5.6
+Beat 2 root pressure, mean (mmHg)                97.12    97.24     97.12     97.11
+Beat 2 root pressure, diastolic (mmHg)           77.85    78.03     77.94     77.94
+Peak wall displacement (mm)                      0.982    0.985     0.981     0.981
+===============================================  =======  ========  ========  =======
 
-The current beat-2 root pressures are 0.12-0.18 mmHg higher, as expected
-from the volume the earlier run lost in a beat-1 glitch (see
-*Limitations*); the pulse, split, peak displacement and dV/dP are
-unchanged.
+The *Restored* beat-2 root pressures are 0.12-0.18 mmHg higher than
+*None*, as expected from the volume the earlier run lost in a beat-1
+glitch (see *Limitations*); the pulse, split, peak displacement and dV/dP
+are unchanged. On the current inflow the restored-columns run failed
+once: a step at 1.4525 s, right after a capped step at 1.45 s (kept
+residual 1.0e-2), started from the restored columns and kept a residual
+of 0.36 after 20 iterations, an 8.7% step volume imbalance (beat-2 net
+imbalance 0.035% of the beat inflow, against 0.012% in the current run;
+only its summary and per-step values were kept, so its two-beat volume
+imbalance is not available). Per-iteration residuals were not logged, so
+that the restored columns caused the stall is an inference. The run that
+drops all columns kept no residual above 6.6e-3 (5.4e-3 in beat 2), for
+10% more coupling iterations and 7% more time per step in beat 2 than
+that run. Float32 runs are not bit-reproducible, so one run of each does
+not show how often either handling fails.
 
 **Short windows** of the first 160, 60 or 44 steps (0-0.4 s for 160 steps,
 from rest through the first systolic peak), float32 blood and the current
@@ -316,13 +335,13 @@ IQN-ILS float64 blood, 60 steps  5.7 iterations (reuse 2); matches float32
                                  displacement; 3.1 times longer per step
 Pre-handling, 44 and 40 steps    the step after the first capped one ended
                                  at 0.69 and at 0.84 (the next at 12)
-Current handling, 2 x 44 steps   one capped step between them (residual
+Restored handling, 2 x 44 steps  one capped step between them (residual
                                  4.0e-3); the next step started with all 9
                                  columns of the step before the capped one
                                  and converged in 8 iterations; volume
                                  balance within about 2.1% of peak inflow,
                                  as in runs without capped steps
-Current handling, 160 steps      no step capped; matches the reuse-2
+Restored handling, 160 steps     no step capped; matches the reuse-2
                                  window to about 0.002 mmHg in root
                                  pressure, 2e-5 of the largest port flow
                                  and 5e-5 of the peak wall displacement
@@ -347,7 +366,7 @@ Limitations
 * The blood mesh moves once per step, to the predicted interface, with
   straight-sided elements, while the wall velocity follows the coupling
   iterate and the wall's quadratic edge nodes may curve. Both show up in
-  the volume balance: up to 0.18% of peak inflow in beat 2 (0.81% in the
+  the volume balance: up to 0.16% of peak inflow in beat 2 (0.81% in the
   Aitken run) and 2.1% in the first steps from rest, with either coupling
   method.
 * The interface residual cannot fall below the noise of the inexact blood
@@ -366,14 +385,13 @@ Limitations
   from 80.58 to 79.15 mmHg, the volume balance was off by -111% of peak
   inflow at 0.0875 s, 0.217 mL was lost over 0.080-0.090 s, and the
   pressures stayed about 0.3 mmHg low through 0.4 s. The current run
-  capped 25 steps (13 before 1.02 s), and its root pressure rises smoothly
-  from 80.46 to 81.14 mmHg over 0.080-0.095 s, with -0.0008 mL of volume
-  imbalance over 0.080-0.090 s. Its largest kept residuals, 1.85e-2 and
-  1.83e-2, are a capped pair at 0.4875 and 0.49 s in beat 1: with the
-  mean displacement changing by about 2 um per step there, about 40 nm,
-  above the noise floor. They give the largest step imbalance after
-  start-up, 0.23% of peak inflow (0.49 s); beat 2 has no such pair. Steps
-  that stall still take 21 iterations (about 14 s instead of 4 s).
+  capped 24 steps (11 before 1.02 s), and its root pressure rises smoothly
+  from 80.45 to 81.14 mmHg over 0.080-0.095 s, with -0.0006 mL of volume
+  imbalance over 0.080-0.090 s. No capped step kept more than 6.6e-3; the
+  largest relative residual, 1.2e-2 at 0.07 s, is a step that converged
+  through the 1 nm term. The largest step imbalance after start-up is
+  0.16% of peak inflow (1.175 s). Steps that stall still take 21
+  iterations (about 14 s instead of 4 s).
 * As in experiment 2: the branch outlets are short stumps (the LCCA stump has
   very few nodes), the outlet totals are split by assumed fractions, and
   the LV-derived stroke volume is about half a typical adult value. The
