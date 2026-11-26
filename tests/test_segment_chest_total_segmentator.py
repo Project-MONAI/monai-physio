@@ -405,3 +405,56 @@ def test_segmentation_method_disables_usage_stats(
     config = json.loads(config_file.read_text())
     assert config["send_usage_stats"] is False
     assert config["statistics_disclaimer_shown"] is True
+
+
+def test_license_number_skips_the_installed_license_check(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An entered number is handed to TotalSegmentator instead of checked."""
+
+    def _fail() -> bool:
+        raise AssertionError("installed license checked despite a license number")
+
+    monkeypatch.setattr(
+        SegmentChestTotalSegmentator, "_academic_license_is_valid", staticmethod(_fail)
+    )
+    segmenter = SegmentChestTotalSegmentator()
+
+    segmenter.set_has_academic_license(True, license_number=" aca_TEST123 ")
+
+    assert segmenter.has_academic_license is True
+    assert segmenter.license_number == "aca_TEST123"
+
+    declined = SegmentChestTotalSegmentator()
+    declined.set_has_academic_license(False, license_number="")
+    assert declined.has_academic_license is False
+    assert declined.license_number is None
+
+
+def test_license_number_reaches_only_the_licensed_tasks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``license_number`` goes to heartchambers_highres and tissue_4_types."""
+    import nibabel as nib
+    import totalsegmentator.config as ts_config
+    import totalsegmentator.python_api as ts_api
+
+    calls: dict[str, Any] = {}
+
+    def _fake_totalsegmentator(nib_image: Any, **kwargs: Any) -> Any:
+        calls[str(kwargs["task"])] = kwargs.get("license_number")
+        return nib.Nifti1Image(np.zeros(nib_image.shape, np.uint8), nib_image.affine)
+
+    monkeypatch.setattr(ts_api, "totalsegmentator", _fake_totalsegmentator)
+    monkeypatch.setattr(ts_config, "setup_totalseg", lambda: None)
+    monkeypatch.setattr(ts_config, "set_config_key", lambda *a, **k: None)
+    image = itk.image_from_array(np.zeros((8, 8, 8), np.float32))
+    segmenter = SegmentChestTotalSegmentator()
+    segmenter.set_has_academic_license(True, license_number="aca_TEST123")
+
+    segmenter.segmentation_method(image)
+
+    assert calls["heartchambers_highres"] == "aca_TEST123"
+    assert calls["tissue_4_types"] == "aca_TEST123"
+    assert calls["total"] is None
+    assert calls["body"] is None

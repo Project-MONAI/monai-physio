@@ -204,7 +204,7 @@ class WorkflowInferMovement(MONAIPhysioBase):
         exterior_mask: Optional[itk.Image] = None,
         exterior_direction_offset_mm: float = 0.0,
         exterior_direction_transition_mm: float = 5.0,
-        exterior_falloff_distance_mm: float = 20.0,
+        exterior_falloff_length_per_displacement: float = 3.0,
         return_transforms: bool = True,
     ) -> dict[str, Any]:
         """Predict one subject across a whole time series and write its geometry.
@@ -256,9 +256,11 @@ class WorkflowInferMovement(MONAIPhysioBase):
             exterior_direction_transition_mm: Passed through as
                 ``direction_transition_mm``. Ignored when ``exterior_mask`` is
                 omitted.
-            exterior_falloff_distance_mm: Passed through as ``falloff_distance_mm``
-                -- how far outside ``exterior_mask`` the push and pull reaches.
-                Ignored when ``exterior_mask`` is omitted.
+            exterior_falloff_length_per_displacement: Passed through as
+                ``falloff_length_per_displacement`` -- how far outside
+                ``exterior_mask`` the push and pull reaches, per millimeter the
+                organ's surface moves there. Ignored when ``exterior_mask`` is
+                omitted.
             return_transforms: Retain each stage's dense transform in the result.
                 Default True preserves existing behavior. Set False when saved
                 images and meshes are sufficient: dense working fields and warped
@@ -361,7 +363,7 @@ class WorkflowInferMovement(MONAIPhysioBase):
                         stage_mask,
                         exterior_direction_offset_mm,
                         exterior_direction_transition_mm,
-                        exterior_falloff_distance_mm,
+                        exterior_falloff_length_per_displacement,
                     )
                     del stage_mask, stage_normals
                 del field
