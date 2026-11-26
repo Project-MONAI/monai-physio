@@ -3,7 +3,7 @@ Tools for transforming and manipulating ITK transforms.
 
 This module provides the ProcessTransforms class with utilities for working with
 ITK transforms, including transforming images and contours, generating
-deformation fields, interpolating between transforms, and correcting spatial
+deformation fields, interpolating between transforms, and detecting spatial
 folding artifacts.
 
 The tools support various transform operations needed for medical image
@@ -19,7 +19,7 @@ import numpy as np
 import pyvista as pv
 import SimpleITK as sitk
 import vtk
-from scipy.ndimage import map_coordinates
+from scipy.ndimage import distance_transform_edt, map_coordinates
 
 from .monai_physio_base import MONAIPhysioBase
 from .process_images import ProcessImages
@@ -33,7 +33,7 @@ class ProcessTransforms(MONAIPhysioBase):
     transforms in medical image analysis. It supports transforming various
     data types (images, contours), generating visualization aids, and
     performing advanced operations like transform interpolation and spatial
-    folding correction.
+    folding detection.
 
     The class is particularly useful for 4D cardiac imaging workflows where
     transforms are used to track anatomical motion over time, requiring
@@ -44,8 +44,7 @@ class ProcessTransforms(MONAIPhysioBase):
     - Generate deformation fields from transforms
     - Interpolate between transforms temporally
     - Smooth transforms to reduce noise
-    - Combine transforms with spatial masks
-    - Detect and correct spatial folding
+    - Detect spatial folding
     - Generate visualization grids
 
     Example:
@@ -808,7 +807,7 @@ class ProcessTransforms(MONAIPhysioBase):
         mask: itk.Image,
         direction_offset_mm: float = 0.0,
         direction_transition_mm: float = 5.0,
-        falloff_distance_mm: float = 20.0,
+        falloff_length_per_displacement: float = 3.0,
     ) -> itk.DisplacementFieldTransform:
         """Restrict a dense field to its normal component and fade it outside a mask.
 
@@ -818,9 +817,30 @@ class ProcessTransforms(MONAIPhysioBase):
         contraction, not the tangential sliding -- which is how a slip interface
         such as the pleura or the pericardium behaves: surrounding tissue is
         pushed and pulled by the organ without being dragged along it. That
-        normal component then fades to zero by ``falloff_distance_mm`` outside
-        the mask, so the push does not propagate indefinitely; a dense field
-        (unlike a sparsely sampled one) has no other mechanism to die out.
+        normal component then fades to zero with distance outside the mask, so
+        the push does not propagate indefinitely.
+
+        Outside the mask the field is built from the mask boundary alone: each
+        voxel takes the displacement of its nearest mask voxel, switches it to
+        its normal component there, and fades it with its distance from the
+        mask. ``field`` is therefore read only on and inside the mask, never in
+        the far tail of a spread field, where a sparse Gaussian spread is least
+        reliable. That outside field is then averaged over the largest voxel
+        spacing, from outside voxels only, so that neighbors taking their
+        displacement from distant parts of a concave boundary do not step
+        against each other. A warning is
+        logged if the result still folds.
+
+        The fade length is set separately for each boundary point, by its own
+        displacement: ``falloff_length_per_displacement * |displacement|``,
+        never less than the smallest voxel spacing. The warp samples the image
+        at ``x + displacement(x)``, so a fade that drops by more than 1 mm per
+        mm folds the field, and the space an organ vacates is then filled with
+        its own unmoved tissue. The smoothstep's steepest slope is 1.5 times its
+        average, so a factor of 1.5 would compress the tissue to nothing at that
+        point; the default 3 keeps the fade's slope at most 0.5, so tissue along
+        a normal at most halves in thickness. Where an organ barely moves, its
+        push reaches barely beyond it.
 
         Args:
             field (itk.Image): Dense vector deformation field, e.g. the output
@@ -842,15 +862,20 @@ class ProcessTransforms(MONAIPhysioBase):
                 organ commonly disagree by about a voxel, so a small offset
                 keeps that disagreement from clipping tangential motion at the
                 boundary itself.
-            direction_transition_mm (float): Width (millimeters) of the band,
-                starting at ``direction_offset_mm``, over which the field blends
-                from its full vector to its normal component. Zero would make
-                the switch a discontinuity that shears neighboring voxels in
-                opposite directions and tears a warped volume.
-            falloff_distance_mm (float): Distance (millimeters) outside the
-                mask boundary over which the (by then normal-only) displacement
-                fades to zero. This is how far the organ's push and pull reaches
-                into the tissue around it.
+            direction_transition_mm (float): Smallest width (millimeters) of
+                the band, starting at ``direction_offset_mm``, over which the
+                field blends from its full vector to its normal component. Zero
+                would make the switch a discontinuity that shears neighboring
+                voxels in opposite directions and tears a warped volume. Where
+                the tangential motion is larger, the band widens to
+                ``falloff_length_per_displacement`` times it, for the same
+                reason the falloff does.
+            falloff_length_per_displacement (float): Fade length outside the
+                mask per millimeter of the nearest mask voxel's displacement,
+                and the direction band's width per millimeter of its
+                tangential displacement. At least 1.5 keeps either fade from
+                folding the field; larger values compress the surrounding
+                tissue less and push it further.
 
         Returns:
             itk.DisplacementFieldTransform: The restricted field transform.
@@ -858,9 +883,10 @@ class ProcessTransforms(MONAIPhysioBase):
         Raises:
             ValueError: If ``normal_image`` or ``mask`` does not lie on
                 ``field``'s grid (size, spacing, origin, direction), or if
-                ``direction_offset_mm`` is not finite, or
-                ``direction_transition_mm``/``falloff_distance_mm`` is not a
-                finite value greater than zero.
+                ``direction_offset_mm`` is not finite, if
+                ``direction_transition_mm`` or ``falloff_length_per_displacement``
+                is not a finite value greater than zero, or if ``mask`` is
+                empty.
         """
         if not np.isfinite(direction_offset_mm):
             raise ValueError(
@@ -871,10 +897,13 @@ class ProcessTransforms(MONAIPhysioBase):
                 "direction_transition_mm must be finite and > 0, got "
                 f"{direction_transition_mm}."
             )
-        if not (np.isfinite(falloff_distance_mm) and falloff_distance_mm > 0.0):
+        if not (
+            np.isfinite(falloff_length_per_displacement)
+            and falloff_length_per_displacement > 0.0
+        ):
             raise ValueError(
-                "falloff_distance_mm must be finite and > 0, got "
-                f"{falloff_distance_mm}."
+                "falloff_length_per_displacement must be finite and > 0, got "
+                f"{falloff_length_per_displacement}."
             )
 
         field_size = field.GetLargestPossibleRegion().GetSize()
@@ -899,8 +928,12 @@ class ProcessTransforms(MONAIPhysioBase):
                 f"lie on the field's grid {field_arr.shape}."
             )
 
-        interior = itk.image_from_array((mask_arr > 0.5).astype(np.uint8))
+        inside = mask_arr > 0.5
+        if not inside.any():
+            raise ValueError("mask must mark at least one voxel.")
+        interior = itk.image_from_array(inside.astype(np.uint8))
         interior.CopyInformation(mask)
+        outside = ~inside
         distance_mm = itk.array_from_image(
             itk.signed_maurer_distance_map_image_filter(
                 interior,
@@ -908,41 +941,104 @@ class ProcessTransforms(MONAIPhysioBase):
                 SquaredDistance=False,
                 UseImageSpacing=True,
             )
-        )
+        )[outside]
+        del interior
 
-        # A voxel with no nearby surface to have spread a normal from -- an
-        # interior point of a volumetric template, or simply outside the reach
-        # of however normal_image was spread -- carries a near-zero normal.
-        # Projecting onto it would erase displacement no falloff should have
-        # touched, so those voxels keep their full vector instead.
-        normal_norm = np.linalg.norm(normals, axis=3)
+        # The mask voxel each outside voxel takes its displacement from: the
+        # nearest one, in physical distance.
+        spacing_mm = np.asarray(mask.GetSpacing(), dtype=np.float64)
+        nearest = distance_transform_edt(
+            outside,
+            sampling=spacing_mm[::-1],
+            return_distances=False,
+            return_indices=True,
+        )
+        boundary = tuple(axis[outside] for axis in nearest)
+        del nearest
+        boundary_field = field_arr[boundary]
+        boundary_normals = normals[boundary]
+        del boundary, normals
+
+        # A boundary voxel with no nearby surface to have spread a normal from
+        # carries a near-zero normal. Projecting onto it would erase
+        # displacement no falloff should have touched, so it keeps its full
+        # vector instead.
+        normal_norm = np.linalg.norm(boundary_normals, axis=1)
         unoriented = normal_norm < 1.0e-8
-        unit_normals = normals / np.where(unoriented, 1.0, normal_norm)[..., None]
-        projected = (field_arr * unit_normals).sum(axis=3, keepdims=True) * unit_normals
-        projected[unoriented] = field_arr[unoriented]
+        unit_normals = (
+            boundary_normals / np.where(unoriented, 1.0, normal_norm)[:, None]
+        )
+        projected = (boundary_field * unit_normals).sum(
+            axis=1, keepdims=True
+        ) * unit_normals
+        projected[unoriented] = boundary_field[unoriented]
+        del boundary_normals, unit_normals
 
+        # Dropping the tangential motion is the same kind of fade, so its band
+        # widens with that motion just as the falloff does with the whole.
+        transition_mm = np.maximum(
+            falloff_length_per_displacement
+            * np.linalg.norm(boundary_field - projected, axis=1),
+            direction_transition_mm,
+        )
         direction_ramp = np.clip(
-            (distance_mm - direction_offset_mm) / direction_transition_mm, 0.0, 1.0
+            (distance_mm - direction_offset_mm) / transition_mm, 0.0, 1.0
         )
-        direction_weight = 1.0 - self._smoothstep(direction_ramp)
-        direction_blended = (
-            direction_weight[..., None] * field_arr
-            + (1.0 - direction_weight[..., None]) * projected
+        direction_weight = (1.0 - self._smoothstep(direction_ramp))[:, None]
+        exterior = (
+            direction_weight * boundary_field + (1.0 - direction_weight) * projected
         )
+        del projected, direction_weight
 
         # Starts fading right at the mask boundary, independently of
         # direction_offset_mm/direction_transition_mm: the direction switch and
         # the reach of the push are different physical scales.
-        falloff_ramp = np.clip(distance_mm / falloff_distance_mm, 0.0, 1.0)
-        falloff_weight = np.where(
-            distance_mm <= 0.0, 1.0, 1.0 - self._smoothstep(falloff_ramp)
+        fade_mm = np.maximum(
+            falloff_length_per_displacement * np.linalg.norm(boundary_field, axis=1),
+            float(spacing_mm.min()),
         )
+        falloff_weight = 1.0 - self._smoothstep(
+            np.clip(distance_mm / fade_mm, 0.0, 1.0)
+        )
+        del boundary_field
 
-        restricted = falloff_weight[..., None] * direction_blended
+        restricted = field_arr.copy()
+        restricted[outside] = falloff_weight[:, None] * exterior
+        del exterior, falloff_weight
+
+        # Neighboring outside voxels can take their displacement from distant
+        # parts of a concave boundary, a step between them. Averaging the
+        # outside over a voxel or so, from outside voxels only so the organ's
+        # own (tangential) motion does not leak out, removes those steps; the
+        # mask and its contents keep the field as it was.
+        sigma_mm = float(spacing_mm.max())
+        outside_weight = self._smooth_scalar_array(
+            outside.astype(np.float64), sigma_mm, mask
+        )
+        outside_weight = np.maximum(outside_weight, 1.0e-6)
+        for axis in range(3):
+            restricted[..., axis] = (
+                self._smooth_scalar_array(
+                    np.where(outside, restricted[..., axis], 0.0), sigma_mm, mask
+                )
+                / outside_weight
+            )
+        del outside_weight
+        restricted[inside] = field_arr[inside]
+        del field_arr
 
         restricted_field = ProcessImages().convert_array_to_image_of_vectors(
             restricted, reference_image=field, ptype=itk.D
         )
+        if self.detect_folding_in_field(
+            self.compute_jacobian_determinant_from_field(restricted_field),
+            threshold=0.0,
+        ):
+            self.log_warning(
+                "The restricted deformation field folds (a non-positive "
+                "Jacobian determinant) somewhere; a warped image may show "
+                "duplicated or torn tissue there."
+            )
         field_transform = itk.DisplacementFieldTransform[itk.D, 3].New()
         field_transform.SetDisplacementField(restricted_field)
         return field_transform
@@ -962,97 +1058,6 @@ class ProcessTransforms(MONAIPhysioBase):
             itk.smoothing_recursive_gaussian_image_filter(image, Sigma=sigma)
         )
         return smoothed
-
-    def combine_transforms_with_masks(
-        self,
-        transform1: itk.Transform,
-        transform2: itk.Transform,
-        mask1: itk.Image,
-        mask2: itk.Image,
-        reference_image: itk.Image,
-        max_iter: int = 10,
-        jacobian_threshold: float = 0.1,
-    ) -> itk.Transform:
-        """
-        Combine two transforms using spatial masks with folding correction.
-
-        Merges two transforms by weighting their displacement fields according
-        to provided masks, then iteratively corrects any spatial folding
-        (negative Jacobian determinant) that may result from the combination.
-
-        This is useful for combining transforms computed for different
-        anatomical regions (e.g., separate heart and lung registration)
-        into a single coherent transform.
-
-        Args:
-            transform1 (itk.Transform): First transform to combine
-            transform2 (itk.Transform): Second transform to combine
-            mask1 (itk.Image): Float mask defining spatial influence of
-                transform1 (0.0 = no influence, 1.0 = full influence)
-            mask2 (itk.Image): Float mask defining spatial influence of
-                transform2
-            reference_image (itk.Image): Defines output grid properties
-            max_iter (int): Maximum iterations for folding correction
-            jacobian_threshold (float): Jacobian determinant threshold below
-                which folding is detected and corrected
-
-        Returns:
-            itk.Transform: DisplacementFieldTransform with combined and
-                corrected transformation
-
-        Example:
-            >>> # Combine heart and lung transforms
-            >>> combined_transform = transform_tools.combine_transforms_with_masks(
-            ...     heart_transform, lung_transform, heart_mask, lung_mask, reference_ct
-            ... )
-        """
-        # Generate displacement fields
-        field1 = self.convert_transform_to_displacement_field(
-            transform1, reference_image
-        )
-        field2 = self.convert_transform_to_displacement_field(
-            transform2, reference_image
-        )
-
-        # Weight fields by masks
-        mask1_arr = itk.array_from_image(mask1)
-        mask2_arr = itk.array_from_image(mask2)
-
-        field1_arr = itk.array_from_image(field1)
-        field2_arr = itk.array_from_image(field2)
-
-        # Expand mask dimensions to match vector field (add dimension for vector
-        #     components)
-        mask1_arr = mask1_arr[..., np.newaxis]
-        mask2_arr = mask2_arr[..., np.newaxis]
-
-        sum_fields_arr = mask1_arr * field1_arr + mask2_arr * field2_arr
-
-        denom = mask1_arr + mask2_arr
-        denom[denom == 0] = 1.0
-
-        combined_field_arr = sum_fields_arr / denom
-
-        # Copy array data to ITK image
-        combined_field = ProcessImages().convert_array_to_image_of_vectors(
-            combined_field_arr, field1, itk.F
-        )
-
-        # Correct spatial folding iteratively
-        for _ in range(max_iter):
-            jacobian_det = self.compute_jacobian_determinant_from_field(combined_field)
-            if not self.detect_folding_in_field(
-                jacobian_det, threshold=jacobian_threshold
-            ):
-                break
-            combined_field = self.reduce_folding_in_field(combined_field, jacobian_det)
-
-        # Get dimension and create transform with correct types
-        Dimension = combined_field.GetImageDimension()
-        tfm_combined = itk.DisplacementFieldTransform[itk.F, Dimension].New()
-        tfm_combined.SetDisplacementField(combined_field)
-
-        return tfm_combined
 
     def compute_jacobian_determinant_from_field(self, field: itk.Image) -> itk.Image:
         """Compute Jacobian determinant of a displacement field.
@@ -1106,52 +1111,6 @@ class ProcessTransforms(MONAIPhysioBase):
         stats = itk.StatisticsImageFilter.New(jacobian_det)
         stats.Update()
         return float(stats.GetMinimum()) < threshold
-
-    def reduce_folding_in_field(
-        self,
-        field: itk.Image,
-        jacobian_det: itk.Image,
-        reduction_factor: float = 0.8,
-        threshold: float = 0.1,
-    ) -> itk.Image:
-        """Reduce folding by scaling displacement field in problematic regions.
-
-        Corrects spatial folding by reducing the magnitude of displacement
-        vectors in regions where the Jacobian determinant is below the
-        threshold. This is a simple but effective approach to maintaining
-        transform invertibility.
-
-        Args:
-            field (itk.Image): Input displacement field to correct
-            jacobian_det (itk.Image): Jacobian determinant image
-            reduction_factor (float): Factor to multiply displacements in
-                folding regions (0.8 = 20% reduction)
-            threshold (float): Jacobian threshold for identifying folding
-
-        Returns:
-            itk.Image: Corrected displacement field with reduced folding
-
-        Example:
-            >>> corrected_field = transform_tools.reduce_folding_in_field(
-            ...     folded_field, jacobian, reduction_factor=0.7
-            ... )
-        """
-        # Create correction mask
-        thresholder = itk.BinaryThresholdImageFilter.New(jacobian_det)
-        thresholder.SetLowerThreshold(-1000)
-        thresholder.SetUpperThreshold(threshold)
-        thresholder.SetInsideValue(reduction_factor)
-        thresholder.SetOutsideValue(1.0)
-        thresholder.Update()
-
-        thresh_arr = itk.array_from_image(thresholder.GetOutput())
-        field_arr = itk.array_from_image(field)
-        for i in range(field_arr.shape[3]):
-            field_arr[:, :, :, i] *= thresh_arr
-        corrected_field = ProcessImages().convert_array_to_image_of_vectors(
-            field_arr, field, itk.F
-        )
-        return corrected_field
 
     def generate_grid_image(
         self, reference_image: itk.image, grid_size: int = 60, line_width: int = 3

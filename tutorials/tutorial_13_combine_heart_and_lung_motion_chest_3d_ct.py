@@ -62,8 +62,10 @@ therefore smoothed once with
 ``ProcessTransforms.smooth_deformation_field_transform``, then restricted with
 ``ProcessTransforms.restrict_deformation_field_to_normal_falloff_outside_mask``,
 which splits it into its normal and tangential components -- outside the organ
-only the normal component survives -- and fades that component to zero by
-``falloff_distance_mm``. Inside the organ mask the whole field passes through
+only the normal component survives -- and fades that component to zero over
+a distance proportional to how far the organ's surface moves at each point, so
+the tissue around a contracting organ follows it into the space it vacates
+without the warp folding. Inside the organ mask the whole field passes through
 unchanged, so the parenchyma and the myocardium still follow their own
 surfaces. The direction switch itself is softened by
 ``direction_transition_mm``, so the sliding stops over a band rather than at a
@@ -142,7 +144,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any, Literal, Optional, cast
+from typing import Any, Literal, cast
 
 import itk
 import numpy as np
@@ -242,17 +244,6 @@ if __name__ == "__main__":
     # to the thorax it has to fill, so it is spread further than the heart.
     respiratory_sigma_mm = 15.0
     cardiac_sigma_mm = 10.0
-    # How far each rhythm's push and pull carries *beyond* its own organ, as the
-    # distance its normal-only displacement fades to zero over, outside the
-    # interior mask. The lungs drive the whole thorax, so they keep their full
-    # reach. The heart sits in tissue that barely moves with it, so its
-    # influence is confined to a quarter of that distance: the pericardial
-    # neighborhood still follows the myocardium at full strength, while the
-    # mediastinum and chest wall further out stop being pumped by it. Only the
-    # reach changes -- the displacement at the heart surface, and everything
-    # inside it, is untouched.
-    respiratory_falloff_distance_mm = respiratory_sigma_mm
-    cardiac_falloff_distance_mm = 0.25 * cardiac_sigma_mm
     # How wide a band (mm) the sliding motion dies out over at the pleura and
     # the pericardium. Zero would make each slip boundary a step, and shear the
     # voxels either side of it in opposite directions.
@@ -526,7 +517,7 @@ if __name__ == "__main__":
     # Interior masks: where the whole field propagates, vs. only its normal
     # component (which restrict_deformation_field_to_normal_falloff_outside_mask
     # then ramps and fades outside of, by direction_offset_mm/
-    # direction_transition_mm/falloff_distance_mm).
+    # direction_transition_mm and the surface displacement).
     # ========================================================================
     def binary_mask_on_grid(labelmap: itk.Image, label_ids: list[int]) -> itk.Image:
         """Rasterize an organ's labels onto the deformation grid as a 0/1 mask."""
@@ -574,7 +565,6 @@ if __name__ == "__main__":
         sigma_mm: float,
         tag: str,
         interior_mask: itk.Image,
-        falloff_distance_mm: Optional[float] = None,
     ) -> tuple[list[itk.Transform], list[itk.Transform], list[pv.DataSet]]:
         """Infer one rhythm across ``stages`` as smoothed, normal-restricted fields.
 
@@ -591,16 +581,13 @@ if __name__ == "__main__":
         ``restrict_deformation_field_to_normal_falloff_outside_mask``
         against ``interior_mask``, so beyond the organ only the motion along
         those normals survives: surrounding tissue is pushed and pulled by the
-        organ without being dragged along it, fading to zero by
-        ``falloff_distance_mm`` -- how far into the surrounding tissue the organ
-        reaches; it defaults to ``sigma_mm``. The mask arrives in the reference
+        organ without being dragged along it, fading to zero over three times
+        the distance the organ's surface moves at each point. The mask arrives
+        in the reference
         frame, which is the frame the forward field is indexed in; the inverse
         field is indexed in the stage's own frame, so the mask is resampled into
         it first through the unrestricted inverse deformation.
         """
-        exterior_reach_mm = (
-            sigma_mm if falloff_distance_mm is None else falloff_distance_mm
-        )
         infer = WorkflowInferMovement(
             WorkflowInferPhysicsNeMo(
                 model_directory=model_directory, epoch=None, log_level=log_level
@@ -664,7 +651,6 @@ if __name__ == "__main__":
                     interior_mask,
                     direction_offset_mm,
                     direction_transition_mm,
-                    exterior_reach_mm,
                 )
             )
 
@@ -691,7 +677,6 @@ if __name__ == "__main__":
                     ),
                     direction_offset_mm,
                     direction_transition_mm,
-                    exterior_reach_mm,
                 )
             )
 
@@ -723,7 +708,6 @@ if __name__ == "__main__":
         respiratory_sigma_mm,
         "respiratory",
         lung_interior_mask,
-        respiratory_falloff_distance_mm,
     )
     cardiac_forward, cardiac_inverse, heart_surfaces = stage_transforms(
         heart_model_dir,
@@ -733,7 +717,6 @@ if __name__ == "__main__":
         cardiac_sigma_mm,
         "cardiac",
         heart_interior_mask,
-        cardiac_falloff_distance_mm,
     )
 
     # Each rhythm on its own, as a reference for the combined animation below.

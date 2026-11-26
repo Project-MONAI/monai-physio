@@ -9,6 +9,7 @@ TotalSegmentator's output labels.
 import logging
 import os
 import tempfile
+from typing import Optional
 
 import itk
 import nibabel as nib
@@ -224,6 +225,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
         self._finalize_other_group()
 
         self.has_academic_license = False
+        self.license_number: Optional[str] = None
 
     @staticmethod
     def _academic_license_is_valid() -> bool:
@@ -250,7 +252,9 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
         status, _ = has_valid_license_offline()
         return bool(status == "yes")
 
-    def set_has_academic_license(self, has_academic_license: bool) -> None:
+    def set_has_academic_license(
+        self, has_academic_license: bool, license_number: Optional[str] = None
+    ) -> None:
         """Request the licensed tasks, if a license is actually installed.
 
         ``heartchambers_highres`` and ``tissue_4_types`` are not openly
@@ -262,10 +266,24 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
         one structure rather than aborting the run.  The fallback is logged,
         because it is a coarser segmentation than a licensed run produces.
 
+        A ``license_number`` (for example ``"aca_XXXXXXXXXXXXXX"``) is passed to
+        TotalSegmentator's ``license_number`` option on the licensed tasks, as
+        ``totalseg_set_license`` would install it, and TotalSegmentator stores
+        it in its configuration.  The installed-license check is then skipped,
+        and TotalSegmentator itself rejects a number that is not valid.  The
+        number is never logged.
+
         Args:
             has_academic_license (bool): Whether the academic license is available
+            license_number (Optional[str]): The academic license number to give
+                TotalSegmentator, or None to use one that is already installed
         """
-        if has_academic_license and not self._academic_license_is_valid():
+        self.license_number = (license_number or "").strip() or None
+        if (
+            has_academic_license
+            and self.license_number is None
+            and not self._academic_license_is_valid()
+        ):
             self.log_warning(
                 "No valid TotalSegmentator license found; skipping the "
                 "'heartchambers_highres' and 'tissue_4_types' tasks, so the "
@@ -363,6 +381,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
                         task="heartchambers_highres",
                         device="gpu:0",
                         nr_thr_resamp=resamp_threads,
+                        license_number=self.license_number,
                     )
                     labelmap_arr_heart = output_nib_image_heart.get_fdata().astype(
                         np.uint8
@@ -385,6 +404,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
                         task="tissue_4_types",
                         device="gpu:0",
                         nr_thr_resamp=resamp_threads,
+                        license_number=self.license_number,
                     )
                     labelmap_arr_tissue_4_types = (
                         output_nib_image_tissue_4_types.get_fdata().astype(np.uint8)

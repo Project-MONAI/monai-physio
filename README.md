@@ -158,4 +158,4 @@ are restricted from commercial use. https://github.com/NVIDIA-Medtech/NV-Segment
 released under the NVIDIA Open Model License Agreement, research use only,
 not for clinical use. https://huggingface.co/nvidia/NV-Segment-CT
 * TotalSegmentator includes the optional use of some of their research-only models. Using those models assumes that you have
-the appropriate license key install, otherwise an error occurs.   Those models can be disabled by calling ```set_has_academic_license(False)``` member function of the ```SegmentChestTotalSegmentator``` class.
+the appropriate license key install, otherwise an error occurs.   Those models can be disabled by calling ```set_has_academic_license(False)``` member function of the ```SegmentChestTotalSegmentator``` class. A license number can instead be passed to TotalSegmentator, which stores it, with ```set_has_academic_license(True, license_number="aca_XXXXXXXXXXXXXX")```.

@@ -64,78 +64,60 @@ def test_restrict_deformation_field_to_normal_falloff_outside_mask_stops_sliding
 ):
     """Outside the mask only motion along the surface normal is propagated.
 
-    A radial field is entirely normal, so restricting it changes nothing. A
-    tangential field is entirely sliding, so outside the mask it must vanish
-    while staying untouched inside.
+    The organ pushes outward (6 mm) while sliding (1 mm rotation). Beyond the
+    band the sliding is dropped over -- three times the 1 mm of sliding -- the
+    surroundings must still be pushed but no longer dragged around, while the
+    inside keeps the whole motion.
     """
     radius_mm, sigma_mm = 12.0, 4.0
     normals, radial, tangential, weights, interior = _sphere_shell_samples(radius_mm)
-    weight_image = itk.image_from_array(weights)
-    mask_image = itk.image_from_array(interior)
+    samples = 2.0 * radial + tangential / 3.0
     tools = ProcessTransforms()
-
-    # normal_image must be dense over the same reach as field, exactly like
-    # field itself is: the raw per-vertex normals live only on the one-voxel
-    # shell, same as the raw displacement samples do.
-    normal_image = tools.smooth_deformation_field_transform(
-        _as_field(normals), sigma_mm, weight_image
-    ).GetDisplacementField()
-
-    def spread(samples: Any, restrict: bool) -> Any:
-        field = tools.smooth_deformation_field_transform(
+    weight_image = itk.image_from_array(weights)
+    free = itk.array_from_image(
+        tools.smooth_deformation_field_transform(
             _as_field(samples), sigma_mm, weight_image
         ).GetDisplacementField()
-        if restrict:
-            field = tools.restrict_deformation_field_to_normal_falloff_outside_mask(
-                field,
-                normal_image,
-                mask_image,
-                direction_offset_mm=0.0,
-                direction_transition_mm=0.5,
-                # Effectively disables the falloff, so this test isolates the
-                # normal/tangential split; the decay itself is covered below.
-                falloff_distance_mm=1.0e6,
-            ).GetDisplacementField()
-        return itk.array_from_image(field)
-
-    # Well outside the shell but still within reach of the smoothing, and well
-    # inside it. Sampling on the shell itself would straddle the mask edge.
-    distance = np.linalg.norm(
-        np.stack(np.meshgrid(*(3 * [np.arange(40.0) - 19.5]), indexing="ij"), axis=3),
-        axis=3,
     )
-    outside = (distance > radius_mm + 2.0) & (distance < radius_mm + 5.0)
+    held, _ = _restrict_radial(samples, normals, weights, interior, sigma_mm)
+
+    grid = np.arange(40.0) - 19.5
+    dz, dy, dx = np.meshgrid(grid, grid, grid, indexing="ij")
+    distance = np.sqrt(dx**2 + dy**2 + dz**2)
+    radial_unit = np.stack([dx, dy, dz], axis=3) / np.maximum(distance, 1e-9)[..., None]
+    # The direction of the rotation about +z, i.e. of the drag along the surface.
+    axis_distance = np.hypot(dx, dy)
+    rotation_unit = (
+        np.stack([-dy, dx, np.zeros_like(dx)], axis=3)
+        / np.maximum(axis_distance, 1e-9)[..., None]
+    )
+
     inside = distance < radius_mm - 2.0
-
-    # A radial field already equals its own normal projection everywhere the
-    # (also spread) normal field is defined, so restricting it should barely
-    # move it; the small residual is the spread normal direction mixing in
-    # neighboring points of the curved surface.
-    radial_free, radial_held = spread(radial, False), spread(radial, True)
-    np.testing.assert_allclose(radial_held[inside], radial_free[inside], atol=1e-5)
-    np.testing.assert_allclose(radial_held[outside], radial_free[outside], atol=0.05)
-
-    tangential_free, tangential_held = (
-        spread(tangential, False),
-        spread(tangential, True),
+    beyond_band = (
+        (distance > radius_mm + 4.0)
+        & (distance < radius_mm + 7.0)
+        & (axis_distance > 3.0)
     )
-    # The unrestricted spread really does drag the surroundings around, so the
-    # assertion below is not passing on an already-zero field. It is not
-    # bit-exact zero either: the spread normal field is only approximately
-    # perpendicular to a pure rotation once curvature mixes in neighboring
-    # points, unlike the exact per-sample normals a mesh vertex carries.
-    assert np.abs(tangential_free[outside]).max() > 0.1
-    assert np.abs(tangential_held[outside]).max() < 0.01
-    np.testing.assert_allclose(
-        tangential_held[inside], tangential_free[inside], atol=1e-5
-    )
+    np.testing.assert_allclose(held[inside], free[inside], atol=1e-5)
+    # The unrestricted spread really does drag the surroundings around; once
+    # restricted, no drag is left on average. Single voxels keep a fraction of
+    # a millimeter: each takes the normal of its nearest boundary voxel, which
+    # is quantized to the grid.
+    assert (free * rotation_unit).sum(axis=3)[beyond_band].mean() > 0.5
+    assert abs((held * rotation_unit).sum(axis=3)[beyond_band].mean()) < 0.02
+    pushed = (held * radial_unit).sum(axis=3)[beyond_band]
+    assert pushed.min() > 0.5
 
 
 def test_restrict_deformation_field_to_normal_falloff_outside_mask_decays_to_zero() -> (
     None
 ):
-    """The normal-only displacement outside the mask fades to zero with distance."""
-    radius_mm, sigma_mm, falloff_distance_mm = 12.0, 4.0, 6.0
+    """The normal-only displacement outside the mask fades to zero with distance.
+
+    The fade length is 3 times the boundary displacement, so the push reaches
+    no further than that.
+    """
+    radius_mm, sigma_mm = 12.0, 4.0
     normals, radial, _, weights, interior = _sphere_shell_samples(radius_mm)
     weight_image = itk.image_from_array(weights)
     tools = ProcessTransforms()
@@ -152,19 +134,100 @@ def test_restrict_deformation_field_to_normal_falloff_outside_mask_decays_to_zer
         itk.image_from_array(interior),
         direction_offset_mm=0.0,
         direction_transition_mm=0.5,
-        falloff_distance_mm=falloff_distance_mm,
     )
     restricted_arr = itk.array_from_image(restricted.GetDisplacementField())
+    smoothed_arr = itk.array_from_image(smoothed.GetDisplacementField())
 
     distance = np.linalg.norm(
         np.stack(np.meshgrid(*(3 * [np.arange(40.0) - 19.5]), indexing="ij"), axis=3),
         axis=3,
     )
     near = (distance > radius_mm + 1.0) & (distance < radius_mm + 2.0)
-    far = distance > radius_mm + falloff_distance_mm + 3.0
+    boundary = np.abs(distance - radius_mm) <= 0.5
+    reach_mm = 3.0 * np.linalg.norm(smoothed_arr[boundary], axis=1).max()
+    # Plus the one-voxel smoothing of the outside field.
+    far = distance > radius_mm + reach_mm + 4.0
 
     assert np.abs(restricted_arr[near]).max() > 0.5
     assert np.abs(restricted_arr[far]).max() < 1e-3
+
+
+def _restrict_radial(
+    radial: Any, normals: Any, weights: Any, interior: Any, sigma_mm: float
+) -> tuple[Any, Any]:
+    """Spread and restrict a radial field; return (restricted, unrestricted)."""
+    tools = ProcessTransforms()
+    weight_image = itk.image_from_array(weights)
+    smoothed = tools.smooth_deformation_field_transform(
+        _as_field(radial), sigma_mm, weight_image
+    ).GetDisplacementField()
+    normal_image = tools.smooth_deformation_field_transform(
+        _as_field(normals), sigma_mm, weight_image
+    ).GetDisplacementField()
+    restricted = tools.restrict_deformation_field_to_normal_falloff_outside_mask(
+        smoothed,
+        normal_image,
+        itk.image_from_array(interior),
+        direction_offset_mm=0.0,
+        direction_transition_mm=0.5,
+    )
+    return (
+        itk.array_from_image(restricted.GetDisplacementField()),
+        itk.array_from_image(smoothed),
+    )
+
+
+def test_restrict_deformation_field_falloff_never_folds() -> None:
+    """A large displacement fades slowly enough that the warp cannot fold.
+
+    The warp samples the image at x + u(x). Were u to fade faster than 1 mm
+    per mm outside the mask, that mapping would fold (a non-positive Jacobian
+    determinant) and the space a shrinking organ vacates would be filled with
+    its own unmoved tissue instead of the tissue around it.
+    """
+    # The grid holds the whole reach of the fade (3 x 8 mm past the surface).
+    radius_mm, sigma_mm, size = 12.0, 4.0, 76
+    normals, radial, _, weights, interior = _sphere_shell_samples(radius_mm, size)
+    # 8 mm at the surface, two thirds of the radius: a hard test for the fade.
+    restricted, _ = _restrict_radial(
+        radial * (8.0 / 3.0), normals, weights, interior, sigma_mm
+    )
+    # du_i/dx_j, with the array axes (z, y, x) reversed relative to (x, y, z).
+    gradient = np.stack(
+        [
+            np.stack(np.gradient(restricted[..., i]), axis=-1)[..., ::-1]
+            for i in range(3)
+        ],
+        axis=-2,
+    )
+    jacobian = np.linalg.det(np.eye(3) + gradient)
+    grid = np.arange(float(size)) - 0.5 * (size - 1)
+    distance = np.linalg.norm(
+        np.stack(np.meshgrid(grid, grid, grid, indexing="ij"), axis=3), axis=3
+    )
+    outside = (distance > radius_mm + 1.0) & (distance < 0.5 * size - 2.0)
+    assert np.abs(restricted[outside]).max() > 1.0
+    # The fade's slope is at most 0.5 mm per mm, so tissue at most halves.
+    assert jacobian[outside].min() > 0.4
+
+
+def test_restrict_deformation_field_falloff_follows_local_displacement() -> None:
+    """The push reaches further where the surface moves further."""
+    radius_mm, sigma_mm = 12.0, 4.0
+    normals, radial, _, weights, interior = _sphere_shell_samples(radius_mm)
+    size = radial.shape[0]
+    grid = np.arange(size, dtype=np.float64) - 0.5 * (size - 1)
+    # Surface displacement from 6 mm at +x down to 0 at -x.
+    scale = 0.5 * (1.0 + grid[None, None, :] / radius_mm)
+    restricted, _ = _restrict_radial(
+        radial * 2.0 * scale[..., None], normals, weights, interior, sigma_mm
+    )
+    center = size // 2
+    # 5 to 6 mm outside the surface on each side, along the x axis.
+    moving = np.linalg.norm(restricted[center, center, center + 17])
+    still = np.linalg.norm(restricted[center, center, center - 18])
+    assert moving > 0.5
+    assert still < 0.05 * moving
 
 
 def test_generate_grid_image_clamps_boundary_lines() -> None:
@@ -894,53 +957,6 @@ class TestProcessTransforms:
 
         print("Transform smoothing complete")
         print("  Smoothing sigma: 2.0")
-
-    def test_combine_transforms_with_masks(
-        self,
-        transform_tools: ProcessTransforms,
-        test_transforms: dict[str, Any],
-        test_images: list[Any],
-    ) -> None:
-        """Test combining transforms with spatial masks."""
-        fixed_to_moving_transform = test_transforms["fixed_to_moving_transform"]
-        fixed_image = test_images[0]
-
-        # Create identity transform
-        identity_tfm = itk.AffineTransform[itk.D, 3].New()
-        identity_tfm.SetIdentity()
-
-        # Create simple masks
-        img_size = itk.size(fixed_image)
-        img_size_tuple = (img_size[0], img_size[1], img_size[2])
-        mask1_arr = np.zeros(img_size_tuple[::-1], dtype=np.uint8)
-        mask2_arr = np.zeros(img_size_tuple[::-1], dtype=np.uint8)
-
-        # Split image in half
-        mask1_arr[:, :, : img_size_tuple[0] // 2] = 1
-        mask2_arr[:, :, img_size_tuple[0] // 2 :] = 1
-
-        mask1 = itk.image_from_array(mask1_arr)
-        mask1.CopyInformation(fixed_image)
-
-        mask2 = itk.image_from_array(mask2_arr)
-        mask2.CopyInformation(fixed_image)
-
-        print("\nCombining transforms with masks...")
-        print(f"  Mask 1 voxels: {np.sum(mask1_arr)}")
-        print(f"  Mask 2 voxels: {np.sum(mask2_arr)}")
-
-        # Combine transforms
-        combined_tfm = transform_tools.combine_transforms_with_masks(
-            fixed_to_moving_transform, identity_tfm, mask1, mask2, fixed_image
-        )
-
-        # Verify result
-        assert combined_tfm is not None, "Combined transform is None"
-        assert isinstance(combined_tfm, itk.DisplacementFieldTransform), (
-            "Should be a DisplacementFieldTransform"
-        )
-
-        print("Transforms combined with masks")
 
     def test_multiple_transform_applications(
         self,
