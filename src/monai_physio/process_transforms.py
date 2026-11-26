@@ -825,7 +825,7 @@ class ProcessTransforms(MONAIPhysioBase):
         its normal component there, and fades it with its distance from the
         mask. ``field`` is therefore read only on and inside the mask, never in
         the far tail of a spread field, where a sparse Gaussian spread is least
-        reliable. That outside field is then averaged over the largest voxel
+        reliable. That outside field is then averaged over the smallest voxel
         spacing, from outside voxels only, so that neighbors taking their
         displacement from distant parts of a concave boundary do not step
         against each other. A warning is
@@ -1011,7 +1011,10 @@ class ProcessTransforms(MONAIPhysioBase):
         # outside over a voxel or so, from outside voxels only so the organ's
         # own (tangential) motion does not leak out, removes those steps; the
         # mask and its contents keep the field as it was.
-        sigma_mm = float(spacing_mm.max())
+        # The smallest spacing keeps an anisotropic grid's fine axis from being
+        # blurred over many voxels, which would pull the first outside samples
+        # away from the restored interior and fold the field at the boundary.
+        sigma_mm = float(spacing_mm.min())
         outside_weight = self._smooth_scalar_array(
             outside.astype(np.float64), sigma_mm, mask
         )

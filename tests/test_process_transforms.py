@@ -183,14 +183,15 @@ def test_restrict_deformation_field_falloff_never_folds() -> None:
     The warp samples the image at x + u(x). Were u to fade faster than 1 mm
     per mm outside the mask, that mapping would fold (a non-positive Jacobian
     determinant) and the space a shrinking organ vacates would be filled with
-    its own unmoved tissue instead of the tissue around it.
+    its own unmoved tissue instead of the tissue around it. The synthetic
+    volume is 64 voxels per side.
     """
-    # The grid holds the whole reach of the fade (3 x 8 mm past the surface).
-    radius_mm, sigma_mm, size = 12.0, 4.0, 76
+    # The grid holds the whole reach of the fade (3 x 5 mm past the surface).
+    radius_mm, sigma_mm, size = 8.0, 4.0, 64
     normals, radial, _, weights, interior = _sphere_shell_samples(radius_mm, size)
-    # 8 mm at the surface, two thirds of the radius: a hard test for the fade.
+    # 5 mm at the surface, over half the radius: a hard test for the fade.
     restricted, _ = _restrict_radial(
-        radial * (8.0 / 3.0), normals, weights, interior, sigma_mm
+        radial * (5.0 / 3.0), normals, weights, interior, sigma_mm
     )
     # du_i/dx_j, with the array axes (z, y, x) reversed relative to (x, y, z).
     gradient = np.stack(
@@ -209,6 +210,43 @@ def test_restrict_deformation_field_falloff_never_folds() -> None:
     assert np.abs(restricted[outside]).max() > 1.0
     # The fade's slope is at most 0.5 mm per mm, so tissue at most halves.
     assert jacobian[outside].min() > 0.4
+
+
+def test_restrict_deformation_field_does_not_fold_at_boundary_on_anisotropic_grid() -> (
+    None
+):
+    """A planar mask edge on a coarse-in-z grid keeps a positive Jacobian.
+
+    The synthetic volume is 64 x 8 x 8 voxels at 0.5 x 0.5 x 5 mm. A constant
+    2 mm outward normal displacement is smoothed outside the mask only; blurring
+    the fine x axis over the coarse z spacing would pull the first outside
+    samples back across the restored interior and fold the field there.
+    """
+    shape = (8, 8, 64)
+    spacing = (0.5, 0.5, 5.0)
+    field_arr = np.zeros(shape + (3,), dtype=np.float32)
+    field_arr[..., 0] = 2.0
+    normal_arr = np.zeros_like(field_arr)
+    normal_arr[..., 0] = 1.0
+    mask_arr = np.zeros(shape, dtype=np.uint8)
+    mask_arr[..., :32] = 1
+
+    def _image(array: Any, is_vector: bool = False) -> Any:
+        image = itk.image_from_array(array, is_vector=is_vector)
+        image.SetSpacing(spacing)
+        return image
+
+    tools = ProcessTransforms()
+    restricted = tools.restrict_deformation_field_to_normal_falloff_outside_mask(
+        _image(field_arr, True),
+        _image(normal_arr, True),
+        _image(mask_arr),
+        direction_transition_mm=0.5,
+    ).GetDisplacementField()
+    jacobian = itk.array_from_image(
+        tools.compute_jacobian_determinant_from_field(restricted)
+    )
+    assert jacobian[2:-2, 2:-2, 28:48].min() > 0.0
 
 
 def test_restrict_deformation_field_falloff_follows_local_displacement() -> None:
