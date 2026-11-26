@@ -247,6 +247,50 @@ def test_restrict_deformation_field_does_not_fold_at_boundary_on_anisotropic_gri
         tools.compute_jacobian_determinant_from_field(restricted)
     )
     assert jacobian[2:-2, 2:-2, 28:48].min() > 0.0
+    # The interior keeps its motion and the outside is still pushed.
+    array = itk.array_from_image(restricted)
+    assert np.allclose(array[..., :32, 0], 2.0)
+    assert array[..., 32, 0].min() > 1.0
+
+
+def test_restrict_deformation_field_does_not_fold_between_slabs_on_coarse_axis() -> (
+    None
+):
+    """Two opposing slab faces across a gap on a coarse axis keep a positive Jacobian.
+
+    The synthetic volume is 24 x 8 x 8 voxels at 0.5 x 0.5 x 5 mm. The slabs
+    move toward each other by 6 mm along the coarse z axis, so the two exterior
+    slices between them take opposite displacements from their nearest slab;
+    only averaging over about a voxel along z removes that step.
+    """
+    shape = (24, 8, 8)
+    spacing = (0.5, 0.5, 5.0)
+    field_arr = np.zeros(shape + (3,), dtype=np.float32)
+    normal_arr = np.zeros_like(field_arr)
+    mask_arr = np.zeros(shape, dtype=np.uint8)
+    mask_arr[:7] = 1
+    mask_arr[9:] = 1
+    field_arr[:7, ..., 2] = 6.0
+    field_arr[9:, ..., 2] = -6.0
+    normal_arr[:7, ..., 2] = 1.0
+    normal_arr[9:, ..., 2] = -1.0
+
+    def _image(array: Any, is_vector: bool = False) -> Any:
+        image = itk.image_from_array(array, is_vector=is_vector)
+        image.SetSpacing(spacing)
+        return image
+
+    tools = ProcessTransforms()
+    restricted = tools.restrict_deformation_field_to_normal_falloff_outside_mask(
+        _image(field_arr, True),
+        _image(normal_arr, True),
+        _image(mask_arr),
+        direction_transition_mm=0.5,
+    ).GetDisplacementField()
+    jacobian = itk.array_from_image(
+        tools.compute_jacobian_determinant_from_field(restricted)
+    )
+    assert jacobian[5:11, 2:-2, 2:-2].min() > 0.0
 
 
 def test_restrict_deformation_field_falloff_follows_local_displacement() -> None:

@@ -825,8 +825,8 @@ class ProcessTransforms(MONAIPhysioBase):
         its normal component there, and fades it with its distance from the
         mask. ``field`` is therefore read only on and inside the mask, never in
         the far tail of a spread field, where a sparse Gaussian spread is least
-        reliable. That outside field is then averaged over the smallest voxel
-        spacing, from outside voxels only, so that neighbors taking their
+        reliable. That outside field is then averaged over one voxel along each
+        axis, from outside voxels only, so that neighbors taking their
         displacement from distant parts of a concave boundary do not step
         against each other. A warning is
         logged if the result still folds.
@@ -1011,10 +1011,11 @@ class ProcessTransforms(MONAIPhysioBase):
         # outside over a voxel or so, from outside voxels only so the organ's
         # own (tangential) motion does not leak out, removes those steps; the
         # mask and its contents keep the field as it was.
-        # The smallest spacing keeps an anisotropic grid's fine axis from being
-        # blurred over many voxels, which would pull the first outside samples
-        # away from the restored interior and fold the field at the boundary.
-        sigma_mm = float(spacing_mm.min())
+        # One voxel along each axis: a coarse axis keeps the averaging that
+        # removes those steps, and a fine axis is not blurred over many voxels,
+        # which would pull the first outside samples away from the restored
+        # interior and fold the field at the boundary.
+        sigma_mm = spacing_mm
         outside_weight = self._smooth_scalar_array(
             outside.astype(np.float64), sigma_mm, mask
         )
@@ -1048,17 +1049,20 @@ class ProcessTransforms(MONAIPhysioBase):
 
     @staticmethod
     def _smooth_scalar_array(
-        array: np.ndarray, sigma: float, reference_image: itk.Image
+        array: np.ndarray, sigma: Union[float, np.ndarray], reference_image: itk.Image
     ) -> np.ndarray:
         """Gaussian-smooth a scalar array on ``reference_image``'s grid.
 
         The array is wrapped with the reference geometry before filtering, so
-        ``sigma`` is in millimeters rather than in voxels.
+        ``sigma`` is in millimeters rather than in voxels: one value, or one per
+        axis in the image's (x, y, z) order.
         """
         image = itk.image_from_array(np.ascontiguousarray(array))
         image.CopyInformation(reference_image)
         smoothed: np.ndarray = itk.array_from_image(
-            itk.smoothing_recursive_gaussian_image_filter(image, Sigma=sigma)
+            itk.smoothing_recursive_gaussian_image_filter(
+                image, SigmaArray=np.broadcast_to(sigma, (3,)).tolist()
+            )
         )
         return smoothed
 
