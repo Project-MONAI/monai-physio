@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "label": "nightly health",
+  "message": "unknown",
+  "color": "critical"
+}
